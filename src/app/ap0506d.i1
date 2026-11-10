@@ -1,0 +1,88 @@
+/***************************************************************************
+**
+** app/ap0506d.i1 - Include verifica se movimento foi contabilizado
+**
+****************************************************************************/
+
+    if  che-emit.transacao = 1 then do: /* "IMD" */ 
+        find first espec-ap no-lock
+            where espec-ap.cod-esp = che-emit.cod-esp no-error.
+        if  avail espec-ap then do:
+            assign i-tipo = 2. /* AN */
+        end.
+    end.
+    
+    find first mov-ap use-index codigo
+        where mov-ap.ep-codigo    = che-emit.ep-codigo
+        and   mov-ap.cod-fornec   = che-emit.cod-fornec
+        and   mov-ap.cod-estabel  = che-emit.cod-estabel
+        and   mov-ap.cod-esp      = che-emit.cod-esp
+        and   mov-ap.serie        = che-emit.serie
+        and   mov-ap.nr-docto     = che-emit.nr-docto
+        and   mov-ap.parcela      = che-emit.parcela
+        and   mov-ap.portador     = che-emit.portador
+        and   mov-ap.nr-cheque    = che-emit.nr-cheque
+        {1}
+        and ((mov-ap.transacao    = 2   /* BND */
+        or    mov-ap.transacao    = 3   /* PEF */
+        or    mov-ap.transacao    = 4)  /* PEC */
+        or   (mov-ap.transacao    = 1   /* IMD */
+        and   i-tipo              = 2)) /* AN  */
+        and   mov-ap.contabilizou = yes 
+        no-lock no-error.
+    
+    if  avail mov-ap then do :
+        /* Movimento foi contabilizado, nao pode ser eliminado */
+        run utp/ut-msgs.p (input "show",
+                           input 8686,
+                           input string(che-emit.nr-cheque) + "~~" +
+                                 string(che-emit.ep-codigo) + "~~" +
+                                        mov-ap.cod-estabel  + "~~" +
+                                        mov-ap.cod-esp      + "~~" +
+                                        mov-ap.serie        + "~~" +
+                                        mov-ap.nr-docto     + "~~" +
+                                        mov-ap.parcela      + "~~" +
+                                 string(mov-ap.cod-fornec)  + "~~" +
+                                 string(mov-ap.transacao)  
+                                  + "   -   "  +
+                                 string(mov-ap.dt-transacao)).
+        assign l-erro = yes.
+        leave.
+    end.    
+    
+    if  che-emit.transacao = 1 and i-tipo = 2 then do:    
+        find first tit-ap
+            where  tit-ap.ep-codigo    = che-emit.ep-codigo
+            and    tit-ap.cod-fornec   = che-emit.cod-fornec
+            and    tit-ap.cod-estabel  = che-emit.cod-estabel
+            and    tit-ap.cod-esp      = che-emit.cod-esp
+            and    tit-ap.serie        = che-emit.serie
+            and    tit-ap.nr-docto     = che-emit.nr-docto
+            and    tit-ap.parcela      = che-emit.parcela
+            no-lock no-error.
+                    
+        if  not avail tit-ap then do:
+            /* Titulo nao cadastrado */
+            run utp/ut-msgs.p (input "show",
+                               input 474,
+                               input string(che-emit.ep-codigo) + "~~" +
+                                            che-emit.cod-estabel  + "~~" +
+                                            che-emit.cod-esp      + "~~" +
+                                            che-emit.serie        + "~~" +
+                                            che-emit.nr-docto     + "~~" +
+                                            che-emit.parcela).
+            assign l-erro = yes.
+            leave.
+        end.
+        
+        if  tit-ap.valor-saldo < tit-ap.vl-original then do:
+            /* Cheque nao pode ser cancelado. Antecipacao ja foi utilizada */
+            run utp/ut-msgs.p (input "show",
+                               input 883,
+                               input "").
+            assign l-erro = yes.
+            leave.
+        end.
+    end.
+    
+/*** Fim da Include ***/    

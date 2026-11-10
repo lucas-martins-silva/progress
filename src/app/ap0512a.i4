@@ -1,0 +1,54 @@
+/**********************************************************************************************/
+/* Defini‡Æo Form - ap0512a.i4                                                                */
+/**********************************************************************************************/
+
+form
+   skip(1)
+   c-reg-lidos no-label
+   skip
+   i-lido-tit-ap     colon 30
+   i-lido-mov-ap     colon 30
+   i-lido-outros-ap  colon 30
+   skip(1)
+   c-reg-elim no-label
+   skip
+   i-apaga-tit-ap    colon 30
+   i-apaga-mov-ap    colon 30
+   i-apaga-outros-ap colon 30
+   with no-box side-labels stream-io width 132 frame f-contador-ap.
+run utp/ut-trfrrp.p (input frame f-contador-ap:handle).
+
+
+{utp/ut-liter.i REGISTROS_LIDOS}
+assign c-reg-lidos = trim(return-value).
+
+{utp/ut-liter.i REGISTROS_ELIMINADOS}
+assign c-reg-elim = trim(return-value).
+
+{utp/ut-liter.i T¡tulos}
+assign i-lido-tit-ap:label  in frame f-contador-ap = trim(return-value)
+       i-apaga-tit-ap:label in frame f-contador-ap = trim(return-value).
+
+{utp/ut-liter.i Movimentos}
+assign i-lido-mov-ap:label  in frame f-contador-ap = trim(return-value)
+       i-apaga-mov-ap:label in frame f-contador-ap = trim(return-value).
+
+{utp/ut-liter.i Outros}
+assign i-lido-outros-ap:label  in frame f-contador-ap = trim(return-value)
+       i-apaga-outros-ap:label in frame f-contador-ap = trim(return-value).
+
+form
+    tit-ap.ep-codigo
+    tit-ap.cod-est
+    tit-ap.cod-esp
+    tit-ap.serie
+    tit-ap.cod-fornec 
+    tit-ap.nr-docto
+    tit-ap.parcela
+    c-erro
+    skip(2)
+    with width 132 down no-box frame f-nao-eli-ap stream-io.
+run utp/ut-trfrrp.p (input frame f-nao-eli-ap:handle).    
+
+{utp/ut-liter.i Ocorrˆncia}
+assign c-erro:label in frame f-nao-eli-ap = trim(return-value).

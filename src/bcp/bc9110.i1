@@ -1,0 +1,210 @@
+def temp-table tterrogeneratebo no-undo like tt-erro.
+
+Procedure _GenerateDCTransaction2d:
+    Define Input Param pCd-trans              As Character   Format "x(8)":U     No-undo.
+    Define Input Param pConteudo-trans        As Raw                             No-undo.
+    Define Input Param pDetalhe               As Character   Format "x(60)":U    No-undo.
+    Define Input Param pUsuario               As Character   Format "x(12)":U    No-undo.
+    
+    DEF BUFFER ttgerenerate2d FOR {&temptable}.
+    
+    DEF VAR c-cod-layout                      AS INTEGER                         NO-UNDO.
+    DEF VAR l-log-datasul                     AS LOGICAL                         NO-UNDO.
+    DEF VAR i-num-versao                      AS INTEGER                         NO-UNDO.
+    DEF VAR c-descricao                       AS CHARACTER                       NO-UNDO.
+    DEF VAR h-bcapi017                        AS HANDLE                          NO-UNDO.
+    DEF VAR v-seq-filho                       AS INTEGER                         NO-UNDO.
+    DEF VAR h-bcapi001                        AS HANDLE                          NO-UNDO.
+    DEF VAR hBOCL029                          AS HANDLE                          NO-UNDO.
+
+    CREATE ttgerenerate2d.
+    RAW-TRANSFER pconteudo-trans TO ttgerenerate2d.
+
+    for each tt-erro-after-GenerateDC:
+        delete tt-erro-after-GenerateDC.
+    end.
+
+    Run 'bcp/bcapi010.p':U Persistent Set wgapi010.
+
+    Create tt-bc-tipo-trans.
+    Assign tt-bc-tipo-trans.cd-trans              = pCd-trans
+           tt-bc-tipo-trans.cod-versao-integracao = 001.
+
+    Run Pi-bc-tipo-trans in wgapi010 (Input-Output  table tt-bc-tipo-trans,
+                                      Input-Output  table tt-erro{&Ext}).
+
+    For each tt-erro{&Ext}:
+       
+        create tt-erro-after-GenerateDC.
+        buffer-copy tt-erro{&Ext} to tt-erro-after-GenerateDC.
+    
+    End.   
+   
+    if  Valid-Handle(wgapi010) Then
+        Delete Object wgapi010.
+
+    If  Can-Find(First tt-erro{&Ext}) Then
+        Return Error.
+    
+    /***/
+
+    /* Preparaá∆o dos dados */
+    EMPTY TEMP-TABLE tt-campos.
+    EMPTY TEMP-TABLE tt-erro.
+    EMPTY TEMP-TABLE tt-trans.
+    EMPTY TEMP-TABLE tt-trans-filho.
+    EMPTY TEMP-TABLE tt-xml.
+    EMPTY TEMP-TABLE tterrogeneratebo.
+                          
+    if  ttgerenerate2d.nome-abrev <> "" then do:     
+        
+        RUN clbo/bocl029.p PERSISTENT SET hBOCL029.
+                  
+        /* le bc-emitente-etiqueta para ver se emitente possui parametro para 2d */
+        
+        RUN OpenQueryStatic IN hBOCL029 ("Main":U).
+        
+        RUN gotoKey IN hBOCL029 (1 /* entrada */, {&TempTable}.nome-abrev).
+        
+        IF  RETURN-VALUE = "NOK":U THEN DO:
+            
+            RUN utp/ut-msgs.p ("msg":U, 25934, {&TempTable}.nome-abrev).
+            {bcp/bc9111.i "25934" " " " " " + return-value"}
+            
+            RUN destroy IN hbocl029.
+            
+            Return Error.   
+        
+        END.
+        
+        RUN getDadosLayout IN hBOCL029 (OUTPUT c-cod-layout, OUTPUT l-log-datasul, OUTPUT i-num-versao, OUTPUT c-descricao).
+        
+        RUN getIntField    IN hBOCL029 ("tipo-etiq":U, OUTPUT ttgerenerate2d.tipo-etiq).
+       
+        RUN destroy IN hbocl029. 
+    end.
+    else do:
+        
+        RUN obtemLayoutEtiqueta IN h-bcapi017 (tt-bc-tipo-trans.tipo-etiq,
+                                               OUTPUT c-cod-layout, OUTPUT l-log-datasul, OUTPUT i-num-versao,
+                                               INPUT-OUTPUT TABLE tterrogeneratebo).
+
+        FOR each tterrogeneratebo:
+            {bcp/bc9111.i "tterrogeneratebo.cd-erro" " " " " " + tterrogeneratebo.mensagem"}            
+        END.
+        
+        If  Can-Find(First tterrogeneratebo) Then
+            Return Error.
+            
+    end.
+    
+    /* decodifica a string obtendo tt-campos */
+    RUN bcp/bcapi019.p (ttgerenerate2d.nome-abrev,
+                        pCd-trans,                        
+                        ttgerenerate2d.conteudo,                        
+                        OUTPUT TABLE tt-campos,
+                        OUTPUT TABLE tt-erro,
+                        OUTPUT i-num-versao).
+
+    For each tt-erro{&Ext}:
+       
+        create tt-erro-after-GenerateDC.
+        buffer-copy tt-erro{&Ext} to tt-erro-after-GenerateDC.
+    
+    End.
+
+    IF  RETURN-VALUE = "NOK":U THEN DO:
+        Return Error.
+    END.
+    
+    RUN bcp/bcapi017.p PERSISTENT SET h-bcapi017.
+    
+    RUN geraXML IN h-bcapi017 (INPUT TABLE tt-campos, OUTPUT TABLE tt-xml).
+    
+    DELETE PROCEDURE h-bcapi017.
+        
+    /* geraá∆o do campo detalhe */
+    IF  pDetalhe = "" THEN DO:
+        pDetalhe = pCD-trans + " -> ":U.
+        {utp/ut-liter.i "Emitente"}
+        pDetalhe = pDetalhe + TRIM(RETURN-VALUE) + ": ":U 
+                  + ttgerenerate2d.nome-abrev
+                  + ", ":U.
+        {utp/ut-liter.i "Tipo-Etiqueta"}
+        pDetalhe = pDetalhe + TRIM(RETURN-VALUE) + ": ":U
+                  + string(ttgerenerate2d.tipo-etiq)
+                  + ", ":U.
+        {utp/ut-liter.i "Layout"}
+        pDetalhe = pDetalhe + TRIM(RETURN-VALUE) + ": ":U
+                  + STRING(c-cod-layout)
+                  + ", ":U.
+        {utp/ut-liter.i "Padr∆o Datasul"}
+        pDetalhe = pDetalhe + TRIM(RETURN-VALUE) + ": ":U
+                  + STRING(l-log-datasul)
+                  + ", ":U.
+        {utp/ut-liter.i "Vers∆o"}
+        pDetalhe = pDetalhe + TRIM(RETURN-VALUE) + ": ":U
+                  + STRING(i-num-versao).
+    END.
+
+    /* geraá∆o dos dados para movimento pai (bc-trans) */
+    
+    Create  tt-trans.
+    Assign  tt-trans.cod-versao-integracao  = 001
+            tt-trans.i-sequen               = 1
+            tt-trans.cd-trans               = pCd-trans
+            tt-trans.detalhe                = pDetalhe
+            tt-trans.usuario                = pUsuario
+            tt-trans.conteudo-trans         = pConteudo-trans
+            tt-trans.atualizada             = No
+            tt-trans.etiqueta               = NO.
+
+    /* gera movimentos filhos (bc-trans-filho) */    
+    FOR EACH tt-xml: 
+        v-seq-filho = v-seq-filho + 1.
+        CREATE tt-trans-filho.
+        ASSIGN tt-trans-filho.cod-versao-integracao = 1
+               tt-trans-filho.i-sequen-pai = tt-trans.i-sequen
+               tt-trans-filho.i-sequen     = v-seq-filho
+               tt-trans-filho.tipo-etiq    = ttgerenerate2d.tipo-etiq
+               tt-trans-filho.num-versao   = i-num-versao
+               tt-trans-filho.segmento     = tt-xml.segmento
+               tt-trans-filho.registro     = tt-xml.registro
+               tt-trans-filho.conteudo-xml = tt-xml.conteudo.
+        
+    END.
+
+    /* atualizaá∆o do movimento */
+    /* Quando BCAPI001.P Ç executado "persistent" retorna sem gravar transaá∆o */
+    /* obs: Ç preciso passar os parametros normalmente tt-trans e tt-erro */
+    RUN bcp/bcapi001.p PERSISTENT SET h-bcapi001 (INPUT-OUTPUT TABLE tt-trans, 
+                                                  INPUT-OUTPUT TABLE tt-erro).
+    
+    /* atualizaá∆o efetiva da transaá∆o */
+    RUN atualizaTransacao IN h-bcapi001 (INPUT-OUTPUT TABLE tt-trans, 
+                                         INPUT-OUTPUT TABLE tt-trans-ext,
+                                         INPUT-OUTPUT TABLE tt-trans-filho,
+                                         INPUT-OUTPUT TABLE tt-erro).
+
+    DELETE PROCEDURE h-bcapi001.
+
+    For each tt-erro{&Ext}:
+       
+        create tt-erro-after-GenerateDC.
+        buffer-copy tt-erro{&Ext} to tt-erro-after-GenerateDC.
+    
+    End.
+
+    If  Can-Find(First tt-erro{&Ext})
+    And Available tt-bc-tipo-trans
+    And tt-bc-tipo-trans.erros-on-line
+    Then
+        Return Error.
+
+    For each tt-erro{&Ext}:
+    
+        Delete tt-erro{&Ext}.
+    
+    End.
+    
+End Procedure.

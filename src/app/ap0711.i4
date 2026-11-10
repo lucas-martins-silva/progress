@@ -1,0 +1,308 @@
+/*************************************************************************
+* Include   : app\ap0711.i4 
+*  Autor    : DATASUL S.A.
+* utiliza‡Æo: ap0711rp.p
+**************************************************************************/
+
+
+          if  first-of(mov-ap.cod-fornec) then
+             assign l-primeiro2 = yes.
+
+          if  mov-ap.cod-esp <> " " then do:        
+              find first tit-ap
+                   where tit-ap.ep-codigo   = mov-ap.ep-codigo
+                   and   tit-ap.cod-estabel = mov-ap.cod-estabel
+                   and   tit-ap.cod-esp     = mov-ap.cod-esp
+                   and   tit-ap.serie       = mov-ap.serie
+                   and   tit-ap.nr-docto    = mov-ap.nr-docto
+                   and   tit-ap.parcela     = mov-ap.parcela
+                   and   tit-ap.cod-fornec  = mov-ap.cod-fornec no-lock no-error.
+    
+              if  not avail tit-ap then
+                  next.
+          end.
+                
+          {cdp/cd9600.i "tt-param.moeda"
+                        "tt-param.dt-conversao"
+                        "de-calc-cotacao"
+                        "return error."}
+
+          {app/ap9999.i2 "mov-ap"
+                         "tt-param.moeda"
+                         "tit-ap"}
+
+          find espec-ap
+              where espec-ap.cod-esp = mov-ap.cod-esp no-lock no-error.
+          assign i-tipo-esp = if  avail espec-ap then espec-ap.tipo else 0.
+
+          if  first-of(mov-ap.cod-fornec) and l-ultimo = yes then do:
+              disp c-total
+                   de-tot-pagto
+                   de-tot-juros /*space(1)*/
+                   de-tot-desc
+                   &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                   de-tot-multa
+                   de-tot-abat
+                   &endif
+                   with frame f-total.
+              assign de-tot-pagto = 0
+                     de-tot-juros = 0
+                     de-tot-desc  = 0
+                     &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                     de-tot-multa = 0
+                     de-tot-abat  = 0
+                     &endif
+                     atraso     = 0
+                     l-ultimo     = no.
+          end.
+
+          if  mov-ap.transacao = 1 
+          and i-tipo-esp       = 2 
+          and mov-ap.referencia begins "TRAN" then
+              next.
+
+         if  tt-param.tipo = 1
+         and mov-ap.referencia begins "BORD" then next.
+
+         if  mov-ap.transacao  = 5
+         and mov-ap.lancamento = 1 then
+             next.
+
+         if  i-tipo-esp = 2
+         and tt-param.tipo <> 5
+         and tt-param.tipo <> 4
+         and tt-param.tipo <> 2 then
+             next.
+
+         if  tt-param.acerto = yes then do:
+            if  mov-ap.transacao <> c-transacao1
+            and mov-ap.transacao <> c-transacao2
+            and mov-ap.transacao <> c-transacao3
+            and mov-ap.transacao <> c-transacao4
+            and mov-ap.transacao <> c-transacao5 then
+                next.
+         end.
+         else do:
+            if  mov-ap.transacao <> c-transacao1
+            and mov-ap.transacao <> c-transacao2
+            and mov-ap.transacao <> c-transacao3
+            and mov-ap.transacao <> c-transacao4 then
+                next.
+         end.
+
+         if  mov-ap.transacao = 3
+         and mov-ap.portador  = 0
+         and i-tipo-esp = 2 then
+             next.
+
+         if (mov-ap.transacao = 3 or mov-ap.transacao = 4)
+         and mov-ap.portador > 0
+         and mov-ap.port-transf > 0
+         and tt-param.transf = no then
+             next.
+             
+        find first emitente
+             where emitente.cod-emitente = mov-ap.cod-fornec
+             and   emitente.identific <> 1
+             and   emitente.cod-gr-forn >= tt-param.grupo-ini
+             and   emitente.cod-gr-forn <= tt-param.grupo-fim no-lock no-error.
+         if not avail emitente then
+            next.
+
+         if  tt-param.tipo = 1 or tt-param.tipo = 2 or tt-param.tipo = 5 then do:
+             if  mov-ap.transacao = 3 or mov-ap.transacao = 4 then
+                 assign de-valor-conv = de-calc-valor-mov.
+             else
+                 assign de-valor-conv = de-calc-valor-mov - de-calc-vl-antecip.
+
+             if  de-valor-conv = 0 then 
+                 next.
+         end.
+         else
+             assign de-valor-conv = de-calc-valor-mov.
+           
+         if (tt-param.tipo = 4
+         or (tt-param.tipo = 5 and mov-ap.transacao = 1))
+         and i-tipo-esp <> 2 then
+             next.
+
+         if  mov-ap.transacao = 4 or (mov-ap.transacao = 3 and i-tipo-esp = 2) then
+             assign de-ger-pagto     = de-ger-pagto - de-valor-conv
+                    de-tot-pagto     = de-tot-pagto - de-valor-conv
+                    de-ger-juros     = de-ger-juros - de-calc-valor-juros
+                    de-tot-juros     = de-tot-juros - de-calc-valor-juros
+                    de-ger-desc      = de-ger-desc  - de-calc-vl-desconto
+                    de-tot-desc      = de-tot-desc  - de-calc-vl-desconto
+                    de-pagto-estabel = de-pagto-estabel - de-valor-conv
+                    de-juros-estabel = de-juros-estabel - de-calc-valor-juros
+                    de-desc-estabel  = de-desc-estabel  - de-calc-vl-desconto
+                    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                    de-ger-multa     = de-ger-multa - de-calc-valor-multa
+                    de-tot-multa     = de-tot-multa - de-calc-valor-multa
+                    de-ger-abat      = de-ger-abat  - de-calc-valor-abat
+                    de-tot-abat      = de-tot-abat  - de-calc-valor-abat
+                    de-multa-estabel = de-multa-estabel - de-calc-valor-multa
+                    de-abat-estabel  = de-abat-estabel  - de-calc-valor-abat
+                    &endif
+                    .
+         else
+             assign de-ger-pagto     = de-ger-pagto + de-valor-conv
+                    de-tot-pagto     = de-tot-pagto + de-valor-conv
+                    de-ger-juros     = de-ger-juros + de-calc-valor-juros
+                    de-tot-juros     = de-tot-juros + de-calc-valor-juros
+                    de-ger-desc      = de-ger-desc  + de-calc-vl-desconto
+                    de-tot-desc      = de-tot-desc  + de-calc-vl-desconto
+                    de-pagto-estabel = de-pagto-estabel + de-valor-conv
+                    de-juros-estabel = de-juros-estabel + de-calc-valor-juros
+                    de-desc-estabel  = de-desc-estabel + de-calc-vl-desconto
+                    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                    de-ger-multa     = de-ger-multa + de-calc-valor-multa
+                    de-tot-multa     = de-tot-multa + de-calc-valor-multa
+                    de-ger-abat      = de-ger-abat  + de-calc-valor-abat
+                    de-tot-abat      = de-tot-abat  + de-calc-valor-abat
+                    de-multa-estabel = de-multa-estabel + de-calc-valor-multa
+                    de-abat-estabel  = de-abat-estabel + de-calc-valor-abat
+                    &endif
+                    .
+
+         assign da-vencim = if  mov-ap.cod-esp <> "" and avail tit-ap then
+                                tit-ap.dt-vencimen
+                            else
+                                mov-ap.dt-vencimen.
+         
+         find calen-coml
+             where calen-coml.ep-codigo   = mov-ap.ep-codigo
+             and   calen-coml.cod-estabel = mov-ap.cod-estabel
+             and   calen-coml.data        = da-vencim
+             no-lock no-error.
+         if  avail calen-coml then do:
+             i-semana   = weekday(da-vencim).
+             if  calen-coml.tipo-dia <> 1 then do:
+                 if  (i-semana = 7 and emitente.ven-sabado = 1)
+                 or  (i-semana = 1 and emitente.ven-domingo = 1)
+                 or  (i-semana > 1 and i-semana < 7
+                 and emitente.ven-feriado = 1) then repeat:
+                     assign da-vencim = da-vencim + 1.
+                     find calen-coml
+                         where calen-coml.ep-codigo = mov-ap.ep-codigo
+                         and   calen-coml.cod-estabel = mov-ap.cod-estabel
+                         and   calen-coml.data  = da-vencim
+                         no-lock no-error.
+                     if  not avail calen-coml then do:
+                         run utp/ut-msgs.p (input "help",
+                                            input 1723,
+                                            input string(mov-ap.ep-codigo) + "~~" +
+                                                  string(mov-ap.cod-estabel) + "~~" + 
+                                                  string(da-vencim)).
+                         assign c-mensagem = return-value.
+                         disp c-mensagem with frame f-mensagem.
+                         next.
+                     end.
+                     if  calen-coml.tipo = 1 then
+                         leave.
+                 end.
+
+                 if  (i-semana = 7 and emitente.ven-sabado = 2)
+                 or  (i-semana = 1 and emitente.ven-domingo = 2)
+                 or  (i-semana > 1 and i-semana < 7
+                 and emitente.ven-feriado = 2) then repeat:
+                     assign da-vencim = da-vencim - 1.
+                     find calen-coml
+                         where calen-coml.ep-codigo = mov-ap.ep-codigo
+                         and   calen-coml.cod-estabel = mov-ap.cod-estabel
+                         and   calen-coml.data  = da-vencim
+                         no-lock no-error.
+                     if  not avail calen-coml then do:
+                         run utp/ut-msgs.p (input "help",
+                                            input 1723,
+                                            input string(mov-ap.ep-codigo) + "~~" +
+                                                  string(mov-ap.cod-estabel) + "~~" + 
+                                                  string(da-vencim)).
+                         assign c-mensagem = return-value.
+                         disp c-mensagem with frame f-mensagem.
+                         next.
+                    end.
+                     if  calen-coml.tipo-dia = 1 then
+                         leave.
+                 end.
+             end.
+       end.
+      
+
+       if  da-vencim = mov-ap.dt-transacao then
+           assign atraso = 0.
+       else
+           if  mov-ap.cod-esp <> "" and avail tit-ap then
+               assign atraso = (mov-ap.dt-transacao - tit-ap.dt-vencimen).
+           else
+               assign atraso = (mov-ap.dt-transacao - mov-ap.dt-vencimen).
+                  
+       if  l-primeiro = yes then do:
+            disp estabelec.cod-estabel
+                estabelec.nome
+                with frame f-desc-estabel.
+           assign l-primeiro = no
+                  l-ultimo   = yes
+                  l-exist-gr = yes.
+       end.
+       if l-primeiro2 = yes then do:   
+          disp c-emitente
+                 emitente.cod-emitente
+                 emitente.nome-emit
+                 emitente.cidade
+                 emitente.telefone[1] 
+                 with frame f-emitente.
+          assign l-primeiro2 = no
+                 l-ultimo    = yes. 
+       end.           
+
+       assign de-juros-conv = de-calc-valor-juros
+              de-desc-conv  = de-calc-vl-desconto
+              &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+              de-multa-conv = de-calc-valor-multa
+              de-abat-conv  = de-calc-valor-abat
+              &endif.
+                  
+       assign c-docto = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto.
+
+       if  mov-ap.transacao = 4 then
+           assign de-valor-conv = de-valor-conv * -1.
+
+           if  mov-ap.cod-esp <> "" and avail tit-ap then
+               assign da-venc-disp = tit-ap.dt-vencimen.
+           else
+               assign da-venc-disp = mov-ap.dt-vencimen.
+
+          disp mov-ap.cod-estabel
+               mov-ap.cod-esp
+               mov-ap.serie
+               c-docto
+               mov-ap.parcela
+               mov-ap.nr-bordero
+               mov-ap.referencia
+               mov-ap.portador
+               da-venc-disp @ mov-ap.dt-vencimen
+               mov-ap.dt-transacao
+               atraso
+               mov-ap.nr-cheque 
+               de-valor-conv
+               de-juros-conv 
+               de-desc-conv 
+               &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+               de-multa-conv 
+               de-abat-conv 
+               &endif
+               with frame f-mov-impl2.
+          down with frame f-mov-impl2.  
+
+          if  tt-param.lista    =  yes
+          and (mov-ap.transacao = 3 or mov-ap.transacao = 4)
+          and  mov-ap.historico <> " " then do:
+              disp mov-ap.historico with frame f-historico.
+              down with frame f-historico.
+          END.
+
+          run pi-acompanhar in h-acomp (input string(mov-ap.cod-fornec) 
+                                        + " - " + mov-ap.nome-abrev).
+                                        
+/* fim ap0711.i4 */

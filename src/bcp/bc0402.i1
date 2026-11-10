@@ -1,0 +1,33 @@
+/*************************************************************************
+**   Include:  bc0402.i1
+**
+**   Cria‡Æo:  20/05/97 - Defini‡Æo das Temp-Table.
+**
+*************************************************************************/
+
+
+
+
+define temp-table tt-param
+    field destino          as integer
+    field arquivo          as char
+    field usuario          as char format "x(12)"
+    field data-exec        as date
+    field hora-exec        as integer
+    field i-tipo-etiq      like etiqueta.tipo-etiq
+    field l-imp-etiq       as logical
+    field l-no-imp-etiq    as logical
+    field l-acrescentar    as logical
+    field data-geracao-ini like etiqueta.data-geracao
+    field data-geracao-fim like etiqueta.data-geracao
+    field de-nr-trans-ini  like etiqueta.nr-trans
+    field de-nr-trans-fim  like etiqueta.nr-trans
+    field de-nr-etiq-ini   like etiqueta.nr-etiq
+    field de-nr-etiq-fim   like etiqueta.nr-etiq 
+    field c-imp            like bc-tipo-trans.nom-impressora
+    field c-arq-saida      as char format "x(30)".
+
+def temp-table tt-raw-digita
+    field raw-digita        as raw.
+    
+def var raw-param        as raw no-undo.    

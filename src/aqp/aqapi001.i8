@@ -1,0 +1,100 @@
+/*soma de bonus para apuração de valores*/
+
+FOR EACH tt-rd-fechto:
+
+    FOR EACH fechto-produt-period EXCLUSIVE-LOCK WHERE ROWID(fechto-produt-period) = tt-rd-fechto.r-rd-fechto
+                                               BREAK BY fechto-produt-period.cod-propried
+                                                     BY fechto-produt-period.cdn-produt-rural:   
+
+        /*caso já tenha fechto com situacao diferente de pendente, nao ira alterar*/
+        IF fechto-produt-period.idi-situacao <> 1 THEN  /*pendente*/
+            NEXT.
+        
+        /*TT-DIGITA - FILTRA ROTAS*/
+        IF CAN-FIND(FIRST tt-digita) THEN DO: /*caso tenha alguma tt-digita, o usuário informou rotas na tela*/
+            IF NOT CAN-FIND(FIRST tt-digita WHERE tt-digita.cod-rota = fechto-produt-period.cod-rota) THEN /* caso não encontre a rota da carga na tt-digita */
+                NEXT.                                                                                      /* não usará esta carga no fechamento             */
+        END.
+
+        FOR EACH tt-regra-form-preco 
+            BREAK BY tt-regra-form-preco.cdn-abrangen:            
+            
+            ASSIGN l-achou = FALSE.
+
+            CASE tt-regra-form-preco.cdn-abrangen:
+                WHEN 1 THEN DO: /*Ponto Coleta*/
+                    FOR FIRST produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK
+                        WHERE produt-pto-coleta.cdn-produt-rural = fechto-produt-period.cdn-produt-rural
+                          AND produt-pto-coleta.cod-propried     = fechto-produt-period.cod-propried:
+                        IF produt-pto-coleta.cod-pto-coleta <> tt-regra-form-preco.cod-pto-coleta THEN
+                        NEXT.
+                        ASSIGN l-achou = TRUE.    
+                    END.
+                END.
+                WHEN 2 THEN DO: /*Propriedade*/
+                    IF fechto-produt-period.cod-propried <> tt-regra-form-preco.cod-propried THEN
+                        NEXT.
+                    ASSIGN l-achou = TRUE.    
+                END.
+                WHEN 3 THEN DO: /*Produtor*/
+                    IF fechto-produt-period.cdn-produt-rural <> tt-regra-form-preco.cdn-produt-rural THEN
+                        NEXT.
+                    ASSIGN l-achou = TRUE.
+                END.
+                WHEN 4 THEN DO: /*Grupo*/
+                    FOR FIRST produt-rural FIELDS(cdn-grp-produt) NO-LOCK 
+                        WHERE produt-rural.cdn-produt-rural = fechto-produt-period.cdn-produt-rural:
+                        IF produt-rural.cdn-grp-produt <> tt-regra-form-preco.cdn-grp-produt THEN
+                            NEXT.
+                        ASSIGN l-achou = TRUE.
+                    END.
+                END.
+                WHEN 5 THEN DO: /*Rota*/
+                    FOR FIRST produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK 
+                        WHERE produt-pto-coleta.cdn-produt-rural = fechto-produt-period.cdn-produt-rural
+                          AND produt-pto-coleta.cod-propried     = fechto-produt-period.cod-propried:
+                        FOR FIRST pto-rota-coleta FIELDS(cod-rota) NO-LOCK 
+                            WHERE pto-rota-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:    
+                            IF pto-rota-coleta.cod-rota <> tt-regra-form-preco.cod-rota THEN
+                            NEXT.
+                            ASSIGN l-achou = TRUE.
+                        END.
+                    END.
+                END.
+                WHEN 6 THEN DO: /*Região*/
+                    FOR FIRST produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK 
+                        WHERE produt-pto-coleta.cdn-produt-rural = fechto-produt-period.cdn-produt-rural
+                          AND produt-pto-coleta.cod-propried     = fechto-produt-period.cod-propried:
+                        FOR FIRST pto-coleta FIELDS(cod-regiao) NO-LOCK 
+                            WHERE pto-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:
+                            IF pto-coleta.cod-regiao <> tt-regra-form-preco.cod-regiao THEN
+                            NEXT.
+                            ASSIGN l-achou = TRUE. 
+                        END.
+                    END.
+                END.
+                WHEN 7 THEN DO: /*Estabelecimento*/
+                    IF fechto-produt-period.cod-estabel <> tt-regra-form-preco.cod-estabel THEN
+                        NEXT.
+                    ASSIGN l-achou = TRUE.
+                END.
+                WHEN 8 THEN DO: /*Todos*/
+                    ASSIGN l-achou = TRUE.
+                END.
+            END CASE.
+
+            IF l-achou THEN 
+               ASSIGN fechto-produt-period.val-bonus-fix       = fechto-produt-period.val-bonus-fix       + tt-regra-form-preco.val-unit.
+
+            
+
+        END. /*FOR EACH tt-regra-form-preco*/
+        ASSIGN fechto-produt-period.val-preco-final-inf = fechto-produt-period.val-preco-final-inf + fechto-produt-period.val-bonus-fix.
+        
+        /*Busca valor do ajuste no engine de regras*/
+        {aqp/aqapi001.i14}
+        /*******************************************/
+
+    END.
+
+END.    

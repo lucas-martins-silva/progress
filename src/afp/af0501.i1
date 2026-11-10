@@ -1,0 +1,54 @@
+/* AF0501.i1 **********************************************************************/ 
+
+for each tt-indice
+            {&clas1}
+            {&clas2}
+            {&clas3}
+            {&clas4}
+            {&clas5}:
+            
+    for first af-controle fields (descricao)
+        where af-controle.nr-controle = tt-indice.nr-controle no-lock. end.
+    for first emitente fields (nome-abrev)
+        where emitente.cod-emitente = tt-indice.cod-emitente no-lock. end.
+    disp tt-indice.cod-estabel  
+         tt-indice.cod-emitente
+         emitente.nome-abrev when avail emitente
+         tt-indice.it-codigo
+         tt-indice.nr-controle
+         af-controle.descricao when avail af-controle
+         tt-indice.dt-indice
+         tt-indice.percentual
+         tt-indice.indice
+         with frame f-indice.
+         down with frame f-indice.
+     if tt-param.l-descricao-item and
+        tt-indice.it-codigo <> "" then do:
+        run getDesItem in h-boaf008 (input tt-indice.it-codigo,
+                                     output c-desc-item).
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "Descr._Item" *}
+        put unformatted space(16) RETURN-VALUE + ": "  trim(c-desc-item).
+    end.
+    
+    if l-narrativa then do:
+       IF  tt-indice.narrativa <> "" THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-narrativa-indice AS CHARACTER FORMAT "X(20)" NO-UNDO.
+            {utp/ut-liter.i "Narrativa_Öndice" *}
+            ASSIGN c-lbl-liter-narrativa-indice = TRIM(RETURN-VALUE).
+            PUT FILL('-', 10) AT 30 FORMAT "x(10)" 
+                ' ' + c-lbl-liter-narrativa-indice + ' '
+                FILL('-', 10) FORMAT "x(10)".
+            RUN pi-print-editor (INPUT tt-indice.narrativa, INPUT 60).   
+            FOR EACH tt-editor:
+                DISP tt-editor.conteudo WITH FRAME f-narrativa.
+                DOWN WITH FRAME f-narrativa.
+            END.
+        END.
+    end.
+    
+    if l-pula-linha then put skip (1).
+end.
+
+/* FIM AF0501.i1 **********************************************************************/

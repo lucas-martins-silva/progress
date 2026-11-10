@@ -1,0 +1,16 @@
+/*******************************************************
+*** APAPI018.i6 - Valida‡Æo da tabela progressiva 
+*** {1} - tit-ap.
+*******************************************************/
+
+&IF  DEFINED (BF_FIN_TAB_PROG_IR) &THEN
+     if  {1}.l-acum-ir = yes 
+     and verifica_program_name("AP0506",30) then do:
+         run utp/ut-msgs.p ("help",
+                            25427,
+                            ""). 
+         run pi-cria-tt-retorno-erro (input 25427,
+                                      input trim(return-value)).
+     
+     end.
+&ENDIF

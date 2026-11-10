@@ -1,0 +1,94 @@
+/**********************************************************************************
+**
+** app/ap0505b.i5 - Cria IVA autom tico caso tenha sido informado na implanta‡Æo
+**
+**********************************************************************************/
+
+assign de-vl-liquido = 0.
+
+if  tit-ap.valor-saldo = tit-ap.vl-original then do:
+
+    assign de-vl-liquido = input frame {&frame-name} de-vl-baixa +
+                           input frame {&frame-name} de-vl-juros -
+                           input frame {&frame-name} de-vl-desconto.
+
+    find impto-tit-ap
+       where impto-tit-ap.ep-codigo    = tit-ap.ep-codigo
+         and impto-tit-ap.cod-estabel  = tit-ap.cod-estabel
+         and impto-tit-ap.nr-docto     = tit-ap.nr-docto
+         and impto-tit-ap.parcela      = tit-ap.parcela
+         and impto-tit-ap.cod-esp      = tit-ap.cod-esp
+         and impto-tit-ap.serie        = tit-ap.serie
+         and impto-tit-ap.cod-fornec   = tit-ap.cod-fornec
+         and impto-tit-ap.tipo         = 2 
+         and impto-tit-ap.contabilizou = no no-error.
+    if  avail impto-tit-ap then do:        
+        if  de-vl-liquido < impto-tit-ap.vl-imposto then do:
+            run utp/ut-msgs.p(input "show",
+                              input 7034,
+                              input string(impto-tit-ap.vl-imposto) + "~~" +
+                                    string(de-vl-liquido)).
+            apply "entry" to de-vl-baixa in frame {&frame-name}.
+            return "adm-error".                                      
+        end.
+    
+        create impto-tit-pend-ap.
+        assign impto-tit-pend-ap.ep-codigo           = impto-tit-ap.ep-codigo
+               impto-tit-pend-ap.cod-est             = impto-tit-ap.cod-estabel
+               impto-tit-pend-ap.cod-esp             = impto-tit-ap.cod-esp
+               impto-tit-pend-ap.serie               = impto-tit-ap.serie
+               impto-tit-pend-ap.cod-fornec          = impto-tit-ap.cod-fornec
+               impto-tit-pend-ap.nr-docto            = impto-tit-ap.nr-docto
+               impto-tit-pend-ap.parcela             = impto-tit-ap.parcela
+               impto-tit-pend-ap.num-seq-impto       = impto-tit-ap.num-seq-impto
+               impto-tit-pend-ap.dt-emissao          = input frame {&frame-name} lin-b-ap.dt-baixa
+               impto-tit-pend-ap.dt-transacao        = input frame {&frame-name} lin-b-ap.dt-baixa
+               impto-tit-pend-ap.lancamento          = impto-tit-ap.lancamento     
+               impto-tit-pend-ap.ind-data-base       = impto-tit-ap.ind-data-base
+               impto-tit-pend-ap.tipo                = impto-tit-ap.tipo
+               impto-tit-pend-ap.cod-classificacao   = impto-tit-ap.cod-classificacao
+               impto-tit-pend-ap.contabilizou        = no
+               impto-tit-pend-ap.obs                 = impto-tit-ap.obs
+               impto-tit-pend-ap.dt-vencimen         = input frame {&frame-name} lin-b-ap.dt-baixa
+               impto-tit-pend-ap.tp-codigo           = impto-tit-ap.tp-codigo                       
+               impto-tit-pend-ap.transacao-impto     = impto-tit-ap.transacao-impto
+               impto-tit-pend-ap.hp-codigo           = impto-tit-ap.hp-codigo
+               impto-tit-pend-ap.historico           = impto-tit-ap.historico    
+               impto-tit-pend-ap.perc-imposto        = impto-tit-ap.perc-imposto
+               impto-tit-pend-ap.cod-imposto         = impto-tit-ap.cod-imposto
+               impto-tit-pend-ap.conta-imposto       = impto-tit-ap.conta-imposto
+               impto-tit-pend-ap.perc-percepcao      = impto-tit-ap.perc-percepcao
+               impto-tit-pend-ap.conta-iva-liberado  = impto-tit-ap.conta-iva-liberado
+               impto-tit-pend-ap.perc-iva-liberado   = impto-tit-ap.perc-iva-liberado
+               impto-tit-pend-ap.conta-percepcao     = impto-tit-ap.conta-percepcao
+               impto-tit-pend-ap.perc-retencao       = impto-tit-ap.perc-retencao
+               impto-tit-pend-ap.conta-retencao      = impto-tit-ap.conta-retencao
+               impto-tit-pend-ap.vl-base-me          = impto-tit-ap.vl-base-me
+               impto-tit-pend-ap.vl-imposto-me       = impto-tit-ap.vl-imposto-me                   
+               impto-tit-pend-ap.vl-saldo-imposto-me = impto-tit-ap.vl-imposto-me                   
+               impto-tit-pend-ap.vl-percepcao-me     = impto-tit-ap.vl-percepcao-me
+               impto-tit-pend-ap.vl-retencao-me      = impto-tit-ap.vl-retencao-me
+               impto-tit-pend-ap.vl-iva-liberado-me  = impto-tit-ap.vl-iva-liberado-me
+               impto-tit-pend-ap.vl-base             = impto-tit-ap.vl-base
+               impto-tit-pend-ap.vl-imposto          = impto-tit-ap.vl-imposto                   
+               impto-tit-pend-ap.vl-saldo-imposto    = impto-tit-ap.vl-imposto                   
+               impto-tit-pend-ap.vl-percepcao        = impto-tit-ap.vl-percepcao
+               impto-tit-pend-ap.vl-retencao         = impto-tit-ap.vl-retencao       
+               impto-tit-pend-ap.vl-iva-liberado     = impto-tit-ap.vl-iva-liberado         
+               impto-tit-pend-ap.mo-codigo           = impto-tit-ap.mo-codigo
+               impto-tit-pend-ap.cotacao-dia         = impto-tit-ap.cotacao-dia                                                  
+               impto-tit-pend-ap.ct-imposto          = impto-tit-ap.ct-imposto
+               impto-tit-pend-ap.sc-imposto          = impto-tit-ap.sc-imposto    
+               impto-tit-pend-ap.ct-percepcao        = impto-tit-ap.ct-percepcao
+               impto-tit-pend-ap.sc-percepcao        = impto-tit-ap.sc-percepcao
+               impto-tit-pend-ap.ct-retencao         = impto-tit-ap.ct-retencao
+               impto-tit-pend-ap.sc-retencao         = impto-tit-ap.sc-retencao
+               impto-tit-pend-ap.ct-iva-liberado     = impto-tit-ap.ct-iva-liberado
+               impto-tit-pend-ap.sc-iva-liberado     = impto-tit-ap.sc-iva-liberado.
+    
+    end.     
+   
+    
+end.
+
+    

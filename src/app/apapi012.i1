@@ -1,0 +1,94 @@
+/*********************************************************************************
+***
+*** app/apapi012.i1 - MultiPlanta.
+***
+*********************************************************************************/
+
+if  param-global.modulo-mp and tt-replica-msg.log-replica-msg = yes then do: 
+    find bord-rec where rowid(bord-rec) = row-bord-rec no-lock no-error.
+    if  avail bord-rec then do:
+                
+        run pi-cria-tt-dados-bord-rec.
+                
+        for each  bord-tit no-lock
+            where bord-tit.ep-codigo  = bord-rec.ep-codigo
+            and   bord-tit.portador   = bord-rec.portador
+            and   bord-tit.nr-bordero = bord-rec.nr-bordero:
+            run pi-cria-tt-dados-bord-tit.
+        end.
+            
+        for each  bordero-ap no-lock
+            where bordero-ap.ep-codigo  = bord-rec.ep-codigo
+            and   bordero-ap.portador   = bord-rec.portador
+            and   bordero-ap.nr-bordero = bord-rec.nr-bordero:
+            run pi-cria-tt-dados-bordero-ap.
+        end.
+            
+    end.
+end.
+    
+{cdp/cd7300.i6 "001" c-transacao}
+    
+PROCEDURE pi-cria-tt-dados-bord-rec:
+        
+    create tt-bord-rec-aux.
+    buffer-copy bord-rec to tt-bord-rec-aux.
+        
+    create tt-dados-env.                  
+    assign tt-dados-env.num-sequencia  = i-seq 
+           tt-dados-env.cod-tipo-reg   = 188
+           tt-dados-env.ind-tipo-movto = 1
+           tt-dados-env.identif-msg    = string(bord-rec.ep-codigo) + " , " +
+                                         string(bord-rec.portador)  + " , " +
+                                         string(bord-rec.nr-bordero).
+    raw-transfer tt-bord-rec-aux to tt-dados-env.conteudo-msg.                                     
+    assign i-seq = i-seq + 1.
+        
+END PROCEDURE.
+
+PROCEDURE pi-cria-tt-dados-bord-tit:
+        
+    create tt-bord-tit-aux.
+    buffer-copy bord-tit to tt-bord-tit-aux.
+        
+    create tt-dados-env.                  
+    assign tt-dados-env.num-sequencia  = i-seq 
+           tt-dados-env.cod-tipo-reg   = 179
+           tt-dados-env.ind-tipo-movto = 1
+           tt-dados-env.identif-msg    = string(bord-tit.ep-codigo)   + " , " +
+                                         string(bord-tit.nr-bordero)  + " , " +
+                                         string(bord-tit.portador)    + " , " +
+                                         string(bord-tit.cod-fornec)  + " , " +
+                                         string(bord-tit.cod-estabel) + " , " +
+                                         string(bord-tit.cod-esp)     + " , " +
+                                         string(bord-tit.serie)       + " , " +
+                                         string(bord-tit.nr-docto)    + " , " +
+                                         string(bord-tit.parcela).
+    raw-transfer tt-bord-tit-aux to tt-dados-env.conteudo-msg.                                     
+    assign i-seq = i-seq + 1.
+    
+END PROCEDURE.
+
+PROCEDURE pi-cria-tt-dados-bordero-ap:
+        
+    create tt-bordero-ap-aux.
+    buffer-copy bordero-ap to tt-bordero-ap-aux.
+        
+    create tt-dados-env.                  
+    assign tt-dados-env.num-sequencia  = i-seq 
+           tt-dados-env.cod-tipo-reg   = 172
+           tt-dados-env.ind-tipo-movto = 2
+           tt-dados-env.identif-msg    = string(bordero-ap.ep-codigo)   + " , " +
+                                         string(bordero-ap.cod-fornec)  + " , " +
+                                         string(bordero-ap.cod-estabel) + " , " +
+                                         string(bordero-ap.cod-esp)     + " , " +
+                                         string(bordero-ap.serie)       + " , " +
+                                         string(bordero-ap.nr-docto)    + " , " +
+                                         string(bordero-ap.parcela).
+    raw-transfer tt-bordero-ap-aux to tt-dados-env.conteudo-msg.                                     
+    assign i-seq = i-seq + 1.
+    
+END PROCEDURE.
+
+/* Fim de Include */
+

@@ -1,0 +1,14 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i7 - pi-calculo-atraso-medio-pagto.
+***
+*******************************************************************************/
+
+if  tt-mov-ap.transacao = 2 then do:
+    if (tt-mov-ap.dt-transacao > tt-mov-ap.dt-vencimen or tt-param.atraso-medio = 1) then
+        assign i-data      = tt-mov-ap.dt-transacao - tt-mov-ap.dt-vencimen
+               de-atraso   = de-atraso + (i-data * tt-mov-ap.valor-mov)
+               de-at-total = de-at-total + tt-mov-ap.valor-mov.
+end.
+
+/* Fim de Include */

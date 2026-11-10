@@ -1,0 +1,174 @@
+/****************************************************************************
+***
+*** app/ap0706rp.i2 - Defini‡Æo Form's.
+***
+****************************************************************************/
+
+form
+   mov-ap.cod-estabel
+   mov-ap.cod-esp
+   mov-ap.serie
+   mov-ap.nr-docto
+   "/"
+   mov-ap.parcela
+   mov-ap.portador
+   c-trans
+   mov-ap.referencia
+   mov-ap.dt-transacao
+   mov-ap.dt-vencimen
+   mov-ap.valor-mov format "->>,>>>,>>>,>>9.99"
+   c-tipo
+   with down no-box no-attr-space width 132 stream-io frame f-detalhe.
+
+form
+    mov-ap.cod-esp
+    " - ":U
+    espec-ap.descricao no-label
+    skip(1)
+    with no-box no-attr-space side-labels width 132 stream-io frame f-espec.
+
+form
+   grupo-fornec.cod-gr-forn
+   " - ":U
+   grupo-fornec.descricao no-label
+   skip(1)
+   with no-box no-attr-space side-labels width 132 stream-io frame f-grupo.
+
+form
+    skip
+    mov-ap.cod-fornec
+    " - ":U
+    emitente.nome-emit no-label
+    skip(1)
+    with no-box no-attr-space side-labels width 132 stream-io frame f-fornec.
+
+form
+    skip
+    b-emitente.cod-emitente
+    " - ":U
+    emitente.nome-matriz no-label
+    skip(1)
+    with no-box no-attr-space side-labels width 132 stream-io frame f-matriz.
+
+form
+    de-sal-esp  colon 88 format "-zzz,zzz,zzz,zz9.99":U
+    c-tipo      no-label
+    de-tot-esp  colon 88 format "-zzz,zzz,zzz,zz9.99":U
+    c-lancto    no-label
+    skip(1)
+    with side-labels width 132 stream-io frame f-tot-espec.
+
+form
+    i-tot-gr-prazo  colon 40
+    de-tot-gr-saldo colon 85
+    c-tipo          no-label
+    i-tot-gr-atraso colon 40
+    de-tot-gr-atual colon 85
+    c-lancto        no-label
+    with side-labels width 132 stream-io frame f-total-grupo.
+
+form
+    de-tot-fornec colon 84 format "-zz,zzz,zzz,zzz,zz9.99":U
+    c-tp-forn     no-label
+    with side-labels width 132 stream-io frame f-tot-fornec.
+
+form
+    i-prazo       colon 40
+    de-tot-saldo  colon 86 format "-zzz,zzz,zzz,zz9.99":U
+    c-tipo        no-label
+    i-atraso      colon 40
+    de-tot-atual  colon 86 format "-zzz,zzz,zzz,zz9.99":U
+    c-lancto      no-label
+    with side-labels width 132 stream-io frame f-medio.
+
+form
+    de-total-geral-db colon 40 format "-zzz,zzz,zzz,zz9.99":U
+    de-ger-saldo      colon 88 format "-zzz,zzz,zzz,zz9.99":U
+    c-tipo            no-label skip
+    de-total-geral-cr colon 40 format "-zzz,zzz,zzz,zz9.99":U
+    de-ger-atual      colon 88 format "-zzz,zzz,zzz,zz9.99":U
+    c-lancto          no-label skip
+    de-tot-pef        colon 40 format "-zzz,zzz,zzz,zz9.99":U
+    c-db-cr           no-label
+    with side-labels width 132 stream-io frame f-geral.
+
+form
+   c-vencto        at 20
+   de-vencimen[1]  at 52
+   de-percent[1]   at 73
+   de-venc-acum[1] at 86
+   de-perc-acum[1] at 107 skip(1)
+   with down no-box no-attr-space no-labels width 132 stream-io frame f-perfil.
+
+form
+    skip(2)
+    i-prazo  colon 65 skip(1)
+    i-atraso colon 65
+    with no-box no-attr-space side-labels width 132 stream-io frame f-pmc-amp.
+
+form
+   skip(1)
+   c-text-6 no-label       at    01 skip(1)
+   tt-param.estab-ini      colon 30 space(11)
+   "|< >|"
+   tt-param.estab-fim      colon 52 no-label skip
+   tt-param.espec-ini      colon 30 space(12)
+   "|< >|"
+   tt-param.espec-fim      colon 52 no-label skip
+   tt-param.grp-forn-ini   colon 30 space(12)
+   "|< >|"
+   tt-param.grp-forn-fim   colon 52 no-label skip
+   tt-param.fornec-ini     colon 30 space(5)
+   "|< >|"
+   tt-param.fornec-fim     colon 52 no-label skip
+   tt-param.matriz-ini     colon 30 space(5)
+   "|< >|"
+   tt-param.matriz-fim     colon 52 no-label skip
+   tt-param.dt-transac-ini colon 30 space(4)
+   "|< >|"
+   tt-param.dt-transac-fim colon 52 no-label skip(1)
+   c-text-7 no-label       at    01 skip(1)
+   tt-param.text-classif   no-label format "x(55)":U at 20 skip(1)
+   c-text-8 no-label       at    01 skip(1)
+   tt-param.moeda          colon 45 skip
+   tt-param.da-conversao   format "99/99/9999":U colon 45 skip
+   tt-param.l-prev-perfil  colon 45 skip
+   tt-param.l-prev-saldo   colon 45 skip
+   tt-param.l-ficha        colon 45 skip
+   tt-param.l-espec-ctbl   colon 45 skip
+   c-atraso                colon 45 skip
+   c-moeda                 colon 45 skip
+   c-tipo-rel              colon 45 skip(1)
+   c-text-9 no-label       at    01 skip(1)
+   c-destino               colon 30
+   " - ":U
+   tt-param.arquivo no-label format "x(60)":U skip
+   tt-param.usuario        colon 30 skip
+   with down no-box side-labels width 132 stream-io frame f-parametros.
+
+form
+    mov-ap.cod-fornec     at 14
+    emitente.nome-emit    at 24
+    de-tot-saldo          at 65 format "-z,zzz,zzz,zz9.99"
+    c-tipo                no-label
+    de-tot-atual          at 86 format "-z,zzz,zzz,zz9.99"
+    c-lancto              no-label
+    i-prazo               at 107
+    i-atraso              at 115
+    with down no-box no-attr-space width 132 stream-io frame f-resumo.
+run utp/ut-trfrrp.p (input frame f-detalhe:handle).
+run utp/ut-trfrrp.p (input frame f-espec:handle).
+run utp/ut-trfrrp.p (input frame f-grupo:handle).
+run utp/ut-trfrrp.p (input frame f-fornec:handle).
+run utp/ut-trfrrp.p (input frame f-matriz:handle).
+run utp/ut-trfrrp.p (input frame f-tot-espec:handle).
+run utp/ut-trfrrp.p (input frame f-total-grupo:handle).
+run utp/ut-trfrrp.p (input frame f-tot-fornec:handle).
+run utp/ut-trfrrp.p (input frame f-medio:handle).
+run utp/ut-trfrrp.p (input frame f-geral:handle).
+run utp/ut-trfrrp.p (input frame f-perfil:handle).
+run utp/ut-trfrrp.p (input frame f-pmc-amp:handle).
+run utp/ut-trfrrp.p (input frame f-parametros:handle).
+run utp/ut-trfrrp.p (input frame f-resumo:handle).
+
+/* Fim de Include */

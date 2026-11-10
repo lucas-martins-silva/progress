@@ -1,0 +1,18 @@
+/********************************************************************************
+***
+*** app/ap0521a.i1 - Defini‡Æo documentos as serem pagos.
+***
+********************************************************************************/
+
+create tt-row-docto.
+assign tt-row-docto.row-docto   = rowid({1})
+       tt-row-docto.cod-estabel = {1}.cod-estabel.
+            
+find first tt-estabel where tt-estabel.cod-estabel = {1}.cod-estabel no-error.
+if  not avail tt-estabel then do:
+    create tt-estabel.
+    assign tt-estabel.cod-estabel = {1}.cod-estabel.
+end.
+            
+/* Fim de Include */
+

@@ -1,0 +1,99 @@
+/*******************************************************************************
+***
+*** app/ap0740b.i6 - C lculo do Saldo em CMCAC.
+***
+*******************************************************************************/
+
+assign tt-tit-ap.valor-saldo = tit-ap.valor-saldo
+          tt-tit-ap.vl-original = tit-ap.vl-original.
+
+   if  tit-ap.tipo = 1 then do: /* Documento Normal */
+   
+       assign da-fim-per     = tit-ap.dt-emissao
+              da-fim-per-aux = da-fim-per.
+              
+       for each mov-ap 
+          where mov-ap.ep-codigo  = tit-ap.ep-codigo
+          and   mov-ap.cod-fornec = tit-ap.cod-fornec
+          and   mov-ap.cod-est    = tit-ap.cod-est
+          and   mov-ap.cod-esp    = tit-ap.cod-esp
+          and   mov-ap.nr-docto   = tit-ap.nr-docto
+          and   mov-ap.parcela    = tit-ap.parcela
+          and   mov-ap.transacao  = 9
+          and   mov-ap.referencia begins "CMCAC/" 
+          no-lock:
+          if  mov-ap.dt-trans > da-fim-per then
+              assign da-fim-per = mov-ap.dt-trans.
+       end.         
+       
+       if  da-fim-per <> tit-ap.dt-emissao then
+           assign da-fim-per-aux = if  empresa.cmi-prim-ult = 2 /* Ultimo dia do Mes */ 
+                                   then da-fim-per
+                                   else da-fim-per + 1.
+
+       if  tit-ap.dt-vecto-orig <> ? then
+           assign da-vencimen = tit-ap.dt-vecto-orig.
+       else
+           assign da-vencimen = tit-ap.dt-vencimen.
+
+
+
+       if  da-fim-per > da-vencimen then
+           assign de-cotacao-anbid = 1.
+       else
+           assign de-cotacao-anbid = exp((if tit-ap.taxa-emis-anbid = 0 then 1
+                                          else tit-ap.taxa-emis-anbid),
+                                         (da-vencimen - da-fim-per)).
+       if  de-cotacao-anbid = 0 
+       or  de-cotacao-anbid = ? then             
+           assign de-cotacao-anbid = 1.
+
+       if  da-fim-per-aux <> tit-ap.dt-emissao then do:
+                         
+           assign i-dia = int(day(da-fim-per-aux)).
+           
+           find first cotacao
+                where cotacao.mo-codigo   = param-fasb.moeda-cmi
+                and   cotacao.ano-periodo = string(year(da-fim-per-aux)) + 
+                                            string(month(da-fim-per-aux),"99")
+                and   cotacao.cotacao[i-dia] <> 0 no-lock no-error.
+                    
+           if  avail cotacao then do:
+               assign de-cotacao-cmcac = cotacao.cotacao[int(day(da-fim-per-aux))].
+           end.
+           else do:
+               run utp/ut-msgs.p (input "help",
+                                  input 1175,
+                                  input string(param-fasb.moeda-cmi) + "~~" + 
+                                        string(da-fim-per-aux, "99/99/9999")).
+               assign tt-tit-ap.des-erro = trim(return-value).
+           end.
+       end.
+       else
+           assign de-cotacao-cmcac = tit-ap.taxa-emis-cmi.
+
+       if  de-cotacao-cmcac = 0 
+       or  de-cotacao-cmcac = ? then
+           assign de-cotacao-cmcac = 1.
+
+       assign tt-tit-ap.valor-saldo = (tt-tit-ap.valor-saldo / de-cotacao-anbid) 
+                                      / de-cotacao-cmcac.
+
+   end. /* if tipo = 1 */
+    
+   if  tit-ap.tipo = 2 then /* Antecipa‡Æo */
+       assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo / tit-ap.taxa-emis-cmi.
+
+   find first mov-ap 
+        where mov-ap.ep-codigo   = tt-tit-ap.ep-codigo
+        and   mov-ap.cod-fornec  = tt-tit-ap.cod-fornec
+        and   mov-ap.cod-estabel = tt-tit-ap.cod-estabel
+        and   mov-ap.cod-esp     = tt-tit-ap.cod-esp
+        and   mov-ap.serie       = tt-tit-ap.serie
+        and   mov-ap.nr-docto    = tt-tit-ap.nr-docto
+        and   mov-ap.parcela     = tt-tit-ap.parcela
+        and   mov-ap.transacao   = 1 
+        no-lock no-error.
+
+   if  avail mov-ap then
+       assign tt-tit-ap.vl-original = mov-ap.vl-mov-cmi.

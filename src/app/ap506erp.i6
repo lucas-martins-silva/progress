@@ -1,0 +1,20 @@
+/********************************************************************************
+***
+*** app/ap506erp.i6 - Defini‡Æo de Variaveis.
+***
+********************************************************************************/
+
+def var da-ultimo      like tit-ap.dt-ult-pagto no-undo.
+def var de-saldo       like mov-ap.valor-mov    no-undo.
+def var c-selecao      as char format "x(10)"   no-undo.
+def var c-impressao    as char format "x(12)"   no-undo.
+def var c-destino      as char format "x(16)"   no-undo.
+def var c-liter        as char format "x(10)"   no-undo.
+def var c-mensagem     as char format "x(10)"   no-undo.
+def var c-obj-proces   as char                  no-undo.
+def var i-cont         as integer init 0        no-undo.
+def var h-acomp        as handle                no-undo.
+def var de-valor-docto like mov-ap.valor-mov    no-undo.
+def var i-sequencia    like lin-i-ap.sequencia  no-undo.                          
+
+/* Fim de Include */

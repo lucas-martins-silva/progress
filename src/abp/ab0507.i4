@@ -1,0 +1,167 @@
+/********************************************************************************
+**
+**  Include: abp~\ab0507.i4
+**
+**  Imprime Relat¢rio por Equipamento
+**
+********************************************************************************/
+procedure pi-equipamento:
+
+ 
+{utp/ut-liter.i OBSERVA€ÇO: * R }
+assign   cObservacao = trim(return-value).
+
+ 
+for each mab-reserva fields (ep-codigo-matr cod-estabel-matr cod-eqpto cod-matr cod-rota-dest cod-rota-orig dat-reserva-final 
+         dat-reserva-inicial ep-codigo hra-reserva-final hra-reserva-inicial num-reserva val-km-estimad dsl-obs ) 
+   WHERE  mab-reserva.num-reserva           >= tt-param.i-reserva-ini
+    and   mab-reserva.num-reserva           <= tt-param.i-reserva-fim
+    and   mab-reserva.ep-codigo             >= tt-param.i-cod-emp-ini 
+    and   mab-reserva.ep-codigo             <= tt-param.i-cod-emp-fim 
+    and   mab-reserva.dat-reserva-inicial   >=  tt-param.d-data-ini 
+    and   mab-reserva.dat-reserva-final     <=  tt-param.d-data-fim 
+    and   mab-reserva.cod-eqpto             >= tt-param.c-cod-eqpto-ini
+    and   mab-reserva.cod-eqpto             <= tt-param.c-cod-eqpto-fim
+    and   mab-reserva.hra-reserva-inicial   >= tt-param.c-hora-ini   
+    and   mab-reserva.hra-reserva-final     <= tt-param.c-hora-fim 
+    and   mab-reserva.cod-rota-orig         >=  tt-param.c-rota-orig-ini  
+    and   mab-reserva.cod-rota-orig         <=  tt-param.c-rota-orig-fim 
+    and   mab-reserva.cod-rota-dest         >=  tt-param.c-rota-dest-ini
+    and   mab-reserva.cod-rota-dest         <=  tt-param.c-rota-dest-fim
+    and   mab-reserva.ep-codigo-matr        >=  tt-param.c-empresa-matr-ini
+    and   mab-reserva.ep-codigo-matr        <=  tt-param.c-empresa-matr-fim
+    and   mab-reserva.cod-estabel-matr      >=  tt-param.c-estabel-matr-ini
+    and   mab-reserva.cod-estabel-matr      <=  tt-param.c-estabel-matr-fim
+    and   mab-reserva.cod-matr              >=  tt-param.c-cod-matr-ini
+    and   mab-reserva.cod-matr              <=  tt-param.c-cod-matr-fim 
+             no-lock break  by mab-reserva.ep-codigo
+                            by mab-reserva.cod-eqpto
+                            by mab-reserva.dat-reserva-inicial:
+                            
+            for first mab-eqpto fields (cod-eqpto ep-codigo cod-model) 
+                where mab-eqpto.ep-codigo = mab-reserva.ep-codigo
+                and  mab-eqpto.cod-eqpto = mab-reserva.cod-eqpto no-lock:
+            end.
+            for first empresa fields (ep-codigo nome) 
+                where   empresa.ep-codigo  = mab-reserva.ep-codigo no-lock:
+            end.     
+            for first mab-model fields (cod-model des-model)
+                  where mab-model.cod-model = mab-eqpto.cod-model  no-lock:
+            end.  
+             FOR FIRST mab-trajeto FIELDS (cod-rota des-rota) 
+                 WHERE mab-trajeto.cod-rota = mab-reserva.cod-rota-orig NO-lock:
+                 ASSIGN LocOrig = mab-trajeto.des-rota.
+             END.  
+              FOR FIRST bfmab-trajeto FIELDS (cod-rota des-rota) 
+                 WHERE bfmab-trajeto.cod-rota = mab-reserva.cod-rota-dest NO-lock:
+                 ASSIGN LocDest = bfmab-trajeto.des-rota.
+             END.  
+            for first mab-motoris fields ( nom-motoris cod-matr)
+                 where mab-motoris.ep-codigo   = mab-reserva.ep-codigo-matr 
+                   and mab-motoris.cod-estabel = mab-reserva.cod-estabel-matr
+                   and mab-motoris.cod-matr    = mab-reserva.cod-matr no-lock:
+                 assign cNomeMot = mab-motoris.nom-motoris.
+            end.      
+                  
+                      
+          
+             
+                               /*display para impressÆo do relat¢rio */   
+                               
+             
+                 if tt-param.l-ReservaAtend  = yes and can-find (FIRST mab-viagem where  mab-viagem.num-reserva = mab-reserva.num-reserva)
+                    or  tt-param.l-ReservaNAtend = yes and  not can-find (FIRST mab-viagem where  mab-viagem.num-reserva = mab-reserva.num-reserva)
+                    then do:
+                       if  first-of(mab-reserva.ep-codigo) or
+                              first-of(mab-reserva.cod-eqpto) then do:
+                                    display  cEmpresa              
+                                             mab-reserva.ep-codigo 
+                                             empresa.nome  SKIP  
+                                             cEquipamento             
+                                             mab-reserva.cod-eqpto 
+                                             mab-model.des-model 
+                                             with stream-io frame f-eqpto.
+                                    
+                                    display NrReserva    
+                                            dInicial      
+                                            cHoraIni      
+                                            dFinal        
+                                            cHoraFim      
+                                            cLocOrig      
+                                            cLocDest      
+                                            cMotorista-4    
+                                            iKmEsp        
+                                            with  frame f-cabecalho3.
+                         end.
+                         if mab-reserva.dsl-obs <> "" then do:
+                                 run pi-print-editor ( mab-reserva.dsl-obs, 80).
+                                                display mab-reserva.num-reserva        
+                                                        mab-reserva.dat-reserva-inicial   
+                                                        mab-reserva.hra-reserva-inicial   
+                                                        mab-reserva.dat-reserva-final   
+                                                        mab-reserva.hra-reserva-final   
+                                                        LocOrig
+                                                        LocDest
+                                                        cNomeMot
+                                                        mab-reserva.val-km-estimad FORMAT "Z,ZZZ,ZZ9.9" skip  
+                                                        with frame f-resumido4-1.
+                                                          down with frame f-resumido4-1.
+                                                            put  cObservacao at 10.
+                                                               for each tt-editor
+                                                         	  where tt-editor.linha >= 1:
+                                                         	  	Put tt-editor.conteudo at 10.
+                                                         	       
+                                                        	end.
+                                end. 
+                                else do:
+                                            display  mab-reserva.num-reserva        
+                                                     mab-reserva.dat-reserva-inicial   
+                                                     mab-reserva.hra-reserva-inicial   
+                                                     mab-reserva.dat-reserva-final   
+                                                     mab-reserva.hra-reserva-final   
+                                                     LocOrig
+                                                     LocDest
+                                                     cNomeMot
+                                                     mab-reserva.val-km-estimad FORMAT "Z,ZZZ,ZZ9.9"    
+                                                      with frame f-resumido4.
+                                                     down with frame f-resumido4.
+                  
+                                end.        
+                       for each mab-reserva-implto fields (cod-eqpto ep-codigo  num-reserva) 
+                               where mab-reserva-implto.num-reserva = mab-reserva.num-reserva no-lock,
+                               each bfeqpto fields (cod-eqpto cod-model ep-codigo)
+                                     where bfeqpto.ep-codigo = mab-reserva-implto.ep-codigo
+                                     and   bfeqpto.cod-eqpto = mab-reserva-implto.cod-eqpto no-lock,
+                                     each bfmodel fields ( cod-model des-model)
+                                           where bfmodel.cod-model = bfeqpto.cod-model  no-lock
+                                           break by mab-reserva-implto.ep-codigo
+                                                 by mab-reserva-implto.cod-eqpto:
+                                                    if  first-of( mab-reserva-implto.ep-codigo) then do:
+                                                    display c-implto                     
+                                                            with frame f-implemento.
+                                                    end.
+                                                    display mab-reserva-implto.ep-codigo 
+                                                            mab-reserva-implto.cod-eqpto 
+                                                            bfmodel.des-model        
+                                                            with frame f-dados-implemento.
+                                                            down with frame f-dados-implemento.
+                       end.
+                       put skip (1).
+                 end.
+                  if  last-of(mab-reserva.ep-codigo) or last-of(mab-reserva.cod-eqpto) then do:
+                         if tt-param.l-insere = yes then do:
+                            page.
+                         end. 
+                         else do:   
+                              put skip(1).          
+                         end.
+                      
+                 end.      
+
+
+end.     
+
+return 'OK'.
+
+end procedure.
+/* FIM */    

@@ -1,0 +1,595 @@
+PROCEDURE pi-cria-ttDet:
+
+    /*
+    === ttDet ===
+    cEAN           AS CHARACTER INITIAL ?  /*GTIN (Global Trade Item Number) do produto, antigo c¢digo EAN ou c¢digo de barras*/
+    cEANTrib       AS CHARACTER INITIAL ?  /*GTIN (Global Trade Item Number) da unidade tribut†vel, antigo c¢digo EAN ou c¢digo de barras*/
+    CFOP           AS CHARACTER INITIAL ?  /*C¢digo Fiscal de Operaá‰es e Prestaá‰es*/
+    cProd          AS CHARACTER INITIAL ?  /*C¢digo do produto ou serviáo. Preencher com CFOP caso se trate de itens n∆o relacionados com mercadorias/produto e que o contribuinte n∆o possua codificaá∆o pr¢pria Formato îCFOP9999î.*/
+    EXTIPI         AS CHARACTER INITIAL ?  /*C¢digo EX TIPI (3 posiá‰es)*/
+    infAdProd      AS CHARACTER INITIAL ?  /*Informaá‰es adicionais do produto (norma referenciada, informaá‰es complementares, etc)*/
+    NCM            AS CHARACTER INITIAL ?  /*C¢digo NCM (8 posiá‰es)*/
+    nSerie         AS CHARACTER INITIAL ?  /*Serial (sÇrie)*/
+    pesoB          AS CHARACTER INITIAL ?  /*Peso bruto*/
+    pesoL          AS CHARACTER INITIAL ?  /*Peso l°quido*/
+    qCom           AS DECIMAL   INITIAL ?  /*Quantidade Comercial*/
+    qTrib          AS DECIMAL   INITIAL ?  /*Quantidade Tribut†vel*/
+    uCom           AS CHARACTER INITIAL ?  /*Unidade comercial*/
+    uTrib          AS CHARACTER INITIAL ?  /*Unidade Tribut†vel*/
+    vDesc          AS DECIMAL   INITIAL ?  /*Valor do Desconto*/
+    vFrete         AS DECIMAL   INITIAL ?  /*Valor Total do Frete*/
+    vProd          AS DECIMAL   INITIAL ?  /*Valor bruto do produto ou serviáo*/
+    vSeg           AS DECIMAL   INITIAL ?  /*Valor Total do Seguro*/
+    vUnCom         AS DECIMAL   INITIAL ?  /*Valor unit†rio de comercializaá∆o*/
+    vUnTrib        AS DECIMAL   INITIAL ?  /*Valor unit†rio de tributaá∆o*/
+    xProd          AS CHARACTER INITIAL ?  /*Descriá∆o do produto ou serviáo*/
+    xProd          AS CHARACTER INITIAL ?  /*Descriá∆o do produto ou serviáo*/                             
+    vOutro         AS DECIMAL   INITIAL ?  /*Outras despesas acess¢rias*/                                  
+    indTot         AS CHARACTER INITIAL ?  /*Indica se valor do Item (vProd) entra no valor total da NF-e*/
+    xPed           AS CHARACTER INITIAL ?  /*N£mero do Pedido de Compra*/                                  
+    nItemPed       AS CHARACTER INITIAL ?  /*Item do Pedido de Compra*/                                    
+    */
+
+    DEFINE VARIABLE de-vlPrecoUnitario      AS DECIMAL     NO-UNDO.
+    DEFINE VARIABLE de-vlMercadoria         AS DECIMAL     NO-UNDO.
+    DEFINE VARIABLE de-qtFaturada           LIKE it-nota-fisc.qt-faturada[1] NO-UNDO.
+    DEFINE VARIABLE c-idi-format-emis-danfe AS CHARACTER   NO-UNDO.
+    
+    FOR FIRST bf-natur-oper-it NO-LOCK
+        WHERE bf-natur-oper-it.nat-operacao = it-nota-fisc.nat-operacao:
+    END.
+
+    /*ICMS Outras*/
+    ASSIGN l-icms-outras-it = (&if '{&bf_dis_versao_ems}' >= '2.08' &then
+                               bf-natur-oper-it.log-consid-icms-outras
+                               &else
+                               IF SUBSTRING(bf-natur-oper-it.char-1,148,1) = "S":U THEN YES ELSE NO
+                               &endif).
+    /*ICMS Outras*/
+
+    /*IPI Outras*/
+    ASSIGN l-ipi-outras-total  = (TRIM(SUBSTRING(bf-natur-oper-it.char-2,16,1)) = "1" /* inclui outras nota notal */
+                                  AND it-nota-fisc.cd-trib-ipi = 3).
+    /*IPI Outras*/
+
+    ASSIGN l-funcao-DESCONTO-NFE = (CAN-FIND (funcao WHERE funcao.cd-funcao = "SPP-DESCONTO-NFE":U AND funcao.ativo) 
+                                    AND INT(SUBSTRING(bf-natur-oper-it.char-2,11,5)) = 2). /* base calculo IPI = 2 (Liquido) */
+
+
+    ASSIGN c-desc-prod = "".
+    
+    RUN pi-narrativa-item.
+
+    
+    IF  nota-fiscal.ind-tip-nota = 8 /* Entrada */
+    AND bf-natur-oper-it.nota-rateio /* Nota Rateio */
+    AND it-nota-fisc.qt-faturada[1] = 0 THEN  /*Qt = 0 - Recebimentou ou Importacao*/
+        ASSIGN de-qtFaturada = 1.
+    ELSE
+        ASSIGN de-qtFaturada = it-nota-fisc.qt-faturada[1].
+
+
+    /****************************************************************************************
+    ADAPTER FAZENDO CµLCULOS - BUSCA VALOR DA MERCADORIA E DIVIDE PELA QTDE PARA OBTER
+    VALORES UNITµRIOS - PODE HAVER DIFERENÄA DOS VALORES CALCULADOS NO ERP, PORêM N«O OCORRE
+    REJEIÄÂES 629 E 630
+    ****************************************************************************************/
+
+    /*PARA CHEGAR AOS VALORES BRUTOS, ENVIAR SEMPRE OS VALORES L÷QUIDOS ACRESCIDOS DE TODOS OS DESCONTOS - Desconto Comercial + Desc ICMS ZFM + Desc PIS ZFM + Desc COFINS ZFM
+      +++ VALORES L÷QUIDOS POR PROBLEMAS DE ARREDONDAMENTO PARA OS VALORES BRUTOS +++*/
+    ASSIGN de-vlMercadoria = (it-nota-fisc.vl-merc-liq + it-nota-fisc.dec-1                                 /*ICMS*/
+                                                       + DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,128,16)))   /*PIS*/
+                                                       + DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,145,16)))). /*COFINS*/
+           
+    /*CASO A FUNCAO "DESCONTO-NFE" ESTIVER ATIVA, N«O DEVEM SER ENVIADOS OS VALORES DE DESCONTO COMERCIAL. 
+      SE N«O ESTIVER ATIVA, INCLUI-SE OS VALORES DO DESCONTO COMERCIAL NAS VARIAVEIS*/
+    IF  NOT l-funcao-DESCONTO-NFE THEN
+        ASSIGN de-vlMercadoria = (de-vlMercadoria + it-nota-fisc.val-desconto-total).
+
+    ASSIGN de-vlPrecoUnitario = (de-vlMercadoria / de-qtFaturada). /*Obtem valor unitario a partir do vlmercad acima calculado*/
+
+
+    /****************************************************************************************
+    ADAPTER N«O FAZENDO CµLCULOS, E SIM IMPRIMINDO CAMPOS CALCULADOS NO ERP
+    ATIVAR FUNCAO ESPECIAL "NFE-GERA-VAL-ERP"
+    ****************************************************************************************/
+    IF  CAN-FIND (FIRST funcao NO-LOCK
+                  WHERE funcao.cd-funcao = "spp-nfe-gera-val-erp":U
+                    AND funcao.ativo) THEN DO:
+
+        /*
+        Envia valores BRUTOS
+        */
+        ASSIGN de-vlPrecoUnitario = it-nota-fisc.vl-preori
+               de-vlMercadoria    = it-nota-fisc.vl-merc-ori.
+        
+        
+        /*
+        Funcao "DESCONTO-NFE" ativa
+        Envia valores LIQUIDOS, e inibe os descontos comerciais, quando houver (inibe somente se o IPI for pelo Liquido)
+        */
+        IF  (l-funcao-DESCONTO-NFE
+        AND ( it-nota-fisc.val-desconto-total         <> 0
+          OR  it-nota-fisc.val-pct-desconto-tab-preco <> 0 /*THPA06 [Desconto Negativo] - verificar quaisquer campos de desconto para demonstrar o liquido [Liziane]*/
+          OR  it-nota-fisc.val-desconto-inform        <> 0
+          OR  it-nota-fisc.val-pct-desconto-periodo   <> 0
+          OR  it-nota-fisc.val-pct-desconto-prazo     <> 0
+          OR  it-nota-fisc.val-desconto[1]            <> 0
+          OR  it-nota-fisc.val-desconto[2]            <> 0
+          OR  it-nota-fisc.val-desconto[3]            <> 0
+          OR  it-nota-fisc.val-desconto[4]            <> 0
+          OR  it-nota-fisc.val-desconto[5]            <> 0
+          OR  it-nota-fisc.val-desconto-total         <> 0
+          OR  it-nota-fisc.val-pct-desconto-total     <> 0
+          OR  it-nota-fisc.vl-desconto                <> 0
+          OR  it-nota-fisc.per-des-item               <> 0 ))
+        THEN
+            ASSIGN de-vlPrecoUnitario = it-nota-fisc.vl-preuni
+                   de-vlMercadoria    = it-nota-fisc.vl-merc-liq.
+    
+    
+    
+        /*ZFM*/
+        RUN pi-calc-zona-franca (INPUT de-vlPrecoUnitario).
+    
+        /*****************************************************************************************************/
+        /*
+        NF-e destinada a ZFM, com descontos de ICMS, PIS ou COFINS (abatimento para ZFM)
+        Os c†lculos para obter valores unit†rios s¢ ser∆o utilizados quando a funá∆o especial "DESCONTO-NFE" estiver ativa, ou seja, o cliente deseja "esconder" 
+        os descontos comerciais.
+        Para os casos onde a "DESCONTO-NFE" n∆o estiver ativa, vale os valores calculados no ERP (ASSIGN acima)
+        */
+        IF  r-cidade-zf <> ?
+
+        AND (l-funcao-DESCONTO-NFE
+        AND ( it-nota-fisc.val-desconto-total         <> 0
+          OR  it-nota-fisc.val-pct-desconto-tab-preco <> 0 /*THPA06 [Desconto Negativo] - verificar quaisquer campos de desconto para demonstrar o liquido [Liziane]*/
+          OR  it-nota-fisc.val-desconto-inform        <> 0
+          OR  it-nota-fisc.val-pct-desconto-periodo   <> 0
+          OR  it-nota-fisc.val-pct-desconto-prazo     <> 0
+          OR  it-nota-fisc.val-desconto[1]            <> 0
+          OR  it-nota-fisc.val-desconto[2]            <> 0
+          OR  it-nota-fisc.val-desconto[3]            <> 0
+          OR  it-nota-fisc.val-desconto[4]            <> 0
+          OR  it-nota-fisc.val-desconto[5]            <> 0
+          OR  it-nota-fisc.val-desconto-total         <> 0
+          OR  it-nota-fisc.val-pct-desconto-total     <> 0
+          OR  it-nota-fisc.vl-desconto                <> 0
+          OR  it-nota-fisc.per-des-item               <> 0 ))
+
+        AND (it-nota-fisc.dec-1                               > 0    /*ICMS*/  
+        OR   DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,128,16))) > 0    /*PIS*/   
+        OR   DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,145,16))) > 0 )  /*COFINS*/
+        THEN DO:
+    
+            IF  nota-fiscal.ind-tip-nota = 8 /* Entrada */
+            AND bf-natur-oper-it.nota-rateio /* Nota Rateio */
+            AND it-nota-fisc.qt-faturada[1] = 0 THEN  /*Qt = 0 - Recebimentou ou Importacao*/
+                ASSIGN de-qtFaturada = 1.
+            ELSE
+                ASSIGN de-qtFaturada = it-nota-fisc.qt-faturada[1].
+    
+    
+            /*PARA CHEGAR AOS VALORES BRUTOS, ENVIAR SEMPRE OS VALORES L÷QUIDOS ACRESCIDOS DE TODOS OS DESCONTOS - Desconto Comercial + Desc ICMS ZFM + Desc PIS ZFM + Desc COFINS ZFM
+              +++ VALORES L÷QUIDOS POR PROBLEMAS DE ARREDONDAMENTO PARA OS VALORES BRUTOS +++*/
+            ASSIGN de-vlMercadoria = (it-nota-fisc.vl-merc-liq + it-nota-fisc.dec-1                                 /*ICMS*/
+                                                               + DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,128,16)))   /*PIS*/
+                                                               + DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,145,16)))). /*COFINS*/
+    
+            ASSIGN de-vlPrecoUnitario = (de-vlMercadoria / de-qtFaturada). /*Obtem valor unitario a partir do vlmercad acima calculado*/
+    
+        END.
+        /*FIM - NF-e destinada a ZFM*/
+    END.
+    /****************************************************************************************/
+
+    /*ZFM*/
+    RUN pi-calc-zona-franca (INPUT de-vlPrecoUnitario).
+
+    /* verifica IPI Ç tributado, utilizado pela procedure pi-cria-ttDet e pi-cria-ttIPI*/
+    ASSIGN c-sit-trib-ipi = &if '{&bf_dis_versao_ems}' >= '2.07':U
+                            &then string(it-nota-fisc.cod-sit-tributar-ipi)
+                            &else substring(it-nota-fisc.char-1,75,2) &endif.
+                            
+    IF  c-sit-trib-ipi = "01"
+    OR  c-sit-trib-ipi = "02"
+    OR  c-sit-trib-ipi = "03"
+    OR  c-sit-trib-ipi = "04"
+    OR  c-sit-trib-ipi = "05"
+    OR  c-sit-trib-ipi = "51"
+    OR  c-sit-trib-ipi = "52"
+    OR  c-sit-trib-ipi = "53"
+    OR  c-sit-trib-ipi = "54"
+    OR  c-sit-trib-ipi = "55" THEN
+        ASSIGN l-IPITributado = NO.
+    ELSE
+        ASSIGN l-IPITributado = YES.
+    /* fim - verifica IPI */
+
+   if l-impressao-danfe and 
+   &if '{&bf_dis_versao_ems}' >= '2.08' &then
+     (it-nota-fisc.cd-trib-ipi = 3 and bf-natur-oper-it.log-impr-ipi-danfe) /* pode ser impresso se for tributaá∆o = outras quando for parametrizado para imprimir no danfe */
+   &else
+     (it-nota-fisc.cd-trib-ipi = 3 and substring(bf-natur-oper-it.char-1,151,1) = "S":U)
+   &endif then
+    assign l-IPITributado = yes.
+    ASSIGN c-idi-format-emis-danfe = (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                                      &then STRING   (ser-estab.idi-format-emis-danfe)
+                                      &else SUBSTRING(ser-estab.char-1,4,1) &endif) WHEN AVAIL ser-estab.
+
+
+    CREATE ttDet.
+    ASSIGN ttDet.CFOP      = (&if defined(bf_dis_formato_CFOP)
+                              &then bf-natur-oper-it.cod-cfop
+                              &else SUBSTR(bf-natur-oper-it.char-1,45,10) &endif) WHEN AVAIL bf-natur-oper-it
+           /* Retirado ASSIGN abaixo pois quando natureza n∆o tiver CFOP n∆o pode enviar 1101 como default, */
+           /* isso pode deixar a nota errada na SEFAZ, ela deve ser rejeitada (v2.0)                        */
+           /*ttDet.CFOP      = (IF ttDet.CFOP <> "" AND ttDet.CFOP <> ?
+                              THEN ttDet.CFOP 
+                              ELSE "1101") /* Conforme mapa Neogrid */ */
+           ttDet.cProd     = (IF it-nota-fisc.it-codigo <> ""
+                              THEN it-nota-fisc.it-codigo
+                              ELSE &if defined(bf_dis_formato_CFOP)
+                                   &then "CFOP" + bf-natur-oper-it.cod-cfop
+                                   &else "CFOP" + SUBSTR(bf-natur-oper-it.char-1,45,10) &endif) WHEN AVAIL bf-natur-oper-it
+           ttDet.cProd     = (IF ttDet.cProd <> "" AND ttDet.cProd <> ?
+                              THEN ttDet.cProd
+                              ELSE ttDet.CFOP)
+           ttDet.EXTIPI    =  IF it-nota-fisc.cod-servico <> 0
+                              THEN ""                       /* item de serviáo n∆o enviar TAG */
+                              ELSE STRING(item.dec-1,"99")  /* EX da TIPI*/
+           
+           ttDet.NCM       = ( IF (ttDet.CFOP BEGINS "3" OR ttDet.CFOP BEGINS "7")
+                               THEN it-nota-fisc.class-fiscal
+                               ELSE (IF (it-nota-fisc.cod-servico <> 0
+                                     OR (it-nota-fisc.class-fiscal = "00000000":U AND ttIde.finNFe = "3") ) /*alterado NT2014.004*/
+                                     THEN "00"
+                                     ELSE it-nota-fisc.class-fiscal) )
+           ttDet.infAdProd = REPLACE(ttDet.infAdProd, CHR(10), " ")
+           ttDet.infAdProd = REPLACE(ttDet.infAdProd, CHR(13), " ")
+           ttDet.infAdProd = REPLACE(ttDet.infAdProd, CHR(9), " ")
+           ttDet.infAdProd = fn-ajusta-espacos-branco(ttDet.infAdProd)
+           /*
+           it-nota-fisc.ind-fat-qtfam = no  -> Fatura na Unidade do Item
+           it-nota-fisc.ind-fat-qtfam = yes -> Fatura na Unidade da Familia
+           it-nota-fisc.ind-fat-qtfam = ?   -> Fatura na Unidade do Cliente
+           */
+           /*--- TRIBUTµVEL ---*/
+           ttDet.qTrib     = it-nota-fisc.qt-faturada[1] /* QTD Item */
+           ttDet.uTrib     = trim(it-nota-fisc.un-fatur[1]) /*Unid Med Item*/
+           ttDet.vUnTrib   = (IF  it-nota-fisc.ind-fat-qtfam = NO 
+                              THEN de-vlPrecoUnitario
+                              ELSE IF it-nota-fisc.qt-faturada[1] = 0 
+                                   THEN  de-vlMercadoria
+                                   ELSE (de-vlMercadoria / it-nota-fisc.qt-faturada[1]))
+           /*--- COMERCIAL  ---*/
+           ttDet.qCom      = (IF it-nota-fisc.ind-fat-qtfam = no 
+                              THEN it-nota-fisc.qt-faturada[1]
+                              ELSE it-nota-fisc.qt-faturada[2])
+           ttDet.uCom      = (IF it-nota-fisc.ind-fat-qtfam = no
+                              THEN trim(it-nota-fisc.un-fatur[1])
+                              ELSE trim(it-nota-fisc.un-fatur[2]))
+           ttDet.vUnCom    = (IF it-nota-fisc.ind-fat-qtfam = NO 
+                              THEN de-vlPrecoUnitario
+                              ELSE IF it-nota-fisc.qt-faturada[2] = 0 
+                                   THEN  de-vlMercadoria 
+                                   ELSE (de-vlMercadoria / it-nota-fisc.qt-faturada[2]))
+           ttDet.vFrete    = (IF it-nota-fisc.vl-frete-it > 0 THEN it-nota-fisc.vl-frete-it ELSE ?)
+           ttDet.vProd     = /*IF de-vl-total > 0 THEN de-vl-total ELSE */ de-vlMercadoria /*it-nota-fisc.vl-tot-item - it-nota-fisc.vl-ipi-it*/ /* Desconta valor do IPI, pois o validador TXT realiza a soma */ 
+           de-vProdTotal   = (de-vProdTotal + ttDet.vProd) WHEN ( it-nota-fisc.cod-servico = 0 OR l-sem-iss).
+
+           if  (nota-fiscal.ind-tip-nota    = 4 /* Complementar */
+           and  it-nota-fisc.qt-faturada[1] = 0
+           and  item.ind-imp-desc          <> 7) then do: /* Narrativa informada */
+               
+               assign ttdet.xprod = (if item.ind-imp-desc = 4 /* Desc + Narrativa Informada */
+                                     then "Complementar de Imposto" + " " + c-desc-prod
+                                     else c-desc-prod).
+           end.
+  	   else do:
+               
+              if item.ind-imp-desc = 7 AND c-desc-prod = "" then
+                 assign ttDet.xProd = "Complementar".
+              else
+                 assign ttDet.xProd = c-desc-prod.
+               
+           end.
+
+    assign ttDet.xProd     = if (nota-fiscal.ind-tip-nota    = 8 /* Complementar de Importaá∆o */
+                            and it-nota-fisc.qt-faturada[1] = 0
+                            and bf-natur-oper-nf.nota-rateio  /* Nota de Rateio */
+                            and ITEM.ind-imp-desc = 5 ) /* Narrativa Informada */
+                           then c-desc-prod 
+                           else  ttDet.xProd
+                               
+           ttDet.infAdProd = if (c-idi-format-emis-danfe = "3" or c-idi-format-emis-danfe = "4") /* Retrato / Paisagem - vers„o 2 */
+                            and ttDet.xProd <> "Complementar"
+	                   then (substr(trim(c-desc-prod), 121))
+            
+                           else (if(item.ind-imp-desc = 4 
+                           or    item.ind-imp-desc = 7 
+                           or    item.ind-imp-desc = 9) 
+                           and   avail nar-it-nota 
+                           then  nar-it-nota.narrativa 
+                           else "").
+
+    IF  ttDet.vUnCom  = ? THEN ASSIGN ttDet.vUnCom  = 0.
+    IF  ttDet.vUnTrib = ? THEN ASSIGN ttDet.vUnTrib = 0.
+
+    /*---- Valor do Seguro por Item (rateado no mÇtod pi-calcula-valor-seguro-por-item) ----*/
+    IF  nota-fiscal.vl-seguro = 0 THEN
+        ASSIGN ttDet.vSeg = 0.
+    ELSE  
+       FOR FIRST tt-rateio-seguro NO-LOCK
+           WHERE tt-rateio-seguro.nr-seq-fat = it-nota-fisc.nr-seq-fat
+             AND tt-rateio-seguro.it-codigo  = it-nota-fisc.it-codigo:
+
+           ASSIGN ttDet.vSeg = tt-rateio-seguro.valor.
+       END.
+    /*---- ----*/
+
+    /*---- Valor de Outras Despesas por Item (rateado no mÇtod pi-calcula-valor-vOutro-por-item) ----*/
+    IF  nota-fiscal.vl-embalagem = 0 THEN
+        ASSIGN ttDet.vOutro = 0.
+    ELSE  
+       FOR FIRST tt-rateio-vOutro NO-LOCK
+           WHERE tt-rateio-vOutro.nr-seq-fat = it-nota-fisc.nr-seq-fat
+             AND tt-rateio-vOutro.it-codigo  = it-nota-fisc.it-codigo:
+
+           ASSIGN ttDet.vOutro = tt-rateio-vOutro.valor.
+       END.
+    /*---- ----*/
+
+    IF  l-funcao-DESCONTO-NFE THEN
+        ASSIGN ttDet.vDesc     = 0.
+    ELSE DO:
+        /* Alterado para pegar it-nota-fisc.val-desconto-total pois o desconto total da nota est† buscando do campo  */
+        /* nota-fiscal.val-desconto-total,e do item da nota fiscal (it-nota-fisc) busca o campo vl-desconto,         */
+        /* e a somat¢ria do it-nota-fisc.vl-desconto n∆o bate com o total (nota-fiscal.val-desconto-total).          */
+        /* Validaá∆o SEFAZ (v2.0): SOMATORIO(ttDet.vDesc) = ttICMSTot.vDesc                                          */
+        /*ASSIGN ttDet.vDesc     = (IF it-nota-fisc.vl-desconto > 0 THEN it-nota-fisc.vl-desconto ELSE ?).*/
+        ASSIGN ttDet.vDesc     = (IF it-nota-fisc.val-desconto-total > 0 THEN it-nota-fisc.val-desconto-total ELSE 0) WHEN it-nota-fisc.cod-servico = 0.
+
+    END.
+
+    IF  r-cidade-zf <> ? THEN DO:
+
+        /*Desconto Comercial (ou n∆o) mais Desconto de ICMS de ZFM + Desconto de PIS de ZFM + Desconto de COFINS de ZFM*/
+        ASSIGN ttDet.vDesc = (ttDet.vDesc + it-nota-fisc.dec-1                                 /*ICMS*/
+                                          + DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,128,16)))   /*PIS*/
+                                          + DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,145,16)))). /*COFINS*/
+
+        IF  ttDet.vDesc = ? THEN
+            ASSIGN ttDet.vDesc = 0.
+
+        /*Desconto de ICMS de ZFM*/
+        IF  it-nota-fisc.dec-1 > 0 THEN
+            ASSIGN ttDet.infAdProd = ttDet.infAdProd +
+                                     " | Valor do ICMS abatido: R$ " + STRING(it-nota-fisc.dec-1,">>>,>>9.99") + ".".
+
+        IF  it-nota-fisc.val-desconto-total > 0
+        AND NOT l-funcao-DESCONTO-NFE THEN
+           ASSIGN ttDet.infAdProd = ttDet.infAdProd +
+                                    " | Valor do desconto comercial: R$ " + STRING(it-nota-fisc.val-desconto-total,">>>,>>9.99") + ".".
+    END.
+
+    
+    ASSIGN /* O campo ttDet.vOutro sera tratado para a NT 2011/004 conforme resposta do chamado TDMTIK onde a equipe Analise de Legislaá∆o fara consulta protocolada Ö SEFAZ
+             ttDet.vOutro   = it-nota-fisc.vl-pis + it-nota-fisc.vl-finsocial /* conforme NT 2011/004 - Este campo abrange valor de PIS e COFINS Substituto */
+             P†ginas 21,22 - NT2011.004
+             Informar os valores do item que devem compor o valor da NF (id:W16) mas n∆o tenham campo de total correspondente no grupo ICMSTot (id:W02)
+             (Ex.: vPIS retido por ST (id:R06), vCOFINS retido por ST (id:T06), vIOF (id:P05), vDespAdu (id:P03), etc.)
+             */
+           ttDet.vOutro   = ttDet.vOutro + ((it-nota-fisc.vl-pis + it-nota-fisc.vl-finsocial) * INT(l-pis-cofins-st-total)) 
+           ttDet.vOutro   = ttDet.vOutro + ( it-nota-fisc.vl-icmsub-it * INT({&log-icms-substto-antecip})) 
+           ttDet.vOutro   = ttDet.vOutro + ( it-nota-fisc.vl-ipiit-e[3] * INT(it-nota-fisc.vl-bipiit-e[3] > 0 OR TRIM(SUBSTRING(bf-natur-oper-it.char-2,16,1)) = "1")) /* somente quando for tributado */
+           ttDet.vOutro   = ttDet.vOutro + it-nota-fisc.vl-icmsubit-e[3] /* st consig */ 
+           ttDet.vOutro   = ttDet.vOutro + it-nota-fisc.vl-icmsit-e[2]   /* st entfut */
+           ttDet.vOutro   = ttDet.vOutro + it-nota-fisc.vl-ipi-it  * INT(l-ipi-outras-total)
+           ttDet.vOutro   = ttDet.vOutro + ( it-nota-fisc.vl-despesit-e[3] * INT(it-nota-fisc.vl-despesit-e[3] > 0) )
+           ttDet.vOutro   = ttDet.vOutro + ( it-nota-fisc.vl-icmsubit-e[2] * INT({&log-devol-icms-st-contrib-subs}) ) /*somar somente se o parametro est† marcado e especie NFD*/
+           ttDet.indTot   = "1"  /*1 Œ o valor do item (vProd) comp‰e o valor total da NF-e (vProd)*/
+           ttDet.xPed     = it-nota-fisc.cod-ord-compra
+           ttDet.nItemPed = IF  it-nota-fisc.parcela <> 0 THEN string(it-nota-fisc.parcela) ELSE "".
+
+    
+    /*---------------------------------------- NT2011.005 - Rejeiá∆o 629/630 ----------------------------------------*/
+
+    /*--- Nota de Diferenáa de Preáo e Material Agregado gerada via Recebimento(ou gr∆os) Ç enviada com quantidade 0 ---*/
+    ASSIGN l-nota-dif-preco-RE = NO.
+    IF  nota-fiscal.ind-tip-nota    = 8 /* Nota Entrada */
+    AND it-nota-fisc.qt-faturada[1] = 0
+    AND (CAN-FIND (FIRST nota-fisc-adc NO-LOCK
+                   WHERE nota-fisc-adc.cod-estab               = nota-fiscal.cod-estabel
+                    AND   nota-fisc-adc.cod-serie              = nota-fiscal.serie
+                    AND   nota-fisc-adc.cod-nota-fisc          = nota-fiscal.nr-nota-fis
+                    AND   nota-fisc-adc.cdn-emitente           = nota-fiscal.cod-emitente
+                    AND   nota-fisc-adc.cod-natur-operac       = nota-fiscal.nat-operacao
+                    AND   nota-fisc-adc.idi-tip-dado           = 3
+                    AND (   nota-fisc-adc.idi-tip-docto-referado = 2 
+                         OR (    nota-fiscal.ind-tip-nota = 8 /* Entrada */
+                             AND nota-fisc-adc.idi-tip-docto-referado = 1))
+                    AND  STRING(INT(nota-fisc-adc.cod-model-docto-referado),"99") <> "04" )) /*Desconsiderar notas de modelo 04, que Ç modelo para Produtor Rural*/
+    THEN DO:
+    
+        IF  NOT AVAIL ttIde THEN
+            FIND FIRST ttIde NO-ERROR.
+
+        IF TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "" AND TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "0" THEN
+            ASSIGN ttIde.finNFe = TRIM(SUBSTRING(nota-fiscal.char-2,211,2)). /*Finalidade NF-e*/
+        ELSE
+            ASSIGN ttIde.finNFe = "3".
+            
+        ASSIGN l-nota-dif-preco-RE = YES. /* 3 Œ NF-e de Ajuste - com finalidade 3 n∆o valida rejeiá∆o 629 e 630*/
+    END.
+
+    
+    /*--- Nota Devolucao Somente de Valor ---*/
+    IF TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "" AND TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "0" THEN
+        ASSIGN ttIde.finNFe = TRIM(SUBSTRING(nota-fiscal.char-2,211,2)). /*Finalidade NF-e*/
+    ELSE
+        IF  TRIM(SUBSTR(bf-natur-oper-it.char-2,88,5)) = "1":U /*CD0606 - Pasta Adicionais - Gerar Devol Somente de Valor*/
+        AND it-nota-fisc.qt-faturada[1] = 0 THEN
+            ASSIGN ttIde.finNFe = "3". /* 3 Œ NF-e de Ajuste - com finalidade 3 n∆o valida rejeiá∆o 629 e 630*/
+
+
+    /*--- Para notas de rateio de importaá∆o - a nota Ç gerada com qtde 0 ---*/
+    IF  nota-fiscal.ind-tip-nota = 8 /* Entrada */
+    AND bf-natur-oper-it.nota-rateio  /*Nota de Rateio*/
+    AND it-nota-fisc.qt-faturada[1] = 0 THEN
+        ASSIGN ttDet.qCom    = 1           WHEN ttDet.qCom   = 0
+               ttDet.qTrib   = 1           WHEN ttDet.qTrib  = 0
+               ttDet.vUnCom  = ttDet.vProd WHEN (ttDet.vProd > 0 AND ttDet.vUnCom  = 0) /*Ajusta Valores Unitarios quando est† informado apenas o vProd*/
+               ttDet.vUnTrib = ttDet.vProd WHEN (ttDet.vProd > 0 AND ttDet.vUnTrib = 0).
+
+
+    /*--- Nota de Aquisiá∆o de Transporte (Conhec Transp) gerada via Recebimento Ç enviada com quantidade 0 ---*/
+    /*
+    1351|Aquisiá∆o de serviáo de transporte para execuá∆o de serviáo da mesma natureza|01012009|
+    1352|Aquisiá∆o de serviáo de transporte por estabelecimento industrial|01012009|
+    1353|Aquisiá∆o de serviáo de transporte por estabelecimento comercial|01012009|
+    1354|Aquisiá∆o de serviáo de transporte por estabelecimento de prestador de serviáo de comunicaá∆o|01012009|
+    1355|Aquisiá∆o de serviáo de transporte por estabelecimento de geradora ou de distribuidora de energia elÇtrica|01012009|
+    1356|Aquisiá∆o de serviáo de transporte por estabelecimento de produtor rural|01012009|
+    1360|Aquisiá∆o de serviáo de transporte por contribuinte substituto em relaá∆o ao serviáo de transporte.|01012009|
+    1932|Aquisiá∆o de serviáo de transporte iniciado em unidade da Federaá∆o diversa daquela onde inscrito o prestador. (ajuste sinief 03/04)|01012009|
+    2932|Aquisiá∆o de serviáo de transporte iniciado em unidade da Federaá∆o diversa daquela onde inscrito o prestador. (ajuste sinief 03/04)|01012009|
+    1931|Lanáamento efetuado pelo tomador do serviáo de transporte quando a responsabilidade de retená∆o do imposto for atribu°da ao remetente ou alienante da mercadoria, pelo serviáo de transporte realizado por transportador autìnomo ou por transportador n∆o inscrito na unidade da Federaá∆o onde iniciado o serviáo. (Ajuste SINIEF 03/04)|01012009|
+    2931|Lanáamento efetuado pelo tomador do serviáo de transporte quando a responsabilidade de retená∆o do imposto for atribu°da ao remetente ou alienante da mercadoria, pelo serviáo de transporte realizado por transportador autìnomo ou por transportador n∆o inscrito na unidade da Federaá∆o onde iniciado o serviáo. (Ajuste SINIEF 03/04)|01012009|
+    */
+
+    IF  nota-fiscal.ind-tip-nota = 8 /* Nota Entrada */
+    AND (TRIM(SUBSTRING(ttDet.CFOP,2,2)) = "35" /*V†lido apenas para CFOP's de Transporte*/
+    OR   TRIM(SUBSTRING(ttDet.CFOP,2,2)) = "36"
+    OR   TRIM(ttDet.CFOP)                = "1931"
+    OR   TRIM(ttDet.CFOP)                = "2931"
+    OR   TRIM(ttDet.CFOP)                = "1932"
+    OR   TRIM(ttDet.CFOP)                = "2932")
+    AND  it-nota-fisc.qt-faturada[1] = 0 THEN DO:
+
+        IF  NOT AVAIL ttIde THEN
+            FIND FIRST ttIde NO-ERROR.
+            
+        IF TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "" AND TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "0" THEN
+            ASSIGN ttIde.finNFe = TRIM(SUBSTRING(nota-fiscal.char-2,211,2)). /*Finalidade NF-e*/
+        ELSE
+            ASSIGN ttIde.finNFe  = "1" WHEN ttIde.finNFe = "3". /*Ajustar o finNFe, caso tenha gravado 3 para Diferenáa de Preáo*/
+    
+        ASSIGN ttDet.qCom    = 1   WHEN ttDet.qCom   = 0
+               ttDet.qTrib   = 1   WHEN ttDet.qTrib  = 0
+               ttDet.vUnCom  = ttDet.vProd WHEN (ttDet.vProd > 0 AND ttDet.vUnCom  = 0) /*Ajusta Valores Unitarios quando est† informado apenas o vProd*/
+               ttDet.vUnTrib = ttDet.vProd WHEN (ttDet.vProd > 0 AND ttDet.vUnTrib = 0).
+               
+    END.
+    /*----------------------------------------------- FIM NT2011.005 ------------------------------------------------*/
+
+    
+    RUN pi-ean-item.
+    ASSIGN ttDet.cEAN      = c-cod-ean
+           ttDet.cEANTrib  = c-cod-ean-trib.
+
+    /*---- RESOLUCAO 13/2012 | AJUSTE SINIEF 19/2012 ----*/
+    RUN pi-FCI-Item.
+    /*----*/
+    
+    /*--- NT2013.003 | Lei 12.741/12 - Valor aproximado total de tributos federais, estaduais e municipais --*/
+    ASSIGN ttDet.vTotTrib  = (&IF '{&BF_DIS_VERSAO_EMS}' >= '2.09'
+                              &THEN it-nota-fisc.val-tot-impto
+                              &ELSE DEC(SUBSTRING(it-nota-fisc.char-1,235,17)) &ENDIF).
+			      
+    IF  ttDet.vTotTrib > 0 THEN DO:
+
+        /*
+        Exemplo do manual IBPT:  "Trib aprox R$: 4,45 Federal e 5,40 Estadual Fonte: IBPT/FECOMERCIO RJ   Xe67eQ"
+        */
+
+        DEFINE VARIABLE de-val-feder    AS DECIMAL FORMAT ">>,>>>,>>>,>>9.99"  NO-UNDO.
+        DEFINE VARIABLE de-val-estad    AS DECIMAL FORMAT ">>,>>>,>>>,>>9.99"  NO-UNDO.
+        DEFINE VARIABLE de-val-munic    AS DECIMAL FORMAT ">>,>>>,>>>,>>9.99"  NO-UNDO.
+        DEFINE VARIABLE c-cod-fonte-tab AS CHARACTER                           NO-UNDO.
+        DEFINE VARIABLE c-cod-chave-tab AS CHARACTER                           NO-UNDO.
+
+        ASSIGN de-val-feder    = DEC(SUBSTRING(it-nota-fisc.char-1,331,20))
+               de-val-estad    = DEC(SUBSTRING(it-nota-fisc.char-1,351,20))
+               de-val-munic    = DEC(SUBSTRING(it-nota-fisc.char-1,371,20))
+               c-cod-fonte-tab = (&IF "{&bf_dis_versao_ems}":U <= "2.08":U
+                                  &THEN TRIM(SUBSTRING(it-nota-fisc.char-1,288,20))
+                                  &ELSE TRIM(          it-nota-fisc.cod-fonte-tab-impto) &ENDIF)
+               c-cod-chave-tab = TRIM(SUBSTRING(it-nota-fisc.char-1,409,10)).
+
+        ASSIGN ttDet.infAdProd = ttDet.infAdProd + " Trib aprox R$: ".
+
+        /*Aliquotas separadas por Federal, Estadual e Municipal*/
+        IF (de-val-feder > 0 OR de-val-estad > 0 OR de-val-munic > 0) THEN DO:
+        
+            IF  de-val-feder > 0 THEN
+                ASSIGN ttDet.infAdProd = ttDet.infAdProd + 
+                                                    TRIM(STRING(de-val-feder,">>,>>>,>>>,>>9.99")) + " Federal".
+            IF  de-val-estad > 0 THEN
+                ASSIGN ttDet.infAdProd = ttDet.infAdProd + (IF (de-val-feder > 0 AND de-val-munic > 0) THEN ", " ELSE IF de-val-feder > 0 THEN " e " ELSE "") +
+                                                    TRIM(STRING(de-val-estad,">>,>>>,>>>,>>9.99")) + " Estadual".
+            IF  de-val-munic > 0 THEN
+                ASSIGN ttDet.infAdProd = ttDet.infAdProd + (IF (de-val-feder > 0 OR de-val-estad > 0) THEN " e " ELSE "") +
+                                                    TRIM(STRING(de-val-munic,">>,>>>,>>>,>>9.99")) + " Municipal".
+        END.
+        /*Aliquota Unica*/
+        ELSE
+            ASSIGN ttDet.infAdProd = ttDet.infAdProd + TRIM(STRING(ttDet.vTotTrib,">>,>>>,>>>,>>9.99")).
+        
+        
+        ASSIGN ttDet.infAdProd = ttDet.infAdProd + (IF c-cod-fonte-tab <> "" THEN (" Fonte: " + c-cod-fonte-tab) ELSE "" + c-cod-chave-tab + ".") + "   " + c-cod-chave-tab + ".".
+
+    END.
+    /*---*/
+
+    /*---*/
+
+    /*Ajusta infAdProd*/
+    ASSIGN ttDet.infAdProd = REPLACE(ttDet.infAdProd, CHR(10), " ")
+           ttDet.infAdProd = REPLACE(ttDet.infAdProd, CHR(13), " ")
+           ttDet.infAdProd = REPLACE(ttDet.infAdProd, CHR(9), " ")
+           ttDet.infAdProd = (IF lLayoutTXT THEN REPLACE(ttDet.infAdProd, "|", "/") ELSE ttDet.infAdProd).
+
+    /*Ajusta Campos para Layout TXT*/
+    IF  lLayoutTXT
+    AND ttDet.vSeg = 0 THEN
+        ASSIGN ttDet.vSeg = ?.
+
+    IF  lLayoutTXT
+    AND ttDet.vOutro = 0 THEN
+        ASSIGN ttDet.vOutro = ?.
+
+    IF  lLayoutTXT
+    AND ttDet.vDesc = 0 THEN
+        ASSIGN ttDet.vDesc  = ?.
+           
+
+    /* Chave EMS */
+    ASSIGN ttDet.CodEstabelNF = nota-fiscal.cod-estabel
+           ttDet.SerieNF      = nota-fiscal.serie
+           ttDet.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttDet.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttDet.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttDet THEN DO:
+        ASSIGN /*tDet.cProd     = fn-ajusta-espacos-branco(ttDet.cProd)   Comentado em 31/03/2009 - MANGOTEX */
+               ttDet.xProd     = REPLACE(ttDet.xProd, CHR(10), " ")
+               ttDet.xProd     = REPLACE(ttDet.xProd, CHR(13), " ")
+               ttDet.xProd     = REPLACE(ttDet.xProd, CHR(9), " ")
+               ttDet.cEAN      = fn-ajusta-tamanho-campo(ttDet.cEAN     , 14)
+               ttDet.cEANTrib  = fn-ajusta-tamanho-campo(ttDet.cEANTrib , 14)
+               ttDet.CFOP      = fn-ajusta-tamanho-campo(ttDet.CFOP     ,  4)
+               ttDet.cProd     = fn-ajusta-tamanho-campo(ttDet.cProd    , 60)
+               ttDet.EXTIPI    = fn-ajusta-tamanho-campo(ttDet.EXTIPI   ,  3)
+               ttDet.infAdProd = fn-ajusta-tamanho-campo(ttDet.infAdProd,500)
+               ttDet.NCM       = fn-ajusta-tamanho-campo(ttDet.NCM      ,  8)
+               ttDet.xProd     = fn-ajusta-tamanho-campo(ttDet.xProd    ,120)
+               ttDet.nFCI      = fn-ajusta-tamanho-campo(ttDet.nFCI     , 36)
+               ttDet.xProd     = fn-ajusta-espacos-branco(ttDet.xProd)
+               ttDet.infAdProd = fn-ajusta-espacos-branco(ttDet.infAdProd).
+        IF  INDEX(ttDet.xProd,ttDet.infAdProd) > 0 THEN
+            ASSIGN ttDet.infAdProd = "".
+    END.
+
+END PROCEDURE.

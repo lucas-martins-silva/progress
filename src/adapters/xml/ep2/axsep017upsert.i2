@@ -1,0 +1,114 @@
+PROCEDURE pi-prepara-dados:
+
+    IF PROGRAM-NAME(2) MATCHES "*FT0518*" THEN
+       ASSIGN l-impressao-danfe = YES.
+    ASSIGN iContNota = 0.
+
+    RUN cdp/cdapi704.p PERSISTENT SET h-cdapi704.
+
+
+    RUN pi-limpa-temp-tables.
+
+    RUN pi-localiza-tabelas.
+
+    IF  nota-fiscal.vl-seguro <> 0 THEN
+        RUN pi-calcula-valor-seguro-por-item.
+
+    IF  nota-fiscal.vl-embalagem <> 0 THEN
+        RUN pi-calcula-valor-vOutro-por-item.
+
+    ASSIGN lLayoutXML = (IF  tp-integ <> "Manual":U AND
+                             tp-integ <> "Nenhum":U
+                             THEN YES /* Aplicativo de Transmiss∆o */
+                             ELSE NO)
+           lLayoutTXT = (IF  tp-integ = "Manual":U
+                             THEN YES /* Transmiss∆o Manual */
+                             ELSE NO).
+
+    IF  lLayoutTXT THEN
+        ASSIGN cLocalArqTXT = TRIM(&if  "{&bf_dis_versao_ems}" >= "2.071"
+                                   &then estabelec.des-local-arq
+                                   &else SUBSTRING(estabelec.char-1,183,60) &endif)
+               cLocalArqTXT = REPLACE(cLocalArqTXT,"/","~\")
+               cLocalArqTXT = (IF SUBSTRING(cLocalArqTXT,LENGTH(cLocalArqTXT),1) = "~\"
+                               THEN cLocalArqTXT
+                               ELSE cLocalArqTXT + "~\").
+
+    ASSIGN c-serie = nota-fiscal.serie.
+    
+    /*--- UPC para Tratamento de SÇrie ---*/
+    IF  c-nom-prog-dpc-mg97  <> "" 
+    OR  c-nom-prog-appc-mg97 <> "" 
+    OR  c-nom-prog-upc-mg97  <> "" THEN DO:
+
+        /* TrataSerieNfe: EPC para retirar letras da sÇrie */
+        FOR EACH  tt-epc
+            WHERE tt-epc.cod-event = "TrataSerieNfe":U:
+           DELETE tt-epc.
+        END.
+        
+        CREATE tt-epc.
+        ASSIGN tt-epc.cod-event     = "TrataSerieNfe":U
+               tt-epc.cod-parameter = "serie":U
+               tt-epc.val-parameter =  c-serie.
+               
+        {include/i-epc201.i "TrataSerieNfe"}
+        
+        FOR FIRST tt-epc
+            WHERE tt-epc.cod-event     = "TrataSerieNfe":U AND 
+                  tt-epc.cod-parameter = "serie-nfe":U :
+           
+            ASSIGN c-serie = tt-epc.val-parameter.
+        END.
+        /* TrataSerieNfe */
+    END.
+    /*-----*/
+
+    ASSIGN c-serie = IF  c-serie = ""
+                     THEN "0"
+                     ELSE c-serie.
+
+    ASSIGN c-cod-cfop = (&if defined(bf_dis_formato_CFOP)
+                         &then bf-natur-oper-nf.cod-cfop
+                         &else SUBSTR(bf-natur-oper-nf.char-1,45,10) &endif)  WHEN AVAIL bf-natur-oper-nf.
+                         
+                         
+    RUN pi-grava-temp-tables.
+
+    ASSIGN d-total-base-icms     = 0
+           d-total-icms          = 0
+           d-total-base-iss      = 0
+           d-total-iss           = 0
+           d-total-serv          = 0
+           d-total-ipi           = 0
+           d-total-base-icms-st  = 0
+           d-total-icms-st       = 0
+           d-total-ii            = 0
+           d-total-pis           = 0
+           d-total-cofins        = 0
+           d-total-pis-serv      = 0
+           d-total-cofins-serv   = 0
+           d-total-outras-desp   = 0
+           d-total-ret-pis       = 0
+           d-total-ret-cofins    = 0
+           d-total-ret-csll      = 0
+           d-total-ret-irf       = 0
+           d-total-base-ret-irf  = 0
+           de-vProdTotal         = 0
+           d-total-pis-st        = 0
+           d-total-cofins-st     = 0
+           d-total-icms-STA      = 0
+           d-total-IPI-espec     = 0 /* IPI de notas entrega fut, fat antecip */
+           d-total-icms-ST-espec = 0 /* ICMS ST de notas entrega fut, fat antecip */
+           d-total-ipi-out-tot   = 0
+           d-total-desp-n-destaq = 0  /*Despesas de Frete/Seguro/Embalagem que comp‰em o valor total da nota, mas n∆o est∆o destacadas (Operacao triangular)*/
+           d-total-icms-ST-devol = 0. /*ICMS ST Devol Fornec*/
+
+    IF  VALID-HANDLE(h-cdapi704) THEN DO:
+        DELETE PROCEDURE h-cdapi704.
+        ASSIGN h-cdapi704 = ?.
+    END.
+    
+   RUN pi-NF-e-Estorno.
+
+END PROCEDURE.

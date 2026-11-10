@@ -1,0 +1,24 @@
+/************************************************************************
+***
+***  app/ap1002.i9 - Atualiza numero do banco.
+***
+************************************************************************/
+
+if  avail tit-ap then 
+    assign tit-ap.titulo-banco = c-numero-banco.
+  
+find first mov-ap of tit-ap
+     where mov-ap.transacao  = 1  /* IMD */
+     or  ( mov-ap.transacao  = 6  /* SND */
+     and   mov-ap.lancamento = 2) /* C   */ exclusive-lock no-error.
+
+/*--- O tratamento abaixo refere-se … integra‡Æo APP x Investimentos ---*/
+if  avail mov-ap then
+
+    &if "{&mgdis_version}" >= "2.02" &then
+        assign mov-ap.titulo-banco = c-numero-banco.
+    &else
+        assign mov-ap.pedido = c-numero-banco.
+    &endif
+
+/* Fim de Include */

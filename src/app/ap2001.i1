@@ -1,0 +1,128 @@
+/*****************************************************************************
+**
+**  AP2001.i1
+**  Objetivo: Definicao de frames e abertura dos Arquivos de Saida,Impressao.
+**
+******************************************************************************/
+
+def var c-destino       as char format "x(20)"                no-undo.
+def var c-liter1        as char format "x(15)"                no-undo.
+def var c-liter2        as char format "x(15)"                no-undo.
+def var c-liter3        as char format "x(15)"                no-undo.
+def var c-liter4        as char format "x(15)"                no-undo.
+def var c-classif       as char format "x(24)"                no-undo.
+def var c-periodo       as char format "x(24)"                no-undo.
+def var c-selecao       as char format "x(24)"                no-undo.
+def var de-total        like tit-ap.vl-saldo.
+def var de-total-gps    like tit-ap.vl-saldo.
+def var de-total-abaixo like tit-ap.vl-saldo.
+
+{utp/ut-liter.i SELE€ÇO}
+assign c-liter1 = trim(return-value).
+
+{utp/ut-liter.i CLASSIFICA€ÇO}
+assign c-liter2 = trim(return-value).
+
+{utp/ut-liter.i PAR¶METROS}
+assign c-liter3 = trim(return-value).
+
+{utp/ut-liter.i IMPRESSÇO}
+assign c-liter4 = trim(return-value).               
+
+form    
+     c-liter1                                         at 10 no-label skip (1)    
+     tt-param.cod-fornec-ini                          colon 30 label "Fornecedor"
+      "|<  >|"                                        at 45
+     tt-param.cod-fornec-fim                          at 53 no-label      
+     tt-param.cod-estab-ini                           colon 30 label "Estabelecimento"
+      "|<  >|"                                        at 45
+     tt-param.cod-estab-fim                           at 53 no-label      
+     tt-param.cod-esp-ini                             colon 30 label "Esp‚cie"
+      "|<  >|"                                        at 45
+     tt-param.cod-esp-fim                             at 53 no-label      
+     tt-param.cod-ret-ini                             colon 30 label "C¢digo Reten‡Æo"
+      "|<  >|"                                        at 45
+     tt-param.cod-ret-fim                             at 53 no-label      
+     tt-param.dt-vencto-ini                           colon 30 label "Dt. Vencimento"
+      "|<  >|"                                        at 45
+     tt-param.dt-vencto-fim                           at 53 no-label      
+     tt-param.dt-trans-ini                            colon 30 label "Dt. Transa‡Æo"
+      "|<  >|"                                        at 45
+     tt-param.dt-trans-fim                            at 53 no-label      
+     tt-param.bordero-ini                             colon 30 label "Border“"
+      "|<  >|"                                        at 45
+     tt-param.bordero-fim                             at 53 no-label skip (2)     
+     c-liter2                                         at 10 no-label skip (1)    
+     c-classif                                        colon 30 skip (2)     
+     c-liter3                                         at 10 no-label skip (1)    
+     tt-param.i-cod-port                              colon 30 label "Portador"
+     tt-param.d-val-minimo                            colon 30 label "Valor M¡nimo"
+     c-periodo                                        colon 30 label "Per¡odo Competˆncia"
+     c-selecao                                        colon 30 label "Sele‡Æo" skip (2)
+     c-liter4                        at 10 no-label skip (1)
+     c-destino                       colon 30 
+     tt-param.arquivo                colon 30 label "Arquivo"
+     tt-param.usuario                colon 30 label "Usu rio" skip (1)
+     tt-param.c-arquivo-remessa      colon 30 format "x(50)"
+     with stream-io width 132 no-box side-labels frame f-cab-param.
+run utp/ut-trfrrp.p (input frame f-cab-param:handle).
+
+{utp/ut-liter.i Destino MCR l}
+assign c-destino:label in frame f-cab-param = return-value.           
+
+{utp/ut-liter.i Classifica‡Æo}
+assign c-classif:label in frame f-cab-param = trim(return-value).
+
+{utp/ut-liter.i Arquivo_Remessa}
+assign tt-param.c-arquivo-remessa:label in frame f-cab-param = trim(return-value).
+
+assign c-destino = {varinc/var00002.i 04 tt-param.destino}.
+
+case tt-param.classifica:
+     when 1 then 
+          {utp/ut-liter.i Por_Fornecedor}
+     when 2 then
+          {utp/ut-liter.i Por_Vencimento}
+     when 3 then     
+          {utp/ut-liter.i Por_C¢digo_Reten‡Æo}
+end case.
+assign c-classif = trim(return-value).
+
+if  tt-param.i-periodo-comp = 1 then
+    {utp/ut-liter.i Vencimento}
+else
+    {utp/ut-liter.i Per¡odo_Anterior}
+assign c-periodo = trim(return-value).
+
+if  tt-param.i-selecao = 1 then
+    {utp/ut-liter.i Border“}
+else
+    {utp/ut-liter.i Data_Transa‡Æo}
+
+assign c-selecao = trim(return-value).
+
+form    
+     mov-ap.cod-fornec
+     mov-ap.nome-abrev
+     tt-relacao.nr-docto-gps
+     tt-relacao.valor-gps
+     mov-ap.cod-estabel
+     mov-ap.cod-esp
+     mov-ap.serie
+     mov-ap.nr-docto
+     mov-ap.parcela
+     mov-ap.dt-vencimen
+     tit-ap.cod-retencao
+     tit-ap.vl-saldo
+     with stream-io width 132 no-box down frame f-detalhe.
+run utp/ut-trfrrp.p (input frame f-detalhe:handle).
+
+form    
+     skip (3)
+     de-total-gps      to 115 label "Total GPS" 
+     de-total-abaixo   to 115 label "Total documentos abaixo valor m¡nimo"
+     de-total          to 115 label "Total Geral"
+     with stream-io width 132 no-box with side-labels frame f-total.
+run utp/ut-trfrrp.p (input frame f-total:handle).     
+
+/*--  AP2001.i1 --*/

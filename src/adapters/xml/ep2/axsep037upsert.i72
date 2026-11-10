@@ -1,0 +1,47 @@
+PROCEDURE pi-NF-e-Estorno:
+    
+    /*
+    Nos casos em que a operaá∆o relativa Ö circulaá∆o de mercadorias n∆o tenha sido concretizada e o cancelamento n∆o for transmitido no prazo de que trata o 
+    Art. 176-M do Decreto nß 24.569, de 1997, a correá∆o deve ser realizada atravÇs da emiss∆o de NF-e de estorno, com as seguintes indicaá‰es:
+    
+    I   - finalidade de emiss∆o da NF-e (campo FinNFe): "3 - NF-e de ajuste";
+    II  - descriá∆o da natureza da operaá∆o (campo natOp): "999 - Estorno de NF-e n∆o cancelada no prazo legal";
+    III - referància Ö chave de acesso da NF-e que est† sendo estornada no campo refNFe;
+    IV  - dados dos produtos/serviáos e valores equivalentes aos da NF-e estornada;
+    V   - CFOP inverso ao constante da NF-e estornada;
+    VI  - justificativa do estorno nas Informaá‰es Adicionais de Interesse do Fisco (campo infAdFisco).
+    */
+
+    IF &if "{&bf_dis_versao_ems}" >= "2.09"
+       &then bf-natur-oper-nf.log-nfe-estorn 
+       &else TRIM(SUBSTR(bf-natur-oper-nf.char-1,159,1)) = "S":U    /*CD0606 - Pasta Atualizaá‰es - Campo NF-e de Estorno*/
+       &endif
+    THEN DO:
+        
+        IF  NOT AVAIL ttIde THEN
+            FIND FIRST ttIde NO-ERROR.
+            
+        IF TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "" AND TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "0" THEN
+            ASSIGN ttIde.finNFe = TRIM(SUBSTRING(nota-fiscal.char-2,211,2)). /*Finalidade NF-e*/
+        ELSE
+            ASSIGN ttIde.finNFe = "3". /*3 Œ NF-e de ajuste*/
+
+        ASSIGN ttIde.natOp  = "999 - Estorno de NF-e n∆o cancelada no prazo legal":U.
+
+        FOR FIRST mensagem NO-LOCK
+            WHERE mensagem.cod-mensagem = bf-natur-oper-nf.cod-mensagem:
+
+            IF  NOT AVAIL ttInfAdic THEN
+                FIND FIRST ttInfAdic NO-ERROR.
+
+            ASSIGN ttInfAdic.infAdFisco = mensagem.texto-mensag
+                   ttInfAdic.infAdFisco = REPLACE(ttInfAdic.infAdFisco, CHR(10), " ")
+                   ttInfAdic.infAdFisco = REPLACE(ttInfAdic.infAdFisco, CHR(13), " ")
+                   ttInfAdic.infAdFisco = REPLACE(ttInfAdic.infAdFisco, CHR(9),  " ")
+                   ttInfAdic.infAdFisco = IF  lLayoutTXT THEN REPLACE(ttInfAdic.infAdFisco, "|", "/") ELSE ttInfAdic.infAdFisco
+                   ttInfAdic.infAdFisco = fn-ajusta-espacos-branco(ttInfAdic.infAdFisco)
+                   ttInfAdic.infAdFisco = fn-ajusta-tamanho-campo(ttInfAdic.infAdFisco ,2000).
+        END.
+    END.
+
+END PROCEDURE.

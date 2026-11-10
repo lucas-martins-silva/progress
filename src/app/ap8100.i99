@@ -1,0 +1,15 @@
+/***************************************************************
+**
+** I-EPC200.I1 - Padroniza a temp-table usada para os epcs
+**
+***************************************************************/ 
+
+/* begin_temp_table_definition */
+
+define temp-table tt-epc NO-UNDO
+   field cod-event     as char format "x(12)"
+   field cod-parameter as char format "x(32)"
+   field val-parameter as char format "x(54)"
+   index  id is primary cod-parameter cod-event ascending.    
+   
+/* end_temp_table_definition */  

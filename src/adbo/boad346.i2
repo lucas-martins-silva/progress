@@ -1,0 +1,105 @@
+{include/i_dbvers.i}
+/********************************************************************************
+***
+*** adbo/boad346.i2 - Defini‡Æo das Temp-Tables.
+***
+********************************************************************************/
+
+def temp-table tt-doc-b-cr no-undo like doc-b-cr
+    field cod-versao-integ as integer init 0 format "999"
+    field ind-elimina-lote as integer init 1 format "99".  /* 1 - Elimina lote em caso de erro */
+                                                           /* 2 - Deixa pendente lote com erro */
+def temp-table tt-lin-b-cr no-undo
+&IF "{&mguni_version}" >= "2.07A" &THEN
+    field ep-codigo         LIKE empresa.ep-codigo    format "x(03)"             initial ""
+&ELSE
+    field ep-codigo         as inte    format ">>9"             initial 0
+&ENDIF
+    field referencia        as char    format "x(10)"           initial ""
+    field sequencia         as inte    format ">>>,>>9"         initial 0
+    field transacao         as inte    format "99"              initial 1
+    field cod-esp           as char    format "!!"              initial ""
+&IF "{&mguni_version}" >= "2.07A" &THEN
+    field cod-estabel       as char    format "x(05)"            initial ""
+&ELSE
+    field cod-estabel       as char    format "x(3)"            initial ""
+&ENDIF
+    field nr-docto          as char    format "x(16)"           initial ""
+    field parcela           as char    format "x(2)"            initial ""
+    field dt-pgto           as date    format "99/99/9999"      initial today
+    field vl-baixa          as decimal format ">>,>>>,>>>,>>9." initial 0
+    field vl-juros-rec      as decimal format ">>>>>>>,>>9.99"  initial 0
+    field vl-desconto       as decimal format ">>>>>>>,>>9.99"  initial 0
+    field estorn-comis      as logi    format "yes/no"          initial no
+    field valor-juros       as decimal format ">>>>>>>,>>9.99"  initial 0
+    field dt-venc-deb       as date    format "99/99/9999"      initial today
+    field vl-abatimen       as decimal format ">>>>>>>,>>9.99"  initial 0
+    field moeda             as inte    format ">9"              initial 0
+    field portador-ad       as inte    format ">>>>9"           initial 0
+    field modalidade-ad     as inte    format "9"               initial 1
+    field vl-icms-ret       as decimal format ">>>>>>>,>>9.99"  initial 0
+    field tp-codigo-ad      as inte    format ">>9"             initial 0
+    field portador          as inte    format ">>>>9"           initial 0
+    field modalidade        as inte    format "9"               initial 1
+    field dt-credito        as date    format "99/99/9999"      initial ?
+    field u-data-1          as date    format "99/99/9999"      initial ?
+    field cod-controle      as char    format "x(15)"           initial ""
+    field mercado           as inte    format ">9"              initial 1
+    field origem            as inte    format ">9"              initial 1
+    field serie             as char    format "x(5)"            initial ""
+    field sequencia-antecip as inte    format ">>>,>>9"         initial 0
+    field cod-emitente      as inte    format ">>>>>>>>9"       initial 0
+    field nome-abrev        as char    format "x(12)"           initial ""
+    field cod-rep           as inte    format ">>>>9"           initial 0
+    field vl-desp-banc      as decimal format ">>>,>>>,>>>,>>9" initial 0
+    field cod-esp-pe        as char    format "!!"              initial ""
+    field cotacao-dia       as decimal format ">>>,>9.99999999" initial 1
+    field dt-desconto       as date    format "99/99/9999"      initial TODAY
+    field dt-vencimen       as date    format "99/99/9999"      initial TODAY
+    field vl-baixa-me       as decimal format "->>>,>>>,>>>,>>" initial 0
+    field vl-var-monet      as decimal format "->>,>>>,>>>,>>9" initial 0
+    field vl-juros-rec-me   as decimal format ">>>>>>>,>>9.99"  initial 0
+    field vl-desconto-me    as decimal format ">>>>>>>,>>9.99"  initial 0
+    field vl-abatimen-me    as decimal format ">>>>>>>,>>9.99"  initial 0
+    field vl-desp-banc-me   as decimal format ">>>,>>>,>>>,>>9" initial 0
+    field valor-juros-me    as decimal format ">>>>>>>,>>9.99"  initial 0
+    field mo-codigo         as inte    format ">9"              initial 0
+    field observacao        as char    format "x(2000)"         initial ""
+    field char-1            as char    format "x(100)"          initial ""
+    field char-2            as char    format "x(100)"          initial ""
+    field dec-1             as decimal format "->>>>>>>>>>>9.9" initial 0
+    field dec-2             as decimal format "->>>>>>>>>>>9.9" initial 0
+    field int-1             as inte    format "->>>>>>>>>9"     initial 0
+    field int-2             as inte    format "->>>>>>>>>9"     initial 0
+    field log-1             as logi    format "yes/no"          initial no
+    field log-2             as logi    format "yes/no"          initial no
+    field data-1            as date    format "99/99/9999"      initial ?
+    field data-2            as date    format "99/99/9999"      initial ?
+    field vl-multa          as decimal format "->>>,>>>,>>>,>>" initial 0
+    field vl-multa-me       as decimal format "->>>,>>>,>>>,>>" initial 0
+    field nr-recibo         as inte    format ">>>>>9"          initial 0
+    field cod-bloco-recibo  as inte    format ">>>>>9"          initial 0
+    field check-sum         as char    format "x(20)"           initial ""
+    field nr-contrato       as char    format "x(15)"           initial 0 
+    field dt-contrato       as date    format "99/99/9999"      initial today
+    field num-id-contrato-exp as integer format "->>>>>>>>>9"   initial 0
+    field estabel-mec       as char      format "x(3)"          initial ""
+    field referencia-mec    as char      format "x(10)"         initial ""
+    field dt-referencia-mec as date      format "99/99/9999"    initial today
+    index codigo is primary unique ep-codigo
+                                   referencia
+                                   sequencia.
+
+def temp-table tt-lin-ant no-undo like lin-ant.
+
+def temp-table tt-retorno-lin-b-cr no-undo
+    field cod-erro   as character format "x(10)"
+    field desc-erro  as character format "x(60)"
+                        view-as editor max-chars 2000 
+                        scrollbar-vertical size 50 by 4
+    field situacao   as logical
+    field cod-chave  as character
+    INDEX ch-codigo  IS PRIMARY cod-erro
+                                cod-chave.
+
+/* Fim de Include */

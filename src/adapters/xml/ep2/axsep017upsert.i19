@@ -1,0 +1,101 @@
+PROCEDURE pi-cria-ttDI:
+
+    DEF INPUT PARAM c-serie         LIKE nota-fiscal.serie        NO-UNDO.      
+    DEF INPUT PARAM c-nr-nota-fis   LIKE nota-fiscal.nr-nota-fis  NO-UNDO.      
+    DEF INPUT PARAM i-cod-emitente  LIKE nota-fiscal.cod-emitente NO-UNDO.      
+    DEF INPUT PARAM c-nat-operacao  LIKE nota-fiscal.nat-operacao NO-UNDO.      
+
+    /*
+    === ttDI ===
+    cExportador    AS CHARACTER INITIAL ?  /*C¢digo do exportador (usado nos sistemas internos de informa‡Æo do emitente da NF-e)*/
+    dDesemb        AS DATE      INITIAL ?  /*Data do desembara‡o aduaneiro (AAAA-MM-DD)*/
+    dDI            AS DATE      INITIAL ?  /*Data de registro da DI/DSI/DA (AAAA-MM-DD)*/
+    nDI            AS CHARACTER INITIAL ?  /*Numero do Documento de Importa‡Æo DI/DSI/DA (DI/DSI/DA)*/
+    UFDesemb       AS CHARACTER INITIAL ?  /*UF onde ocorreu o desembara‡o aduaneiro*/
+    xLocDesemb     AS CHARACTER INITIAL ?  /*Local do desembara‡o aduaneiro*/
+    CodEstabelNF   AS CHARACTER INITIAL ?
+    SerieNF        AS CHARACTER INITIAL ?
+    NrNotaFisNF    AS CHARACTER INITIAL ?
+    */
+
+   FOR FIRST docto-estoq-nfe-imp NO-LOCK
+       WHERE docto-estoq-nfe-imp.cod-ser-docto    = c-serie         
+         AND docto-estoq-nfe-imp.cod-docto        = c-nr-nota-fis   
+         AND docto-estoq-nfe-imp.cdn-emitente     = i-cod-emitente  
+         AND docto-estoq-nfe-imp.cod-natur-operac = c-nat-operacao: 
+   
+         CREATE ttDI.
+         ASSIGN ttDI.nDI         = docto-estoq-nfe-imp.des-decla-import
+                ttDI.dDI         = docto-estoq-nfe-imp.dat-decla-import
+                ttDI.dDesemb     = docto-estoq-nfe-imp.dat-desembarac 
+                ttDI.xLocDesemb  = docto-estoq-nfe-imp.des-descr-gener
+                ttDI.UFDesemb    = docto-estoq-nfe-imp.cod-uf 
+                ttDI.cExportador = string(docto-estoq-nfe-imp.cdn-expdor).
+   
+         ASSIGN ttDI.nDI = REPLACE(ttDI.nDI,"-","")
+                ttDI.nDI = REPLACE(ttDI.nDI,".","")
+                ttDI.nDI = REPLACE(ttDI.nDI,"/","")
+                ttDI.nDI = REPLACE(ttDI.nDI,"~\","")
+                ttDI.nDI = REPLACE(ttDI.nDI,",","").
+         /* Chave EMS */
+         ASSIGN ttDI.CodEstabelNF = nota-fiscal.cod-estabel
+                ttDI.SerieNF      = nota-fiscal.serie
+                ttDI.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+         /*Complementar Imposto de Importa‡Æo*/
+         IF  l-nota-compl-imp THEN DO:
+
+             FIND FIRST it-nota-fisc NO-LOCK
+                  WHERE it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel
+                    AND it-nota-fisc.serie       = nota-fiscal.serie
+                    AND it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis NO-ERROR.
+
+             FIND LAST item-docto-estoq-nfe-imp NO-LOCK 
+                 WHERE item-docto-estoq-nfe-imp.cdn-emitente     = docto-estoq-nfe-imp.cdn-emitente     
+                   AND item-docto-estoq-nfe-imp.cod-docto        = docto-estoq-nfe-imp.cod-docto        
+                   AND item-docto-estoq-nfe-imp.cod-ser-docto    = docto-estoq-nfe-imp.cod-ser-docto    
+                   AND item-docto-estoq-nfe-imp.cod-natur-operac = docto-estoq-nfe-imp.cod-natur-operac NO-ERROR.
+
+             /* Chave EMS */
+             CREATE ttAdi.
+             ASSIGN ttAdi.CodEstabelNF = nota-fiscal.cod-estabel
+                    ttAdi.SerieNF      = nota-fiscal.serie
+                    ttAdi.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                    ttAdi.ItCodigoNF   = it-nota-fisc.it-codigo    
+                    ttAdi.NrSeqFatNF   = it-nota-fisc.nr-seq-fat. /*para criar a ttII ele deve usar o seq-fat */ 
+					
+             /* Chave para a ttDI */
+             ASSIGN ttAdi.nDI          = docto-estoq-nfe-imp.des-decla-import 
+                    ttAdi.nAdicao      = IF  AVAIL item-docto-estoq-nfe-imp 
+                                         THEN string(item-docto-estoq-nfe-imp.num-adic)
+                                         ELSE "10"
+                    ttAdi.nSeqAdic     = IF  AVAIL item-docto-estoq-nfe-imp 
+                                         THEN string(item-docto-estoq-nfe-imp.num-seq-import)
+                                         ELSE "10"
+                    ttAdi.cFabricante  = IF  AVAIL item-docto-estoq-nfe-imp 
+                                         THEN string(item-docto-estoq-nfe-imp.cdn-expdor)
+                                         ELSE ""
+                    ttAdi.vDescDI      = IF  AVAIL item-docto-estoq-nfe-imp 
+                                         THEN item-docto-estoq-nfe-imp.val-desc
+                                         ELSE 0 
+                    ttAdi.nDI		   = REPLACE(ttAdi.nDI,"-","")
+                    ttAdi.nDI          = REPLACE(ttAdi.nDI,".","")
+                    ttAdi.nDI          = REPLACE(ttAdi.nDI,"/","")
+                    ttAdi.nDI          = REPLACE(ttAdi.nDI,"~\","")
+                    ttAdi.nDI          = REPLACE(ttAdi.nDI,",","").
+
+			  /* Chave EMS */
+              CREATE ttII.
+              ASSIGN ttII.CodEstabelNF = nota-fiscal.cod-estabel
+                     ttII.SerieNF      = nota-fiscal.serie
+                     ttII.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                     ttII.ItCodigoNF   = it-nota-fisc.it-codigo
+                     ttII.NrSeqFatNF   = it-nota-fisc.nr-seq-fat  /*para criar a ttII ele deve usar o seq-fat */
+                     ttII.vBC		   = 0
+                     ttII.vDespAdu	   = 0
+                     ttII.vII          = 0
+                     ttII.vIOF         = 0.
+         END.
+   END.
+
+END PROCEDURE.

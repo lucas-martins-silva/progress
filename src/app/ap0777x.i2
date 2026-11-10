@@ -1,0 +1,87 @@
+/*******************************************************************************
+***
+*** app/ap0777x.i2 - 
+***
+*******************************************************************************/
+
+    DO  da-data = {1} TO TODAY:
+        
+        FOR EACH tt-espec-impto:
+            
+            FOR EACH empresa NO-LOCK:
+
+                Movto_Block:
+                FOR EACH  mov-ap NO-LOCK
+                    WHERE mov-ap.ep-codigo    = empresa.ep-codigo
+                    AND   mov-ap.dt-transacao = da-data
+                    AND   mov-ap.transacao    = 1
+                    AND   mov-ap.cod-esp      = tt-espec-impto.cod-esp:
+                    
+                    FIND FIRST tit-ap NO-LOCK
+                         WHERE tit-ap.ep-codigo   = mov-ap.ep-codigo
+                         AND   tit-ap.cod-estabel = mov-ap.cod-estabel
+                         AND   tit-ap.cod-fornec  = mov-ap.cod-fornec
+                         AND   tit-ap.cod-esp     = mov-ap.cod-esp
+                         AND   tit-ap.serie       = mov-ap.serie
+                         AND   tit-ap.nr-docto    = mov-ap.nr-docto
+                         AND   tit-ap.parcela     = mov-ap.parcela
+                         NO-ERROR.
+    
+                    IF  NOT AVAIL tit-ap THEN
+                        NEXT Movto_Block.
+    
+                    FIND FIRST tt-tit-ap-sel NO-LOCK
+                         WHERE tt-tit-ap-sel.row-tit-ap = ROWID(tit-ap) NO-ERROR.
+    
+                    IF  NOT AVAIL tt-tit-ap-sel THEN DO:
+                        CREATE tt-tit-ap-sel.
+                        ASSIGN tt-tit-ap-sel.row-tit-ap = ROWID(tit-ap).
+                    END.
+                    
+                    /* Cria tt para as DPïs do Imposto */
+                    FIND FIRST b-tit-ap NO-LOCK
+                         where b-tit-ap.ep-codigo  = mov-ap.ep-codigo 
+                         and   b-tit-ap.cod-estab  = mov-ap.cod-estab 
+                         and   b-tit-ap.cod-fornec = mov-ap.fornec-ant 
+                         and   b-tit-ap.cod-esp    = mov-ap.esp-ant   
+                         and   b-tit-ap.serie      = mov-ap.serie-ant 
+                         and   b-tit-ap.nr-docto   = mov-ap.docto-ant  
+                         and   b-tit-ap.parcela    = mov-ap.parc-ant
+                         NO-ERROR.
+    
+                    IF  AVAIL b-tit-ap THEN DO:
+                        FIND FIRST tt-tit-ap-sel NO-LOCK
+                             WHERE tt-tit-ap-sel.row-tit-ap = ROWID(b-tit-ap) NO-ERROR.
+    
+                        IF  NOT AVAIL tt-tit-ap-sel THEN DO:
+                            CREATE tt-tit-ap-sel.
+                            ASSIGN tt-tit-ap-sel.row-tit-ap = ROWID(b-tit-ap).
+                        END.
+                    END.
+                END.
+            END.
+        END.
+    END.
+
+    RUN app/ap0777c.p (INPUT TABLE tt-tit-ap-sel,
+                       INPUT ?,
+                       INPUT "",
+                       INPUT "",
+                       INPUT 0,
+                       INPUT 0,
+                       INPUT 0,
+                       INPUT 0,
+                       INPUT ?,
+                       INPUT ?,
+                       INPUT ?,
+                       INPUT ?,
+                       INPUT 5,
+                       INPUT 4,
+                       INPUT YES,
+                       INPUT YES,
+                       INPUT  TABLE tt-espec-ap,
+                       OUTPUT TABLE tt-tit-ap,
+                       OUTPUT TABLE tt-log-erros).
+
+/* Fim Include */
+

@@ -1,0 +1,173 @@
+PROCEDURE pi-cria-ttCOFINS:
+
+    /*
+    === ttCOFINSAliq ===
+    CST            AS CHARACTER INITIAL ?  /*C¢digo de Situa‡Æo Tribut ria do COFINS. 01 Opera‡Æo Tribut vel - Base de C lculo = Valor da Opera‡Æo Al¡quota Normal (Cumulativo/NÆo Cumulativo); 02 - Opera‡Æo Tribut vel - Base de Calculo = Valor da Opera‡Æo (Al¡quota Diferenciada) */
+    pCOFINS        AS DECIMAL   INITIAL ?  /*Al¡quota do COFINS (em percentual)*/
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do COFINS*/
+    vCOFINS        AS DECIMAL   INITIAL ?  /*Valor do COFINS*/
+
+    === ttCOFINSNT ===
+    CST            AS CHARACTER INITIAL ?  /*C¢digo de Situa‡Æo Tribut ria do COFINS: 04 - Opera‡Æo Tribut vel - Tributa‡Æo Monof sica - (Al¡quota Zero); 06 - Opera‡Æo Tribut vel - Al¡quota Zero; 07 - Opera‡Æo Isenta da contribui‡Æo; 08 - Opera‡Æo Sem Incidˆncia da contribui‡Æo; 09 - Opera‡Æo com suspensÆo da contribui‡Æo */
+    
+    === ttCOFINSOutr ===
+    CST            AS CHARACTER INITIAL ?  /*C¢digo de Situa‡Æo Tribut ria do COFINS: 99 - Outras Opera‡äes.*/
+    pCOFINS        AS DECIMAL   INITIAL ?  /*Al¡quota do COFINS (em percentual)*/
+    qBCProd        AS DECIMAL   INITIAL ?  /*Quantidade Vendida */
+    vAliqProd      AS DECIMAL   INITIAL ?  /*Al¡quota do COFINS (em reais)*/
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do COFINS*/
+    vCOFINS        AS DECIMAL   INITIAL ?  /*Valor do COFINS*/
+    
+    === ttCOFINSQtde ===
+    CST            AS CHARACTER INITIAL ?  /*C¢digo de Situa‡Æo Tribut ria do COFINS. 03 - Opera‡Æo Tribut vel - Base de Calculo = Quantidade Vendida x Al¡quota por Unidade de Produto */
+    qBCProd        AS DECIMAL   INITIAL ?  /*Quantidade Vendida */
+    vAliqProd      AS DECIMAL   INITIAL ?  /*Al¡quota do COFINS (em reais)*/
+    vCOFINS        AS DECIMAL   INITIAL ?  /*Valor do COFINS*/
+
+    === ttCOFINSST ===
+    pCOFINS        AS DECIMAL   INITIAL ?  /*Al¡quota do COFINS ST(em percentual)*/
+    qBCProd        AS DECIMAL   INITIAL ?  /*Quantidade Vendida */
+    vAliqProd      AS DECIMAL   INITIAL ?  /*Al¡quota do COFINS ST(em reais)*/
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do COFINS ST*/
+    vCOFINS        AS DECIMAL   INITIAL ?  /*Valor do COFINS ST*/
+    */
+
+    ASSIGN c-sit-trib-cofins = &if '{&bf_dis_versao_ems}' >= '2.07':U 
+                               &then string(it-nota-fisc.cod-sit-tributar-cofins)
+                               &else substring(it-nota-fisc.char-1,79,2) &endif.
+    CASE c-sit-trib-cofins:
+        /*--- COFINSAliq ---*/
+        WHEN "01" OR         /*01 Î Opera‡Æo Tribut vel - Base de C lculo = Valor da Opera‡Æo Al¡quota Normal (Cumulativo/NÆo Cumulativo)*/
+        WHEN "02" THEN DO:   /*02 - Opera‡Æo Tribut vel - Base de Calculo = Valor da Opera‡Æo (Al¡quota Diferenciada)                    */
+
+            CREATE ttCOFINSAliq.
+            ASSIGN ttCOFINSAliq.CST     = c-sit-trib-cofins
+                   ttCOFINSAliq.pCOFINS = d-aliq-cofins /*dec(substring(it-nota-fisc.char-2,81,5))*/
+                   ttCOFINSAliq.vBC     = d-base-cofins
+                   ttCOFINSAliq.vCOFINS = d-valor-cofins.
+
+            /* Chave EMS */
+            ASSIGN ttCOFINSAliq.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttCOFINSAliq.SerieNF      = nota-fiscal.serie
+                   ttCOFINSAliq.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttCOFINSAliq.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttCOFINSAliq.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+        END.
+        /*--- COFINSQtde ---*/
+        WHEN "03" THEN DO:   /*03 - Opera‡Æo Tribut vel - Base de Calculo = Quantidade Vendida x Al¡quota por Unidade de Produto*/
+
+            CREATE ttCOFINSQtde.
+            ASSIGN ttCOFINSQtde.CST       = c-sit-trib-cofins
+                   ttCOFINSQtde.qBCProd   = IF  d-base-cofins > 0 THEN d-base-cofins ELSE it-nota-fisc.qt-faturada[1]
+                   ttCOFINSQtde.vAliqProd = (&if '{&bf_dis_versao_ems}' >= '2.06':U 
+                                             &then it-nota-fisc.val-unit-cofins
+                                             &else dec(substring(it-nota-fisc.char-2,152,10)) &endif)
+                   ttCOFINSQtde.vCOFINS   = d-valor-cofins.
+
+            /* Chave EMS */
+            ASSIGN ttCOFINSQtde.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttCOFINSQtde.SerieNF      = nota-fiscal.serie
+                   ttCOFINSQtde.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttCOFINSQtde.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttCOFINSQtde.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+        END.
+        /*--- COFINSNT ---*/
+        WHEN "04" OR         /*04 - Opera‡Æo Tribut vel - Tributa‡Æo Monof sica - (Al¡quota Zero)*/
+        WHEN "05" OR         /*05 - Opera‡Æo Tribut vel - Substitui‡Æo Tribut ria                */
+        WHEN "06" OR         /*06 - Opera‡Æo Tribut vel - Al¡quota Zero                          */
+        WHEN "07" OR         /*07 - Opera‡Æo Isenta da contribui‡Æo                              */
+        WHEN "08" OR         /*08 - Opera‡Æo Sem Incidˆncia da contribui‡Æo                      */
+        WHEN "09" THEN DO:   /*09 - Opera‡Æo com suspensÆo da contribui‡Æo                       */
+
+            CREATE ttCOFINSNT.
+            ASSIGN ttCOFINSNT.CST       = c-sit-trib-cofins.
+
+            /* Chave EMS */
+            ASSIGN ttCOFINSNT.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttCOFINSNT.SerieNF      = nota-fiscal.serie
+                   ttCOFINSNT.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttCOFINSNT.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttCOFINSNT.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+        END.
+        /*--- COFINSOutr ---*/
+        OTHERWISE DO:
+
+            CREATE ttCOFINSOutr.
+            ASSIGN ttCOFINSOutr.CST       = c-sit-trib-cofins /* tratamento novos CST's de PIS e COFINS */
+                   ttCOFINSOutr.vCOFINS   = d-valor-cofins.
+
+            IF  &if '{&bf_dis_versao_ems}' >= '2.06':U 
+                &then it-nota-fisc.val-unit-cofins
+                &else dec(substring(it-nota-fisc.char-2,152,10)) &endif 
+            <> 0 THEN DO:
+
+                ASSIGN ttCOFINSOutr.qBCProd   = it-nota-fisc.qt-faturada[1]
+                       ttCOFINSOutr.vAliqProd = (&if '{&bf_dis_versao_ems}' >= '2.06':U 
+                                                 &then it-nota-fisc.val-unit-cofins
+                                                 &else dec(substring(it-nota-fisc.char-2,152,10)) &endif).
+            END.
+            ELSE DO:
+
+                IF  c-sit-trib-cofins = "49":U
+                AND d-aliq-cofins     = 0
+                AND d-valor-cofins    = 0 THEN
+                    ASSIGN d-base-cofins = 0.
+
+                 ASSIGN ttCOFINSOutr.vBC       = d-base-cofins
+                        ttCOFINSOutr.pCOFINS   = d-aliq-cofins.
+            END.
+
+            /* Chave EMS */
+            ASSIGN ttCOFINSOutr.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttCOFINSOutr.SerieNF      = nota-fiscal.serie
+                   ttCOFINSOutr.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttCOFINSOutr.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttCOFINSOutr.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+        END.
+    END CASE.
+
+    /*--- COFINSST ---*/
+    IF  it-nota-fisc.vl-finsocial <> 0 THEN DO: /*Existe valor para PIS Substituto*/
+
+        FOR FIRST item-cli 
+            WHERE item-cli.nome-abrev = emitente.nome-abrev
+            AND   item-cli.it-codigo  = it-nota-fisc.it-codigo NO-LOCK:
+
+            ASSIGN de-perc-cofins-subst = DEC(TRIM(SUBSTRING(item-cli.char-1,36,5))) / 100.
+            
+            IF (nota-fiscal.ind-tip-nota = 8 AND nota-fiscal.esp-docto <> 20) THEN DO: /*devol cli*/
+                FOR FIRST natur-oper no-lock
+                    WHERE natur-oper.nat-operacao = it-nota-fisc.nat-operacao:
+                    ASSIGN de-perc-cofins-subst = natur-oper.per-fin-soc[1].
+                END.    
+            END.
+        
+            CREATE ttCOFINSST.
+            ASSIGN ttCOFINSST.indSomaCOFINSST = if l-pis-cofins-st-total then "1" else "0".
+
+            /* Em percentual */
+            IF de-perc-cofins-subst <> 0 AND
+               de-perc-cofins-subst <> ? THEN 
+               ASSIGN ttCOFINSST.pCOFINS     = de-perc-cofins-subst
+                      ttCOFINSST.vBC         = it-nota-fisc.val-base-cofins-substto
+                      ttCOFINSST.qBCProd     = 0     
+                      ttCOFINSST.vAliqProd   = 0    
+                      ttCOFINSST.vCOFINS     = it-nota-fisc.vl-finsocial.
+
+            /* Em reais */
+            ELSE 
+               ASSIGN ttCOFINSST.vAliqProd   = (DEC(TRIM(SUBSTRING(item-cli.char-1,16,15))) / 10000)  
+                      ttCOFINSST.qBCProd     = it-nota-fisc.qt-faturada[1] 
+                      ttCOFINSST.vBC         = 0
+                      ttCOFINSST.pCOFINS     = 0
+                      ttCOFINSST.vCOFINS     = it-nota-fisc.vl-finsocial.
+                                  
+            /* Chave EMS */
+            ASSIGN ttCOFINSST.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttCOFINSST.SerieNF      = nota-fiscal.serie
+                   ttCOFINSST.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttCOFINSST.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttCOFINSST.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+        END.
+    END.
+END PROCEDURE.

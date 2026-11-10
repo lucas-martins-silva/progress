@@ -1,0 +1,33 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i18 - Primeira Matriz.
+***
+*******************************************************************************/
+
+find first tt-emitente
+    where tt-emitente.cod-emitente = {1} no-lock no-error.
+if  not avail tt-emitente then do:
+    find first emitente no-lock
+        where emitente.cod-emitente = {1} no-error.
+    if  avail emitente then do:
+        create tt-emitente.
+        buffer-copy emitente to tt-emitente.
+    end.
+end.        
+    
+    
+if  avail tt-emitente then do:
+    put trim(c-matriz) format "x(8)"
+        " "
+        trim(string(tt-emitente.cod-emitente, "ZZZZZZZZ9"))
+        " - "
+        tt-emitente.nome-emit skip(1).
+end.
+else do:
+    put trim(c-matriz) format "x(8)"
+        " "
+        trim(string({1}, "ZZZZZZZZ9"))
+        " - MATRIZ NÇO CADASTRADA" skip(1).
+end.
+
+/* Fim de Include */

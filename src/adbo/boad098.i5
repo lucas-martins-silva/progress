@@ -1,0 +1,113 @@
+if  i-cod-emitente-ini = i-cod-emitente-fim then do:
+    open query {&QUERY-NAME} for each {&TABLE-NAME}  
+                                where {&TABLE-NAME}.cod-rep       = i-cod-repre          and
+                                      {&TABLE-NAME}.cod-emitente  = i-cod-emitente-ini   and
+                                      {&TABLE-NAME}.nome-abrev   >= c-nome-abrev-ini     and
+                                      {&TABLE-NAME}.nome-abrev   <= c-nome-abrev-fim     and
+                                      {&TABLE-NAME}.cgc          >= c-cgc-ini            and
+                                      {&TABLE-NAME}.cgc          <= c-cgc-fim            and
+                                      {&TABLE-NAME}.nome-emit    >= c-nome-emit-ini      and
+                                      {&TABLE-NAME}.nome-emit    <= c-nome-emit-fim      and 
+                                      {&TABLE-NAME}.cod-gr-forn  >= i-cod-gr-forn-ini    and
+                                      {&TABLE-NAME}.cod-gr-forn  <= i-cod-gr-forn-fim    and
+                                      {&TABLE-NAME}.nome-matriz  >= c-nome-matriz-ini    and
+                                      {&TABLE-NAME}.nome-matriz  <= c-nome-matriz-fim    and
+                                      &if defined(bf-mat-comex) &then
+                                          {&TABLE-NAME}.identific    <> "F" no-lock
+                                      &else
+                                          {&TABLE-NAME}.identific    <> 2 no-lock
+                                      &endif
+                                      by {&TABLE-NAME}.{1} indexed-reposition.  
+end.
+else do:
+    if c-nome-abrev-ini = c-nome-abrev-fim then do:
+        open query {&QUERY-NAME} for each {&TABLE-NAME}  
+                                    where {&TABLE-NAME}.cod-rep       = i-cod-repre          and
+                                          {&TABLE-NAME}.cod-emitente >= i-cod-emitente-ini   and
+                                          {&TABLE-NAME}.cod-emitente <= i-cod-emitente-fim   and
+                                          {&TABLE-NAME}.nome-abrev    = c-nome-abrev-ini     and
+                                          {&TABLE-NAME}.cgc          >= c-cgc-ini            and
+                                          {&TABLE-NAME}.cgc          <= c-cgc-fim            and
+                                          {&TABLE-NAME}.nome-emit    >= c-nome-emit-ini      and
+                                          {&TABLE-NAME}.nome-emit    <= c-nome-emit-fim      and 
+                                          {&TABLE-NAME}.cod-gr-forn  >= i-cod-gr-forn-ini    and
+                                          {&TABLE-NAME}.cod-gr-forn  <= i-cod-gr-forn-fim    and
+                                          {&TABLE-NAME}.nome-matriz  >= c-nome-matriz-ini    and
+                                          {&TABLE-NAME}.nome-matriz  <= c-nome-matriz-fim    and
+                                          &if defined(bf-mat-comex) &then
+                                             {&TABLE-NAME}.identific    <> "F" no-lock
+                                          &else
+                                             {&TABLE-NAME}.identific    <> 2 no-lock
+                                          &endif
+                                          by {&TABLE-NAME}.{1} indexed-reposition.  
+    end.
+    else do:
+        if c-cgc-ini = c-cgc-fim then do:
+            open query {&QUERY-NAME} for each {&TABLE-NAME}  
+                                        where {&TABLE-NAME}.cod-rep       = i-cod-repre          and
+                                              {&TABLE-NAME}.cod-emitente >= i-cod-emitente-ini   and
+                                              {&TABLE-NAME}.cod-emitente <= i-cod-emitente-fim   and
+                                              {&TABLE-NAME}.nome-abrev   >= c-nome-abrev-ini     and
+                                              {&TABLE-NAME}.nome-abrev   <= c-nome-abrev-fim     and
+                                              {&TABLE-NAME}.cgc           = c-cgc-ini            and
+                                              {&TABLE-NAME}.nome-emit    >= c-nome-emit-ini      and
+                                              {&TABLE-NAME}.nome-emit    <= c-nome-emit-fim      and 
+                                              {&TABLE-NAME}.cod-gr-forn  >= i-cod-gr-forn-ini    and
+                                              {&TABLE-NAME}.cod-gr-forn  <= i-cod-gr-forn-fim    and
+                                              {&TABLE-NAME}.nome-matriz  >= c-nome-matriz-ini    and
+                                              {&TABLE-NAME}.nome-matriz  <= c-nome-matriz-fim    and
+                                              &if defined(bf-mat-comex) &then
+                                                  {&TABLE-NAME}.identific    <> "F" no-lock
+                                              &else
+                                                  {&TABLE-NAME}.identific    <> 2 no-lock
+                                              &endif
+                                              by {&TABLE-NAME}.{1} indexed-reposition.  
+        end.
+        else do:
+           if i-cod-gr-forn-ini = i-cod-gr-forn-fim then do:
+                open query {&QUERY-NAME} for each {&TABLE-NAME}  
+                                            where {&TABLE-NAME}.cod-rep       = i-cod-repre          and
+                                                  {&TABLE-NAME}.cod-emitente >= i-cod-emitente-ini   and
+                                                  {&TABLE-NAME}.cod-emitente <= i-cod-emitente-fim   and
+                                                  {&TABLE-NAME}.nome-abrev   >= c-nome-abrev-ini     and
+                                                  {&TABLE-NAME}.nome-abrev   <= c-nome-abrev-fim     and
+                                                  {&TABLE-NAME}.cgc          >= c-cgc-ini            and
+                                                  {&TABLE-NAME}.cgc          <= c-cgc-fim            and
+                                                  {&TABLE-NAME}.nome-emit    >= c-nome-emit-ini      and
+                                                  {&TABLE-NAME}.nome-emit    <= c-nome-emit-fim      and 
+                                                  {&TABLE-NAME}.cod-gr-forn   = i-cod-gr-forn-ini    and
+                                                  {&TABLE-NAME}.nome-matriz  >= c-nome-matriz-ini    and
+                                                  {&TABLE-NAME}.nome-matriz  <= c-nome-matriz-fim    and
+                                                  &if defined(bf-mat-comex) &then
+                                                     {&TABLE-NAME}.identific    <> "F" no-lock
+                                                  &else
+                                                     {&TABLE-NAME}.identific    <> 2 no-lock
+                                                  &endif
+                                                  by {&TABLE-NAME}.{1} indexed-reposition.  
+           end.
+           else do:
+                open query {&QUERY-NAME} for each {&TABLE-NAME}  
+                                            where {&TABLE-NAME}.cod-rep       = i-cod-repre         and
+                                                  {&TABLE-NAME}.cod-emitente >= i-cod-emitente-ini   and
+                                                  {&TABLE-NAME}.cod-emitente <= i-cod-emitente-fim   and
+                                                  {&TABLE-NAME}.nome-abrev   >= c-nome-abrev-ini     and
+                                                  {&TABLE-NAME}.nome-abrev   <= c-nome-abrev-fim     and
+                                                  {&TABLE-NAME}.cgc          >= c-cgc-ini            and
+                                                  {&TABLE-NAME}.cgc          <= c-cgc-fim            and
+                                                  {&TABLE-NAME}.nome-emit    >= c-nome-emit-ini      and
+                                                  {&TABLE-NAME}.nome-emit    <= c-nome-emit-fim      and 
+                                                  {&TABLE-NAME}.cod-gr-forn  >= i-cod-gr-forn-ini    and
+                                                  {&TABLE-NAME}.cod-gr-forn  <= i-cod-gr-forn-fim    and
+                                                  {&TABLE-NAME}.nome-matriz  >= c-nome-matriz-ini    and
+                                                  {&TABLE-NAME}.nome-matriz  <= c-nome-matriz-fim    and
+                                                  &if defined(bf-mat-comex) &then
+                                                     {&TABLE-NAME}.identific    <> "F" no-lock
+                                                  &else
+                                                     {&TABLE-NAME}.identific    <> 2 no-lock
+                                                  &endif
+                                                  by {&TABLE-NAME}.{1} indexed-reposition.  
+           end.
+        end.
+    
+    end.
+end.

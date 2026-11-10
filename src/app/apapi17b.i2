@@ -1,0 +1,42 @@
+/*******************************************************************************
+***
+*** app/apapi17b.i2 - Gera Movimentos Nota D‚bito Cr‚dito.
+***
+*******************************************************************************/
+
+create mov-ap.
+assign mov-ap.ep-codigo      = tit-ap.ep-codigo
+       mov-ap.cod-estabel    = tit-ap.cod-estabel
+       mov-ap.cod-esp        = tit-ap.cod-esp
+       mov-ap.serie          = tit-ap.serie
+       mov-ap.cod-fornec     = tit-ap.cod-fornec
+       mov-ap.nome-abrev     = tit-ap.nome-abrev
+       mov-ap.nr-docto       = tit-ap.nr-docto
+       mov-ap.parcela        = tit-ap.parcela
+       mov-ap.tp-codigo      = tit-ap.tp-codigo
+       mov-ap.transacao      = {1}
+       mov-ap.lancamento     = {2}
+       mov-ap.tipo           = tit-ap.tipo
+       mov-ap.dt-emissao     = tit-ap.dt-emissao
+       mov-ap.dt-vencimen    = tit-ap.dt-vencimen
+       mov-ap.dt-transacao   = tit-ap.dt-transacao
+       mov-ap.referencia     = tit-ap.referencia
+       mov-ap.moeda          = tit-ap.moeda
+       mov-ap.cotacao-dia    = tit-ap.cotacao-dia.
+assign mov-ap.valor-mov      = fn_ajust_dec(tit-ap.vl-original, tit-ap.moeda)
+       mov-ap.valor-mov-me   = fn_ajust_dec(tit-ap.vl-orig-me, tit-ap.moeda)
+       mov-ap.vl-original    = fn_ajust_dec(tit-ap.vl-original, tit-ap.moeda)
+       mov-ap.vl-orig-me     = fn_ajust_dec(tit-ap.vl-orig-me, tit-ap.moeda)
+       mov-ap.portador       = tit-ap.portador
+       mov-ap.modalidade     = tit-ap.modalidade
+       mov-ap.contabiliza    = no
+       mov-ap.contabilizou   = yes
+       mov-ap.conta-contabil = tit-ap.conta-debito
+       mov-ap.ct-conta       = tit-ap.ct-conta-db
+       mov-ap.sc-conta       = tit-ap.sc-conta-db
+       mov-ap.usuario        = tt-nota-debito-credito.usuario
+       mov-ap.dt-today       = today
+       mov-ap.c-time         = string(time,"HH:MM").
+
+/* Fim de Include */
+

@@ -1,0 +1,97 @@
+/*******************************************************************************
+**
+** include app/ap0994.i1 - para criacao de tax por parcela por item.
+**
+*******************************************************************************/
+       
+	find tipo-tax where
+	     tipo-tax.cod-tax = tt-item-est.cod-tax no-lock no-error.
+        if  avail tipo-tax and tipo-tax.tributado = yes then do:
+	     create impto-tit-pend-ap.
+	     assign impto-tit-pend-ap.cod-forn          = tt-item-est.cod-emitente
+   		     impto-tit-pend-ap.cod-esp           = tt-dados.cod-esp
+                   impto-tit-pend-ap.cod-estabel       = tt-dados.cod-est
+                   impto-tit-pend-ap.cod-imposto       = tt-item-est.cod-tax
+                   impto-tit-pend-ap.contabilizou      = no
+                   impto-tit-pend-ap.origem-impto      = 1
+                   impto-tit-pend-ap.trans-impto-ap    = 1
+	            impto-tit-pend-ap.ct-imposto        = if available tipo-tax then tipo-tax.ct-tax
+		                                  	         else ""
+                   impto-tit-pend-ap.sc-imposto        = if available tipo-tax then tipo-tax.sc-tax
+		                      		         else ""
+                   impto-tit-pend-ap.dt-emissao        = tt-dados.dt-emissao
+    	            impto-tit-pend-ap.dt-transacao      = tt-dados.dt-transacao
+	 	     impto-tit-pend-ap.ep-codigo         = tt-dados.ep-codigo
+                   impto-tit-pend-ap.serie             = tt-dados.serie 
+		     impto-tit-pend-ap.nr-docto          = tt-dados.nr-docto
+		     impto-tit-pend-ap.parcela           = string(i-x)
+		     impto-tit-pend-ap.perc-imposto      = tipo-tax.tax-perc
+		     impto-tit-pend-ap.tipo              = if pais.tem-vat then 2 else 1
+		     impto-tit-pend-ap.cod-classificacao = tipo-tax.cod-classificacao
+		     impto-tit-pend-ap.vl-base           = ((cond-pagto.per-pg-dup[i-x]
+	  	                          	  	         / 100 + 1) * tt-item-est.preco) 
+				                              - tt-item-est.preco
+	            impto-tit-pend-ap.vl-imposto        = ((tt-item-est.vl-taxa 
+		  	       	                       / tt-item-est.preco + 1 )
+				                              * impto-tit-pend-ap.vl-base) - impto-tit-pend-ap.vl-base
+		      r-tax	    = rowid(impto-tit-pend-ap) 
+		      de-tot-tax-it    = de-tot-tax-it  
+	    			    + impto-tit-pend-ap.vl-imposto.
+				    
+           find last b-impto-tit-pend-ap use-index codigo
+                 where b-impto-tit-pend-ap.ep-codigo    = impto-tit-pend-ap.ep-codigo    
+                 and   b-impto-tit-pend-ap.cod-estabel  = impto-tit-pend-ap.cod-estabel  
+                 and   b-impto-tit-pend-ap.cod-esp      = impto-tit-pend-ap.cod-esp 
+                 and   b-impto-tit-pend-ap.serie        = impto-tit-pend-ap.serie   
+                 and   b-impto-tit-pend-ap.nr-docto     = impto-tit-pend-ap.nr-docto 
+                 and   b-impto-tit-pend-ap.parcela      = impto-tit-pend-ap.parcela    
+                 and   b-impto-tit-pend-ap.cod-fornec   = impto-tit-pend-ap.cod-fornec  
+                 and   b-impto-tit-pend-ap.cod-imposto  = impto-tit-pend-ap.cod-imposto no-lock no-error.
+           if avail b-impto-tit-pend-ap then do:
+              assign impto-tit-pend-ap.num-seq-impto = b-impto-tit-pend-ap.num-seq-impto + 10.
+           end.       		                                                              
+           else 
+              assign impto-tit-pend-ap.num-seq-impto = 10.
+				    
+	end.
+        /***** Registro de tax para ISR ****/
+	if avail item-doc-est
+	and item-doc-est.vl-isr <> 0 then do:
+	   find tipo-tax where
+		tipo-tax.cod-tax = item-doc-est.cod-tax-isr no-lock no-error.
+	   if tipo-tax.tributado = yes then do:
+	       assign l-criou = yes.
+	       create impto-tit-pend-ap.
+	       assign impto-tit-pend-ap.cod-fornec   = tt-item-est.cod-emitente
+		       impto-tit-pend-ap.cod-esp      = tt-dados.cod-esp
+		       impto-tit-pend-ap.cod-estabel  = estabel.cod-estabel
+		       impto-tit-pend-ap.cod-imposto  = item-doc-est.cod-tax-isr
+		       impto-tit-pend-ap.contabilizou = no
+		       impto-tit-pend-ap.origem-impto = 1
+		       impto-tit-pend-ap.trans-impto-ap = 1
+		       impto-tit-pend-ap.ct-imposto   = if available tipo-tax then
+    		     	 		                   tipo-tax.ct-tax
+                                  		            else ""
+		       impto-tit-pend-ap.sc-imposto    = if available tipo-tax then
+	 			                           tipo-tax.sc-tax
+					                    else ""
+                     impto-tit-pend-ap.dt-emissao   = tt-dados.dt-emissao
+		       impto-tit-pend-ap.dt-transacao = tt-dados.dt-transacao
+		       impto-tit-pend-ap.ep-codigo    = tt-dados.ep-codigo
+                     impto-tit-pend-ap.serie        = tt-dados.serie
+		       impto-tit-pend-ap.nr-docto     = tt-dados.nr-docto
+		       impto-tit-pend-ap.parcela      = string(i-x)
+		       impto-tit-pend-ap.perc-imposto    = item-doc-est.perc-isr
+		       impto-tit-pend-ap.tipo         = 3
+		       impto-tit-pend-ap.cod-classificacao = tipo-tax.cod-classificacao
+		       impto-tit-pend-ap.vl-base      = ((cond-pagto.per-pg-dup[i-x] / 100 + 1)
+		  	 	       - (tt-item-est.preco
+				          - tt-item-est.vl-taxa)
+				       - (tt-item-est.preco
+					  - tt-item-est.vl-taxa))
+		       impto-tit-pend-ap.vl-imposto      = ((item-doc-est.perc-isr / 100 + 1 )
+            	 			 * impto-tit-pend-ap.vl-base) - impto-tit-pend-ap.vl-base
+		       de-vl-isr[i-x]   = de-vl-isr[i-x] + impto-tit-pend-ap.vl-imposto.
+	    end.
+       end.
+/* Fim do include ap0994.i10 */

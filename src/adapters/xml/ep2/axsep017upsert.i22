@@ -1,0 +1,93 @@
+PROCEDURE pi-narrativa-item:
+
+    /*------  PESQUISA A DESCRICAO DO PRODUTO  ------ */
+
+    DEF VAR c-info-onu AS CHARACTER FORMAT "x(256)" NO-UNDO.
+              
+    if item.ind-imp-desc = 1 then /* Descri‡Æo */
+        assign c-desc-prod = item.desc-item.
+      
+    if  item.ind-imp-desc = 2           /* Descri‡Æo + Narrativa */
+    or  item.ind-imp-desc = 5           /* Narrativa Item */
+    or  item.ind-imp-desc = 6           /* Uma Linha Narrativa */
+    or  item.ind-imp-desc = 10 then do: /* Descri‡Æo + 24 Narrativa Item */
+    
+        if  item.ind-imp-desc = 2
+        or  item.ind-imp-desc = 10 then
+            assign c-desc-prod = item.desc-item + " ".
+        else 
+            assign c-desc-prod = "".
+    
+        find narrativa of item no-lock no-error.
+    
+        if avail narrativa then 
+           assign c-desc-prod = c-desc-prod +
+                                if  item.ind-imp-desc = 6 then
+                                    trim(entry(1,substring(narrativa.descricao,1,76),chr(10)))
+                                else if item.ind-imp-desc = 10 then
+                                    trim(entry(1,substring(narrativa.descricao,1,24),chr(10)))
+                                else                        
+                                    narrativa.descricao.
+    end.
+    
+    if  item.ind-imp-desc = 3          /* Descri‡Æo + Narrativa Item/Cliente */
+    or  item.ind-imp-desc = 8 then do: /* Descri‡Æo + 24 Narrativa Item/Cliente */
+        find item-cli
+             where item-cli.nome-abrev = nota-fiscal.nome-ab-cli
+             and   item-cli.it-codigo  = it-nota-fisc.it-codigo
+             no-lock no-error.
+    
+        assign c-desc-prod = item.desc-item + " ".
+    
+        if  avail item-cli then
+            assign c-desc-prod = c-desc-prod +
+                                 if item.ind-imp-desc = 3 then          
+                                    item-cli.narrativa
+                                 else
+                                    trim(entry(1,substring(item-cli.narrativa,1,24),chr(10))).
+    end.
+    
+    if  item.ind-imp-desc = 4            /* Descri‡Æo + Narrativa Informada */
+    or  item.ind-imp-desc = 7            /* Narrativa Informada */
+    or  item.ind-imp-desc = 9 then do:   /* Descri‡Æo + 24 Narrativa Informada */
+    
+        if  item.ind-imp-desc = 4
+        or  item.ind-imp-desc = 9 then
+            assign c-desc-prod = item.desc-item + " ".
+        else 
+            assign c-desc-prod = "".
+    
+        find nar-it-nota
+             where nar-it-nota.cod-estabel  = it-nota-fisc.cod-estabel
+             and   nar-it-nota.serie        = it-nota-fisc.serie
+             and   nar-it-nota.nr-nota-fis  = it-nota-fisc.nr-nota-fis
+             and   nar-it-nota.nr-sequencia = it-nota-fisc.nr-seq-fat
+             and   nar-it-nota.it-codigo    = it-nota-fisc.it-codigo
+             no-lock no-error.
+    
+        if avail nar-it-nota then 
+           assign c-desc-prod = c-desc-prod +
+                                if item.ind-imp-desc = 9 then
+                                   trim(entry(1,substring(nar-it-nota.narrativa,1,24),chr(10)))
+                                else
+                                   nar-it-nota.narrativa.
+    end.
+
+    FOR FIRST item-dist                                                                                        
+        WHERE item-dist.it-codigo = item.it-codigo NO-LOCK:                                                    
+        IF item-dist.cdn-onu <> 0 THEN                                                                         
+            ASSIGN c-info-onu = c-info-onu + " ONU: " + STRING(item-dist.cdn-onu) + " CLASSE: " + item-dist.cod-class-risco.
+        IF item-dist.cod-grp-embal <> "" THEN                                                                  
+            ASSIGN c-info-onu = c-info-onu + " GE: " + item-dist.cod-grp-embal.                                             
+        IF item-dist.nom-apropdo-embal <> "" THEN                                                              
+            ASSIGN c-info-onu = c-info-onu + " Nome AE: " + item-dist.nom-apropdo-embal.                                    
+        IF item-dist.des-pto-fulgor <> "" THEN                                                                 
+            ASSIGN c-info-onu = c-info-onu + " Ponto Fulgor: " + item-dist.des-pto-fulgor.                                  
+                                                                                                               
+    END.                                                                                                       
+                                                                                                               
+    IF c-info-onu <> "" THEN                                                                                   
+        ASSIGN c-desc-prod = c-desc-prod + " (" + TRIM(c-info-onu) + ") ".                                     
+
+                                                                                                                                                                                                                                                                            
+END PROCEDURE.

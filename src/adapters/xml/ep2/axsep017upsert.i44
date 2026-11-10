@@ -1,0 +1,46 @@
+PROCEDURE pi-cria-ttII:
+    /*
+    === ttII ===
+    vBC            AS DECIMAL   INITIAL ?  /*Base da BC do Imposto de Importaá∆o*/
+    vDespAdu       AS DECIMAL   INITIAL ?  /*Valor das despesas aduaneiras*/
+    vII            AS DECIMAL   INITIAL ?  /*Valor do Imposto de Importaá∆o*/
+    vIOF           AS DECIMAL   INITIAL ?  /*Valor do Imposto sobre Operaá‰es Financeiras*/
+    */
+
+    ASSIGN d-base-ii = 0.
+
+    FOR FIRST docto-estoq-nfe-imp NO-LOCK
+        WHERE docto-estoq-nfe-imp.cod-ser-docto    = nota-fiscal.serie 
+        AND   docto-estoq-nfe-imp.cod-docto        = nota-fiscal.nr-nota-ant 
+        AND   docto-estoq-nfe-imp.cdn-emitente     = nota-fiscal.cod-emitente
+        AND   docto-estoq-nfe-imp.cod-natur-operac = nota-fiscal.nat-operacao :
+    
+        ASSIGN d-base-ii = it-nota-fisc.vl-merc-ori.
+        
+        FOR EACH  item-docto-estoq-nfe-imp NO-LOCK 
+            WHERE item-docto-estoq-nfe-imp.cdn-emitente     = docto-estoq-nfe-imp.cdn-emitente     
+            AND   item-docto-estoq-nfe-imp.cod-docto        = docto-estoq-nfe-imp.cod-docto        
+            AND   item-docto-estoq-nfe-imp.cod-ser-docto    = docto-estoq-nfe-imp.cod-ser-docto    
+            AND   item-docto-estoq-nfe-imp.cod-natur-operac = docto-estoq-nfe-imp.cod-natur-operac
+            AND   item-docto-estoq-nfe-imp.num-seq          = it-nota-fisc.nr-seq-ped /*na leitura deve usar o seq-ped, pois o recebimento pode estar de 1 em 1 a seq do item*/
+            /*AND   item-docto-estoq-nfe-imp.val-impto-import <> 0*/ :  /*NT2011.004 - Rejeiá∆o Rejeiá∆o: CFOP de Importaá∆o e n∆o informado dados de II - 
+                                                                          As tag's devem ser enviadas, mesmo com o valor zerado. Algumas operaá‰es s∆o isentas de II, como Ç o caso de operaá‰es Mercosul*/
+            
+            /* Chave EMS */
+            CREATE ttII.
+            ASSIGN ttII.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttII.SerieNF      = nota-fiscal.serie
+                   ttII.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttII.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttII.NrSeqFatNF   = it-nota-fisc.nr-seq-fat. /*para criar a ttII ele deve usar o seq-fat */
+            
+            ASSIGN ttII.vBC      = item-docto-estoq-nfe-imp.val-base
+                   ttII.vDespAdu = item-docto-estoq-nfe-imp.val-despesa
+                   ttII.vII      = item-docto-estoq-nfe-imp.val-impto-import
+                   ttII.vIOF     = item-docto-estoq-nfe-imp.val-iof.
+
+            ASSIGN d-total-ii = d-total-ii + ttII.vII.
+
+        END.
+    END.
+END PROCEDURE.

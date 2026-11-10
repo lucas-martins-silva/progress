@@ -1,0 +1,25 @@
+/******************************************************************************
+***                         
+*** app/ap0004.i99 - Gera‡Æo Autom tica de Impostos - AP.
+***                             
+******************************************************************************/
+
+def temp-table tt-impto-tit-ap
+    field origem-impto   like impto-tit-ap.origem-impto
+    field lancamento     like impto-tit-ap.lancamento
+    field trans-impto-ap like impto-tit-ap.trans-impto-ap
+    field dt-emissao     like impto-tit-ap.dt-emissao
+    field dt-transacao   like impto-tit-ap.dt-transacao
+    field de-valor-old   like impto-tit-ap.vl-imposto
+    field de-valor-new   like impto-tit-ap.vl-imposto
+    field ep-codigo      like impto-tit-ap.ep-codigo
+    field cod-estabel    like impto-tit-ap.cod-estabel
+    field cod-fornec     like impto-tit-ap.cod-fornec
+    field cod-esp        like impto-tit-ap.cod-esp
+    field serie          like impto-tit-ap.serie
+    field nr-docto       like impto-tit-ap.nr-docto
+    field parcela        like impto-tit-ap.parcela
+    field num-id-mov-ap  like impto-tit-ap.num-id-mov-ap
+    field log-pendente   as logical.
+
+/* Fim de Include */

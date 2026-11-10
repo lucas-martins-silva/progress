@@ -1,0 +1,79 @@
+PROCEDURE pi-grava-ttICMS10:
+
+    /*
+    === ttICMS10 ===
+    CST            AS CHARACTER INITIAL ?  /*10 - Tributada e com cobran‡a do ICMS por substitui‡Æo tribut ria */
+    modBC          AS CHARACTER INITIAL ?  /*Modalidade de determina‡Æo da BC do ICMS: 0 - Margem Valor Agregado (%); 1 - Pauta (valor); 2 - Pre‡o Tabelado M ximo (valor); 3 - Valor da Opera‡Æo */
+    modBCST        AS CHARACTER INITIAL ?  /*Modalidade de determina‡Æo da BC do ICMS ST: 0 - Pre‡o tabelado ou m ximo  sugerido; 1 - Lista Negativa (valor); 2 - Lista Positiva (valor); 3 - Lista Neutra (valor); 4 - Margem Valor Agregado (%); 5 - Pauta (valor) */
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importa‡Æo direta 2 - Estrangeira - Adquirida no mercado interno */
+    pICMS          AS DECIMAL   INITIAL ?  /*Al¡quota do ICMS*/
+    pICMSST        AS DECIMAL   INITIAL ?  /*Al¡quota do ICMS ST*/
+    pMVAST         AS DECIMAL   INITIAL ?  /*Percentual da Margem de Valor Adicionado ICMS ST*/
+    pRedBCST       AS DECIMAL   INITIAL ?  /*Percentual de redu‡Æo da BC ICMS ST */
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS*/
+    vBCST          AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS ST*/
+    vICMS          AS DECIMAL   INITIAL ?  /*Valor do ICMS*/
+    vICMSST        AS DECIMAL   INITIAL ?  /*Valor do ICMS ST*/
+    */
+
+    FOR FIRST item-nf-adc NO-LOCK
+        WHERE item-nf-adc.cod-estab             = it-nota-fisc.cod-estabel
+        AND   item-nf-adc.cod-serie             = it-nota-fisc.serie
+        AND   item-nf-adc.cod-nota-fisc         = it-nota-fisc.nr-nota-fis
+        AND   item-nf-adc.cdn-emitente          = nota-fiscal.cod-emitente
+        AND   item-nf-adc.cod-natur-operac      = it-nota-fisc.nat-operacao
+        AND   item-nf-adc.idi-tip-dado          = 1
+        AND   item-nf-adc.num-seq               = 1
+        AND   item-nf-adc.num-seq-item-nf       = it-nota-fisc.nr-seq-fat
+        AND   item-nf-adc.cod-item              = it-nota-fisc.it-codigo:
+    END.                   
+
+    CREATE ttICMS10.
+    ASSIGN ttICMS10.CST      = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS10.modBC    = (IF c-mod-base-icms = "2"
+                                THEN "1"
+                                ELSE IF c-mod-base-icms = "3"
+                                     THEN "2"
+                                     ELSE IF c-mod-base-icms = "4"
+                                          THEN "3"
+                                          ELSE "0")
+           ttICMS10.modBCST  = (IF c-mod-base-icms-st = "2"
+                                THEN "1"
+                                ELSE IF c-mod-base-icms-st = "3"
+                                     THEN "2"
+                                     ELSE IF c-mod-base-icms-st = "4"
+                                          THEN "3"
+                                          ELSE IF c-mod-base-icms-st = "5"
+                                               THEN "4"
+                                               ELSE IF c-mod-base-icms-st = "6"
+                                                    THEN "5"
+                                                    ELSE "0")
+           ttICMS10.orig     = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS10.pICMS    = (IF it-nota-fisc.cd-trib-icm <> 3
+                                THEN d-aliquota-icms
+                                ELSE 0)
+           ttICMS10.pICMSST  = IF  AVAIL item-nf-adc THEN item-nf-adc.val-aliq-icms-st ELSE 0
+           ttICMS10.pMVAST   = IF  AVAIL item-nf-adc AND item-nf-adc.val-livre-1 > 0 THEN item-nf-adc.val-livre-1 ELSE DEC(SUBSTR(it-nota-fisc.char-2,338,8))
+           ttICMS10.pRedBCST = IF  AVAIL item-nf-adc AND item-nf-adc.val-livre-2 > 0 THEN item-nf-adc.val-livre-2 ELSE DEC(SUBSTR(it-nota-fisc.char-2,346,8))
+           ttICMS10.vBC      = it-nota-fisc.vl-bicms-it
+           ttICMS10.vBCST    = it-nota-fisc.vl-bsubs-it
+           ttICMS10.vICMS    = (IF it-nota-fisc.cd-trib-icm <> 3
+                                THEN d-vl-imp-icms
+                                ELSE 0)
+           ttICMS10.vICMSST  = it-nota-fisc.vl-icmsub-it
+           .
+           
+     /* Aliquota de Diferimento Parcial */
+     IF  DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,308,6 ))) > 0
+     AND DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,314,17))) > 0
+     AND DEC(TRIM(SUBSTRING(it-nota-fisc.char-2,288,8 ))) > 0	THEN
+         ASSIGN ttICMS10.pICMS = DEC(TRIM(SUBSTRING(it-nota-fisc.char-2,288,8 ))).
+
+    /* Chave EMS */
+    ASSIGN ttICMS10.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS10.SerieNF      = nota-fiscal.serie
+           ttICMS10.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS10.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS10.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.

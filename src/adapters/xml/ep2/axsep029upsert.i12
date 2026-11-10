@@ -1,0 +1,17 @@
+PROCEDURE pi-cria-ttTotal-DCe: 
+
+    /*
+    === ttTotal===
+    vDC           AS CHARACTER INITIAL ?  //Valor Total da DCe
+    */
+    
+    CREATE ttTotalDCe.       
+    ASSIGN /* Chave EMS */ 
+           ttTotalDCe.CodEstabelDCe = dce-documento.cod-estabel
+           ttTotalDCe.SerieDCe      = dce-documento.serie
+           ttTotalDCe.NrDCe         = dce-documento.nr-dce
+           /* Chave EMS */ 
+           
+           ttTotalDCe.vDC             = d-total-vProd.
+   
+END PROCEDURE.

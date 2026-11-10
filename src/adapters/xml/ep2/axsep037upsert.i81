@@ -1,0 +1,123 @@
+PROCEDURE pi-grava-ttICMSST:
+
+    /*
+    === ttICMSST ===
+    CST            AS CHARACTER INITIAL ?  /*Tributá∆o pelo ICMS 41-N∆o Tributado. 60-Cobrado anteriormente por substituiá∆o tribut†ria.*/
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importaá∆o direta 2 - Estrangeira - Adquirida no mercado interno*/
+    vBCSTRet       AS DECIMAL   INITIAL ?  /*Informar o valor da BC do ICMS ST retido na UF remetente*/
+    vICMSSTRet     AS DECIMAL   INITIAL ?  /*Informar o valor do ICMS ST retido na UF remetente*/
+    vBCSTDest      AS DECIMAL   INITIAL ?  /*Informar o valor da BC do ICMS ST da UF destino*/ 
+    vICMSSTDest    AS DECIMAL   INITIAL ?  /*Informar o valor do ICMS do ICMS ST da UF destino*/ 
+    */
+
+    /* Tratamento Gravaá∆o ICMSST para notas de combust°veis, onde deve-se informar o grupo ICMSST e n∆o mais o ICMS60 (somente para C¢digos ANP informados na NT) */
+
+    FOR FIRST ttICMS60 EXCLUSIVE-LOCK
+        WHERE ttICMS60.CodEstabelNF = nota-fiscal.cod-estabel
+          AND ttICMS60.SerieNF      = nota-fiscal.serie
+          AND ttICMS60.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+          AND ttICMS60.ItCodigoNF   = it-nota-fisc.it-codigo
+          AND ttICMS60.NrSeqFatNF   = it-nota-fisc.nr-seq-fat,
+        FIRST ttComb NO-LOCK
+        WHERE ttComb.CodEstabelNF = it-nota-fisc.cod-estabel
+          AND ttComb.SerieNF      = it-nota-fisc.serie
+          AND ttComb.NrNotaFisNF  = it-nota-fisc.nr-nota-fis
+          AND ttComb.ItCodigoNF   = it-nota-fisc.it-codigo
+          AND ttComb.NrSeqFatNF   = it-nota-fisc.nr-seq-fat
+          AND (ttComb.cProdANP    = "210203001" OR
+               ttComb.cProdANP    = "320101001" OR
+               ttComb.cProdANP    = "320101002" OR
+               ttComb.cProdANP    = "320102002" OR 
+               ttComb.cProdANP    = "320102001" OR
+               ttComb.cProdANP    = "320102003" OR
+               ttComb.cProdANP    = "320102005" OR
+               ttComb.cProdANP    = "320201001" OR
+               ttComb.cProdANP    = "320103001" OR
+               ttComb.cProdANP    = "220102001" OR
+               ttComb.cProdANP    = "320301001" OR
+               ttComb.cProdANP    = "320103002" OR
+               ttComb.cProdANP    = "820101032" OR
+               ttComb.cProdANP    = "820101026" OR
+               ttComb.cProdANP    = "820101027" OR
+               ttComb.cProdANP    = "820101004" OR
+               ttComb.cProdANP    = "820101005" OR
+               ttComb.cProdANP    = "820101022" OR 
+               ttComb.cProdANP    = "820101031" OR
+               ttComb.cProdANP    = "820101030" OR
+               ttComb.cProdANP    = "820101014" OR
+               ttComb.cProdANP    = "820101006" OR
+               ttComb.cProdANP    = "820101016" OR
+               ttComb.cProdANP    = "820101015" OR
+               ttComb.cProdANP    = "820101025" OR
+               ttComb.cProdANP    = "820101017" OR
+               ttComb.cProdANP    = "820101018" OR
+               ttComb.cProdANP    = "820101019" OR
+               ttComb.cProdANP    = "820101020" OR
+               ttComb.cProdANP    = "820101021" OR
+               ttComb.cProdANP    = "420105001" OR
+               ttComb.cProdANP    = "420101005" OR
+               ttComb.cProdANP    = "420101004" OR
+               ttComb.cProdANP    = "420102005" OR
+               ttComb.cProdANP    = "420102004" OR
+               ttComb.cProdANP    = "420104001" OR
+               ttComb.cProdANP    = "820101033" OR
+               ttComb.cProdANP    = "820101034" OR
+               ttComb.cProdANP    = "420106001" OR
+               ttComb.cProdANP    = "820101011" OR
+               ttComb.cProdANP    = "820101003" OR
+               ttComb.cProdANP    = "820101013" OR
+               ttComb.cProdANP    = "820101012" OR
+               ttComb.cProdANP    = "420106002" OR
+               ttComb.cProdANP    = "830101001" OR
+               ttComb.cProdANP    = "420301004" OR
+               ttComb.cProdANP    = "420202001" OR
+               ttComb.cProdANP    = "420301001" OR
+               ttComb.cProdANP    = "420301002" OR 
+               ttComb.cProdANP    = "410103001" OR
+               ttComb.cProdANP    = "410101001" OR
+               ttComb.cProdANP    = "410102001" OR
+               ttComb.cProdANP    = "430101004" OR
+               ttComb.cProdANP    = "510101001" OR
+               ttComb.cProdANP    = "510101002" OR
+               ttComb.cProdANP    = "510102001" OR
+               ttComb.cProdANP    = "510102002" OR
+               ttComb.cProdANP    = "510201001" OR
+               ttComb.cProdANP    = "510201003" OR
+               ttComb.cProdANP    = "510301003" OR
+               ttComb.cProdANP    = "510103001" OR
+               ttComb.cProdANP    = "510301001") :
+
+        CREATE ttICMSST.
+        ASSIGN ttICMSST.CST             = ttICMS60.CST
+               ttICMSST.orig            = ttICMS60.orig
+               ttICMSST.vBCSTRet        = ttICMS60.vBCSTRet  
+               ttICMSST.pST             = ttICMS60.pST  
+               ttICMSST.vICMSSubstituto = ttICMS60.vICMSSubstituto
+               ttICMSST.vICMSSTRet      = ttICMS60.vICMSSTRet
+               ttICMSST.vBCFCPSTRet     = ttICMS60.vBCFCPSTRet
+               ttICMSST.pFCPSTRet       = ttICMS60.pFCPSTRet
+               ttICMSST.vFCPSTRet       = ttICMS60.vFCPSTRet
+               ttICMSST.vBCSTDest       = 0
+               ttICMSST.vICMSSTDest     = 0
+               ttICMSST.pRedBCEfet      = ttICMS60.pRedBCEfet
+               ttICMSST.vBCEfet         = ttICMS60.vBCEfet   
+               ttICMSST.pICMSEfet       = ttICMS60.pICMSEfet 
+               ttICMSST.vICMSEfet       = ttICMS60.vICMSEfet.
+
+        /* Chave EMS */
+        ASSIGN ttICMSST.CodEstabelNF = nota-fiscal.cod-estabel
+               ttICMSST.SerieNF      = nota-fiscal.serie
+               ttICMSST.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+               ttICMSST.ItCodigoNF   = it-nota-fisc.it-codigo
+               ttICMSST.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+/*         ASSIGN d-total-vFCPSTRet    = d-total-vFCPSTRet - ttICMS60.vFCPSTRet             */
+/*                d-total-vFCPSTRet    = (IF d-total-vFCPSTRet < 0 OR d-total-vFCPSTRet = ? */
+/*                                        THEN 0                                            */
+/*                                        ELSE d-total-vFCPSTRet).                          */
+
+        DELETE ttICMS60.
+
+    END.
+
+END PROCEDURE.

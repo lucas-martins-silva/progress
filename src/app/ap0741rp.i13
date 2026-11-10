@@ -1,0 +1,146 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i13 - pi-imprimir-parametros.
+***
+*******************************************************************************/
+
+{utp/ut-liter.i SELE€ÇO * C}
+assign c-text-1 = trim(return-value).
+
+{utp/ut-liter.i PAR¶METROS * C}
+assign c-text-2 = trim(return-value).
+
+{utp/ut-liter.i IMPRESSÇO * C}
+assign c-text-3 = trim(return-value).
+            
+{utp/ut-liter.i CLASSIFICA€ÇO * C}
+assign c-text-4 = trim(return-value).
+
+{utp/ut-liter.i Usu rio * C}
+assign tt-param.usuario:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Destino * C}
+assign c-destino:label in frame f-parametros = trim(return-value).
+    
+{utp/ut-field.i mgadm tit-ap cod-estabel 1}
+assign tt-param.cod-estabel-ini:label in frame f-parametros = return-value.
+                                        
+{utp/ut-field.i mgadm tit-ap moeda 1}
+assign tt-param.moeda-ini:label in frame f-parametros = return-value.
+
+{utp/ut-field.i mgadm mov-ap dt-transacao 1}
+assign tt-param.dt-trans-ini:label in frame f-parametros = return-value.
+
+{utp/ut-field.i mgadm tit-ap cod-esp 1}
+assign tt-param.cod-esp-ini:label in frame f-parametros = return-value.
+    
+{utp/ut-field.i mgadm tit-ap cod-fornec 1}
+assign tt-param.cod-forn-ini:label in frame f-parametros = return-value.
+    
+{utp/ut-liter.i Grupo_Fornecedor * C}
+assign tt-param.grupo-ini:label in frame f-parametros = return-value.
+
+{utp/ut-liter.i Matriz * C}
+assign tt-param.matriz-ini:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Tipo_EmissÆo * C}
+assign tt-param.des-tipo-emissao:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i RazÆo_em_Fichas * C}
+assign tt-param.log-razao-ficha:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Calcula_Atraso_M‚dio * C}
+assign tt-param.des-cal-atraso:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Esp‚cies_Contabeis * C}
+assign tt-param.log-esp-ctbl:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Lista_Documento_Vinculado * C}
+assign tt-param.log-vinculado:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Salta_Linhas_Entre_Movimentos * C}
+assign tt-param.log-salt-linha:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Saldos_sem_Movimenta‡äes_Per¡odo}    
+assign tt-param.log-saldo-movto:label in frame f-parametros = trim(return-value).
+    
+{utp/ut-liter.i Moeda_Apresenta‡Æo * C}
+assign tt-param.i-cod-moeda:label in frame f-parametros = trim(return-value).
+    
+{utp/ut-liter.i Data_ConversÆo * C}
+assign tt-param.da-conversao:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Cota‡Æo_Utilizada * C}
+assign tt-param.de-cotacao-dia:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Considera_Moeda_Original * C}
+assign tt-param.log-cons-mo-orig:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Lista_Varia‡Æo_Cambial * C}
+assign tt-param.log-lista-variacao:label in frame f-parametros = trim(return-value).
+    
+if l-provisao then do:
+    {utp/ut-liter.i Previsäes/Provisäes_para_Perfil_de_Compras}
+    assign tt-param.log-prev-perfil:label in frame f-parametros = trim(return-value).
+    {utp/ut-liter.i Previsäes/Provisäes_nos_Saldos}
+     assign tt-param.log-prev-saldo:label in frame f-parametros = trim(return-value).
+
+end.
+else do:
+    {utp/ut-liter.i Previsäes_para_Perfil_de_Compras}
+     assign tt-param.log-prev-perfil:label in frame f-parametros = trim(return-value).
+
+    {utp/ut-liter.i Previsäes_nos_Saldos}
+    assign tt-param.log-prev-saldo:label in frame f-parametros = trim(return-value).
+end.
+
+
+if  page-number > 0 then 
+    page. 
+    
+assign c-destino = {varinc/var00002.i 04 tt-param.destino}
+                 + " - " 
+                 + tt-param.arquivo.
+    
+disp c-text-1 format "x(40)"
+     tt-param.cod-estabel-ini
+     tt-param.cod-estabel-fim
+     tt-param.cod-esp-ini
+     tt-param.cod-esp-fim
+     tt-param.grupo-ini
+     tt-param.grupo-fim
+     tt-param.cod-forn-ini
+     tt-param.cod-forn-fim
+     tt-param.matriz-ini
+     tt-param.matriz-fim
+     tt-param.dt-trans-ini
+     tt-param.dt-trans-fim
+     tt-param.moeda-ini
+     tt-param.moeda-fim
+     c-text-4 format "x(40)"
+     tt-param.desc-classif
+     c-text-2  format "x(40)" /*--- Parametros ---*/
+     tt-param.des-tipo-emissao
+     tt-param.des-cal-atraso
+     tt-param.log-esp-ctbl
+     tt-param.log-razao-ficha
+     tt-param.log-vinculado
+     tt-param.log-salt-linha
+     
+     tt-param.log-prev-saldo
+     tt-param.log-prev-perfil
+     
+     tt-param.log-saldo-movto
+     tt-param.log-cons-mo-orig
+     tt-param.log-lista-variacao
+     tt-param.i-cod-moeda
+     tt-param.des-moeda
+     tt-param.da-conversao
+     tt-param.de-cotacao-dia
+     c-text-3 format "x(40)"
+     c-destino
+     tt-param.usuario
+     with frame f-parametros.
+
+/* Fim de Include */
+

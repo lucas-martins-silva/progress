@@ -1,0 +1,19 @@
+/*******************************************************************************
+***
+***  app/ap0523rp.i12 - Encerramento Transa‡Æo Multiplanta.
+***
+*******************************************************************************/
+    
+PROCEDURE pi-encerramento.
+    
+    {cdp/cd0006.i2 "b-che-emit.cod-estabel"}
+        
+    {cdp/cd7300.i6 "001" c-transacao} 
+            
+    for each tt-control-env:
+        delete tt-control-env.
+    end.
+    
+END PROCEDURE.  
+    
+/* Fim de Include */

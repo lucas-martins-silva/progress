@@ -1,0 +1,40 @@
+/*******************************************************************************
+**     
+**   AP0793.i1 - Saldo de fornecedores na data informada 
+**
+*******************************************************************************/
+
+assign de-pago  = 0
+       de-saldo = 0.
+
+bloco:
+do on error undo bloco, leave bloco:
+
+assign de-pago  = 0
+       de-saldo = 0.
+
+for each mov-ap
+    where mov-ap.ep-codigo    = tit-ap.ep-codigo
+    and   mov-ap.cod-estabel  = tit-ap.cod-estabel 
+    and   mov-ap.cod-fornec   = tit-ap.cod-fornec 
+    and   mov-ap.docto-ant    = tit-ap.nr-docto
+    and   mov-ap.esp-ant      = tit-ap.cod-esp
+    and   mov-ap.parc-ant     = tit-ap.parcela
+    and   mov-ap.serie-ant    = tit-ap.serie 
+    and   mov-ap.dt-transacao > da-data-refer no-lock:
+ 
+   if  mov-ap.transacao = 1 /*0*/ then
+       next. 
+
+   assign de-pago = de-pago + mov-ap.valor-mov.
+
+end.
+
+if  de-pago = 0 then
+    leave bloco.
+
+end.
+
+assign de-saldo = de-pago + tit-ap.valor-saldo.
+
+/* ap0793.i1 */

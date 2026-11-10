@@ -1,0 +1,40 @@
+/*******************************************************************************
+***
+*** APP/AP0505D.I15 - Caso tenha sido gerado AN com docto/parcela diferente
+***                 - Zera Saldo da AN Gerada por transferˆncia
+***
+********************************************************************************/
+
+if  l-transferencia = yes then do:
+
+    find b-l-ant-ap where rowid(b-l-ant-ap) = rowid(l-ant-ap) no-lock no-error.
+    if  avail b-l-ant-ap and b-l-ant-ap.char-1 <> " " then do:
+    
+        &if "{&mgadm_dbtype}" = "progress" &then
+             assign mov-ap.docto-ant = substring(b-l-ant-ap.char-1, 01,16)
+                    mov-ap.parc-ant  = substring(b-l-ant-ap.char-1, 17,02).
+        &else 
+             assign mov-ap.docto-ant = trim(substring(b-l-ant-ap.char-1, 01,16))
+                    mov-ap.parc-ant  = trim(substring(b-l-ant-ap.char-1, 17,02)).   
+        &endif               
+
+        find first {1} exclusive-lock
+             where {1}.ep-codigo   = mov-ap.ep-codigo
+             and   {1}.cod-estabel = mov-ap.cod-estabel
+             and   {1}.cod-fornec  = mov-ap.fornec-ant
+             and   {1}.cod-esp     = mov-ap.esp-ant
+             and   {1}.serie       = mov-ap.serie-ant
+             and   {1}.nr-docto    = mov-ap.docto-ant
+             and   {1}.parcela     = mov-ap.parc-ant no-error.
+
+        if  avail {1} then do:
+            assign {1}.valor-saldo = 0
+                   {1}.vl-saldo-me = 0.
+                   
+            run app/ap6000a.p (rowid({1})).
+            
+        end.
+    end.
+end.
+
+/* Fim de Include */

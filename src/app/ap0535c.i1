@@ -1,0 +1,28 @@
+/**********************************************************************************
+***
+*** app/ap0535c.i1 - Acerta Saldo da Antecipa‡Æo.
+***
+**********************************************************************************/
+                
+assign b-tit-ap-ant.valor-saldo = b-tit-ap-ant.valor-saldo - p-vl-baixa. 
+
+/*-- AN Moeda Corrente e DP em Moeda Estrangeira ---*/
+if  b-tit-ap-ant.moeda = 0 and b-tit-ap-dup.moeda <> 0 then 
+    assign b-tit-ap-ant.vl-saldo-me = b-tit-ap-ant.vl-saldo-me - p-vl-baixa.
+else 
+    assign b-tit-ap-ant.vl-saldo-me = b-tit-ap-ant.vl-saldo-me - p-vl-baixa-me.
+
+/*if  b-tit-ap-ant.valor-saldo < 0 then 
+    assign b-tit-ap-ant.valor-saldo = 0.  este acerto ‚ feito posteriormente */
+        
+if  b-tit-ap-ant.vl-saldo-me < 0 then
+    assign b-tit-ap-ant.vl-saldo-me = 0.
+
+if  b-tit-ap-ant.moeda = 0 and b-tit-ap-ant.valor-saldo = 0 then
+    assign b-tit-ap-ant.vl-saldo-me = 0.    
+
+/*if  b-tit-ap-ant.moeda <> 0 and b-tit-ap-ant.vl-saldo-me = 0 then
+    assign b-tit-ap-ant.valor-saldo = 0. este acerto ‚ feito posteriormente */ 
+
+/* Fim de Include */
+

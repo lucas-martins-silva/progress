@@ -1,0 +1,138 @@
+PROCEDURE pi-cria-ttDetExport:
+
+    /*
+    === ttDetExport ===
+    nDraw          AS CHARACTER INITIAL ?                                         /*N£mero do ato concess¢rio de Drawback*/
+    nRE            AS CHARACTER INITIAL ?                                         /*N£mero do Registro de Exportaá∆o*/
+    chNFe          AS CHARACTER INITIAL ?                                         /*Chave de Acesso da NF-e recebida para exportaá∆o*/
+    qExport        AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>9.9999" DECIMALS 4   /*Quantidade do item efetivamente exportado*/
+    */
+
+    /*
+    PENDENCIA COMEX - CAMPOS
+    nDraw - OK 
+    nRE     n∆o h† tratamento para Exportaá∆o Indireta no Comex Datasul
+    chNFe   n∆o h† tratamento para Exportaá∆o Indireta no Comex Datasul
+    qExport n∆o h† tratamento para Exportaá∆o Indireta no Comex Datasul
+    */
+	
+    DEF VAR c-nDraw AS CHARACTER INITIAL ? NO-UNDO.
+
+    /* MODULO DE EXPORTAÄ«O IMPLANTADO */
+    IF  CONNECTED("mgcex":U)
+    AND param-global.log-modul-draw THEN DO:
+        FOR FIRST item-re NO-LOCK
+            WHERE item-re.cod-estabel   = it-nota-fisc.cod-estabel
+              AND item-re.cod-nota-fisc = it-nota-fisc.nr-nota-fis
+              AND item-re.serie         = it-nota-fisc.serie
+              AND item-re.nr-seq-fat    = it-nota-fisc.nr-seq-fat
+              AND item-re.it-codigo     = it-nota-fisc.it-codigo,
+            FIRST pedido-drb NO-LOCK
+            WHERE pedido-drb.cod-estabel   = item-re.cod-estabel
+              AND pedido-drb.nr-pedido-drb = item-re.nr-pedido-drb:
+    
+            /*CREATE ttDetExport.
+            ASSIGN ttDetExport.nDraw        = TRIM(pedido-drb.nr-ato-concessorio).
+
+            /* Chave EMS */
+            ASSIGN ttDetExport.CodEstabelNF = it-nota-fisc.cod-estabel
+                   ttDetExport.SerieNF      = it-nota-fisc.serie
+                   ttDetExport.NrNotaFisNF  = it-nota-fisc.nr-nota-fis
+                   ttDetExport.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttDetExport.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.*/
+
+	    ASSIGN c-nDraw = TRIM(pedido-drb.nr-ato-concessorio).
+            
+        END.
+    END.
+    ELSE IF  CONNECTED("mgcex":U)
+         AND param-global.modulo-ex THEN
+            FOR FIRST  reg-export-item
+                 WHERE reg-export-item.cod-estabel = nota-fiscal.cod-estabel
+                 AND   reg-export-item.nr-proc-exp = nota-fiscal.nr-proc-exp
+                 AND   reg-export-item.nome-abrev  = nota-fiscal.nome-ab-cli
+                 AND   reg-export-item.nr-pedcli   = it-nota-fisc.nr-pedcli
+                 AND   reg-export-item.num-seq     = it-nota-fisc.nr-seq-ped
+                 AND   reg-export-item.it-codigo   = it-nota-fisc.it-codigo
+                 AND   reg-export-item.cod-refer   = it-nota-fisc.cod-refer
+                 AND   reg-export-item.nr-entrega  = it-nota-fisc.nr-entreg NO-LOCK,
+                FIRST  reg-export
+                WHERE  reg-export.nr-re-ems = reg-export-item.nr-re-ems NO-LOCK:
+    
+                /*CREATE ttDetExport.
+                ASSIGN ttDetExport.nDraw        = TRIM(reg-export.nr-ato-consessorio).
+    
+                /* Chave EMS */
+                ASSIGN ttDetExport.CodEstabelNF = it-nota-fisc.cod-estabel
+                       ttDetExport.SerieNF      = it-nota-fisc.serie
+                       ttDetExport.NrNotaFisNF  = it-nota-fisc.nr-nota-fis
+                       ttDetExport.ItCodigoNF   = it-nota-fisc.it-codigo
+                       ttDetExport.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.*/
+                       
+		ASSIGN c-nDraw = TRIM(reg-export.nr-ato-consessorio).
+
+            END.
+    
+    /*--- BUSCAR INFORMAÄÂES INSERIDAS NO CD4035 ---*/
+    IF NOT CAN-FIND(FIRST nota-fisc-adc
+                    WHERE nota-fisc-adc.cod-estab        = nota-fiscal.cod-estabel
+                      AND nota-fisc-adc.cod-serie        = nota-fiscal.serie
+                      AND nota-fisc-adc.cod-nota-fisc    = nota-fiscal.nr-nota-fis
+                      AND nota-fisc-adc.cod-natur-operac = it-nota-fisc.nat-operacao
+                      AND nota-fisc-adc.idi-tip-dado     = 21
+                      AND nota-fisc-adc.num-seq          = it-nota-fisc.nr-seq-fat
+                      AND nota-fisc-adc.cod-item         = it-nota-fisc.it-codigo) 
+               AND (c-nDraw <> "" AND c-nDraw <> ?)
+    THEN DO:
+            
+            CREATE ttDetExport.
+            /* Chave EMS */
+            ASSIGN ttDetExport.CodEstabelNF = it-nota-fisc.cod-estabel
+                   ttDetExport.SerieNF      = it-nota-fisc.serie
+                   ttDetExport.NrNotaFisNF  = it-nota-fisc.nr-nota-fis
+                   ttDetExport.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttDetExport.NrSeqFatNF   = it-nota-fisc.nr-seq-fat	
+                   ttDetExport.nDraw	    = c-nDraw.
+    END.
+		 
+    FOR EACH nota-fisc-adc NO-LOCK
+       WHERE nota-fisc-adc.cod-estab        = nota-fiscal.cod-estabel
+         AND nota-fisc-adc.cod-serie        = nota-fiscal.serie
+         AND nota-fisc-adc.cod-nota-fisc    = nota-fiscal.nr-nota-fis
+         AND nota-fisc-adc.cod-natur-operac = it-nota-fisc.nat-operacao
+         AND nota-fisc-adc.idi-tip-dado     = 21
+         AND nota-fisc-adc.num-seq          = it-nota-fisc.nr-seq-fat
+         AND nota-fisc-adc.cod-item         = it-nota-fisc.it-codigo:
+
+        CREATE ttDetExport.
+
+        /* Chave EMS */
+        ASSIGN ttDetExport.CodEstabelNF = it-nota-fisc.cod-estabel
+               ttDetExport.SerieNF      = it-nota-fisc.serie
+               ttDetExport.NrNotaFisNF  = it-nota-fisc.nr-nota-fis
+               ttDetExport.ItCodigoNF   = it-nota-fisc.it-codigo
+               ttDetExport.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+        
+        ASSIGN ttDetExport.nDraw     = (IF (TRIM(c-nDraw) = "":U OR TRIM(c-nDraw) = ?)  /*Caso o usuario queria informar somente os campos de exportaá∆o indireta (nRE, chNFe e qExport) mas quer deixar o Drawback proveniente do Modulo, que foi alimentado acima*/
+                                        THEN TRIM(nota-fisc-adc.cod-livre-1)
+                                        ELSE c-nDraw)
+               ttDetExport.nRE       = TRIM(nota-fisc-adc.cod-livre-2)
+               ttDetExport.chNFe     = TRIM(nota-fisc-adc.cod-livre-3)
+               ttDetExport.qExport   = nota-fisc-adc.val-livre-1. /*qtd comercial gravada no val-livre-1*/
+
+        /*Rejeiá∆o 345 - Chave de Exportaá∆o Indireta deve constar como Nota Referenciada*/
+        IF  ttDetExport.chNFe <> "":U THEN
+            RUN pi-ttNRef-docum-NF (INPUT ttDetExport.chNFe,
+                                    INPUT nota-fiscal.cod-estabel,
+                                    INPUT nota-fiscal.serie,
+                                    INPUT nota-fiscal.dt-emis-nota,
+                                    INPUT nota-fiscal.nr-nota-fis,
+                                    INPUT nota-fiscal.cod-emitente,
+                                    INPUT "01",
+                                    INPUT "estab":U).
+    
+    END.
+    /*---*/
+    
+
+END PROCEDURE.

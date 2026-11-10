@@ -1,0 +1,314 @@
+/*******************************************************************************
+**
+**  BOAD180F.P - Titulos do Embarque
+**
+**  tt-mov-ap - Titulos a Pagar
+**
+*******************************************************************************/
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.000
+&scoped-define FIRST-TABLE-IN-QUERY tt-mov-ap
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME tt-mov-ap
+
+{cdp/cdcfgmat.i} /* Integra‡Æo Importacao */
+
+{include/boini.i}
+{adbo/boad180f.i RowObject}
+{adbo/boad180f.i tt-mov-ap}
+
+DEFINE BUFFER b-mov-ap for tt-mov-ap.
+DEFINE BUFFER b-mov-ap-aux for mov-ap.
+
+def temp-table tt-mov-ap-aux
+    field data   like mov-ap.dt-trans
+    field itrans  as   integer
+    field antec  as   logical
+    field r-rowid  as   rowid.
+    
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+/********************************** Defini‡Æo de vari veis *******************************************/    
+
+DEFINE VARIABLE i-ep-codigo    like tit-ap.ep-codigo   no-undo.
+DEFINE VARIABLE c-cod-estabel  like tit-ap.cod-estabel no-undo.
+DEFINE VARIABLE c-cod-esp      like tit-ap.cod-esp     no-undo.
+DEFINE VARIABLE c-serie        like tit-ap.serie       no-undo.
+DEFINE VARIABLE c-nr-docto     like tit-ap.nr-docto    no-undo.
+DEFINE VARIABLE i-parcela      like tit-ap.parcela     no-undo.
+DEFINE VARIABLE i-cod-fornec   like tit-ap.cod-fornec  no-undo.
+def    var      c-lanc         as char format "x(01)"  no-undo.
+def    var      c-tipo-tit-ap  as char                 no-undo.
+def    var      i-tipo-tit-ap  as int                  no-undo.
+
+/********************************** Fim Defini‡Æo de vari veis ***************************************/    
+procedure setConstraint1:
+
+end procedure. 
+
+procedure setConstraint2:
+  /*
+    Recebe o Rowid do tit-ap para que possa achar todos os movimentos referentes ao titulo
+    Parametros:
+    rpar1 : p-rowid :rowid do titulo 
+  */
+
+   def input parameter p-rowid as rowid no-undo.
+   
+   find tit-ap where rowid(tit-ap) = p-rowid
+ 	no-lock no-error.
+   if avail tit-ap then do:
+     assign  i-ep-codigo    = tit-ap.ep-codigo   
+             c-cod-estabel  = tit-ap.cod-estabel
+             c-cod-esp      = tit-ap.cod-esp    
+             c-serie        = tit-ap.serie      
+             c-nr-docto     = tit-ap.nr-docto   
+             i-parcela      = tit-ap.parcela      
+             i-cod-fornec   = tit-ap.cod-fornec
+             &if defined(bf-mat-comex) &then
+                c-tipo-tit-ap  = tit-ap.tipo.
+             &else
+                i-tipo-tit-ap  = tit-ap.tipo.
+             &endif
+   end.
+   RUN carregaTable.
+end procedure.
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    case i-abertura:
+        when 1 then 
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock INDEXED-REPOSITION.    
+        when 2 then 
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock INDEXED-REPOSITION.
+    end case.
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+ 
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-mat-comex) &then
+&else
+{include/bocomver.i}
+{include/bogetver.i}
+{utp/ut-glob.i}
+&endif
+{include/bonav.i}
+{include/bofind.i}
+/*{include/bosetcur.i}*/
+{include/bogetcur.i}
+/*{include/bosersen.i}*/
+{include/boprebro.i}
+
+procedure setCurrent:
+    /*
+    **  Seta registro corrente para a temp-table que sera devolvida.
+    */
+    for each RowObject:
+        delete RowObject.
+    end.
+    if avail {&TABLE-NAME} then do:
+        create RowObject.
+        buffer-copy {&TABLE-NAME} to RowObject.
+    end.
+end procedure.
+
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+     
+    run startMethod ("initializeValidade").
+ 
+    run endMethod   ("initializeValidade").
+end procedure.
+
+
+PROCEDURE serverSendRows :
+
+    /*
+    **  Disponivel no smart data object da V9, e foi reimplementado dentro
+    **  da versao 8. Faz consultas utilizando a querie dentro da smartquery,
+    **  possibilitando que clientes WebSpeed acessem esta mesma smart-query
+    **  e facilitara a migracao destes programas para os Smart Data Objects.
+    */
+    DEFine input  parameter piStartRow     as  integer   no-undo.
+    DEFine input  parameter pcRowIdent     as  character no-undo.
+    DEFine input  parameter plNext         as  logical   no-undo.
+    DEFine input  parameter piRowsToReturn as  integer   no-undo.
+    DEFine output parameter piRowsReturned as  integer   no-undo.
+    DEFine output parameter table          for RowObject.
+    DEFine variable hQuery        as handle    no-undo.
+    DEFine variable hBuffer       as handle    no-undo.
+    DEFine variable hRowObject    as handle    no-undo.
+    DEFine variable hDataQuery    as handle    no-undo.
+    DEFine variable cRowIdent     as character no-undo.
+    DEFine variable rRowIDs       as rowid     extent 10 no-undo.
+    DEFine variable lOK           as logical   no-undo.
+    DEFine variable iRow          as integer   no-undo.
+    for each rowObject:
+        delete rowObject.
+    end.
+    IF true THEN DO:
+        IF pcRowIdent NE ? AND pcRowIdent NE "":U THEN DO:
+            rRowIDs = ?.
+            reposition {&query-name} to rowid to-rowid(pcRowIdent) no-error.
+            get next {&query-name}.
+        END.
+        ELSE IF piStartRow NE ? AND piStartRow NE 0 THEN DO:
+            REPOSITION  {&query-name} TO ROW piStartRow no-error.
+            GET next {&query-name}.
+        END.
+        IF plNext THEN
+            GET next {&query-name}.
+        DO WHILE true:
+            if available({&first-table-in-query})  and piRowsReturned < piRowsToReturn then do:
+                create rowObject.
+                buffer-copy {&table-name} to rowObject.
+                assign rowobject.r-rowid = rowid({&table-name}).
+                GET NEXT {&query-name}.
+                piRowsReturned = piRowsReturned + 1.
+            end.
+            else
+                leave.
+        END.
+        IF piRowsReturned > 0 THEN DO:
+            {&open-query}
+            IF piStartRow = ? OR piStartRow = 0 THEN DO:
+                get first {&query-name}.
+                get prev {&query-name}.
+            END.
+            ELSE
+                REPOSITION  {&query-name} TO ROW (piStartRow) no-error.
+        END.
+    END.
+    RETURN.
+
+END PROCEDURE.  
+
+procedure carregatable:
+/*Esta procedure ‚ utilizada somente no magnus pelo programa
+im0545d*/
+&if defined(bf-mat-comex) &then
+def var c-trans     as character format "x(03)" extent 12 init
+    ["IMD","ALT","AVA","BND","CAN","CSP","DSD","DSU","PEC","PEF","SND","SUS"].
+def var de-fator-1   as decimal no-undo.
+def var i-lista      as integer no-undo.
+def var i-trans      as integer no-undo.
+def var ccontacontab as char    no-undo.
+
+    for each tt-mov-ap exclusive-lock:
+        delete tt-mov-ap.
+    end.
+    assign i-trans = 0
+           i-lista = 0.
+    
+    for each mov-ap use-index codigo
+        where mov-ap.ep-codigo   = i-ep-codigo
+        and   mov-ap.cod-estabel = c-cod-estabel
+        and   mov-ap.cod-esp     = c-cod-esp
+        and   mov-ap.serie       = c-serie
+        and   mov-ap.nr-docto    = int(c-nr-docto)
+        and   mov-ap.parcela     = i-parcela
+        and   mov-ap.cod-fornec  = i-cod-fornec no-lock:
+
+        if  mov-ap.transacao = "XYZ"
+        or  mov-ap.transacao = "CMI"
+        or  mov-ap.transacao = "GPF" then
+            next.
+        create tt-mov-ap-aux.
+        assign tt-mov-ap-aux.data  = mov-ap.dt-trans
+               tt-mov-ap-aux.antec = no
+               tt-mov-ap-aux.r-rowid = rowid(mov-ap).
+
+        do  i-trans = 1 to 12:
+            if  lookup(mov-ap.transacao,c-trans[i-trans]) > 0 then
+                assign i-lista = i-trans.
+        end.
+        assign tt-mov-ap-aux.itrans = i-lista.
+    end.
+    
+    if &if defined(bf-mat-comex) &then
+        c-tipo-tit-ap = "AN" then
+       &else
+        i-tipo-tit-ap = 2 then
+       &endif
+        
+        for each mov-ap use-index ch-antecip
+            where mov-ap.ep-codigo   = i-ep-codigo
+            and   mov-ap.cod-estabel = c-cod-estabel
+            and   mov-ap.esp-ant     = c-cod-esp
+            and   mov-ap.serie-ant   = c-serie
+            and   mov-ap.docto-ant   = int(c-nr-docto)
+            and   mov-ap.parc-ant    = i-parcela
+            and   mov-ap.fornec-ant  = i-cod-fornec
+            and   mov-ap.transacao   = "BND" no-lock:
+            create tt-mov-ap-aux.
+            assign tt-mov-ap-aux.data  = mov-ap.dt-trans
+                   tt-mov-ap-aux.antec = yes
+                   tt-mov-ap-aux.r-rowid = rowid(mov-ap).
+
+            do  i-trans = 1 to 12:
+                if  lookup(mov-ap.transacao,c-trans[i-trans]) > 0 then
+                    assign i-lista = i-trans.
+            end.
+            assign tt-mov-ap-aux.itrans = i-lista.
+        end.
+
+    for each tt-mov-ap-aux no-lock
+        break by tt-mov-ap-aux.data
+              by tt-mov-ap-aux.itrans:
+
+        find mov-ap
+            where rowid(mov-ap) = tt-mov-ap-aux.r-rowid
+            no-lock no-error.
+        if  not avail mov-ap then
+            next.
+        find tit-ap of mov-ap no-lock no-error.
+            assign ccontacontab = string(mov-ap.ct-conta) + string(mov-ap.sc-conta).
+            create tt-mov-ap.
+            assign tt-mov-ap.transacao        = mov-ap.transacao
+                   tt-mov-ap.portador         = mov-ap.portador
+                   tt-mov-ap.dt-transacao     = mov-ap.dt-transacao
+                   tt-mov-ap.dt-vencimen      = mov-ap.dt-vencimen
+                   tt-mov-ap.nr-cheque        = mov-ap.nr-cheque
+                   tt-mov-ap.referencia       = mov-ap.referencia
+                   /*tt-mov-ap.escritural*/
+                   tt-mov-ap.log-2            = mov-ap.log-2
+                   tt-mov-ap.contabilizou     = mov-ap.contabilizou
+                   tt-mov-ap.valor-mov        = mov-ap.valor-mov
+                   tt-mov-ap.vl-desconto      = mov-ap.vl-desconto
+                   tt-mov-ap.valor-juros      = mov-ap.valor-juros
+                   tt-mov-ap.vl-var-monet     = mov-ap.vl-var-monet
+                   tt-mov-ap.ct-conta         = mov-ap.ct-conta  
+                   tt-mov-ap.sc-conta         = mov-ap.sc-conta
+                   tt-mov-ap.conta-contab     = int(ccontacontab)
+                   tt-mov-ap.lancamento       = mov-ap.lancamento
+                   tt-mov-ap.r-rowid          = rowid(mov-ap).
+            if  mov-ap.esp-ant <> "" then do:
+                if  tt-mov-ap-aux.antec = no then do:
+                   assign  tt-mov-ap.esp-ant     = mov-ap.esp-ant
+                           tt-mov-ap.serie       = mov-ap.serie-ant
+                           tt-mov-ap.docto-ant   = mov-ap.docto-ant
+                           tt-mov-ap.parc-ant    = mov-ap.parc-ant
+                           tt-mov-ap.fornec-ant  = mov-ap.fornec-ant
+                           tt-mov-ap.vl-antecip  = mov-ap.vl-antecip.
+                end.
+                else do:
+                    assign tt-mov-ap.esp-ant     = mov-ap.cod-esp
+                           tt-mov-ap.serie-ant   = mov-ap.serie
+                           tt-mov-ap.docto-ant   = mov-ap.nr-docto
+                           tt-mov-ap.parc-ant    = mov-ap.parcela
+                           tt-mov-ap.fornec-ant  = mov-ap.cod-fornec
+                           tt-mov-ap.vl-antecip  = mov-ap.vl-antecip.
+                end.
+            end.
+    end.
+
+&else
+&endif
+end procedure.
+

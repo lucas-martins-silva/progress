@@ -1,0 +1,242 @@
+/*******************************************************************************
+**
+**  BOAD260F.P - Titulos do Embarque
+**
+**  tt-tit-ap - Titulos a Pagar
+**
+*******************************************************************************/
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.000
+&scoped-define FIRST-TABLE-IN-QUERY tt-tit-ap
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME tt-tit-ap
+
+{cdp/cdcfgmat.i} /* Integra‡Æo Importacao */
+
+{include/boini.i}
+{adbo/boad260.i RowObject}
+{adbo/boad260.i tt-tit-ap}
+
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+def var c-cod-estabel as char no-undo.
+def var c-embarque    as char no-undo.
+    
+procedure setConstraint1:
+
+end procedure. 
+
+procedure setConstraint2:
+    def input parameter p-cod-estabel    as char    no-undo.
+    def input parameter p-embarque       as char    no-undo.
+    
+    assign c-cod-estabel = p-cod-estabel
+           c-embarque    = p-embarque.
+   
+end procedure.
+
+procedure setConstraint3:
+    def input parameter p-cod-estabel    as char    no-undo.
+    def input parameter p-embarque       as char    no-undo.
+    
+    assign c-cod-estabel = p-cod-estabel
+           c-embarque    = p-embarque.
+   
+end procedure.
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    
+    case i-abertura:
+        when 1 then 
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock INDEXED-REPOSITION.    
+        when 2 then 
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock INDEXED-REPOSITION.
+        when 3 then 
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock.
+    end case.
+
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+ 
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-mat-comex) &then
+&else
+{include/bocomver.i}
+{include/bogetver.i}
+{utp/ut-glob.i}
+&endif
+{include/bonav.i}
+{include/bofind.i}
+/*{include/bosetcur.i}*/
+{include/bogetcur.i}
+/*{include/bosersen.i}*/
+{include/boprebro.i}
+
+procedure setCurrent:
+    /*
+    **  Seta registro corrente para a temp-table que sera devolvida.
+    */
+    for each RowObject:
+        delete RowObject.
+    end.
+    if avail {&TABLE-NAME} then do:
+        create RowObject.
+        buffer-copy {&TABLE-NAME} to RowObject.
+    end.
+end procedure.
+
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+     
+    run startMethod ("initializeValidade").
+ 
+    run endMethod   ("initializeValidade").
+end procedure.
+
+
+PROCEDURE serverSendRows :
+
+    /*
+    **  Disponivel no smart data object da V9, e foi reimplementado dentro
+    **  da versao 8. Faz consultas utilizando a querie dentro da smartquery,
+    **  possibilitando que clientes WebSpeed acessem esta mesma smart-query
+    **  e facilitara a migracao destes programas para os Smart Data Objects.
+    */
+    DEFine input  parameter piStartRow     as  integer   no-undo.
+    DEFine input  parameter pcRowIdent     as  character no-undo.
+    DEFine input  parameter plNext         as  logical   no-undo.
+    DEFine input  parameter piRowsToReturn as  integer   no-undo.
+    DEFine output parameter piRowsReturned as  integer   no-undo.
+    DEFine output parameter table          for RowObject.
+    DEFine variable hQuery        as handle    no-undo.
+    DEFine variable hBuffer       as handle    no-undo.
+    DEFine variable hRowObject    as handle    no-undo.
+    DEFine variable hDataQuery    as handle    no-undo.
+    DEFine variable cRowIdent     as character no-undo.
+    DEFine variable rRowIDs       as rowid     extent 10 no-undo.
+    DEFine variable lOK           as logical   no-undo.
+    DEFine variable iRow          as integer   no-undo.
+    for each rowObject:
+        delete rowObject.
+    end.
+    IF true THEN DO:
+        IF pcRowIdent NE ? AND pcRowIdent NE "":U THEN DO:
+            rRowIDs = ?.
+            reposition {&query-name} to rowid to-rowid(pcRowIdent) no-error.
+            get next {&query-name}.
+        END.
+        ELSE IF piStartRow NE ? AND piStartRow NE 0 THEN DO:
+            REPOSITION  {&query-name} TO ROW piStartRow no-error.
+            GET next {&query-name}.
+        END.
+        IF plNext THEN
+            GET next {&query-name}.
+        DO WHILE true:
+            if available({&first-table-in-query})  and piRowsReturned < piRowsToReturn then do:
+                create rowObject.
+                buffer-copy {&table-name} to rowObject.
+                assign rowobject.r-rowid = {&table-name}.r-rowid.
+                GET NEXT {&query-name}.
+                piRowsReturned = piRowsReturned + 1.
+            end.
+            else
+                leave.
+        END.
+        IF piRowsReturned > 0 THEN DO:
+            {&open-query}
+            IF piStartRow = ? OR piStartRow = 0 THEN DO:
+                get first {&query-name}.
+                get prev {&query-name}.
+            END.
+            ELSE
+                REPOSITION  {&query-name} TO ROW (piStartRow) no-error.
+        END.
+    END.
+    RETURN.
+
+END PROCEDURE.  
+
+PROCEDURE carregatable:
+    /*
+    ** Procedure para filtrar t¡tulos de determinado embarque
+    */
+    DEF VAR i-cod-fornec LIKE tit-ap.cod-fornec NO-UNDO.
+    
+    def input parameter p-l-titulo-despesa as char no-undo.
+    
+    FOR EACH tt-tit-ap:
+        DELETE tt-tit-ap.
+    END.
+    
+    FIND FIRST param-global NO-LOCK NO-ERROR.
+    FIND embarque-imp 
+        WHERE embarque-imp.cod-estabel = c-cod-estabel 
+          AND embarque-imp.embarque    = c-embarque no-lock no-error.
+    IF AVAIL embarque-imp THEN DO:
+
+        FIND FIRST ordens-embarque
+            WHERE ordens-embarque.cod-estabel = embarque-imp.cod-estabel
+              AND ordens-embarque.embarque    = embarque-imp.embarque NO-LOCK NO-ERROR.
+
+        IF AVAIL ordens-embarque THEN
+            FIND ordem-compra
+                WHERE ordem-compra.numero-ordem = ordens-embarque.numero-ordem NO-LOCK NO-ERROR.
+
+        IF AVAIL ordem-compra THEN
+            ASSIGN i-cod-fornec = ordem-compra.cod-emitente.
+
+    END.
+    if p-l-titulo-despesa = "No" then do:
+            for each tit-ap 
+                where tit-ap.ep-codigo   = param-global.empresa-prin 
+                  AND tit-ap.cod-fornec  = i-cod-fornec
+                  AND tit-ap.cod-estabel = c-cod-estabel  
+                &if defined(bf-mat-comex) &then
+                  AND tit-ap.nr-docto    = int(trim(c-embarque)) 
+                &else
+                  AND tit-ap.nr-docto    = trim(c-embarque) 
+                &endif
+                     no-lock:
+        
+                FIND first tt-tit-ap of tit-ap  no-error.
+                if not avail tt-tit-ap then do:
+                    
+                    create tt-tit-ap.
+                    buffer-copy tit-ap to tt-tit-ap.
+                    assign tt-tit-ap.r-rowid = rowid(tit-ap).
+        
+                end.
+           end.
+     end.
+     else do:
+            for each tit-ap 
+                where tit-ap.ep-codigo   = param-global.empresa-prin 
+                  AND tit-ap.cod-estabel = c-cod-estabel  
+                &if defined(bf-mat-comex) &then
+                  AND tit-ap.nr-docto    = int(trim(c-embarque)) 
+                &else
+                  AND tit-ap.nr-docto    = trim(c-embarque) 
+                &endif
+                     no-lock:
+        
+                FIND first tt-tit-ap of tit-ap  no-error.
+                if not avail tt-tit-ap then do:
+                    
+                    create tt-tit-ap.
+                    buffer-copy tit-ap to tt-tit-ap.
+                    assign tt-tit-ap.r-rowid = rowid(tit-ap).
+        
+                end.
+           end.
+     end.
+     
+END PROCEDURE.
+  
+

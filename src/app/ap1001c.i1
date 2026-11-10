@@ -1,0 +1,132 @@
+/**************************************************************************
+**
+**  AP1001C.I1
+**  Objetivo : Registro Header do Banco do HSBC-Bamerindus
+**
+**************************************************************************/
+
+find first empresa 
+     where empresa.ep-codigo = i-ep-codigo-usuario 
+     no-lock no-error.
+
+find first portador 
+     where portador.ep-codigo    = i-ep-codigo-usuario 
+     and   portador.cod-portador = i-portador 
+     and   portador.modalidade   = 1
+     no-lock no-error.
+
+find first cta-corrente
+     where cta-corrente.cod-banco    = portador.cod-banco
+     and   cta-corrente.agencia      = portador.agencia
+     and   cta-corrente.conta-corren = portador.conta-corren
+     no-lock no-error.
+if  not avail cta-corrente then
+    next.
+
+find first banco 
+     where banco.cod-banco = portador.cod-banco 
+     no-lock no-error.
+
+assign c-cgc-emp = ""
+       i-num-reg = 1.
+
+do  i-cont = 1 to 19:
+    if  substr(empresa.cgc,i-cont,1) >= "0" 
+    and substr(empresa.cgc,i-cont,1) <= "9" then
+        assign c-cgc-emp = c-cgc-emp + substr(empresa.cgc,i-cont,1).
+end.
+
+/* Header do arquivo */
+assign i-num-reg-arq = i-num-reg-arq + 1.
+put stream relat
+    "399"                                                               at 001
+    "00000"                                                             at 004
+    "         "                                                         at 009
+    "2"                                                                 at 018
+    c-cgc-emp                                   format "99999999999999" at 019
+    tt-param.i-convenio                         format "999999"         at 033
+    "              "                                                    at 039
+    substr(cta-corren.agencia-extrato, 02,05)   format "99999"          at 053
+    " "                                                                 at 058
+    "00"                                                                at 059
+    substr(cta-corrente.conta-corren-extr,1,10) format "9999999999"     at 061
+    substr(cta-corrente.conta-corren-extr,11,1) format "x(1)"           at 071
+    " "                                                                 at 072
+    fn-free-accent(caps(empresa.razao-social))  format "x(30)"          at 073
+    fn-free-accent(caps(banco.nome-banco))      format "x(30)"          at 103
+    "          "                                                        at 133
+    "1"                                                                 at 143
+    day(today)                                  format "99"             at 144
+    month(today)                                format "99"             at 146
+    substr(string(year(today),"9999"),3,2)      format "99"             at 148
+    substr(string(time,"HH:MM:SS"),1,2)         format "99"             at 150
+    substr(string(time,"HH:MM:SS"),4,2)         format "99"             at 152
+    substr(string(time,"HH:MM:SS"),7,2)         format "99"             at 154
+    tt-param.i-sequencia                        format "999999"         at 156
+    "020"                                                               at 162
+    "01600"                                                             at 165
+    "CPG"                                                               at 170
+    "                                                                 " at 173
+    "   "                                                               at 238 
+    skip.
+
+assign tt-param.i-sequencia = tt-param.i-sequencia + 1.
+
+/* Header dos lotes */
+assign i-num-reg-arq = i-num-reg-arq + 1.
+put stream relat
+    "399"                                                               at 001
+    tt-param.i-sequencia                                 format "9999"  at 004
+    "1"                                                                 at 008
+    "C"                                                                 at 009.
+
+if  tt-param.i-tipo-pag = 30
+or  tt-param.i-tipo-pag = 31 then
+put stream relat
+    "01"                                                                at 010.
+else 
+    if  tt-param.i-tipo-pag = 85 then
+        put stream relat
+        "50"                                                            at 010.
+    else
+        put stream relat
+        "20"                                                            at 010.
+
+if  tt-param.i-tipo-pag = 01 then
+    put stream relat
+        "01"                                                            at 012.
+else if  tt-param.i-tipo-pag = 03 
+     or  tt-param.i-tipo-pag = 83
+     or  tt-param.i-tipo-pag = 85 then
+    put stream relat
+        "03"                                                            at 012.
+else if  tt-param.i-tipo-pag = 30 then
+    put stream relat
+        "30"                                                            at 012.
+else if  tt-param.i-tipo-pag = 31 then
+    put stream relat
+        "31"                                                            at 012.
+
+put stream relat
+    "020"                                                               at 014
+    " "                                                                 at 017
+    "2"                                                                 at 018
+    c-cgc-emp                                   format "99999999999999" at 019
+    tt-param.i-convenio                         format "999999"         at 033
+    "              "                                                    at 039
+    substr(cta-corren.agencia-extrato, 02,05)   format "99999"          at 053
+    " "                                                                 at 058
+    "00"                                                                at 059
+    substr(cta-corrente.conta-corren-ext,1,10)  format "9999999999"     at 061
+    substr(cta-corrente.conta-corren-ext,11,1)  format "x(1)"           at 071
+    " "                                                                 at 072
+    fn-free-accent(caps(empresa.razao-social))  format "x(30)"          at 073
+    "                                        "                          at 103
+    fn-free-accent(caps(empresa.endereco))      format "x(30)"          at 143
+    "00000"                                                             at 173
+    fn-free-accent(caps(empresa.cidade))        format "x(20)"          at 193
+    empresa.cep                                 format "99999999"       at 213
+    empresa.uf                                  format "!!"             at 221
+    "                  "                                                at 223 skip.
+
+/* ap1001c.i1 */

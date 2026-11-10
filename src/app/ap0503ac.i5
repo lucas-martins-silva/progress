@@ -1,0 +1,35 @@
+/********************************************************************************
+***
+*** app/ap0503ac.i5 - PI-TAB-PROG-IR.
+*** Paramaters - {1} Codigo da Empresa
+*********************************************************************************/
+
+if  de-base <= 0 or  tt-ant-ir.de-original <= 0  then
+     assign tt-ant-ir.de-original = 0.
+if tt-ant-ir.de-original  > tt-ant-ir.de-vl-antecip then
+   assign tt-ant-ir.de-original = tt-ant-ir.de-vl-antecip.
+
+if not avail acum-pagto then do:
+   create acum-pagto.
+   assign acum-pagto.ep-codigo         = {1}
+          acum-pagto.cod-estab         = tt-ant-ir.c-cod-estab-acum
+          acum-pagto.cod-fornec        = tt-ant-ir.i-cod-fornec
+          acum-pagto.dat-refer         = date(month(tt-ant-ir.da-emis-antec),01,year(tt-ant-ir.da-emis-antec))
+          acum-pagto.cod-retencao      = tt-ant-ir.i-cod-retencao
+          acum-pagto.val-rendto-tribut = tt-ant-ir.de-tributavel
+          acum-pagto.int-1             = tt-ant-ir.i-cod-imposto.
+end.
+else 
+   assign acum-pagto.val-rendto-tribut = tt-ant-ir.de-tributavel 
+                                       + acum-pagto.val-rendto-tribut.
+
+assign acum-pagto.val-deduc-inss              = tt-ant-ir.de-inss
+       acum-pagto.val-deduc-depend            = tt-ant-ir.de-depend
+       acum-pagto.val-deduc-pensao            = tt-ant-ir.de-pensao
+       acum-pagto.val-outras-deduc-impto      = tt-ant-ir.de-outras
+       acum-pagto.val-aliq-impto              = de-aliquota
+       acum-pagto.val-deduc-faixa-impto       = de-ded-faixa
+       acum-pagto.val-deduc-legal             = de-deduc-legal
+       acum-pagto.val-acum-impto-retid-period = tt-ant-ir.de-original
+                                              + de-impto-rec.
+/*--- FIM INCLUDE AP0503AC.I5 ---*/

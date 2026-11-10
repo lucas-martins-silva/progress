@@ -1,0 +1,244 @@
+PROCEDURE pi-integra-XML-DCe:
+    
+        DEFINE VARIABLE h-TSSAPI                 AS HANDLE      NO-UNDO.
+        DEFINE VARIABLE hXMLDCe                  AS HANDLE      NO-UNDO.
+        DEFINE VARIABLE lEnvioNotaTSSOK          AS LOGICAL     NO-UNDO.
+        DEFINE VARIABLE myLongchar               AS LONGCHAR NO-UNDO.
+        DEFINE VARIABLE myMemptr                 AS MEMPTR   NO-UNDO.
+        
+        DEFINE VARIABLE cArquivoHistoricoXMLDCe AS CHARACTER   NO-UNDO. //revisar Retirar ap¢s tela de dce-envio Revisar
+        
+        ASSIGN lcXMLDCe = "".
+
+        /* RESETA OS VALORES */
+        RUN reset IN hGenXml.
+        
+        /* SETA VALOR DE ENCODING */
+        RUN setEncoding IN hGenXml ("UTF-8").
+
+        RUN adapters/xml/ep2/axsep029imprimexml.p (INPUT hGenXml               ,
+                                                   INPUT-OUTPUT TABLE ttStack  ,
+                                                   INPUT TABLE ttDCe           ,
+                                                   INPUT TABLE ttIdeDCe        ,
+                                                   INPUT TABLE ttEmitDCe       ,
+                                                   INPUT TABLE ttIDEmitDCe     ,
+                                                   INPUT TABLE ttDestDCe       ,
+                                                   INPUT TABLE ttDetDCe        ,
+                                                   INPUT TABlE ttTransp        ,
+                                                   INPUT TABLE ttinfAdic       ,
+                                                   INPUT TABLE ttinfDec        ,
+                                                   INPUT TABLE ttinfDCeSupl    ,
+                                                   INPUT TABLE ttTotalDCe).
+                                                   
+        RUN generateXML IN hGenXml (OUTPUT hXMLDCe).
+
+        hXMLDCe:SAVE("LONGCHAR",lcXMLDCe).
+        
+        IF NOT AVAIL param-global THEN
+            FIND FIRST param-global NO-LOCK NO-ERROR.
+
+        /* retirar o inicio do XML "<?xml version="1.0" encoding="utf-8" ?>" */
+        /* para nao gerar erro na integra‡Æo com o TSS                       */  
+        ASSIGN lcXMLDCe = SUBSTR(lcXMLDCe, INDEX(lcXMLDCe, "<DCe xmlns=")).
+        
+        //IF  NOT lObtemXMLNFe THEN DO: /* efetuar integra‡Æo com TSS se lObtemXMLNFe estiver igual a NO */
+
+            IF  NOT AVAIL param-nf-estab THEN
+                FOR FIRST param-nf-estab NO-LOCK
+                    WHERE param-nf-estab.cod-estabel = dce-documento.cod-estabel: END.
+    
+            IF  NOT AVAIL param-nf-estab THEN
+                RETURN "NOK".
+
+            IF  NOT AVAIL dce-param-estab THEN
+                FOR FIRST dce-param-estab NO-LOCK
+                    WHERE dce-param-estab.cod-estabel = dce-documento.cod-estabel: END.
+    
+            IF  NOT AVAIL dce-param-estab THEN
+                RETURN "NOK".
+                  
+            /* Escreve o XML do handle no longchar */
+            hXMLDCe:SAVE("LONGCHAR", myLongchar).
+            //hXMLDCe:WRITE-XML("LONGCHAR", myLongchar, TRUE).
+            
+            /* Copia do longchar para memptr */
+            COPY-LOB FROM OBJECT myLongchar TO OBJECT myMemptr.
+
+            CREATE dce-envio.
+            ASSIGN dce-envio.cod-estabel      = dce-documento.cod-estabel
+                   dce-envio.serie            = dce-documento.serie      
+                   dce-envio.nr-dce           = dce-documento.nr-dce     
+                   dce-envio.data-envio       = TODAY
+                   dce-envio.hora-envio       = REPLACE(STRING(TIME, "HH:MM:SS"),":","")
+                   dce-envio.cod-envio        = "1"
+                   dce-envio.des-envio        = "Autoriza‡Æo DCe".
+
+            /* Copia do memptr para o campo BLOB da tabela */
+            COPY-LOB FROM OBJECT myMemptr TO dce-envio.blb-arq-xml-dce.
+            
+            /* Libera a mem¢ria do memptr */
+            SET-SIZE(myMemptr) = 0.
+            
+            IF  NOT VALID-HANDLE(h-TSSAPI) THEN DO:
+                RUN ftp/ftapi511.p PERSISTENT SET h-TSSAPI. /*API de comunica»’o com o TSS*/
+            END.
+    
+            RUN setTSSURL IN h-TSSAPI (INPUT TRIM(param-nf-estab.cod-url-ws-tss)). 
+                                   
+            RUN setTSSAuthParam IN h-TSSAPI (INPUT 1,
+                                             INPUT "*",
+                                             INPUT param-nf-estab.cod-estabel,
+                                             INPUT param-nf-estab.cod-url-ws-tss).
+    
+            EMPTY TEMP-TABLE ttDCeTSS.
+            EMPTY TEMP-TABLE ttDCeTSSRet.
+            EMPTY TEMP-TABLE ttNFES4.
+            EMPTY TEMP-TABLE TT_LOG_ERRO.
+            ASSIGN cReturnValue = "":U.
+    
+            CREATE ttDCeTSS.
+            ASSIGN ttDCeTSS.ID   = ttDCe.ChaveAcessoDCe
+                   ttDCeTSS.XML  = lcXMLDCe.
+                       
+            RUN NFESBRA_REMESSA IN h-TSSAPI (param-nf-estab.ind-empresa, 
+                                             INPUT BUFFER ttDCeTSS:HANDLE, 
+                                             INPUT BUFFER ttDCeTSSRet:HANDLE,
+                                             YES). /* Criptografa XML BASE64 - Yes/No */
+                                             
+            ASSIGN cReturnValue = RETURN-VALUE.
+    
+            RUN disconnectTss IN h-TSSAPI ("NFESBRA").
+    
+            IF  cReturnValue <> "OK" THEN DO:
+            
+                CREATE TT_LOG_ERRO.
+                ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 36370.
+                
+                ASSIGN dce-documento.ind-sit-dce = 9. /* muda situacao para > erro no Aplicativo de Transmissao */
+    
+                /*Busca Mensagem*/
+                RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                   INPUT 36370,
+                                   INPUT "[TSS REMESSA]" + "~~" + cReturnValue).
+                ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+    
+                /*Busca Help */
+                RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                   INPUT 36370,
+                                   INPUT "[TSS REMESSA]" + "~~" + cReturnValue).
+                ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+            END.
+            ELSE DO:
+                        
+                FOR EACH ttDCeTSSRet:
+                
+                    IF  TRIM(ttDCeTSSRet.STR) = TRIM(ttDCe.ChaveAcessoDCe) THEN
+                        ASSIGN lEnvioNotaTSSOK = YES.
+                END.
+        
+                IF  NOT lEnvioNotaTSSOK THEN DO:
+                /* NAO CRIOU A NOTA NO TSS, VERIFICAR ATRAVES DO METODO SCHEMA QUAL FOI O MOTIVO DE REJEICAO DA NOTA */
+    
+                    EMPTY TEMP-TABLE ttDCeTSS.
+                    EMPTY TEMP-TABLE ttNFES4.
+                    EMPTY TEMP-TABLE TT_LOG_ERRO.
+                    ASSIGN cReturnValue = "":U.
+    
+                    CREATE ttDCeTSS.
+                    ASSIGN ttDCeTSS.ID  = ttDCe.ChaveAcessoDCe
+                           ttDCeTSS.XML = lcXMLDCe.
+    
+                    RUN NFESBRA_SCHEMA  IN h-TSSAPI (param-nf-estab.ind-empresa, 
+                                                     INPUT BUFFER ttDCeTSS:HANDLE, 
+                                                     INPUT BUFFER ttNFES4:HANDLE,
+                                                     YES). /* Criptografa XML BASE64 - Yes/No */ 
+                    
+                    ASSIGN cReturnValue = RETURN-VALUE.
+    
+                    RUN disconnectTss IN h-TSSAPI ("NFESBRA").
+    
+                    IF  cReturnValue <> "OK" THEN DO:
+    
+                        CREATE TT_LOG_ERRO.
+                        ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 36370.
+                        
+                        ASSIGN dce-documento.ind-sit-dce = 9. /* muda situacao para > erro no Aplicativo de Transmissao */
+            
+                        /*Busca Mensagem*/
+                        RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                           INPUT 36370,
+                                           INPUT "[TSS SCHEMA]" + "~~" + cReturnValue).
+                        ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+            
+                        /*Busca Help */
+                        RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                           INPUT 36370,
+                                           INPUT "[TSS SCHEMA]" + "~~" + cReturnValue).
+                        ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+    
+                    END.
+                    ELSE DO:
+                        
+                        FOR EACH ttNFES4
+                            WHERE ttNFES4.MENSAGEM <> "":
+                            
+                            CREATE TT_LOG_ERRO.
+                            ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 58210.
+                            
+                            ASSIGN dce-documento.ind-sit-dce = 9. /* muda situacao para > erro no Aplicativo de Transmissao */
+                            
+                            /*Busca Mensagem*/
+                            RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                               INPUT 58210,
+                                               INPUT dce-documento.nr-dce + "~~" + ttNFES4.MENSAGEM).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+                            
+                            /*Busca Help */
+                            RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                               INPUT 58210,
+                                               INPUT dce-documento.nr-dce + "~~" + ttNFES4.MENSAGEM).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+    
+                        END.
+                        
+                        IF  CAN-FIND (FIRST ttNFES4 
+                                      WHERE ttNFES4.MENSAGEM <> "") THEN DO:
+                                                                  
+                            /**adapters/xml/ep2/axrep012upsert.i} avaliar se ‚ necess rio para o DCE**/
+                            
+                        END.
+                        ELSE DO:
+                        
+                            CREATE TT_LOG_ERRO.
+                            ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 58209.
+                            
+                            ASSIGN dce-documento.ind-sit-dce = 9. /* muda situacao para > erro no Aplicativo de Transmissao */
+                
+                            /*Busca Mensagem*/
+                            RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                               INPUT 58209,
+                                               INPUT dce-documento.nr-dce ).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+                
+                            /*Busca Help */
+                            RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                               INPUT 58209,
+                                               INPUT dce-documento.nr-dce ).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+    
+                        END. /* ELSE DO : IF  CAN-FIND (FIRST ttNFES4  */
+    
+                    END. /* ELSE DO: IF  RETURN-VALUE <> "OK" THEN DO: */
+                END. /* IF  NOT lEnvioNotaTSSOK THEN DO: */                
+            END. 
+            
+            IF  VALID-HANDLE(h-TSSAPI) THEN DO:
+                DELETE PROCEDURE h-TSSAPI.
+                ASSIGN h-TSSAPI = ?.
+            END.
+
+        //END. /* Fim - IF  NOT lObtemXMLNFe THEN DO: */
+
+    RETURN "OK":U.
+
+END PROCEDURE.

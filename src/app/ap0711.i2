@@ -1,0 +1,96 @@
+/*******************************************************************************
+**
+**  Include.: AP0711.I2
+**  Objetivo: ImpressÆo da parametriza‡Æo utilizada no relat¢rio
+**
+*******************************************************************************/
+
+{utp/ut-liter.i SELE€ÇO * C}
+assign c-text-6 = trim(return-value).
+{utp/ut-liter.i CLASSIFICA€ÇO * C}
+assign c-text-7 = trim(return-value).
+{utp/ut-liter.i PAR¶METROS * C}
+assign c-text-8 = trim(return-value).
+{utp/ut-liter.i IMPRESSÇO * C}
+assign c-text-9 = trim(return-value).
+
+{utp/ut-field.i mgadm mov-ap cod-estabel 1}
+assign tt-param.est-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm mov-ap cod-esp 1}
+assign tt-param.esp-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm emitente cod-gr-forn 1}
+assign tt-param.grupo-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm mov-ap cod-fornec 1}
+assign tt-param.for-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm tit-ap matriz 1}
+assign tt-param.matriz-ini:label in frame f-parametros = return-value.
+{utp/ut-liter.i Data * C}
+assign tt-param.da-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm tit-ap nr-bordero 1}
+assign tt-param.bordero-ini:label in frame f-parametros = return-value.
+{utp/ut-liter.i Moeda * C}
+assign tt-param.moeda:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Data_conversÆo * C}
+assign tt-param.dt-conversao:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Considera_acertos_de_valor * C}
+assign tt-param.acerto:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Lista_hist¢rico * C}
+assign tt-param.lista:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Considera_transferˆncias * C}
+assign tt-param.transf:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Usu rio * C}
+assign tt-param.usuario:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Destino * C}
+assign c-destino:label in frame f-parametros = trim(return-value)
+       c-destino = {varinc/var00002.i 04 tt-param.destino}.
+
+if  page-number > 0 then page.
+
+find moeda 
+     where moeda.mo-codigo = tt-param.moeda no-lock no-error.
+
+display c-text-6
+        tt-param.matriz-ini
+        tt-param.matriz-fim
+        tt-param.est-ini
+        tt-param.est-fim
+        tt-param.esp-ini
+        tt-param.esp-fim
+        tt-param.grupo-ini
+        tt-param.grupo-fim
+        tt-param.for-ini format ">>>>>>>>9"
+        tt-param.for-fim format ">>>>>>>>9"
+        tt-param.da-ini
+        tt-param.da-fim
+        tt-param.bordero-ini
+        tt-param.bordero-fim
+        c-text-7
+        tt-param.text-classif
+        c-text-8
+        tt-param.moeda 
+        " - ":U
+        moeda.descricao
+        tt-param.dt-conversao
+        tt-param.acerto
+        tt-param.text-tipo
+        tt-param.lista
+        tt-param.transf
+        c-text-9
+        c-destino
+        " - ":U
+        tt-param.arquivo
+        tt-param.usuario
+        with frame f-parametros.
+
+do  with frame f-parametros:
+    if  tt-param.acerto = yes then {utp/ut-liter.i Sim * C} else {utp/ut-liter.i NÆo * C}.
+    disp trim(return-value) @ tt-param.acerto.
+    if  tt-param.lista = yes then {utp/ut-liter.i Sim * C} else {utp/ut-liter.i NÆo * C}.
+    disp trim(return-value) @ tt-param.lista.
+    if  tt-param.transf = yes then {utp/ut-liter.i Sim * C} else {utp/ut-liter.i NÆo * C}.
+    disp trim(return-value) @ tt-param.transf.
+end.
+
+down with frame f-parametros.
+
+/* AP0711.I2 */

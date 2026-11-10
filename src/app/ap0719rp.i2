@@ -1,0 +1,74 @@
+/********************************************************************
+***
+***  app/ap0719rp.i2 - Antiga include "ap0719.i5" do Magnus I.
+***                    Display do IR
+***
+********************************************************************/
+
+put stream s-dirf
+    c-rend-trib2[1]  at 103
+    c-deducoes[1]    at 118 format "x(15)"
+    c-ir-ret2[1]     at 133
+    c-rend-trib2[2]  at 148
+    c-deducoes[2]    at 163 format "x(15)"
+    c-ir-ret2[2]     at 178
+    c-rend-trib2[3]  at 193
+    c-deducoes[3]    at 208 format "x(15)"
+    c-ir-ret2[3]     at 223
+    c-rend-trib2[4]  at 238
+    c-deducoes[4]    at 253 format "x(15)"
+    c-ir-ret2[4]     at 268
+    c-rend-trib2[5]  at 283
+    c-deducoes[5]    at 298 format "x(15)"
+    c-ir-ret2[5]     at 313
+    c-rend-trib2[6]  at 328
+    c-deducoes[6]    at 343 format "x(15)"
+    c-ir-ret2[6]     at 358
+    c-rend-trib2[7]  at 373
+    c-deducoes[7]    at 388 format "x(15)"
+    c-ir-ret2[7]     at 403
+    c-rend-trib2[8]  at 418
+    c-deducoes[8]    at 433 format "x(15)"
+    c-ir-ret2[8]     at 448
+    c-rend-trib2[9]  at 463
+    c-deducoes[9]    at 478 format "x(15)"
+    c-ir-ret2[9]     at 493
+    c-rend-trib2[10] at 508
+    c-deducoes[10]   at 523 format "x(15)"
+    c-ir-ret2[10]    at 538
+    c-rend-trib2[11] at 553
+    c-deducoes[11]   at 568 format "x(15)"
+    c-ir-ret2[11]    at 583
+    c-rend-trib2[12] at 598
+    c-deducoes[12]   at 613 format "x(15)"
+    c-ir-ret2[12]    at 628
+    fill("0",15)     at 643 format "x(15)"
+    fill("0",15)     at 658 format "x(15)"
+    fill("0",15)     at 673 format "x(15)".
+
+if c-registro = "2" then do:
+    put stream s-dirf
+        "0"              at 688.
+
+    if (i-ano-base = 2007 and i-sit-declar = 1) 
+    or (i-ano-base = 2008 and i-sit-declar = 1)
+    or (i-ano-base = 2009 and i-sit-declar = 2) then
+        put stream s-dirf
+            "0"              at 689
+            fill(" ",9)      at 690.
+    else
+        put stream s-dirf
+            fill(" ",10)     at 689.
+                
+    put stream s-dirf
+        fill(" ",32)     at 698 format "x(32)" 
+        "9"              at 730 skip.
+end.
+
+if c-registro = "3" then
+    put stream s-dirf
+        fill(" ",30)     at 688 format "x(30)"
+        fill(" ",12)     at 718 format "x(12)" 
+        "9"              at 730 skip.
+
+/*--- Fim dA Include AP0719RP.I2 ---*/

@@ -1,0 +1,138 @@
+/*********************************************************************************
+***
+*** app/ap506frp.i4 - Procedure's Multiplanta.
+***
+*********************************************************************************/
+
+PROCEDURE pi-cria-tt-dados-tit-ap:
+
+    def input parameter i-tipo-movto as integer no-undo. 
+
+    if  param-global.modulo-mp = yes and tt-replica-msg.log-replica-msg = yes and l-centraliz = no then do: 
+
+    {cdp/cd0006c.i "AP"
+                   "tit-ap.ep-codigo"
+                   "tit-ap.cod-estabel" 
+                   "return"}
+      
+    
+        create tt-tit-ap-aux.
+        buffer-copy tit-ap to tt-tit-ap-aux no-error.
+        
+        create tt-dados-env.                  
+        assign tt-dados-env.num-sequencia  = i-seq 
+               tt-dados-env.cod-tipo-reg   = 58
+               tt-dados-env.ind-tipo-movto = i-tipo-movto
+               tt-dados-env.identif-msg    = string(tit-ap.ep-codigo)   + " , " +
+                                             string(tit-ap.cod-fornec)  + " , " +
+                                             string(tit-ap.cod-estabel) + " , " +
+                                             string(tit-ap.cod-esp)     + " , " +
+                                             string(tit-ap.serie)       + " , " +
+                                             string(tit-ap.nr-docto)    + " , " +
+                                             string(tit-ap.parcela).
+        raw-transfer tt-tit-ap-aux to tt-dados-env.conteudo-msg.                                     
+        assign i-seq = i-seq + 1.                     
+    end.
+
+END PROCEDURE.
+
+PROCEDURE pi-cria-tt-dados-mov-ap:
+        
+    def input parameter i-tipo-movto as integer no-undo. 
+
+    if  param-global.modulo-mp = yes and tt-replica-msg.log-replica-msg = yes and l-centraliz = no then do: 
+        
+    {cdp/cd0006c.i "AP"
+                   "mov-ap.ep-codigo" 
+                   "mov-ap.cod-estabel" 
+                   "return"}
+    
+            
+        create tt-mov-ap-aux.
+        buffer-copy mov-ap to tt-mov-ap-aux no-error.
+            
+        create tt-dados-env.                  
+        assign tt-dados-env.num-sequencia  = i-seq 
+               tt-dados-env.cod-tipo-reg   = 59
+               tt-dados-env.ind-tipo-movto = i-tipo-movto
+               tt-dados-env.identif-msg    = string(mov-ap.ep-codigo)     + " , " +
+                                             string(mov-ap.cod-fornec)    + " , " +
+                                             string(mov-ap.cod-estabel)   + " , " +
+                                             string(mov-ap.cod-esp)       + " , " +
+                                             string(mov-ap.serie)         + " , " +
+                                             string(mov-ap.nr-docto)      + " , " +
+                                             string(mov-ap.referencia)    + " , " +
+                                             string(mov-ap.parcela)       + " , " +
+                                             string(mov-ap.dt-transacao).
+        raw-transfer tt-mov-ap-aux to tt-dados-env.conteudo-msg.                                     
+        assign i-seq = i-seq + 1.                     
+    end.
+
+END PROCEDURE.
+
+PROCEDURE pi-cria-tt-dados-emite-ap:
+        
+    def input parameter i-tipo-movto as integer no-undo.
+
+    if  param-global.modulo-mp = yes and tt-replica-msg.log-replica-msg = yes and l-centraliz = no then do: 
+        
+    {cdp/cd0006c.i "AP"
+                   "emite-ap.ep-codigo"
+                   "emite-ap.cod-estabel" 
+                   "return"}
+    
+            
+        create tt-emite-ap-aux.
+        buffer-copy emite-ap to tt-emite-ap-aux no-error.
+            
+        create tt-dados-env.                  
+        assign tt-dados-env.num-sequencia  = i-seq 
+               tt-dados-env.cod-tipo-reg   = 168
+               tt-dados-env.ind-tipo-movto = i-tipo-movto
+               tt-dados-env.identif-msg    = string(emite-ap.ep-codigo)   + " , " +
+                                             string(emite-ap.cod-fornec)  + " , " +
+                                             string(emite-ap.cod-estabel) + " , " +
+                                             string(emite-ap.cod-esp)     + " , " +
+                                             string(emite-ap.serie)       + " , " +
+                                             string(emite-ap.nr-docto)    + " , " +
+                                             string(emite-ap.parcela)     + " , " +
+                                             string(emite-ap.transacao).
+        raw-transfer tt-emite-ap-aux to tt-dados-env.conteudo-msg.                                     
+        assign i-seq = i-seq + 1.                                    
+    end. 
+    
+END PROCEDURE.
+
+PROCEDURE pi-cria-tt-dados-nota-dup:
+  
+    def input parameter i-tipo-movto as integer no-undo.
+
+    if  param-global.modulo-mp = yes and tt-replica-msg.log-replica-msg = yes and l-centraliz = no then do: 
+  
+    {cdp/cd0006c.i "AP"
+                   "nota-dup.ep-codigo-n" 
+                   "nota-dup.cod-estabel-n" 
+                   "return"}
+    
+        
+        create tt-nota-dup-aux.
+        buffer-copy nota-dup to tt-nota-dup-aux no-error.
+        
+        create tt-dados-env.                  
+        assign tt-dados-env.num-sequencia  = i-seq 
+               tt-dados-env.cod-tipo-reg   = 176
+               tt-dados-env.ind-tipo-movto = i-tipo-movto
+               tt-dados-env.identif-msg    = string(nota-dup.ep-codigo-n)   + " , " +
+                                             string(nota-dup.cod-fornec)    + " , " + 
+                                             string(nota-dup.cod-estabel-n) + " , " +
+                                             string(nota-dup.cod-esp-n)     + " , " +
+                                             string(nota-dup.serie-n)       + " , " +
+                                             string(nota-dup.nr-docto-n)    + " , " +
+                                             string(nota-dup.parcela-n).
+        raw-transfer tt-nota-dup-aux to tt-dados-env.conteudo-msg.                                     
+        assign i-seq = i-seq + 1.                                    
+    end. 
+  
+END PROCEDURE.
+
+/* Fim de Include */

@@ -1,0 +1,372 @@
+/********************************************************************************
+***
+*** app/ap0591c.i6 - Esta include tem por finalidade criar o "tit-ap", a mesma
+***                  Ç usada na criaá∆o da antecipaá∆o e do documento normal.
+***                - Se for preciso alterar esta include deve-se passar 
+***                  parÉmetros e alterar as includes que chamam a mesma.
+***
+********************************************************************************/
+
+find first tt-novo-documento
+     where tt-novo-documento.ep-codigo   = {1}.ep-codigo
+     and   tt-novo-documento.cod-estabel = {1}.cod-estabel
+     and   tt-novo-documento.cod-fornec  = {1}.cod-fornec
+     and   tt-novo-documento.cod-esp     = {1}.cod-esp
+     and   tt-novo-documento.serie       = {1}.serie
+     and   tt-novo-documento.nr-docto    = {1}.nr-docto
+     and   tt-novo-documento.parcela     = {1}.parcela no-error.
+if avail tt-novo-documento then do:
+    repeat:
+        find first b-tit-ap
+             where b-tit-ap.ep-codigo   = {1}.ep-codigo
+               and b-tit-ap.cod-estabel = {1}.cod-estabel
+               and b-tit-ap.cod-fornec  = {1}.cod-fornec
+               and b-tit-ap.cod-esp     = b-espec-ap.cod-esp
+               and b-tit-ap.serie       = {1}.serie
+               and b-tit-ap.nr-docto    = tt-novo-documento.nr-docto-nov
+               and b-tit-ap.parcela     = tt-novo-documento.parcela-nov no-lock no-error.
+        if avail b-tit-ap then do:
+            assign c-parc-ini = tt-novo-documento.parcela-nov
+                   c-parc-fim = substring(c-parc-ini,2,1)
+                   c-parc-ini = substring(c-parc-ini,1,1).
+    
+            if  c-parc-fim = "" then
+               assign c-parc-ini = chr(asc(c-parc-ini) + 1).
+            else
+               assign c-parc-fim = chr(asc(c-parc-fim) + 1).
+    
+            if  (asc(c-parc-fim) = 58) then
+                assign c-parc-fim = chr(65).
+    
+            if  (asc(c-parc-fim) = 91) then
+                 assign c-parc-fim = chr(48).   
+    
+            assign tt-novo-documento.parcela-nov = c-parc-ini + c-parc-fim.
+        end.
+        else
+            leave.
+    end.
+    
+    create b-tit-ap.
+    assign b-tit-ap.ep-codigo      = {1}.ep-codigo
+           b-tit-ap.cod-estabel    = {1}.cod-estabel
+           b-tit-ap.cod-fornec     = {1}.cod-fornec
+           b-tit-ap.cod-esp        = b-espec-ap.cod-esp
+           b-tit-ap.serie          = {1}.serie
+           b-tit-ap.nr-docto       = tt-novo-documento.nr-docto-nov
+           b-tit-ap.parcela        = tt-novo-documento.parcela-nov.
+    
+    if Verifica_Program_Name("apapi017", 0) then
+         assign b-tit-ap.origem = 2.
+    else
+         assign b-tit-ap.origem = 1.
+         
+    assign b-tit-ap.matriz         = {1}.matriz
+           b-tit-ap.dt-emissao     = {1}.dt-emissao
+           b-tit-ap.dt-transacao   = {1}.dt-transacao
+           b-tit-ap.dt-prev-pag    = {1}.dt-prev-pag
+           b-tit-ap.dt-vencimen    = {1}.dt-vencimen
+           b-tit-ap.dt-prev-pag    = {1}.dt-prev-pag
+           b-tit-ap.dt-fluxo       = {1}.dt-fluxo
+           b-tit-ap.dt-desconto    = {1}.dt-desconto
+           b-tit-ap.referencia     = {1}.referencia
+           b-tit-ap.conta-debito   = {1}.conta-debito
+           b-tit-ap.ct-conta-db    = {1}.ct-conta-db
+           b-tit-ap.sc-conta-db    = {1}.sc-conta-db               
+           b-tit-ap.tipo           = b-espec-ap.tipo
+           b-tit-ap.ir-antec       = no
+           b-tit-ap.transacao      = 1
+           b-tit-ap.nome-abrev     = {1}.nome-abrev
+           b-tit-ap.dias-atraso    = {1}.dias-atraso
+           b-tit-ap.perc-mora      = {1}.perc-mora
+           b-tit-ap.perc-juros     = {1}.perc-juros
+           b-tit-ap.estado         = {1}.estado
+           b-tit-ap.cod-retencao   = {1}.cod-retencao
+           b-tit-ap.dt-vecto-orig  = {1}.dt-vencimen
+           b-tit-ap.sit-receb      = {1}.sit-receb
+           b-tit-ap.frete          = {1}.frete
+           b-tit-ap.diversos       = {1}.diversos      
+           b-tit-ap.tipo-mercad    = {1}.tipo-mercad
+           b-tit-ap.vl-fluxo       = {1}.vl-original
+           b-tit-ap.vl-juros-dia   = {1}.vl-juros-dia
+           b-tit-ap.observacao     = tt-novo-documento.observacao
+           b-tit-ap.estado         = {1}.estado
+           b-tit-ap.pedido         = {1}.pedido
+           b-tit-ap.titulo-banco   = {1}.titulo-banco
+           b-tit-ap.portador       = {2}.portador
+           b-tit-ap.modalidade     = {2}.modalidade
+           b-tit-ap.tp-codigo      = tit-ap.tp-codigo.
+    
+    &if  "{&mgadm_version}" < "2.02" &then
+        assign  b-tit-ap.tp-pagto  = {1}.tp-pagto.
+    &endif
+    
+    &if  "{&mgadm_version}" >= "2.02" &then
+        if  b-espec-ap.tipo = 2 then /* AN */
+            assign b-tit-ap.tp-pagto = 5. /* Cheque Nominal */
+        else    
+            assign b-tit-ap.tp-pagto = {1}.tp-pagto.
+    &endif
+    
+    assign b-tit-ap.moeda          = {1}.moeda
+           b-tit-ap.cotacao-dia    = {1}.cotacao-dia
+           b-tit-ap.vl-original    = de-vl-original
+           b-tit-ap.vl-orig-me     = de-vl-orig-me
+           b-tit-ap.valor-saldo    = b-tit-ap.vl-original
+           b-tit-ap.vl-saldo-me    = b-tit-ap.vl-orig-me
+           b-tit-ap.vl-liquido     = b-tit-ap.vl-original
+           b-tit-ap.vl-liquido-me  = b-tit-ap.vl-orig-me
+           b-tit-ap.frete          = {1}.frete
+           b-tit-ap.frete-me       = {1}.frete-me
+           b-tit-ap.diversos       = {1}.diversos
+           b-tit-ap.diversos-me    = {1}.diversos-me
+           b-tit-ap.vl-desconto    = {1}.vl-desconto
+           b-tit-ap.vl-desconto-me = {1}.vl-desconto-me.
+    
+    /*--- ATENÄ«O: Todos os impostos pertencentes a ND/NC ser∆o transferidos 
+                   para o documento original, na ND/NC estes impostos ser∆o 
+                   n∆o cont†beis ---*/
+    if  l-vinculado = no then do:
+        for each  b-impto-tit-ap exclusive-lock
+            where b-impto-tit-ap.ep-codigo     = {1}.ep-codigo
+            and   b-impto-tit-ap.cod-estabel   = {1}.cod-estabel
+            and   b-impto-tit-ap.cod-fornec    = {1}.cod-fornec
+            and   b-impto-tit-ap.cod-esp       = {1}.cod-esp
+            and   b-impto-tit-ap.serie         = {1}.serie
+            and   b-impto-tit-ap.nr-docto      = {1}.nr-docto
+            and   b-impto-tit-ap.parcela       = {1}.parcela:
+    
+            create impto-tit-ap.
+            buffer-copy b-impto-tit-ap except b-impto-tit-ap.ep-codigo
+                                              b-impto-tit-ap.cod-estabel
+                                              b-impto-tit-ap.cod-fornec
+                                              b-impto-tit-ap.cod-esp
+                                              b-impto-tit-ap.serie
+                                              b-impto-tit-ap.nr-docto
+                                              b-impto-tit-ap.parcela
+                                              &IF DEFINED (BF_FIN_203) &THEN
+                                                 b-impto-tit-ap.num-id-impto-tit-ap
+                                              &ENDIF
+    
+                                              TO impto-tit-ap NO-ERROR.
+    
+            assign impto-tit-ap.ep-codigo    = b-tit-ap.ep-codigo
+                   impto-tit-ap.cod-estabel  = b-tit-ap.cod-estabel
+                   impto-tit-ap.cod-fornec   = b-tit-ap.cod-fornec
+                   impto-tit-ap.cod-esp      = b-tit-ap.cod-esp
+                   impto-tit-ap.serie        = b-tit-ap.serie
+                   impto-tit-ap.nr-docto     = b-tit-ap.nr-docto
+                   impto-tit-ap.parcela      = b-tit-ap.parcela
+                   impto-tit-ap.contabilizou = no
+                   impto-tit-ap.origem-impto = 10.
+    
+                /** Projeto IVA Retido MÇxico **/
+    
+            if  i-pais-impto-usuario = 4 then do:
+                find first tt-conta-debito
+                 where tt-conta-debito.ep-codigo   = tit-ap.ep-codigo
+                 and   tt-conta-debito.cod-estabel = tit-ap.cod-estabel
+                 and   tt-conta-debito.cod-fornec  = tit-ap.cod-fornec
+                 and   tt-conta-debito.cod-esp     = tit-ap.cod-esp
+                 and   tt-conta-debito.serie       = tit-ap.serie
+                 and   tt-conta-debito.nr-docto    = tit-ap.nr-docto
+                 and   tt-conta-debito.parcela     = tit-ap.parcela
+                 no-error.
+    
+                if  not avail tt-conta-debito then do:
+    
+                    find first portador
+                         where portador.ep-codigo    = tit-ap.ep-codigo
+                         and   portador.cod-portador = tit-ap.portador
+                         and   portador.modalidade   = 1 no-lock no-error.
+    
+                    if avail portador then
+                       find first cta-corrente
+                            where cta-corrente.cod-banco    = portador.cod-banco
+                            and   cta-corrente.agencia      = portador.agencia
+                            and   cta-corrente.conta-corren = portador.conta-corren
+                            no-lock no-error.
+    
+                    if  avail cta-corrente then
+                        find first conta-contab no-lock
+                             where conta-contab.ep-codigo      = i-ep-codigo-usuario
+                             and   conta-contab.conta-contabil = cta-corrente.conta-saldo no-error.
+    
+                        find first tit-conta-ap 
+                            where tit-conta-ap.ep-codigo   = b-tit-ap.ep-codigo  
+                              and tit-conta-ap.cod-estabel = b-tit-ap.cod-estabel
+                              and tit-conta-ap.cod-esp     = b-tit-ap.cod-esp    
+                              and tit-conta-ap.serie       = b-tit-ap.serie      
+                              and tit-conta-ap.cod-fornec  = b-tit-ap.cod-fornec 
+                              and tit-conta-ap.nr-docto    = b-tit-ap.nr-docto   
+                              and tit-conta-ap.parcela     = b-tit-ap.parcela  
+                              and tit-conta-ap.char-1      = "" exclusive-lock no-error. /* mudei o lock */
+                        if not avail tit-conta-ap then do:
+    
+                           create tit-conta-ap. /* despesa nota */
+                           assign tit-conta-ap.ep-codigo    = b-tit-ap.ep-codigo
+                                  tit-conta-ap.cod-estabel  = b-tit-ap.cod-estabel
+                                  tit-conta-ap.cod-esp      = b-tit-ap.cod-esp
+                                  tit-conta-ap.serie        = b-tit-ap.serie
+                                  tit-conta-ap.cod-fornec   = b-tit-ap.cod-fornec
+                                  tit-conta-ap.nr-docto     = b-tit-ap.nr-docto
+                                  tit-conta-ap.parcela      = b-tit-ap.parcela
+                                  tit-conta-ap.conta-debito = if  avail conta-contab then conta-contab.conta-contabil else b-tit-ap.conta-debito
+                                  tit-conta-ap.ct-codigo    = if  avail conta-contab then conta-contab.ct-codigo else b-tit-ap.ct-conta-db
+                                  tit-conta-ap.sc-codigo    = if  avail conta-contab then conta-contab.sc-codigo else b-tit-ap.sc-conta-db
+                                  tit-conta-ap.vl-movto     = b-tit-ap.vl-original
+                                  tit-conta-ap.vl-movto-me  = b-tit-ap.vl-orig-me.
+    
+                            if b-impto-tit-ap.tipo = 1 then
+                               assign tit-conta-ap.vl-movto    = tit-conta-ap.vl-movto    + b-impto-tit-ap.vl-imposto
+                                      tit-conta-ap.vl-movto-me = tit-conta-ap.vl-movto-me + b-impto-tit-ap.vl-imposto-me.
+                            else
+                               assign tit-conta-ap.vl-movto    = tit-conta-ap.vl-movto    - b-impto-tit-ap.vl-imposto          
+                                      tit-conta-ap.vl-movto-me = tit-conta-ap.vl-movto-me - b-impto-tit-ap.vl-imposto-me.
+                        end.
+                        else do:
+    
+                             if b-impto-tit-ap.tipo = 1 then
+                                assign tit-conta-ap.vl-movto    = tit-conta-ap.vl-movto    + b-impto-tit-ap.vl-imposto
+                                       tit-conta-ap.vl-movto-me = tit-conta-ap.vl-movto-me + b-impto-tit-ap.vl-imposto-me.
+                             else
+                                assign tit-conta-ap.vl-movto    = tit-conta-ap.vl-movto    - b-impto-tit-ap.vl-imposto          
+                                       tit-conta-ap.vl-movto-me = tit-conta-ap.vl-movto-me - b-impto-tit-ap.vl-imposto-me.
+                        end.
+                end.    
+                create tit-conta-ap. /* Impostos */
+                assign tit-conta-ap.ep-codigo           = b-tit-ap.ep-codigo
+                       tit-conta-ap.cod-estabel         = b-tit-ap.cod-estabel
+                       tit-conta-ap.cod-esp             = b-tit-ap.cod-esp
+                       tit-conta-ap.serie               = b-tit-ap.serie
+                       tit-conta-ap.cod-fornec          = b-tit-ap.cod-fornec
+                       tit-conta-ap.nr-docto            = b-tit-ap.nr-docto
+                       tit-conta-ap.parcela             = b-tit-ap.parcela
+                       tit-conta-ap.conta-debito        = b-impto-tit-ap.conta-imposto
+                       tit-conta-ap.ct-codigo           = b-impto-tit-ap.ct-imposto
+                       tit-conta-ap.sc-codigo           = b-impto-tit-ap.sc-imposto
+                       tit-conta-ap.vl-movto            = b-impto-tit-ap.vl-imposto
+                       tit-conta-ap.vl-movto-me         = b-impto-tit-ap.vl-imposto-me
+                       substr(tit-conta-ap.char-1,1,2)  = b-tit-ap.cod-esp
+                       substr(tit-conta-ap.char-1,3,5)  = b-tit-ap.serie
+                       substr(tit-conta-ap.char-1,8,16) = b-tit-ap.nr-docto
+                       substr(tit-conta-ap.char-1,24,2) = b-tit-ap.parcela.
+                &if DEFINED (BF_FIN_206) &then
+                    assign tit-conta-ap.tipo-impto = b-impto-tit-ap.tipo.
+                &else
+                    assign tit-conta-ap.int-2      = b-impto-tit-ap.tipo.
+                &endif
+                assign impto-tit-ap.origem-impto = 13. /* Imposto n∆o cont†bil */
+            end.
+    
+            /************* MULTIPLANTA ****************/
+            run pi-cria-tt-dados-impto-tit-ap (input 1).
+            /******************************************/         
+    
+        end.    
+    end.
+    else do:
+        if i-pais-impto-usuario = 4 then do:
+           for each  b-impto-tit-ap exclusive-lock
+               where b-impto-tit-ap.ep-codigo     = {1}.ep-codigo
+               and   b-impto-tit-ap.cod-estabel   = {1}.cod-estabel
+               and   b-impto-tit-ap.cod-fornec    = {1}.cod-fornec
+               and   b-impto-tit-ap.cod-esp       = {1}.cod-esp
+               and   b-impto-tit-ap.serie         = {1}.serie
+               and   b-impto-tit-ap.nr-docto      = {1}.nr-docto
+               and   b-impto-tit-ap.parcela       = {1}.parcela:
+    
+               /** Projeto IVA Retido MÇxico **/
+               create tit-conta-ap.
+               assign tit-conta-ap.ep-codigo           = if not avail mov-ap then b-tit-ap.ep-codigo   else b-tit-ap-orig.ep-codigo
+                      tit-conta-ap.cod-estabel         = if not avail mov-ap then b-tit-ap.cod-estabel else b-tit-ap-orig.cod-estabel
+                      tit-conta-ap.cod-esp             = if not avail mov-ap then b-tit-ap.cod-esp     else b-tit-ap-orig.cod-esp
+                      tit-conta-ap.serie               = if not avail mov-ap then b-tit-ap.serie       else b-tit-ap-orig.serie
+                      tit-conta-ap.cod-fornec          = if not avail mov-ap then b-tit-ap.cod-fornec  else b-tit-ap-orig.cod-fornec
+                      tit-conta-ap.nr-docto            = if not avail mov-ap then b-tit-ap.nr-docto    else b-tit-ap-orig.nr-docto
+                      tit-conta-ap.parcela             = if not avail mov-ap then b-tit-ap.parcela     else b-tit-ap-orig.parcela
+                      tit-conta-ap.conta-debito        = b-impto-tit-ap.conta-imposto
+                      tit-conta-ap.ct-codigo           = b-impto-tit-ap.ct-imposto
+                      tit-conta-ap.sc-codigo           = b-impto-tit-ap.sc-imposto
+                      tit-conta-ap.vl-movto            = b-impto-tit-ap.vl-imposto
+                      tit-conta-ap.vl-movto-me         = b-impto-tit-ap.vl-imposto-me
+                      substr(tit-conta-ap.char-1,1,2)  = if not avail mov-ap then b-tit-ap.cod-esp  else b-tit-ap-orig.cod-esp
+                      substr(tit-conta-ap.char-1,3,5)  = if not avail mov-ap then b-tit-ap.serie    else b-tit-ap-orig.serie
+                      substr(tit-conta-ap.char-1,8,16) = if not avail mov-ap then b-tit-ap.nr-docto else b-tit-ap-orig.nr-docto
+                      substr(tit-conta-ap.char-1,24,2) = if not avail mov-ap then b-tit-ap.parcela  else b-tit-ap-orig.parcela.
+               &if DEFINED (BF_FIN_206) &then
+                   assign tit-conta-ap.tipo-impto = b-impto-tit-ap.tipo.
+               &else
+                   assign tit-conta-ap.int-2      = b-impto-tit-ap.tipo.
+               &endif
+               if avail mov-ap then do:
+                       &if DEFINED (BF_FIN_206b) &then
+                           assign tit-conta-ap.num-id-mov-ap = mov-ap.num-id-mov-ap.
+                       &else
+                           assign substr(tit-conta-ap.char-2,1,9) = string(mov-ap.num-id-mov-ap). /* AVA */
+                       &endif
+               end.
+    
+               if  b-impto-tit-ap.tipo = 1 then
+                   assign vl-imposto-retido-me = vl-imposto-retido-me + b-impto-tit-ap.vl-imposto-me
+                          vl-imposto-retido    = vl-imposto-retido    + b-impto-tit-ap.vl-imposto.
+               else
+                   assign vl-imposto-agregado-me = vl-imposto-agregado-me + b-impto-tit-ap.vl-imposto-me
+                          vl-imposto-agregado    = vl-imposto-agregado    + b-impto-tit-ap.vl-imposto.
+    
+           end.
+    
+           find first tt-conta-debito
+                     where tt-conta-debito.ep-codigo   = {1}.ep-codigo
+                     and   tt-conta-debito.cod-estabel = {1}.cod-estabel
+                     and   tt-conta-debito.cod-fornec  = {1}.cod-fornec
+                     and   tt-conta-debito.cod-esp     = {1}.cod-esp
+                     and   tt-conta-debito.serie       = {1}.serie
+                     and   tt-conta-debito.nr-docto    = {1}.nr-docto
+                     and   tt-conta-debito.parcela     = {1}.parcela
+                     no-error.
+    
+           if  not avail tt-conta-debito then do:
+               find first portador
+                    where portador.ep-codigo    = tit-ap.ep-codigo
+                    and   portador.cod-portador = tit-ap.portador
+                    and   portador.modalidade   = 1 no-lock no-error.
+    
+               if avail portador then
+                  find first cta-corrente
+                       where cta-corrente.cod-banco    = portador.cod-banco
+                       and   cta-corrente.agencia      = portador.agencia
+                       and   cta-corrente.conta-corren = portador.conta-corren
+                       no-lock no-error.
+    
+               if  avail cta-corrente then
+                   find first conta-contab no-lock
+                        where conta-contab.ep-codigo      = i-ep-codigo-usuario
+                        and   conta-contab.conta-contabil = cta-corrente.conta-saldo no-error.
+    
+                   create tit-conta-ap.
+                   assign tit-conta-ap.ep-codigo    = if not avail mov-ap then b-tit-ap.ep-codigo   else b-tit-ap-orig.ep-codigo  
+                          tit-conta-ap.cod-estabel  = if not avail mov-ap then b-tit-ap.cod-estabel else b-tit-ap-orig.cod-estabel
+                          tit-conta-ap.cod-esp      = if not avail mov-ap then b-tit-ap.cod-esp     else b-tit-ap-orig.cod-esp    
+                          tit-conta-ap.serie        = if not avail mov-ap then b-tit-ap.serie       else b-tit-ap-orig.serie      
+                          tit-conta-ap.cod-fornec   = if not avail mov-ap then b-tit-ap.cod-fornec  else b-tit-ap-orig.cod-fornec 
+                          tit-conta-ap.nr-docto     = if not avail mov-ap then b-tit-ap.nr-docto    else b-tit-ap-orig.nr-docto   
+                          tit-conta-ap.parcela      = if not avail mov-ap then b-tit-ap.parcela     else b-tit-ap-orig.parcela    
+                          tit-conta-ap.conta-debito = if  avail conta-contab then conta-contab.conta-contabil else tit-ap.conta-debito
+                          tit-conta-ap.ct-codigo    = if  avail conta-contab then conta-contab.ct-codigo      else tit-ap.ct-conta-db
+                          tit-conta-ap.sc-codigo    = if  avail conta-contab then conta-contab.sc-codigo      else tit-ap.sc-conta-db
+                          tit-conta-ap.vl-movto     = if not avail mov-ap then (b-tit-ap.vl-original - vl-imposto-agregado + vl-imposto-retido) else (b-tit-ap-orig.vl-original - vl-imposto-agregado + vl-imposto-retido)
+                          tit-conta-ap.vl-movto-me  = if not avail mov-ap then (b-tit-ap.vl-orig-me - vl-imposto-agregado-me + vl-imposto-retido-me) else (b-tit-ap-orig.vl-orig-me  - vl-imposto-agregado-me + vl-imposto-retido-me).
+                          if avail mov-ap then do:
+                                  &if DEFINED (BF_FIN_206b) &then
+                                      assign tit-conta-ap.num-id-mov-ap = mov-ap.num-id-mov-ap.
+                                  &else
+                                      assign substr(tit-conta-ap.char-2,1,9) = string(mov-ap.num-id-mov-ap). /* AVA */
+                                  &endif
+                          end.
+            end.
+        end.
+    end.
+end.        
+
+/* Fim de Include */

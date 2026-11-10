@@ -1,0 +1,20 @@
+/******************************************************************************
+**
+**  AP0512.I1 - Verifica tabela de extensao para titulos em Bancos Historicos
+**
+******************************************************************************/
+
+if  tt-param.c-origem-ap = "ap0512" then do:
+    find first his-tit-ap exclusive-lock
+         where his-tit-ap.ep-codigo   = tit-ap.ep-codigo  
+         and   his-tit-ap.cod-fornec  = tit-ap.cod-fornec  
+         and   his-tit-ap.cod-estabel = tit-ap.cod-estabel 
+         and   his-tit-ap.cod-esp     = tit-ap.cod-esp     
+         and   his-tit-ap.serie       = tit-ap.serie       
+         and   his-tit-ap.nr-docto    = tit-ap.nr-docto    
+         and   his-tit-ap.parcela     = tit-ap.parcela no-error.
+    if  avail his-tit-ap then
+        delete his-tit-ap validate(true,"").
+end.
+
+/* Fim de Include */

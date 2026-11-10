@@ -1,0 +1,33 @@
+/*******************************************************************************
+***
+*** app/ap0740rp.i12 - last-of(tt-tit-ap.cod-esp).
+***
+*******************************************************************************/
+
+if  last-of(tt-tit-ap.cod-esp) then do:
+        
+    if  tt-tit-ap.tipo = 1 then
+        assign c-lancto-1 = c-credito
+               c-lancto-2 = c-credito.
+    else
+        assign c-lancto-1 = c-debito
+               c-lancto-2 = c-debito.
+            
+    if  de-tot-esp-orig < 0 then
+        assign de-tot-esp-orig = de-tot-esp-orig * (-1).
+        
+    if  de-tot-esp-saldo < 0 then
+        assign de-tot-esp-saldo = de-tot-esp-saldo * (-1).
+        
+    put c-total-especie   at 46
+        de-tot-esp-orig   to 103
+        c-lancto-1        to 106
+        de-tot-esp-saldo  to 129 
+        c-lancto-2        to 132
+        skip(1).
+            
+    assign de-tot-esp-orig  = 0
+           de-tot-esp-saldo = 0.
+end.
+
+/* Fim de Include */

@@ -1,0 +1,16 @@
+def var i as integer.
+do i = 1 to error-status:num-messages:
+
+    if  error-status:get-number(i) <> 560
+    then do:
+        Assign vLogErro = Yes.
+        Create tt-erro{&Ext}.
+        Assign tt-erro{&Ext}.i-sequen = i
+               tt-erro{&Ext}.cd-erro  = 0
+               tt-erro{&Ext}.mensagem = error-status:get-message(i).
+    end.
+
+end.
+
+
+

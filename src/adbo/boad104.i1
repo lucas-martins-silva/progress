@@ -1,0 +1,34 @@
+/*
+**  BOAD104.i1
+**
+**  Procedure findEspecie: esta procedure foi transformada
+**  em include pois este codigo e comum aos produtos EMS e
+**  Magnus.
+**
+**  Ultima altera‡Æo : 08/03/2000 - brv13084
+*/
+
+procedure findEspecie:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter c-cod-esp as char no-undo.
+    def output parameter c-return as char no-undo.
+ 
+    find espec-ap where
+        espec-ap.cod-esp = c-cod-esp
+        no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        {utp/ut-table.i mgadm {&TABLE-NAME} 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+end procedure.

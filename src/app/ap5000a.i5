@@ -1,0 +1,44 @@
+find first portador no-lock
+     where portador.ep-codigo    = tt-param.ep-codigo
+     and   portador.cod-portador = {1}
+     and   portador.modalidade   = {2}
+     no-error.
+        
+if  avail portador then do:
+                
+    find first tt-portador no-lock
+         where tt-portador.r-rowid = rowid(portador) no-error.
+        
+    if  not avail tt-portador then do:
+
+        {app/ap5000a.i3 portador}
+        
+        find first banco no-lock
+             where banco.cod-banco = portador.cod-banco no-error.
+        if  avail banco then do:
+            {app/ap5000a.i3 banco}
+        END.
+        find first agencia no-lock
+             where agencia.cod-banco = portador.cod-banco
+             and   agencia.agencia   = portador.agencia
+             no-error.
+        if  avail agencia then do:
+            {app/ap5000a.i3 agencia}
+        END.
+        find first cta-corrente no-lock
+             where cta-corrente.cod-banco    = portador.cod-banco
+             and   cta-corrente.agencia      = portador.agencia
+             and   cta-corrente.conta-corren = portador.conta-corren
+             no-error.
+        if  avail cta-corrente then do:
+            {app/ap5000a.i3 cta-corrente}
+            RUN pi-criar-temp-table-conta (INPUT cta-corrente.conta-saldo).
+            RUN pi-criar-temp-table-conta (INPUT cta-corrente.conta-juros-recebidos).
+            RUN pi-criar-temp-table-conta (INPUT cta-corrente.conta-juros-pagos).
+            RUN pi-criar-temp-table-conta (INPUT cta-corrente.conta-tit-desc).
+            RUN pi-criar-temp-table-conta (INPUT cta-corrente.conta-despes-banc).
+            RUN pi-criar-temp-table-conta (INPUT cta-corrente.conta-despes-financ).
+            RUN pi-criar-temp-table-conta (INPUT cta-corrente.conta-impto-oper-financ).
+        END.
+    END.
+end.

@@ -1,0 +1,62 @@
+/********************************************************************************
+***
+*** app/ap0503ir.i1 - Calculo do Imposto de IR om base  no Acumulado.
+***
+*********************************************************************************/
+
+find first acum-pagto
+     where acum-pagto.ep-codigo    = {1}
+     and   acum-pagto.cod-estab    = tt-ant-ir.c-cod-estab-acum
+     and   acum-pagto.cod-fornec   = tt-ant-ir.i-cod-fornec
+     and   acum-pagto.dat-refer    = date(month(tt-ant-ir.da-emis-antec),01,year(tt-ant-ir.da-emis-antec))
+     and   acum-pagto.cod-retencao = tt-ant-ir.i-cod-retencao
+     exclusive-lock no-error.
+
+assign de-aliquota           = 0 
+       de-ded-faixa          = 0
+       l-existe-faixa        = no
+       de-impto-rec          = 0
+       tt-ant-ir.de-original = 0
+       de-deduc-legal        = 0.
+
+if avail acum-pagto then
+   assign de-deduc-legal = acum-pagto.val-deduc-legal
+          de-base        = tt-ant-ir.de-tributavel 
+                         + acum-pagto.val-rendto-tribut
+          de-impto-rec   = acum-pagto.val-acum-impto-retid-period.
+else
+   assign de-base = tt-ant-ir.de-tributavel.
+
+if  emitente.rend-tribut <= 0 or emitente.rend-tribut >= 100 then do:
+    assign de-deduc-legal = de-deduc-legal.
+end.
+else do:
+    assign de-deduc-legal = de-deduc-legal + tt-ant-ir.de-tributavel - ((tt-ant-ir.de-tributavel * emitente.rend-tribut) / 100).
+end.
+
+assign de-base = de-base
+               - tt-ant-ir.de-inss
+               - tt-ant-ir.de-depend
+               - tt-ant-ir.de-pensao
+               - tt-ant-ir.de-outras
+               - de-deduc-legal.
+
+if  de-base > 0 then do:
+    do i-cont = 1 to 7:
+       if  tab-ir-prog.term-faixa[i-cont] >= de-base
+       and tab-ir-prog.inic-faixa[i-cont] <= de-base  then do:
+          assign de-aliquota    = tab-ir-prog.alq-faixa[i-cont]
+                 de-ded-faixa   = tab-ir-prog.ded-faixa[i-cont]
+                 l-existe-faixa = yes.
+          leave.
+       end.
+    end.
+    if  l-existe-faixa then do:                                         
+        assign de-calculado           = fn_ajust_dec((de-base  * de-aliquota) / 100, 0)
+               tt-ant-ir.de-original  = de-calculado 
+                                      - de-ded-faixa
+                                      - de-impto-rec.
+    end.
+end.
+
+/*--- FIM AP0503ir.i1 ---*/

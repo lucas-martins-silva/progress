@@ -1,0 +1,13 @@
+/********************************************************************************************
+**   Include...: bc9022.i1                                                                 **
+**                                                                                         **
+**   Versao....: 2.00.00.000                                                               **
+**                                                                                         **
+**   Objetivo..: Armazenar as variaveis para transacao de Packing List WMS                 **
+**                                                                                         **
+********************************************************************************************/
+/* variavel contador de etiquetas */
+def {1} shared variable qtd-etiquetas as integer format '>>>>9'.
+/* variavel para armazenar o valor do volume */
+def {1} shared variable cod-volume-pack as integer initial 0.
+

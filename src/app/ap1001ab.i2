@@ -1,0 +1,63 @@
+/***************************************************************************
+***
+***  Programa: ap1001ab.i2
+***  Objetivo: Detalhe do Bandeirantes
+***
+***************************************************************************/
+
+if  l-antecipacao = no then do:
+    
+    if  mov-ap.transacao = 15 then
+        assign i-tipo-mov = 2.
+    
+    if  mov-ap.transacao = 10 
+    or  mov-ap.transacao = 11 
+    or  mov-ap.transacao = 12 then
+        assign i-tipo-mov = 3.
+    
+    if  mov-ap.transacao = 1 
+    or  mov-ap.transacao = 6 then
+        assign i-tipo-mov = 1.
+    
+    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+        assign de-desconto = (tit-ap.vl-isr + tit-ap.vl-abatimento-tot) * 100
+               de-juros    = (tit-ap.dec-2  + tit-ap.vl-multa-tot) * 100.
+    &else
+        assign de-desconto = tit-ap.vl-isr * 100
+               de-juros    = tit-ap.dec-2  * 100.
+    &endif
+    
+    {app/ap1001ab.i3 "mov-ap.dt-vencimen"
+                     "tit-ap.titulo-banco" 
+                     "(tit-ap.valor-saldo - vl-tot-impto)"
+                     "tit-ap.nr-bordero"                        
+                     "mov-ap.num-id-mov-ap"
+                     "mov-ap"}
+    
+end.
+else do:
+    assign i-tipo-mov  = 0
+           de-desconto = 0
+           de-juros    = 0
+           c-cod-mov   = "00".
+    
+    /*--- O tratamento abaixo refere-se … integra‡Æo APP x Investimentos ---*/
+    &if "{&mgadm_version}" >= "2.02" &then
+        {app/ap1001ab.i3 "bordero-ap.dt-vencto"
+                         "bordero-ap.titulo-banco"
+                         "(bordero-ap.vl-docto - vl-tot-impto)"
+                         "bordero-ap.nr-bordero" 
+                         "bordero-ap.char-2"
+                         "bordero-ap"}
+    &else
+        {app/ap1001ab.i3 "bordero-ap.dt-vencto"
+                         "bordero-ap.pedido"
+                         "(bordero-ap.vl-docto - vl-tot-impto)"
+                         "bordero-ap.nr-bordero" 
+                         "bordero-ap.char-2"
+                         "bordero-ap"}
+    &endif
+
+end.
+ 
+/* Fim ap1001ab.i2 */

@@ -1,0 +1,12 @@
+/************************************************************
+**
+** app/ap506drp.i2 - Include grava movimento como cancelado
+**
+*************************************************************/
+        
+    create tt-che-emit.
+    buffer-copy che-emit to tt-che-emit.
+
+    assign che-emit.cancelado = yes.
+
+/*** Fim da Include ***/

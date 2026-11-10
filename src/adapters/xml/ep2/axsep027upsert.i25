@@ -1,0 +1,41 @@
+PROCEDURE pi-valores-desc-icms:
+
+    ASSIGN d-descto-zfm-pis    = 0
+           d-descto-zfm-cofins = 0
+           d-vl-desc-icms      = 0.
+
+    /*--- Calcula Valor Desconto ICMS ---*/ /*somente para quando NAO for Zona Franca, e sim Desconto de ICMS (com motivo de desonera‡Æo parametrizado)*/
+    IF (it-nota-fisc.per-des-icms > 0 AND 
+       (TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2)) <> "" AND 
+        TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2)) <> "0"))
+    AND (r-cidade-zf = ? or
+        (r-cidade-zf <> ? and
+         TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2)) <> "7")) THEN DO:
+    
+        &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN
+        
+             IF  bf-natur-oper-it.log-deduz-desc-zfm-tot-nf THEN
+                 ASSIGN d-descto-zfm-pis    = bf-natur-oper-it.val-perc-desc-pis-zfm
+                        d-descto-zfm-cofins = bf-natur-oper-it.val-perc-desc-cofins-zfm.
+        &ELSE
+        
+             IF  SUBSTR(bf-natur-oper-it.char-1,109,1) = "S" THEN
+                 ASSIGN d-descto-zfm-pis    = DEC(SUBSTR(bf-natur-oper-it.char-1,110,8))
+                        d-descto-zfm-cofins = DEC(SUBSTR(bf-natur-oper-it.char-1,118,8)).
+        &ENDIF
+        
+        ASSIGN d-vl-desc-icms = (1 - ((IF trim(substr(it-nota-fisc.char-1,461,5)) <> ""
+                                       THEN dec(substring(it-nota-fisc.char-1,461,5))
+                                       ELSE dec(substring(bf-natur-oper-it.char-2,66,5))) + d-descto-zfm-pis + d-descto-zfm-cofins) / 100) * /* Totaliza Descontos Zona Franca */
+                                (1 - it-nota-fisc.per-des-icms / 100)                                                                        /* Soma com o Desconto ICMS */
+               d-vl-desc-icms = it-nota-fisc.vl-merc-liq / d-vl-desc-icms /*Valor Bruto sem os Descontos acima*/
+               d-vl-desc-icms = d-vl-desc-icms * it-nota-fisc.per-des-icms / 100 /*Valor referente ao Desconto ICMS (somente este [it-nota-fisc.per-des-icms], sem considerar os ZFM)*/
+               d-vl-desc-icms = (if d-vl-desc-icms < 0
+                                 then 0
+                                 else d-vl-desc-icms)
+               d-vl-desc-icms = round(d-vl-desc-icms, 2) NO-ERROR.
+    
+    END.
+    /*---*/
+
+END PROCEDURE.

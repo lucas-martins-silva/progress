@@ -1,0 +1,222 @@
+PROCEDURE pi-cria-ttPag: 
+     
+    DEFINE VARIABLE cIndPag    AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE v-tot-vPag AS DECIMAL     NO-UNDO.
+    
+    /*  
+    === ttPag ===
+    vTroco          AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor do Troco*/
+    
+    === ttDetPag ===
+    indPag          AS CHARACTER INITIAL ? 0= Pagamento Ö Vista 1= Pagamento Ö Prazo 
+    tPag            AS CHARACTER INITIAL ?
+    vPag            AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor do Pagamento. Esta tag poder† ser omitida quando a tag tPag=90 (Sem Pagamento), caso contr†rio dever† ser preenchida.*/
+    /*card - grupo de Cart‰es*/
+    tpIntegra       AS CHARACTER INITIAL ?
+    CNPJ            AS CHARACTER INITIAL ?
+    tBand           AS CHARACTER INITIAL ?
+    cAut            AS CHARACTER INITIAL ?
+    */
+
+    IF  NOT AVAIL ttIde THEN
+        FIND FIRST ttIde NO-ERROR.
+
+    /*--- NT2016.002 v 1.50 [Inclus∆o campo indPag - 0= Pagamento Ö Vista 1= Pagamento Ö Prazo] ---*/
+    IF  nota-fiscal.ind-tip-nota <> 8 THEN DO:
+
+        RUN cdp/cd2712.p (INPUT  ROWID(nota-fiscal),
+                          OUTPUT cIndPag).
+                          
+        ASSIGN cIndPag = (IF cIndPag = "2":U /* se retornar "2" do cd2712, n∆o enviar */
+                          THEN "":U
+                          ELSE cIndPag).
+    END.
+    ELSE
+        IF  AVAIL cond-pagto
+        AND nota-fiscal.cod-cond-pag <> 0 THEN /* nao e condicao especial */
+            ASSIGN cIndPag = (IF cond-pagto.cod-vencto = 2 /* A Vista    */
+                              OR cond-pagto.cod-vencto = 3 /* Antecipado */
+                              THEN "0":U
+                              ELSE "1":U).
+        ELSE
+            ASSIGN cIndPag = "":U.
+    /*---*/
+
+    
+    CREATE ttPag.
+    ASSIGN ttPag.vTroco       = ?
+           ttPag.UFPag        = ?
+           ttPag.CNPJPag      = ?.
+    
+    ASSIGN ttPag.CodEstabelNF = nota-fiscal.cod-estabel
+           ttPag.SerieNF      = nota-fiscal.serie      
+           ttPag.NrNotaFisNF  = nota-fiscal.nr-nota-fis. 
+
+    /* Nova geraá∆o de Formas de Pagamento - automaticamente pelo sistema (bodi515) ou informado manualmente pelo CD4035p */
+    IF  CAN-FIND (FIRST nota-fisc-adc NO-LOCK
+                  WHERE nota-fisc-adc.cod-estab        = nota-fiscal.cod-estabel
+                   AND  nota-fisc-adc.cod-serie        = nota-fiscal.serie
+                   AND  nota-fisc-adc.cod-nota-fisc    = nota-fiscal.nr-nota-fis
+                   AND  nota-fisc-adc.cdn-emitente     = nota-fiscal.cod-emitente
+                   AND  nota-fisc-adc.cod-natur-operac = nota-fiscal.nat-operacao
+                   AND  nota-fisc-adc.idi-tip-dado     = 30
+                   AND (nota-fisc-adc.num-livre-2     <> 0
+                    OR  nota-fisc-adc.num-seq         <> 0
+                    OR  nota-fisc-adc.val-livre-1     <> 0)) THEN DO:
+
+        FOR EACH nota-fisc-adc NO-LOCK
+           WHERE nota-fisc-adc.cod-estab        = nota-fiscal.cod-estabel
+             AND nota-fisc-adc.cod-serie        = nota-fiscal.serie
+             AND nota-fisc-adc.cod-nota-fisc    = nota-fiscal.nr-nota-fis
+             AND nota-fisc-adc.cdn-emitente     = nota-fiscal.cod-emitente
+             AND nota-fisc-adc.cod-natur-operac = nota-fiscal.nat-operacao
+             AND nota-fisc-adc.idi-tip-dado     = 30:
+
+            CREATE ttDetPag.
+            ASSIGN ttDetPag.indPag    = STRING(nota-fisc-adc.num-livre-2)
+                   ttDetPag.tPag      = STRING(nota-fisc-adc.num-seq,"99":U)
+                   ttDetPag.vPag      = nota-fisc-adc.val-livre-1
+                   ttDetPag.xPag      = nota-fisc-adc.cod-livre-1
+
+                   /*card - grupo de Cart‰es*/
+                   ttDetPag.tpIntegra = ?
+                   ttDetPag.CNPJ      = ?
+                   ttDetPag.tBand     = ?
+                   ttDetPag.cAut      = ?
+                   ttDetPag.dPag      = ? 
+                   ttDetPag.CNPJReceb = ?
+                   ttDetPag.idTermPag = ?.
+				   	
+            ASSIGN ttDetPag.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttDetPag.SerieNF      = nota-fiscal.serie
+                   ttDetPag.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+              
+            ASSIGN v-tot-vPag = v-tot-vPag + ttDetPag.vPag.  
+              
+            IF nota-fisc-adc.num-seq = 3 // Cartao de Credito
+            OR nota-fisc-adc.num-seq = 4 // Cartao de Debito
+            OR nota-fisc-adc.num-seq = 17 THEN DO: // PIX
+                /*card - grupo de Cart‰es*/
+                ASSIGN ttDetPag.tpIntegra = STRING(nota-fisc-adc.num-livre-1) when STRING(nota-fisc-adc.num-livre-1) <> "0"
+                       ttDetPag.CNPJ      = nota-fisc-adc.cod-livre-2
+                       ttDetPag.tBand     = STRING(nota-fisc-adc.num-livre-3,"99":U) when STRING(nota-fisc-adc.num-livre-3,"99":U) <> "00" 
+                       ttDetPag.cAut      = nota-fisc-adc.cod-livre-3
+                       ttDetPag.dPag      = ? 
+                       ttDetPag.CNPJReceb = SUBSTRING(nota-fisc-adc.cod-livre-4,1,14)
+                       ttDetPag.idTermPag = SUBSTRING(nota-fisc-adc.cod-livre-4,15,128).
+            END.            
+        END.
+        
+        /* Tratamento para quando o valor total dos pagamentos (todos os vPag) ≤ menor que o valor da nota (vNF) [Rejeiªío 865] */
+        IF  (ttIde.finNFe <> "3":U AND ttIde.finNFe <> "4":U) /* Rejeiªío 865: Exceªío 1: Esta regra nío se aplica para nota fiscal de Ajuste, campo finNFe=3 (id:B25) e para nota fiscal de Devoluªío finNFe=4 (id:B25) */
+        AND (v-tot-vPag > 0
+        AND  v-tot-vPag < nota-fiscal.vl-tot-nota) THEN DO:
+        
+            CREATE ttDetPag.
+            ASSIGN ttDetPag.indPag    = cIndPag
+                   ttDetPag.tPag      = "15":U /* 15 Boleto Bancˇrio */
+                   ttDetPag.vPag      = (nota-fiscal.vl-tot-nota - v-tot-vPag).
+    
+            ASSIGN ttDetPag.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttDetPag.SerieNF      = nota-fiscal.serie
+                   ttDetPag.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+        END.
+        
+    END.
+    ELSE DO:
+    
+        IF  NOT CAN-FIND (FIRST fat-duplic NO-LOCK
+                          WHERE fat-duplic.cod-estabel = nota-fiscal.cod-estabel 
+                            AND fat-duplic.serie       = nota-fiscal.serie       
+                            AND fat-duplic.nr-fatura   = nota-fiscal.nr-fatura)
+        OR  (ttIde.finNFe = "3":U OR ttIde.finNFe = "4":U) THEN DO:
+        
+            CREATE ttDetPag.
+            ASSIGN ttDetPag.indPag    = cIndPag
+                   ttDetPag.tPag      = "90":U /* 90 Sem Pagamento */                                         
+                   ttDetPag.vPag      = (IF ttDetPag.tPag = "90":U /* Rejeiá∆o 904 - n∆o informar vPag para quando o tPag for 90 */
+                                         THEN 0
+                                         ELSE nota-fiscal.vl-tot-nota) /* igual ao campo vNF */
+    
+                   /*card - grupo de Cart‰es*/
+                   ttDetPag.tpIntegra = ?
+                   ttDetPag.CNPJ      = ?
+                   ttDetPag.tBand     = ?
+                   ttDetPag.cAut      = ?
+                   ttDetPag.dPag      = ? 
+                   ttDetPag.CNPJReceb = ?
+                   ttDetPag.idTermPag = ?.
+    
+            ASSIGN ttDetPag.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttDetPag.SerieNF      = nota-fiscal.serie
+                   ttDetPag.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+    
+            ASSIGN v-tot-vPag = v-tot-vPag + ttDetPag.vPag.
+        END.
+        ELSE DO:
+        
+            FOR EACH fat-duplic NO-LOCK
+               WHERE fat-duplic.cod-estabel = nota-fiscal.cod-estabel 
+                 AND fat-duplic.serie       = nota-fiscal.serie       
+                 AND fat-duplic.nr-fatura   = nota-fiscal.nr-fatura:
+
+                /* Totalizar/Juntar por meio de pagamento */
+                FOR FIRST ttDetPag
+                    WHERE ttDetPag.tPag = (IF TRIM(SUBSTRING(fat-duplic.char-2,58,2)) <> "":U
+                                           THEN TRIM(SUBSTRING(fat-duplic.char-2,58,2))
+                                           ELSE "15":U) /* 15 Boleto Banc†rio */ :
+                END.
+                IF  NOT AVAIL ttDetPag THEN DO:
+
+                    CREATE ttDetPag.
+                    ASSIGN ttDetPag.indPag    = (IF fat-duplic.cod-vencto = 2 /* A vista */
+                                                 THEN "0":U  /*0 = Pagamento Ö Vista*/ 
+                                                 ELSE "1":U) /*1 = Pagamento Ö Prazo*/
+                           ttDetPag.tPag      = (IF TRIM(SUBSTRING(fat-duplic.char-2,58,2)) <> "":U
+                                                 THEN TRIM(SUBSTRING(fat-duplic.char-2,58,2))
+                                                 ELSE "15":U) /* 15 Boleto Banc†rio */
+                           ttDetPag.vPag      = 0.
+                END.
+        
+                ASSIGN ttDetPag.vPag      = (ttDetPag.vPag + fat-duplic.vl-parcela)
+                       /*card - grupo de Cart‰es*/
+                       ttDetPag.tpIntegra = ?
+                       ttDetPag.CNPJ      = ?
+                       ttDetPag.tBand     = ?
+                       ttDetPag.cAut      = ?
+                       ttDetPag.dPag      = ? 
+                       ttDetPag.CNPJReceb = ?
+                       ttDetPag.idTermPag = ?.
+    
+                ASSIGN ttDetPag.CodEstabelNF = nota-fiscal.cod-estabel
+                       ttDetPag.SerieNF      = nota-fiscal.serie      
+                       ttDetPag.NrNotaFisNF  = nota-fiscal.nr-nota-fis. 
+    
+                ASSIGN v-tot-vPag = v-tot-vPag + fat-duplic.vl-parcela. //ttDetPag.vPag
+            END.
+        END.
+    
+        /* Tratamento para quando o valor total dos pagamentos (todos os vPag) Ç menor que o valor da nota (vNF) [Rejeiá∆o 865] */
+        IF  (ttIde.finNFe <> "3":U AND ttIde.finNFe <> "4":U) /* Rejeiá∆o 865: Exceá∆o 1: Esta regra n∆o se aplica para nota fiscal de Ajuste, campo finNFe=3 (id:B25) e para nota fiscal de Devoluá∆o finNFe=4 (id:B25) */
+        AND (v-tot-vPag > 0
+        AND  v-tot-vPag < nota-fiscal.vl-tot-nota) THEN DO:
+    
+            CREATE ttDetPag.
+            ASSIGN ttDetPag.indPag    = cIndPag
+                   ttDetPag.tPag      = "15":U /* 15 Boleto Banc†rio */
+                   ttDetPag.vPag      = (nota-fiscal.vl-tot-nota - v-tot-vPag).
+    
+            ASSIGN ttDetPag.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttDetPag.SerieNF      = nota-fiscal.serie
+                   ttDetPag.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+    
+        END.
+    END.
+    
+    IF AVAIL ttPag THEN DO:    
+       IF (v-tot-vPag > nota-fiscal.vl-tot-nota) THEN DO:
+           ASSIGN ttPag.vTroco = v-tot-vPag - nota-fiscal.vl-tot-nota.                      
+       END.        
+    END.    
+
+END PROCEDURE.

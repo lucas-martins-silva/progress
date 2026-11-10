@@ -1,0 +1,52 @@
+/************************************************************************
+***
+***  app/ap1002g.i1 - Include usada no programa ap1002g.p.
+***
+************************************************************************/
+    
+find first tt-ret-ocorrencia 
+     where tt-ret-ocorrencia.cod-ocorrencia = "00" no-error.
+
+if  avail tt-ret-ocorrencia then do:
+
+   if  {2} < de-valor-liq then do:
+   
+       if  l-antecipacao = yes then 
+           assign c-transacao  = "Antecipaá∆o n∆o Atualizada !".
+       else
+           assign c-transacao  = "T°tulo n∆o Atualizado !".
+           
+       assign c-observacao = "Saldo zero ou menor que o valor pago, cancelar com o banco !".
+            
+       {app/ap1002g.i2 "{1}"}
+                
+       put "OBSERVAÄ«O: " c-observacao.
+       next.
+   end.        
+end.
+
+find first portador 
+     where portador.ep-codigo    = {1}.ep-codigo 
+     and   portador.cod-portador = {1}.portador 
+     and   portador.modalidade   = 1
+     no-lock no-error.
+
+if  avail portador then do:
+    if  portador.cod-febraban <> 041 then do:
+            
+        if  l-antecipacao = yes then 
+            assign c-transacao  = "Antecipaá∆o n∆o Atualizada !"
+                   c-observacao = "Antecipaá∆o n∆o est† no banco Banrisul".
+        else
+            assign c-transacao  = "T°tulo n∆o Atualizado !"
+                   c-observacao = "T°tulo n∆o est† no banco Banrisul".
+
+        {app/ap1002g.i2 "{1}"}
+                    
+        put "OBSERVAÄ«O: " c-observacao.
+        next.
+            
+    end.
+end.
+
+/* Fim de Include */

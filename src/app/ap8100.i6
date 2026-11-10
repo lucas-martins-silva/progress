@@ -1,0 +1,35 @@
+/*******************************************************************************
+***
+*** app/ap8100.i6 - 
+***
+*******************************************************************************/
+                    
+def var c-docto    as char format "x(16)" no-undo.
+def var c-trans    as char format "x(03)" no-undo.
+def var c-mensagem as char format "x(50)" no-undo.
+
+def {1} shared frame f-mensagem.
+
+form
+    mov-ap.cod-estabel
+    mov-ap.cod-esp
+    mov-ap.serie
+    mov-ap.cod-fornec
+    c-docto
+    "/":U
+    mov-ap.parcela
+    c-trans
+    c-mensagem  format "x(50)" view-as editor max-chars 2000 
+                               scrollbar-vertical size 50 by 1
+    with down no-box no-attr-space width 132 stream-io frame f-mensagem.
+
+{utp/ut-field.i mgadm mov-ap nr-docto 2}
+assign c-docto:label in frame f-mensagem = return-value.
+
+{utp/ut-field.i mgadm mov-ap transacao 2}
+assign c-trans:label in frame f-mensagem = return-value.
+
+{utp/ut-liter.i Mensagem * L}
+assign c-mensagem:label in frame f-mensagem = trim(return-value).
+
+/* Fim de Include */

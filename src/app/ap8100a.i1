@@ -1,0 +1,50 @@
+/*************************************************************************
+**  
+**  Include: app/ap8100a.i1 - Cria Temp_Table (Usada pelo Di rio).
+**  
+************************************************************************/
+
+create t-diario-ap.
+assign t-diario-ap.ep-codigo      = i-ep-codigo-usuario
+       t-diario-ap.ct-conta       = c-campo-1
+       t-diario-ap.sc-conta       = c-campo-2
+       t-diario-ap.conta-contabil = {2}
+       t-diario-ap.dt-transacao   = {1}.dt-transacao
+       t-diario-ap.transacao      = mov-ap.transacao
+       t-diario-ap.referencia     = mov-ap.referencia
+       t-diario-ap.cod-fornec     = {1}.cod-fornec
+       t-diario-ap.cod-estabel    = {1}.cod-estabel
+       t-diario-ap.cod-esp        = {1}.cod-esp
+       t-diario-ap.serie          = {1}.serie
+       t-diario-ap.nr-docto       = {1}.nr-docto
+       t-diario-ap.parcela        = {1}.parcela
+       t-diario-ap.nr-cheque      = mov-ap.nr-cheque
+       t-diario-ap.portador       = mov-ap.portador
+       t-diario-ap.historico      = (if  {1}.historico = ""
+                                  then c-historico
+                                  else {1}.historico).
+                                  
+ASSIGN t-diario-ap.historico      = REPLACE(t-diario-ap.historico, CHR(10), " ")
+       t-diario-ap.historico      = REPLACE(t-diario-ap.historico, CHR(13), " ")
+       t-diario-ap.rowid-mov-ap   = string(rowid(mov-ap)).
+
+&IF  "{&mgadm_dbtype}" = "PROGRESS" &THEN
+     assign t-diario-ap.titulo      = rowid({1}).
+&ELSE    
+     assign t-diario-ap.char-1      = rowid({1}).
+&ENDIF
+
+if  i-campo-3 = 1 then
+    assign t-diario-ap.lancamento      = 1
+           t-diario-ap.vl-debito       = de-campo-4
+           t-diario-ap.vl-deb-fasb     = de-campo-5
+           t-diario-ap.vl-deb-cmi      = de-campo-7
+           t-diario-ap.vl-deb-presente = de-campo-8.
+else
+    assign t-diario-ap.lancamento       = 2
+           t-diario-ap.vl-credito       = de-campo-4
+           t-diario-ap.vl-cred-fasb     = de-campo-5
+           t-diario-ap.vl-cred-cmi      = de-campo-7
+           t-diario-ap.vl-cred-presente = de-campo-8.
+
+/* Fim de Include */

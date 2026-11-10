@@ -1,0 +1,13 @@
+PROCEDURE pi-seta-nota-fiscal:
+
+    DEFINE INPUT  PARAMETER pRowidNF AS ROWID       NO-UNDO.
+
+    FOR FIRST nota-fiscal NO-LOCK
+        WHERE ROWID(nota-fiscal) = pRowidNF:
+
+		RUN cdp/cd0360b.p (INPUT nota-fiscal.cod-estabel,
+						   INPUT "NF-e",
+						   OUTPUT tp-integ).
+    END.
+
+END PROCEDURE.

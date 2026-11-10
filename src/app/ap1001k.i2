@@ -1,0 +1,71 @@
+/***************************************************************************
+**
+** ap1001k.i2 
+** Objetivo: Gerar detalhe para banco safra(remessa)
+**
+***************************************************************************/  
+assign de-desconto = 0.
+
+if  l-antecipacao = no then do:
+    
+    if  mov-ap.transacao = 13 
+    or  mov-ap.transacao = 14 
+    or  mov-ap.transacao = 15 then
+        assign i-tipo-mov = 02.
+    
+    if  mov-ap.transacao = 10 
+    or  mov-ap.transacao = 11 
+    or  mov-ap.transacao = 12 then
+        assign i-tipo-mov = 05.
+    
+    if  mov-ap.transacao = 1 
+    or  mov-ap.transacao = 6 then
+        assign i-tipo-mov = 04.
+    
+    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+        assign de-desconto = (tit-ap.vl-isr + tit-ap.vl-abatimento-tot) * 100
+               de-juros    = (tit-ap.dec-2  + tit-ap.vl-multa-tot) * 100.
+    &else
+        assign de-desconto = tit-ap.vl-isr * 100
+               de-juros    = tit-ap.dec-2  * 100.
+    &endif
+    
+    assign v-num-id-mov-ap = mov-ap.num-id-mov-ap.
+    
+    /* Se for uma ocorrància ent∆o tem que ir o c¢digo enviado na IMPL, sen∆o,
+       o banco ir† rejeitar por n∆o localizar o c¢digo enviado */
+       
+    if  i-tipo-mov <> 4 then do:
+        find first b-mov-ap no-lock
+             where b-mov-ap.ep-codigo   = tit-ap.ep-codigo
+             and   b-mov-ap.cod-estabel = tit-ap.cod-estabel
+             and   b-mov-ap.cod-fornec  = tit-ap.cod-fornec
+             and   b-mov-ap.cod-esp     = tit-ap.cod-esp
+             and   b-mov-ap.serie       = tit-ap.serie
+             and   b-mov-ap.nr-docto    = tit-ap.nr-docto
+             and   b-mov-ap.parcela     = tit-ap.parcela
+             and  (b-mov-ap.transacao   = 1 
+             or   (b-mov-ap.transacao   = 6 and b-mov-ap.lancamento = 2))
+             no-error.
+        if  avail b-mov-ap then
+            assign v-num-id-mov-ap = b-mov-ap.num-id-mov-ap.        
+    end.
+
+    {app/ap1001k.i3 "tit-ap"
+                    "v-num-id-mov-ap"
+                    "tit-ap.dt-vencimen"
+                    "(tit-ap.valor-saldo - vl-tot-impto)"}
+end.
+else do:
+    
+    assign i-tipo-mov  = 04
+           de-desconto = 0
+           de-juros    = 0.
+    
+    {app/ap1001k.i3 "bordero-ap"
+                    "bordero-ap.char-2"
+                    "bordero-ap.dt-vencto"
+                    "(bordero-ap.vl-docto - vl-tot-impto)"}
+end.
+        
+/* Fim ap1001k.i2 */

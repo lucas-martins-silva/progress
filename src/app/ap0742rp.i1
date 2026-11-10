@@ -1,0 +1,114 @@
+/*******************************************************************************
+***
+*** app/ap0742rp.i1 - Defini‡Æo Variaveis.
+***
+*******************************************************************************/
+
+def var h-acomp                as handle     no-undo.
+def var da-data                as date       no-undo.
+def var l-baixa                as logical    no-undo.
+def var i-sequencia            as integer    no-undo.
+def var c-desc-grupo           as character  no-undo format "x(40)".
+def var c-data                 as character  no-undo.
+def var c-label                as character  no-undo.
+def var c-fornecedor           as character  no-undo format "x(15)".
+def var c-grupo                as character  no-undo format "x(15)".
+def var c-total-dia            as character  no-undo format "x(25)".
+def var c-total-data           as character  no-undo format "x(25)".
+def var c-total-fornecedor     as character  no-undo format "x(25)".
+def var c-total-grupo          as character  no-undo format "x(25)".
+def var c-total-geral          as character  no-undo format "x(25)".
+def var de-saldo-ant           as decimal    no-undo.
+def var de-saldo-ant-me        as decimal    no-undo.
+def var de-saldo-atu           as decimal    no-undo.
+def var de-saldo-atu-me        as decimal    no-undo.
+
+def var de-vl-variacao-d       as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-anterior-d    as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-d     as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-me-d  as decimal    no-undo format "->,>>>,>>>,>>9.99".
+
+def var de-vl-variacao-f       as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-anterior-f    as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-f     as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-me-f  as decimal    no-undo format "->,>>>,>>>,>>9.99".
+
+def var de-vl-variacao-g       as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-anterior-g    as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-g     as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-me-g  as decimal    no-undo format "->,>>>,>>>,>>9.99".
+
+def var de-vl-variacao-t       as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-anterior-t    as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-t     as decimal    no-undo format "->,>>>,>>>,>>9.99".
+def var de-saldo-atualiz-me-t  as decimal    no-undo format "->,>>>,>>>,>>9.99".
+
+def var c-text-1         as character  no-undo format "x(14)".
+def var c-text-2         as character  no-undo format "x(14)".
+def var c-text-3         as character  no-undo format "x(14)".
+def var c-text-4         as character  no-undo format "x(14)".
+
+form c-text-1                    no-label at 01 skip(2)
+     tt-param.cod-estabel-ini    colon 40 
+     "|< >|"                     at 53
+     tt-param.cod-estabel-fim    no-label colon 60 skip
+     tt-param.cod-esp-ini        colon 40 
+     "|< >|"                     at 53
+     tt-param.cod-esp-fim        no-label colon 60 skip
+     tt-param.serie-ini          colon 40 
+     "|< >|"                     at 53
+     tt-param.serie-fim          no-label colon 60 skip
+     tt-param.docto-ini          colon 40 
+     "|< >|"                     at 53
+     tt-param.docto-fim          no-label colon 60 skip
+     tt-param.cod-forn-ini       colon 40 format ">>>>>>>>9"
+     "|< >|"                     at 53
+     tt-param.cod-forn-fim       no-label format ">>>>>>>>9" colon 60 skip
+     tt-param.grupo-ini          colon 40 
+     "|< >|"                     at 53
+     tt-param.grupo-fim          no-label colon 60 skip
+     tt-param.dt-trans-ini       colon 40 format "99/99/9999"
+     "|< >|"                     at 53
+     tt-param.dt-trans-fim       no-label format "99/99/9999" colon 60 skip(2)
+
+     c-text-4                    no-label at 01 skip(2)
+     tt-param.desc-classif       colon 30 no-label skip(2)
+
+     c-text-2                    no-label at 01 skip(2)  
+     tt-param.i-moeda            colon 40
+     " - "
+     tt-param.desc-moeda         no-label skip
+     tt-param.tipo-variacao      colon 40
+     " - "
+     tt-param.des-tipo-variacao  no-label format "x(40)" skip
+     tt-param.i-titulo-bxa       colon 40 
+     " - "
+     tt-param.des-titulo-bxa     no-label format "x(20)" skip(2)
+
+     c-text-3                    no-label at 01 skip(2)
+     tt-param.arquivo            format "x(80)" colon 40 skip
+     tt-param.usuario            colon 40 
+     tt-param.data-exec          colon 40 format "99/99/9999"
+     tt-param.hora-exec          colon 40 skip(02)
+     with down no-box side-labels stream-io width 132 frame f-parametros.
+
+form
+    tt-mov-ap.cod-estabel          at 01
+    tt-mov-ap.cod-esp              at 05
+    tt-mov-ap.serie                at 09
+    tt-mov-ap.nr-docto             at 15
+    tt-mov-ap.parcela              at 32
+    tt-mov-ap.dt-emissao           to 45
+    tt-mov-ap.log-baixa            to 57 
+    tt-mov-ap.cotacao-dia          to 96
+    tt-mov-ap.dt-vencimen          to 45
+    tt-mov-ap.saldo-atualiz-me     to 62
+    tt-mov-ap.saldo-anterior       to 79
+    tt-mov-ap.vl-variacao          to 96
+    tt-mov-ap.saldo-atualiz        to 116
+    tt-mov-ap.dt-calculo           to 132
+    with down no-box no-attr stream-io width 132 frame f-detalhe.
+run utp/ut-trfrrp.p (input frame f-parametros:handle).
+run utp/ut-trfrrp.p (input frame f-detalhe:handle).
+
+/* Fim de Include */

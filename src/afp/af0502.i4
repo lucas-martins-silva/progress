@@ -1,0 +1,277 @@
+/************************************************************** 
+* AF0502.i4 ImpressÆo das notas para Excel
+*
+**************************************************************/
+
+FOR EACH tt-notas where
+         tt-notas.tipo = "TF"
+   break by tt-notas.cod-estabel
+         by tt-notas.dt-indice-fim
+         {1}
+         {2}:
+   assign i-linha = i-linha + 1
+          i-plan-i4 = 1.
+   CREATE tt-dados.
+   ASSIGN tt-dados.arquivo-num   = 1
+          tt-dados.planilha-num  = i-plan-i4
+          tt-dados.celula-coluna = 1
+          tt-dados.celula-linha  = i-linha
+          tt-dados.celula-valor  = string(tt-notas.cod-estabel).
+   CREATE tt-dados.
+   ASSIGN tt-dados.arquivo-num   = 1
+          tt-dados.planilha-num  = i-plan-i4
+          tt-dados.celula-coluna = 2
+          tt-dados.celula-linha  = i-linha
+          tt-dados.celula-valor  = string(month(tt-notas.dt-indice-fim),"99") + "/" + string(year(tt-notas.dt-indice-fim),"9999").
+   CREATE tt-dados.
+   ASSIGN tt-dados.arquivo-num   = 1
+          tt-dados.planilha-num  = i-plan-i4
+          tt-dados.celula-coluna = 3
+          tt-dados.celula-linha  = i-linha
+          tt-dados.celula-valor  = string(tt-notas.cod-emitente). 
+   CREATE tt-dados.
+   ASSIGN tt-dados.arquivo-num   = 1
+          tt-dados.planilha-num  = i-plan-i4
+          tt-dados.celula-coluna = 4
+          tt-dados.celula-linha  = i-linha
+          tt-dados.celula-valor  = string(tt-notas.nome-emit).
+   CREATE tt-dados.
+   ASSIGN tt-dados.arquivo-num   = 1
+          tt-dados.planilha-num  = i-plan-i4
+          tt-dados.celula-coluna = 5
+          tt-dados.celula-linha  = i-linha
+          tt-dados.celula-valor  = string(tt-notas.nota, "->>9.9999").   
+   if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+   else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                    
+   
+    /* Detalhamento dos pontos de controle do fornecedor*/
+    if tt-param.l-detalha-controle-fornecedor then do:
+
+        ASSIGN i-plan-i4 = i-plan-i4 + 1.
+        for each b-tt-notas
+           where b-tt-notas.dt-indice-fim = tt-notas.dt-indice-fim
+             and b-tt-notas.cod-estabel = tt-notas.cod-estabel
+             and b-tt-notas.cod-emitente = tt-notas.cod-emitente
+             and b-tt-notas.tipo = "DF":
+                assign i-linha1 = i-linha1 + 1.     
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num    = 1
+                       tt-dados.planilha-num   = i-plan-i4
+                       tt-dados.celula-coluna  = 1
+                       tt-dados.celula-linha   = i-linha1
+                       tt-dados.celula-valor   = b-tt-notas.cod-estabel.
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 2
+                       tt-dados.celula-linha  = i-linha1
+                       tt-dados.celula-valor  = string(month(b-tt-notas.dt-indice-fim),"99") + "/" + string(year(b-tt-notas.dt-indice-fim),"9999").
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 3
+                       tt-dados.celula-linha  = i-linha1
+                       tt-dados.celula-valor  = string(b-tt-notas.cod-emitente).
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 4
+                       tt-dados.celula-linha  = i-linha1
+                       tt-dados.celula-valor  = string(b-tt-notas.nome-emit).
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 5
+                       tt-dados.celula-linha  = i-linha1
+                       tt-dados.celula-valor  = string(b-tt-notas.nr-controle) + " - " + string(b-tt-notas.descricao).
+        
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 6
+                       tt-dados.celula-linha  = i-linha1
+                       tt-dados.celula-valor  = string(b-tt-notas.indice,"->>9.9999").
+                if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                    
+                       
+        
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 7
+                       tt-dados.celula-formato = "@"
+                       tt-dados.celula-linha  = i-linha1
+                       tt-dados.celula-valor  = string(b-tt-notas.percentual, ">>9.99").
+                if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                    
+                       
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 8
+                       tt-dados.celula-formato = "@"
+                       tt-dados.celula-linha  = i-linha1
+                       tt-dados.celula-valor  = string(b-tt-notas.nota, "->>9.9999").
+                if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                    
+        end.
+    end.
+    /* Itens dos pontos de controle do fornecedor */
+    if tt-param.l-detalha-itens then do:
+        for each b-tt-notas
+           where b-tt-notas.dt-indice-fim = tt-notas.dt-indice-fim
+             and b-tt-notas.cod-estabel = tt-notas.cod-estabel
+             and b-tt-notas.cod-emitente = tt-notas.cod-emitente
+             and b-tt-notas.tipo = "TI":
+             if tt-param.l-detalha-controle-fornecedor then
+                ASSIGN i-plan-i4 = 3.
+             else
+                ASSIGN i-plan-i4 = 2.
+                
+                assign i-linha2 = i-linha2 + 1. 
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num    = 1
+                       tt-dados.planilha-num   = i-plan-i4
+                       tt-dados.celula-coluna  = 1
+                       tt-dados.celula-linha   = i-linha2
+                       tt-dados.celula-valor   = b-tt-notas.cod-estabel.
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 2
+                       tt-dados.celula-linha  = i-linha2
+                       tt-dados.celula-valor  = string(month(b-tt-notas.dt-indice-fim),"99") + "/" + string(year(b-tt-notas.dt-indice-fim),"9999").
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 3
+                       tt-dados.celula-linha  = i-linha2
+                       tt-dados.celula-valor  = string(b-tt-notas.cod-emitente).
+                       
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 4
+                       tt-dados.celula-linha  = i-linha2
+                       tt-dados.celula-valor  = string(b-tt-notas.nome-emit).
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num    = 1
+                       tt-dados.planilha-num   = i-plan-i4
+                       tt-dados.celula-coluna  = 5
+                       tt-dados.celula-linha   = i-linha2
+                       tt-dados.celula-valor   = b-tt-notas.it-codigo
+                       tt-dados.celula-formato = "@". 
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 6
+                       tt-dados.celula-linha  = i-linha2
+                       tt-dados.celula-valor  = b-tt-notas.desc-item.
+                CREATE tt-dados.
+                ASSIGN tt-dados.arquivo-num   = 1
+                       tt-dados.planilha-num  = i-plan-i4
+                       tt-dados.celula-coluna = 7
+                       tt-dados.celula-linha  = i-linha2
+                       tt-dados.celula-valor  = string(b-tt-notas.nota, "->>9.9999").
+                if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                        
+
+            /* Öndices detalhados */
+            if tt-param.l-detalha-controle-item then do:
+                if tt-param.l-detalha-controle-fornecedor then
+                   ASSIGN i-plan-i4 = 4.
+                else
+                   ASSIGN i-plan-i4 = 3.
+                for each b1-tt-notas
+                   where b1-tt-notas.dt-indice-fim = b-tt-notas.dt-indice-fim
+                     and b1-tt-notas.cod-estabel = b-tt-notas.cod-estabel
+                     and b1-tt-notas.cod-emitente = b-tt-notas.cod-emitente
+                     and b1-tt-notas.it-codigo = b-tt-notas.it-codigo
+                     and b1-tt-notas.tipo = "DE":
+                        assign i-linha3 = i-linha3 + 1.                                      
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num    = 1
+                               tt-dados.planilha-num   = i-plan-i4
+                               tt-dados.celula-coluna  = 1
+                               tt-dados.celula-linha   = i-linha3
+                               tt-dados.celula-valor   = b1-tt-notas.cod-estabel.
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 2
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = string(month(b1-tt-notas.dt-indice-fim),"99") + "/" + string(year(b1-tt-notas.dt-indice-fim),"9999").
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 3
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = string(b1-tt-notas.cod-emitente).
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 4
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = string(b1-tt-notas.nome-emit).
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 5
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = b1-tt-notas.it-codigo.
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 6
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = b1-tt-notas.desc-item.
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 7
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = string(b1-tt-notas.nr-controle) + " - " + string(b1-tt-notas.descricao).
+                        if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                        else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                                 
+                        
+                        
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 8
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = string(b1-tt-notas.indice,"->>9.9999").
+                        if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                        else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                                 
+                       
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 9
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = string(b1-tt-notas.percentual, ">>9.99").
+                        if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                        else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                                 
+                        
+                        CREATE tt-dados.
+                        ASSIGN tt-dados.arquivo-num   = 1
+                               tt-dados.planilha-num  = i-plan-i4
+                               tt-dados.celula-coluna = 10
+                               tt-dados.celula-linha  = i-linha3
+                               tt-dados.celula-valor  = string(b1-tt-notas.nota, "->>9.9999").
+                        if l-european-format then assign tt-dados.celula-formato = "##.###.##0,00_);(##.###.##0,00)".
+                        else assign tt-dados.celula-formato = "##,###,##0.00_);(##,###,##0.00)".                                 
+
+           
+                end.
+            end.
+         end.
+    end.
+end.

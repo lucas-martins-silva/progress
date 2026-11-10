@@ -1,0 +1,107 @@
+PROCEDURE pi-cria-ttCana:
+
+    DEFINE VARIABLE c-totais       AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE c-fornecimento AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE c-deducoes     AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE i-total        AS INTEGER     NO-UNDO.
+    DEFINE VARIABLE i-ind          AS INTEGER     NO-UNDO.
+    DEFINE VARIABLE i-ind2         AS INTEGER     NO-UNDO.
+    DEFINE VARIABLE i-ind3         AS INTEGER     NO-UNDO.
+
+    /*
+    === ttCana ===
+    safra           AS CHARACTER INITIAL ?                                             /*Identifica‡Æo da safra*/
+    ref             AS CHARACTER INITIAL ?                                             /*Mˆs e ano de referˆncia*/
+    qTotMes         AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>9.9999999999" DECIMALS 10 /*Quantidade Total do Mˆs*/
+    qTotAnt         AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>9.9999999999" DECIMALS 10 /*Quantidade Total Anterior*/
+    qTotGer         AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>9.9999999999" DECIMALS 10 /*Quantidade Total Geral*/
+    vFor            AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2        /*Valor dos Fornecimentos*/
+    vTotDed         AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2        /*Valor Total da Dedu‡Æo*/
+    vLiqFor         AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2        /*Valor L¡quido dos Fornecimentos*/
+    /*Chave EMS*/
+    CodEstabelNF   AS CHARACTER INITIAL ?
+    SerieNF        AS CHARACTER INITIAL ?
+    NrNotaFisNF    AS CHARACTER INITIAL ?
+    
+    ===ttForDia===
+    dia             AS CHARACTER INITIAL ?                                             /*Dia*/
+    qtde            AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>9.9999999999" DECIMALS 10 /*Quantidade*/
+    /*Chave EMS*/
+    CodEstabelNF   AS CHARACTER INITIAL ?
+    SerieNF        AS CHARACTER INITIAL ?
+    NrNotaFisNF    AS CHARACTER INITIAL ?
+    
+    ===ttDeduc===
+    xDed            AS CHARACTER INITIAL ?                                      /*Descri‡Æo da Dedu‡Æo*/
+    vDed            AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor da Dedu‡Æo*/
+    /*Chave EMS*/
+    CodEstabelNF   AS CHARACTER INITIAL ?
+    SerieNF        AS CHARACTER INITIAL ?
+    NrNotaFisNF    AS CHARACTER INITIAL ?
+    */
+    
+    FOR FIRST nota-fisc-adc NO-LOCK
+        WHERE nota-fisc-adc.cod-estab        = nota-fiscal.cod-estabel
+          AND nota-fisc-adc.cod-serie        = nota-fiscal.serie
+          AND nota-fisc-adc.cod-nota-fisc    = nota-fiscal.nr-nota-fis
+          AND nota-fisc-adc.cdn-emitente     = nota-fiscal.cod-emitente
+          AND nota-fisc-adc.cod-natur-operac = nota-fiscal.nat-operacao
+          AND nota-fisc-adc.idi-tip-dado     = 23:  /*identificador para as informa‡äes inseridas no CD4035 como Informa‡äes de registro de aquisi‡Æo de cana*/
+
+        ASSIGN c-totais       = TRIM(nota-fisc-adc.cod-livre-1)
+               c-fornecimento = TRIM(nota-fisc-adc.cod-livre-2)
+               c-deducoes     = TRIM(nota-fisc-adc.cod-livre-3).
+    END.
+
+    IF AVAIL nota-fisc-adc THEN DO:
+        CREATE ttCana.
+        ASSIGN ttCana.safra        = ENTRY(1,c-totais,"|")
+               ttCana.ref          = ENTRY(2,c-totais,"|")
+               ttCana.qTotMes      = DECIMAL(ENTRY(3,c-totais,"|"))
+               ttCana.qTotAnt      = DECIMAL(ENTRY(4,c-totais,"|"))
+               ttCana.qTotGer      = DECIMAL(ENTRY(5,c-totais,"|"))
+               ttCana.vFor         = DECIMAL(ENTRY(6,c-totais,"|"))
+               ttCana.vTotDed      = DECIMAL(ENTRY(7,c-totais,"|"))
+               ttCana.vLiqFor      = DECIMAL(ENTRY(8,c-totais,"|"))
+               ttCana.CodEstabelNF = nota-fisc-adc.cod-estab
+               ttCana.SerieNF      = nota-fisc-adc.cod-serie
+               ttCana.NrNotaFisNF  = nota-fisc-adc.cod-nota-fisc.
+      
+        ASSIGN i-total = NUM-ENTRIES(c-fornecimento,"|")
+               i-ind   = 1
+               i-ind2  = 0.
+
+        REPEAT:
+            ASSIGN i-ind2 = i-ind + 1.
+            CREATE ttForDia. 
+            ASSIGN ttForDia.dia          = ENTRY(i-ind,c-fornecimento,"|")
+                   ttForDia.qtde         = DECIMAL(ENTRY(i-ind2,c-fornecimento,"|"))
+                   ttForDia.CodEstabelNF = nota-fisc-adc.cod-estab
+                   ttForDia.SerieNF      = nota-fisc-adc.cod-serie
+                   ttForDia.NrNotaFisNF  = nota-fisc-adc.cod-nota-fisc.
+            ASSIGN i-ind = i-ind + 2.
+            IF i-ind > i-total THEN
+                LEAVE.
+        END.
+
+        ASSIGN i-total = NUM-ENTRIES(c-deducoes,"|")
+               i-ind   = 1
+               i-ind2  = 0.
+       
+        REPEAT:
+            ASSIGN i-ind2 = i-ind + 1
+                   i-ind3 = i-ind2 + 1.
+            CREATE ttDeduc. 
+            ASSIGN ttDeduc.vDed         = DECIMAL(ENTRY(i-ind2,c-deducoes,"|"))
+                   ttDeduc.xDed         = ENTRY(i-ind3,c-deducoes,"|")
+                   ttDeduc.CodEstabelNF = nota-fisc-adc.cod-estab
+                   ttDeduc.SerieNF      = nota-fisc-adc.cod-serie
+                   ttDeduc.NrNotaFisNF  = nota-fisc-adc.cod-nota-fisc.
+            ASSIGN i-ind = i-ind + 3.
+            IF i-ind > i-total THEN
+                LEAVE.
+        END.
+
+    END.
+
+END PROCEDURE.

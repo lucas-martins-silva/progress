@@ -1,0 +1,32 @@
+/*******************************************************************************
+**
+**  AP00605B.I2 
+**
+**  Buscar cotaá∆o da moeda informada.
+**
+**  ParÉmetros: {1} - Moeda informada para convers∆o
+**              {2} - Data de convers∆o
+**              {3} - Campo onde ser† gravada a cotaá∆o
+**
+*******************************************************************************/
+
+assign {3} = 1.
+
+if  {1} <> 0 then do:
+    find first cotacao
+        where  cotacao.mo-codigo   = {1}
+        and    cotacao.ano-periodo = string(year({2})) + string(month({2}),"99")
+        and    cotacao.cotacao[int(day({2}))] <> 0 no-lock no-error.
+
+    if  avail cotacao then do:
+        assign {3} = cotacao.cotacao[int(day({2}))].
+    end.
+    else do:
+        run utp/ut-msgs.p (input "help",
+                           input 1175,
+                           input string({1}) + "~~" + 
+                                 string({2})).
+    end.
+end.
+
+/*  fim   */

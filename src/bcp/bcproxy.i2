@@ -1,0 +1,745 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1999)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*******************************************************************************
+**   Programa..: bc8102.i
+**
+**   Versao....: 02.00.00 - Datasul
+**
+**   Objetivo..: Include com as Defini‡äes das Procedures Padräes das Tabelas Externas
+**
+**   Autor.....: Luciano Leonhardt - Nov/1999
+*********************************************************************************/
+
+{bcp/bcproxy.i1}    /* Defini‡Æo da Temp-Table ttReturnMessage  */
+{bcp/bc8101.i}      /* Defini‡Æo da Temp-Table Item-Cli         */
+{bcp/bc8102.i}      /* Defini‡Æo da Temp-Table Conta-Contab     */
+{bcp/bc8103.i}      /* Defini‡Æo da Temp-Table Emitente         */
+{bcp/bc8104.i}      /* Defini‡Æo da Temp-Table Estabelec        */
+{bcp/bc8105.i}      /* Defini‡Æo da Temp-Table Cod-Rejeicao     */
+{bcp/bc8106.i}      /* Defini‡Æo da Temp-Table Deposito         */
+{bcp/bc8107.i}      /* Defini‡Æo da Temp-Table Familia          */
+{bcp/bc8108.i}      /* Defini‡Æo da Temp-Table Item             */
+{bcp/bc8109.i}      /* Defini‡Æo da Temp-Table Localizacao      */
+{bcp/bc8110.i}      /* Defini‡Æo da Temp-Table Lote             */
+{bcp/bc8111.i}      /* Defini‡Æo da Temp-Table Saldo-Estoq      */
+{bcp/bc8112.i}      /* Defini‡Æo da Temp-Table Ord-Prod         */
+{bcp/bc8113.i}      /* Defini‡Æo da Temp-Table Item-Fornec      */
+{bcp/bc8114.i}      /* Defini‡Æo da Temp-Table Referencia       */
+{bcp/bc8115.i}      /* Defini‡Æo da Temp-Table Serie            */
+{bcp/bc8116.i}      /* Defini‡Æo da Temp-Table Natur-Oper       */
+{bcp/bc8117.i}      /* Defini»’o da Temp-Table Embalag          */
+{bcp/bc8118.i CGC}      /* Defini‡Æo da Temp-Table Emitente CGC     */
+{cdp/cdapi523.i h-cdapi523} /* Fun‡äes da tabela param-global */
+
+/********************************************************************************/
+PROCEDURE pi-verifica-deposito :
+def input param c-cod-depos-ini as char format "X(10)"  no-undo.
+def input param c-cod-depos-fim as char format "X(10)"  no-undo.
+def input param c-acess-mode    as integer              no-undo.
+def input param c-record-frase  as integer              no-undo.
+
+    for each ttParamDeposito:
+        delete ttParamDeposito.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamDeposito.
+    Assign  ttParamDeposito.cod-depos-ini      = c-cod-depos-ini
+            ttParamDeposito.cod-depos-fim      = c-cod-depos-fim
+            ttParamDeposito.nome-ini           = c-cod-depos-ini
+            ttParamDeposito.nome-fim           = c-cod-depos-fim
+            ttParamDeposito.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamDeposito.record-phrase      = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8106.p (Input  Table ttParamDeposito,
+                      Output Table ttDeposito,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttDeposito.
+
+    find first ttDeposito no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-estabelec :
+def input param c-cod-estabel-ini   as char                 no-undo.
+def input param c-cod-estabel-fim   as char                 no-undo.
+def input param c-acess-mode        as integer              no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+
+    for each ttParamEstabelec:
+        delete ttParamEstabelec.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamEstabelec.
+    Assign  ttParamEstabelec.cod-estabel-ini    = c-cod-estabel-ini
+            ttParamEstabelec.cod-estabel-fim    = c-cod-estabel-fim
+            ttParamEstabelec.nome-ini           = c-cod-estabel-ini
+            ttParamEstabelec.nome-fim           = c-cod-estabel-fim
+            ttParamEstabelec.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamEstabelec.record-phrase      = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8104.p (Input  Table ttParamEstabelec,
+                      Output Table ttEstabelec,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttEstabelec.
+
+    find first ttEstabelec no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-item :
+def input param c-it-codigo-ini as char format "X(16)"  no-undo.
+def input param c-it-codigo-fim as char format "X(16)"  no-undo.
+def input param c-acess-mode    as integer              no-undo.
+def input param c-record-frase  as integer              no-undo.
+
+
+    for each ttParamItem:
+        delete ttParamItem.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamItem.
+    Assign  ttParamItem.it-codigo-ini      = c-it-codigo-ini
+            ttParamItem.it-codigo-fim      = c-it-codigo-fim
+            ttParamItem.desc-item-ini      = c-it-codigo-ini
+            ttParamItem.desc-item-fim      = c-it-codigo-fim
+            ttParamItem.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamItem.record-phrase      = c-record-frase    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+            ttParamItem.num-of-rec         = 30.
+
+    run bcp/bc8108.p (Input  Table ttParamItem,
+                      Output Table ttItem,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttItem.
+
+    find first ttItem no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-localizacao :
+def input param c-cod-estabel-ini   as char format "X(03)"  no-undo.
+def input param c-cod-estabel-fim   as char format "X(03)"  no-undo.
+def input param c-cod-depos-ini     as char format "X(10)"  no-undo.
+def input param c-cod-depos-fim     as char format "X(10)"  no-undo.
+def input param c-cod-localiz-ini   as char format "X(20)"  no-undo.
+def input param c-cod-localiz-fim   as char format "X(20)"  no-undo.
+def input param c-acess-mode        as integer              no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+
+    for each ttParamLocalizacao:
+        delete ttParamLocalizacao.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamLocalizacao.
+    Assign  ttParamLocalizacao.cod-estabel-ini    = c-cod-estabel-ini
+            ttParamLocalizacao.cod-depos-ini      = c-cod-depos-ini
+            ttParamLocalizacao.cod-localiz-ini    = c-cod-localiz-ini
+            ttParamLocalizacao.cod-estabel-fim    = c-cod-estabel-fim
+            ttParamLocalizacao.cod-depos-fim      = c-cod-depos-fim
+            ttParamLocalizacao.cod-localiz-fim    = c-cod-localiz-fim
+            ttParamLocalizacao.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamLocalizacao.record-phrase      = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8109.p (Input  Table ttParamLocalizacao,
+                      Output Table ttLocalizacao,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttLocalizacao.
+
+    find first ttLocalizacao no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-saldo-estoq :
+def input param c-cod-estabel-ini   as char format "X(03)"  no-undo.
+def input param c-cod-estabel-fim   as char format "X(03)"  no-undo.
+def input param c-cod-depos-ini     as char format "X(10)"  no-undo.
+def input param c-cod-depos-fim     as char format "X(10)"  no-undo.
+def input param c-cod-localiz-ini   as char format "X(20)"  no-undo.
+def input param c-cod-localiz-fim   as char format "X(20)"  no-undo.
+def input param c-it-codigo-ini     as char format "X(16)"  no-undo.
+def input param c-it-codigo-fim     as char format "X(16)"  no-undo.
+def input param c-lote-ini          as char format "X(10)"  no-undo.
+def input param c-lote-fim          as char format "X(10)"  no-undo.
+def input param c-acess-mode        as integer              no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+
+    for each ttParamSaldo-Estoq:
+        delete ttParamSaldo-Estoq.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamSaldo-Estoq.
+    Assign  ttParamSaldo-Estoq.cod-estabel-ini    = c-cod-estabel-ini
+            ttParamSaldo-Estoq.cod-estabel-fim    = c-cod-estabel-fim
+            ttParamSaldo-Estoq.cod-depos-ini      = c-cod-depos-ini
+            ttParamSaldo-Estoq.cod-depos-fim      = c-cod-depos-fim
+            ttParamSaldo-Estoq.cod-localiz-ini    = c-cod-localiz-ini
+            ttParamSaldo-Estoq.cod-localiz-fim    = c-cod-localiz-fim
+            ttParamSaldo-Estoq.lote-ini           = c-lote-ini
+            ttParamSaldo-Estoq.lote-fim           = c-lote-fim
+            ttParamSaldo-Estoq.it-codigo-ini      = c-it-codigo-ini
+            ttParamSaldo-Estoq.it-codigo-fim      = c-it-codigo-fim
+            ttParamSaldo-Estoq.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamSaldo-Estoq.record-phrase      = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8111.p (Input  Table ttParamSaldo-Estoq,
+                      Output Table ttSaldo-Estoq,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttSaldo-Estoq.
+
+    find first ttSaldo-Estoq no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-conta-contab :
+def input param i-ep-codigo-ini     as char  format "x(3)"    no-undo.
+def input param i-ep-codigo-fim     as char  format "x(3)"    no-undo.
+def input param c-conta-contab-ini  as char format "X(17)"  no-undo.
+def input param c-conta-contab-fim  as char format "X(17)"  no-undo.
+def input param c-acess-mode        as integer              no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+    for each ttParamConta-Contab:
+        delete ttParamConta-Contab.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamConta-Contab.
+    Assign  ttParamConta-Contab.ep-codigo-ini      = i-ep-codigo-ini
+            ttParamConta-Contab.ep-codigo-fim      = i-ep-codigo-fim
+            ttParamConta-Contab.titulo-ini         = c-conta-contab-ini
+            ttParamConta-Contab.titulo-fim         = c-conta-contab-fim
+            ttParamConta-Contab.acess-mode         = c-acess-mode       /* Ser  each (mas ser  considerado como find */
+            ttParamConta-Contab.record-phrase      = c-record-frase      /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+            ttParamConta-Contab.num-of-rec         = 30.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    find first param-bc no-lock no-error.
+    if  avail param-bc
+    &if '{&mgcld_version}' <= '2.04' &then
+        and param-bc.int-2 = 1 then do:
+    &else
+        and param-bc.ind-sistema = 1 then do:
+    &endif
+
+        run cdp/cdapi523.p persistent set h-cdapi523.
+
+        assign ttParamConta-Contab.ct-codigo-ini      = substring(c-conta-contab-ini,1,length(ct-format()))
+               ttParamConta-Contab.sc-codigo-ini      = substring(c-conta-contab-ini,length(ct-format()) + 1,length(sc-format()))
+               ttParamConta-Contab.ct-codigo-fim      = substring(c-conta-contab-fim,1,length(ct-format()))
+               ttParamConta-Contab.sc-codigo-fim      = substring(c-conta-contab-fim,length(ct-format()) + 1,length(sc-format())).
+               
+        delete procedure h-cdapi523.
+    end.
+    else do:
+        assign ttParamConta-Contab.ct-codigo-ini      = substring(c-conta-contab-ini,1,8)
+               ttParamConta-Contab.sc-codigo-ini      = substring(c-conta-contab-ini,9,5)
+               ttParamConta-Contab.ct-codigo-fim      = substring(c-conta-contab-fim,1,8)
+               ttParamConta-Contab.sc-codigo-fim      = substring(c-conta-contab-fim,9,5).
+    end.
+
+    run bcp/bc8102.p (Input  Table ttParamConta-Contab,
+                      Output Table ttConta-contab,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttConta-contab.
+
+    find first ttConta-contab no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-rejeicao :
+def input param i-cod-rejeicao-ini  as int  format ">>9"    no-undo.
+def input param i-cod-rejeicao-fim  as int  format ">>9"    no-undo.
+def input param c-descricao-ini     as char                 no-undo.
+def input param c-descricao-fim     as char                 no-undo.
+def input param c-acess-mode        as integer              no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+
+    for each ttParamCod-rejeicao:
+        delete ttParamCod-rejeicao.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamCod-rejeicao.
+    Assign  ttParamCod-rejeicao.codigo-rejei-ini   = i-cod-rejeicao-ini
+            ttParamCod-rejeicao.codigo-rejei-fim   = i-cod-rejeicao-fim
+            ttParamCod-rejeicao.descricao-ini      = c-descricao-ini
+            ttParamCod-rejeicao.descricao-fim      = c-descricao-fim
+            ttParamCod-rejeicao.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamCod-rejeicao.record-phrase      = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8105.p (Input  Table ttParamCod-rejeicao,
+                      Output Table ttCod-rejeicao,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttCod-rejeicao.
+
+    find first ttCod-rejeicao no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-ordem-producao :
+def input param i-ord-prod-ini  as int  format ">>>>>>>>9"  no-undo.
+def input param i-ord-prod-fim  as int  format ">>>>>>>>9"  no-undo.
+def input param c-acess-mode    as integer                  no-undo.
+def input param c-record-frase  as integer              no-undo.
+
+
+    for each ttParamOrd-Prod:
+        delete ttParamOrd-Prod.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamOrd-Prod.
+    Assign  ttParamOrd-Prod.nr-ord-produ-ini   = i-Ord-Prod-ini
+            ttParamOrd-Prod.nr-ord-produ-ini   = i-Ord-Prod-fim
+            ttParamOrd-Prod.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamOrd-Prod.record-phrase      = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8112.p (Input  Table ttParamOrd-Prod,
+                      Output Table ttOrd-Prod,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttOrd-Prod.
+
+    find first ttOrd-Prod no-error.
+
+END PROCEDURE.
+
+
+/********************************************************************************/
+PROCEDURE pi-verifica-Emitente :
+def input param c-nome-abrev-ini    as char format "X(12)"      no-undo.
+def input param c-nome-abrev-fim    as char format "X(12)"      no-undo.
+def input param i-cod-emitente-ini  as int  format ">>>>>>>>9"  no-undo.
+def input param i-cod-emitente-fim  as int  format ">>>>>>>>9"  no-undo.
+def input param c-acess-mode        as integer                  no-undo.
+def input param c-record-frase      as integer                  no-undo.
+
+
+    for each ttParamEmitente:
+        delete ttParamEmitente.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamEmitente.
+    Assign  ttParamEmitente.cod-emitente-ini   = i-cod-Emitente-ini
+            ttParamEmitente.nome-abrev-ini     = c-nome-abrev-ini
+            ttParamEmitente.cod-emitente-fim   = i-cod-Emitente-fim
+            ttParamEmitente.nome-abrev-fim     = c-nome-abrev-fim
+            ttParamEmitente.acess-mode         = c-acess-mode       /* Ser  retornado o valor corrente */
+            ttParamEmitente.record-phrase      = c-record-frase     /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+            ttParamEmitente.num-of-rec         = 30.                /* Numero de Registros Iniciado */
+
+    run bcp/bc8103.p (Input  Table ttParamEmitente,
+                      Output Table ttEmitente,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+    
+    if  not avail ttReturnMessages then release ttEmitente.
+    
+    find first ttEmitente no-error.
+
+END PROCEDURE.
+
+/********************************************************************************/
+PROCEDURE pi-verifica-Emitentecgc :
+def input param c-cgc-ini           as char format "X(20)"      no-undo.
+def input param c-cgc-fim           as char format "X(20)"      no-undo.
+def input param i-cod-emitente-ini  as int  format ">>>>>>>>9"  no-undo.
+def input param i-cod-emitente-fim  as int  format ">>>>>>>>9"  no-undo.
+def input param c-acess-mode        as integer                  no-undo.
+def input param c-record-frase      as integer                  no-undo.
+def input param c-cod-aux-1         as char                     no-undo.
+def input param c-cod-aux-2         as char                     no-undo.
+
+
+
+    for each ttParamEmitentecgc:
+        delete ttParamEmitentecgc.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamEmitentecgc.
+    Assign  ttParamEmitentecgc.cgc-ini            = c-cgc-ini
+            ttParamEmitentecgc.cod-emitente-ini   = i-cod-emitente-ini
+            ttParamEmitentecgc.cgc-fim            = c-cgc-fim
+            ttParamEmitentecgc.cod-emitente-fim   = i-cod-emitente-fim
+            ttParamEmitentecgc.acess-mode         = c-acess-mode       /* Ser  retornado o valor corrente */
+            ttParamEmitentecgc.record-phrase      = c-record-frase     /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+            ttParamEmitentecgc.num-of-rec         = 30.                /* Numero de Registros Iniciado */
+
+    run bcp/bc8118.p (Input  Table ttParamEmitentecgc,
+                      Output Table ttEmitentecgc,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttEmitentecgc.
+
+    find first ttEmitentecgc no-error.
+
+    
+END PROCEDURE.
+
+/********************************************************************************/
+PROCEDURE pi-verifica-familia :
+def input param c-cod-familia-ini   as char format "X(10)"  no-undo.
+def input param c-cod-familia-fim   as char format "X(10)"  no-undo.
+def input param c-acess-mode        as integer              no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+
+    for each ttParamFamilia:
+        delete ttParamFamilia.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamFamilia.
+    Assign  ttParamFamilia.fm-codigo-ini      = c-cod-familia-ini
+            ttParamFamilia.fm-codigo-fim      = c-cod-familia-fim
+            ttParamFamilia.descricao-ini      = c-cod-familia-ini
+            ttParamFamilia.descricao-fim      = c-cod-familia-fim
+            ttParamFamilia.acess-mode         = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamFamilia.record-phrase      = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8107.p (Input  Table ttParamFamilia,
+                      Output Table ttFamilia,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttFamilia.
+
+    find first ttFamilia no-error.
+
+END PROCEDURE.
+
+/********************************************************************************/
+PROCEDURE pi-verifica-item-cli :
+def input param c-cod-item-ini      as char format "X(16)"  no-undo.
+def input param c-cod-item-fim      as char format "X(16)"  no-undo.
+def input param c-nome-abrev-ini    as char format "X(12)"  no-undo.
+def input param c-nome-abrev-fim    as char format "X(12)"  no-undo.
+def input param c-acess-mode        as integer              no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+
+    for each ttParamItem-Cli:
+        delete ttParamItem-Cli.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+
+    Create  ttParamItem-Cli.
+    Assign  ttParamItem-Cli.it-codigo-ini   = c-cod-Item-ini
+            ttParamItem-Cli.it-codigo-fim   = c-cod-Item-fim
+            ttParamItem-Cli.nome-abrev-ini  = c-nome-abrev-ini
+            ttParamItem-Cli.nome-abrev-fim  = c-nome-abrev-fim
+            ttParamItem-Cli.acess-mode      = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamItem-Cli.record-phrase   = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8101.p (Input  Table ttParamItem-Cli,
+                      Output Table ttItem-Cli,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttItem-Cli.
+
+    find first ttItem-Cli no-error.
+
+END PROCEDURE.
+
+/********************************************************************************/
+PROCEDURE pi-verifica-item-for :
+def input param c-cod-item-ini      as char format "X(16)"      no-undo.
+def input param c-cod-item-fim      as char format "X(16)"      no-undo.
+def input param c-cod-emitente-ini  as int  format ">>>>>>>>9"  no-undo.
+def input param c-cod-emitente-fim  as int  format ">>>>>>>>9"  no-undo.
+def input param c-acess-mode        as integer                  no-undo.
+def input param c-record-frase      as integer              no-undo.
+
+
+    for each ttParamItem-Fornec:
+        delete ttParamItem-Fornec.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+
+    Create  ttParamItem-Fornec.
+    Assign  ttParamItem-Fornec.it-codigo-ini    = c-cod-Item-ini
+            ttParamItem-Fornec.it-codigo-fim    = c-cod-Item-fim
+            ttParamItem-Fornec.cod-emitente-ini = c-cod-emitente-ini
+            ttParamItem-Fornec.cod-emitente-fim = c-cod-emitente-fim
+            ttParamItem-Fornec.acess-mode       = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamItem-Fornec.record-phrase    = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8113.p (Input  Table ttParamItem-Fornec,
+                      Output Table ttItem-Fornec,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttItem-Fornec.
+
+    find first ttItem-Fornec no-error.
+
+END PROCEDURE.
+
+/********************************************************************************/
+PROCEDURE pi-verifica-serie :
+def input param c-serie-ini         as char     no-undo.
+def input param c-serie-fim         as char     no-undo.
+def input param c-acess-mode        as integer  no-undo.
+def input param c-record-frase      as integer  no-undo.
+
+
+    for each ttParamSerie:
+        delete ttParamSerie.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamSerie.
+    Assign  ttParamSerie.serie-ini      = c-serie-ini
+            ttParamSerie.serie-fim      = c-serie-fim
+            ttParamSerie.acess-mode     = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamSerie.record-phrase  = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8115.p (Input  Table ttParamSerie,
+                      Output Table ttSerie,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttSerie.
+
+    find first ttSerie no-error.
+
+END PROCEDURE.
+
+/********************************************************************************/
+PROCEDURE pi-verifica-referencia :
+def input param c-cod-refer-ini     as char     no-undo.
+def input param c-cod-refer-fim     as char     no-undo.
+def input param c-descricao-ini     as char     no-undo.
+def input param c-descricao-fim     as char     no-undo.
+def input param c-acess-mode        as integer  no-undo.
+def input param c-record-frase      as integer  no-undo.
+
+
+    for each ttParamReferencia:
+        delete ttParamReferencia.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamReferencia.
+    Assign  ttParamReferencia.cod-refer-ini     = c-cod-refer-ini
+            ttParamReferencia.cod-refer-fim     = c-cod-refer-fim
+            ttParamReferencia.descricao-ini     = c-descricao-ini
+            ttParamReferencia.descricao-fim     = c-descricao-fim
+            ttParamReferencia.acess-mode        = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamReferencia.record-phrase     = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8114.p (Input  Table ttParamReferencia,
+                      Output Table ttReferencia,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttReferencia.
+
+    find first ttReferencia no-error.
+
+END PROCEDURE.
+
+/********************************************************************************/
+PROCEDURE pi-verifica-Natur-Oper :
+def input param c-natur-oper-ini    as char     no-undo.
+def input param c-natur-oper-fim    as char     no-undo.
+def input param c-denominacao-ini   as char     no-undo.
+def input param c-denominacao-fim   as char     no-undo.
+def input param c-acess-mode        as integer  no-undo.
+def input param c-record-frase      as integer  no-undo.
+
+
+    for each ttParamNatur-Oper:
+        delete ttParamNatur-Oper.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamNatur-Oper.
+    Assign  ttParamNatur-Oper.nat-operacao-ini  = c-natur-oper-ini
+            ttParamNatur-Oper.nat-operacao-fim  = c-natur-oper-fim
+/*            ttParamNatur-Oper.denominacao-ini   = c-denominacao-ini
+            ttParamNatur-Oper.denominacao-fim   = c-denominacao-fim*/
+            ttParamNatur-Oper.acess-mode        = c-acess-mode   /* Ser  retornado o valor corrente */
+            ttParamNatur-Oper.record-phrase     = c-record-frase.    /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+
+    run bcp/bc8116.p (Input  Table ttParamNatur-Oper,
+                      Output Table ttNatur-Oper,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttNatur-Oper.
+
+    find first ttNatur-Oper no-error.
+
+END PROCEDURE.
+
+/********************************************************************************/
+
+/********************************************************************************/
+PROCEDURE pi-verifica-Embalag:
+def input param c-embalagem-ini  as char format "X(10)" no-undo.
+def input param c-embalagem-fim  as char format "X(10)" no-undo.
+def input param c-sigla-emb-ini  as char format "!XX"   no-undo.
+def input param c-sigla-emb-fim  as char format "!XX"   no-undo.
+def input param c-acess-mode     as integer             no-undo.
+def input param c-record-frase   as integer             no-undo.
+
+
+    for each ttParamEmbalag:
+        delete ttParamEmbalag.
+    end.
+    for each ttReturnMessages:
+        delete ttReturnMessages.
+    end.
+
+    Create  ttParamEmbalag.
+    Assign  ttParamEmbalag.embalagem-ini   = c-embalagem-ini
+            ttParamEmbalag.embalagem-fim   = c-embalagem-fim
+            ttParamEmbalag.sigla-emb-ini   = c-sigla-emb-ini
+            ttParamEmbalag.sigla-emb-fim   = c-sigla-emb-fim
+            ttParamEmbalag.acess-mode     = c-acess-mode       /* Serÿ retornado o valor corrente */
+            ttParamEmbalag.record-phrase  = c-record-frase     /* Valor utilizado somente quando o acess-mode for = 5 (for each) */
+            ttParamEmbalag.num-of-rec     = 30.                /* Numero de Registros Iniciado */
+
+    run bcp/bc8117.p (Input  Table ttParamEmbalag,
+                      Output Table ttEmbalag,
+                      Output Table ttReturnMessages).
+
+    find first ttReturnMessages
+         where ttReturnMessages.type = 1    /* Tipo = 1-Error, 2-Warning, 3-Information */
+         no-error.
+
+    if  not avail ttReturnMessages then release ttEmbalag.
+
+    find first ttEmbalag no-error.
+
+END PROCEDURE.
+/********************************************************************************/

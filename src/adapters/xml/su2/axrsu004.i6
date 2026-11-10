@@ -1,0 +1,174 @@
+/* Pre‡o forncedor */
+IF LENGTH(string(TRUNCATE(ttQuotationLine.NetUnitaryPrice,0))) > 11   OR
+   LENGTH(substring(string(ttQuotationLine.NetUnitaryPrice - TRUNCATE(ttQuotationLine.NetUnitaryPrice,0)),2,
+          LENGTH(STRING(ttQuotationLine.NetUnitaryPrice - TRUNCATE(ttQuotationLine.NetUnitaryPrice,0))))) > 5 THEN DO:
+
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Pre‡o_fornecedor" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.NetUnitaryPrice) + '~~99999,999,999.99999').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+
+    RETURN "NOK":U.
+
+END.
+
+/* Percentual de desconto */
+IF LENGTH(string(TRUNCATE(ttQuotationLine.DiscountPercentage,0))) > 2   OR
+   LENGTH(substring(string(ttQuotationLine.DiscountPercentage - TRUNCATE(ttQuotationLine.DiscountPercentage,0)),2,
+          LENGTH(STRING(ttQuotationLine.DiscountPercentage - TRUNCATE(ttQuotationLine.DiscountPercentage,0))))) > 5 THEN DO:
+
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Percentual_de_desconto" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.DiscountPercentage) + '~~99.99999').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+    RETURN "NOK":U.
+END.
+
+/* Taxa financeira */
+IF LENGTH(string(TRUNCATE(ttQuotationLine.FinancialRatePercentage,0))) > 3   OR
+   LENGTH(substring(string(ttQuotationLine.FinancialRatePercentage - TRUNCATE(ttQuotationLine.FinancialRatePercentage,0)),2,
+          LENGTH(STRING(ttQuotationLine.FinancialRatePercentage - TRUNCATE(ttQuotationLine.FinancialRatePercentage,0))))) > 4 THEN DO:
+    
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Taxa_financeira" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.FinancialRatePercentage) + '~~999.9999').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+    RETURN "NOK":U.
+
+END.
+
+/* Dias Taxa financeira */
+IF LENGTH(string(ttQuotationLine.FinancialRateDays)) > 3 THEN DO:    
+
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Dias_Taxa_financeira" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.FinancialRateDays) + '~~999').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+    RETURN "NOK":U.
+
+END.
+
+/* Valor frete */
+IF LENGTH(string(TRUNCATE(ttQuotationLine.FreightValue,0))) > 9   OR
+   LENGTH(substring(string(ttQuotationLine.FreightValue - TRUNCATE(ttQuotationLine.FreightValue,0)),2,
+          LENGTH(STRING(ttQuotationLine.FreightValue - TRUNCATE(ttQuotationLine.FreightValue,0))))) > 4 THEN DO:
+
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Valor_de_frete" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.FreightValue) + '~~999999999.9999').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+    RETURN "NOK":U.
+
+END.
+
+/* Al¡quota IPI */
+IF LENGTH(string(TRUNCATE(ttQuotationLine.IndustrializedProductTaxPerce_00,0))) > 3   OR
+   LENGTH(substring(string(ttQuotationLine.IndustrializedProductTaxPerce_00 - TRUNCATE(ttQuotationLine.IndustrializedProductTaxPerce_00,0)),2,
+          LENGTH(STRING(ttQuotationLine.IndustrializedProductTaxPerce_00 - TRUNCATE(ttQuotationLine.IndustrializedProductTaxPerce_00,0))))) > 2 THEN DO:
+    
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Al¡quota_IPI" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.IndustrializedProductTaxPerce_00) + '~~999.99').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+    RETURN "NOK":U.
+
+END.
+
+/* Al¡quota ICMS */
+IF LENGTH(string(TRUNCATE(ttQuotationLine.ServicesAndProductsCirculatio_00,0))) > 3   OR
+   LENGTH(substring(string(ttQuotationLine.ServicesAndProductsCirculatio_00 - TRUNCATE(ttQuotationLine.ServicesAndProductsCirculatio_00,0)),2,
+          LENGTH(STRING(ttQuotationLine.ServicesAndProductsCirculatio_00 - TRUNCATE(ttQuotationLine.ServicesAndProductsCirculatio_00,0))))) > 2 THEN DO:
+
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Al¡quota_ICMS" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.ServicesAndProductsCirculatio_00) + '~~999.99').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+    
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+    RETURN "NOK":U.
+
+END.
+
+/* Al¡quota ISS */
+IF LENGTH(string(TRUNCATE(ttQuotationLine.ServiceTaxPercentage,0))) > 3   OR
+   LENGTH(substring(string(ttQuotationLine.ServiceTaxPercentage - TRUNCATE(ttQuotationLine.ServiceTaxPercentage,0)),2,
+          LENGTH(STRING(ttQuotationLine.ServiceTaxPercentage - TRUNCATE(ttQuotationLine.ServiceTaxPercentage,0))))) > 2 THEN DO:
+    
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Al¡quota_ISS" *}
+    run utp/ut-msgs.p (INPUT 'msg',
+                       INPUT 51338,
+                       INPUT RETURN-VALUE + '~~' + string(ttQuotationLine.ServiceTaxPercentage) + '~~999.99').
+
+    CREATE tt_log_erro.                  
+    ASSIGN tt_log_erro.ttv_num_cod_erro = 51338
+           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+    RUN setError IN hMessageHandler (INPUT 51338,
+                                     INPUT "business_error":U,
+                                     INPUT trim(RETURN-VALUE)).
+    RETURN "NOK":U.
+END.
+
+/*Fim valida‡Æo de valores*/

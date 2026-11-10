@@ -1,0 +1,39 @@
+/* Somente là os bord-tit com a situaá∆o igual a 1
+   porque situaá‰es diferente j† ter∆o o n£mero do 
+   bordero gravado no tit-ap */
+   
+for each tt-bord-titulo:
+    delete tt-bord-titulo.
+end.    
+
+for each  bord-rec fields (ep-codigo
+                           nr-bordero
+                           estado)
+    where bord-rec.ep-codigo = i-ep-codigo-usuario
+    and   bord-rec.estado    = 1 no-lock:
+    
+    for each bord-tit FIELDS (ep-codigo 
+                              cod-estabel 
+                              cod-fornec 
+                              cod-esp
+                              serie 
+                              nr-docto 
+                              parcela 
+                              vl-saldo
+                              nr-bordero)
+        where bord-tit.ep-codigo  = bord-rec.ep-codigo
+        and   bord-tit.nr-bordero = bord-rec.nr-bordero
+        NO-LOCK:
+    
+        create tt-bord-titulo.
+        ASSIGN tt-bord-titulo.ep-codigo    = bord-tit.ep-codigo
+               tt-bord-titulo.cod-estabel  = bord-tit.cod-estabel
+               tt-bord-titulo.cod-fornec   = bord-tit.cod-fornec
+               tt-bord-titulo.cod-esp      = bord-tit.cod-esp
+               tt-bord-titulo.serie        = bord-tit.serie
+               tt-bord-titulo.nr-docto     = bord-tit.nr-docto
+               tt-bord-titulo.parcela      = bord-tit.parcela
+               tt-bord-titulo.vl-saldo     = bord-tit.vl-saldo
+               tt-bord-titulo.nr-bordero   = bord-tit.nr-bordero.
+    end.
+end.

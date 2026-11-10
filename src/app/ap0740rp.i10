@@ -1,0 +1,36 @@
+/*******************************************************************************
+***
+*** app/ap0740rp.i10 - last-of(tt-tit-ap.matriz).
+***
+*******************************************************************************/
+
+if  last-of(tt-tit-ap.matriz) then do:
+        
+    if  de-tot-matr-orig > 0 then
+        assign c-lancto-1 = c-credito.
+    else
+        assign c-lancto-1 = c-debito.
+        
+    if  de-tot-matr-saldo > 0 then
+        assign c-lancto-2 = c-credito.
+    else
+        assign c-lancto-2 = c-debito.
+        
+    if  de-tot-matr-orig < 0 then
+        assign de-tot-matr-orig = de-tot-matr-orig * (-1).
+    
+    if  de-tot-matr-saldo < 0 then
+        assign de-tot-matr-saldo = de-tot-matr-saldo * (-1).
+        
+    put c-total-matriz    at 46
+        de-tot-matr-orig  to 103
+        c-lancto-1        to 106
+        de-tot-matr-saldo to 129 
+        c-lancto-2        to 132
+        skip(1).
+            
+    assign de-tot-matr-orig  = 0
+           de-tot-matr-saldo = 0.
+end.
+
+/* Fim de Include */

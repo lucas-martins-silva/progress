@@ -1,0 +1,123 @@
+/**************************************************************************
+**
+**  AP1001AA.I1 - Padrao CNAB240.
+**  Objetivo : Registro Header do Banco do Brasil
+**
+**************************************************************************/
+
+find first empresa 
+     where empresa.ep-codigo = i-ep-codigo-usuario 
+     no-lock no-error.
+
+find first portador 
+     where portador.ep-codigo    = i-ep-codigo-usuario 
+     and   portador.cod-portador = i-portador 
+     and   portador.modalidade   = 1
+     no-lock no-error.
+
+find first cta-corrente
+     where cta-corrente.cod-banco    = portador.cod-banco
+     and   cta-corrente.agencia      = portador.agencia
+     and   cta-corrente.conta-corren = portador.conta-corren
+     no-lock no-error.
+
+find first banco 
+     where banco.cod-banco = portador.cod-banco 
+     no-lock no-error.
+
+assign c-cgc-emp = ""
+       i-num-reg = 1.
+
+do i-cont = 1 to 19:
+   if  substr(empresa.cgc,i-cont,1) >= "0" 
+   and substr(empresa.cgc,i-cont,1) <= "9" then
+       assign c-cgc-emp = c-cgc-emp + substr(empresa.cgc,i-cont,1).
+end.
+
+
+assign c-ctaCorren  = substr(portador.conta-corren,1,09).
+run pi-retira-caracter (input-output c-ctaCorren).
+assign c-ctaCorren  = string(dec(substr(c-ctaCorren,1,9)),"999999999").
+
+/*-------------------------- Header de Arquivo --------------------------*/
+put stream relat
+    "001"                                   at 001 format "999"
+    "0000"                                  at 004 format "9999"
+    "0"                                     at 008 format "9"
+    fill("",09)                             at 009 format "x(09)"
+    "2"                                     at 018 format "9"
+    c-cgc-emp                               at 019 format "99999999999999"
+    substring(portador.complemento,22,20)   at 033 format "x(20)"
+    substr(cta-corrente.agencia-extrato,2,5)    at 053 format "99999"
+    substr(cta-corrente.agencia-extrato,7,1)    at 058 format "x(01)"
+    "00"                                        at 059 format "99" 
+    substr(cta-corrente.conta-corren-extr,1,10) at 061 format "9999999999"
+    substr(cta-corrente.conta-corren-extr,11,1) at 071 format "x(01)"
+    substr(cta-corrente.conta-corren-extr,12,1) at 072 format "x(01)"
+    fn-free-accent(caps(empresa.razao-social))  at 073 format "x(30)"
+    fn-free-accent(caps(portador.nome))     at 103 format "x(30)"
+    fill("",10)                             at 133 format "x(10)"
+    "1"                                     at 143 format "9"
+    substr(string(day(today),"99"),1,2)     at 144 format "99"
+    substr(string(month(today),"99"),1,2)   at 146 format "99"
+    substr(string(year(today),"9999"),1,4)  at 148 format "9999"    
+    substring(string(c-horario),1,2)        at 152 format "x(02)"
+    substring(string(c-horario),4,2)        at 154 format "x(02)"
+    substring(string(c-horario),7,2)        at 156 format "x(02)"
+    tt-param.i-sequencia                    at 158 format "999999"
+    "030"                                   at 164 format "999"
+    "00000"                                 at 167 format "99999"
+    fill("",20)                             at 172 format "x(20)"
+    fill("",20)                             at 192 format "x(20)"
+    fill("",11)                             at 212 format "x(11)"
+    " "                                     at 223 format "x(03)"
+    "000"                                   at 226 format "999"
+    " "                                     at 229 format "x(02)"
+    fill("",10)                             at 231 format "x(10)"
+    skip.
+
+/*--------------------------- Header de Lote ----------------------------*/
+   put stream relat  
+   "001"                                   at 001 format "999"            
+   "0001"                                  at 004 format "9999"           
+   "1"                                     at 008 format "9"              
+   "C"                                     at 009 format "x(01)".
+if tt-param.i-tipo-pag = 30 
+or tt-param.i-tipo-pag = 31 then 
+   put stream relat  
+   "98"                                    at 010 format "99".
+else
+   put stream relat  
+       "20"                                    at 010 format "99".
+   
+if tt-param.i-tipo-pag = 41
+or tt-param.i-tipo-pag = 43 then do:
+    put stream relat
+        3                                       at 012 format "99".
+end.
+else do:
+    put stream relat
+        tt-param.i-tipo-pag                     at 012 format "99".
+end.
+put stream relat
+    "020"                                       at 014 format "999"            
+    "2"                                         at 018 format "9"              
+    c-cgc-emp                                   at 019 format "99999999999999" 
+    substring(portador.complemento,22,20)       at 033 format "x(20)"
+    substr(cta-corrente.agencia-extrato,2,5)    at 053 format "99999"
+    substr(cta-corrente.agencia-extrato,7,1)    at 058 format "x(01)"
+    "00"                                        at 059 format "99" 
+    substr(cta-corrente.conta-corren-extr,1,10) at 061 format "9999999999"
+    substr(cta-corrente.conta-corren-extr,11,1) at 071 format "x(01)"
+    substr(cta-corrente.conta-corren-extr,12,1) at 072 format "x(01)"
+    fn-free-accent(caps(empresa.razao-social))  at 073 format "x(30)"          
+    fn-free-accent(caps(empresa.endereco))      at 143 format "x(30)"          
+    "00000"                                     at 173 format "99999"
+    fn-free-accent(caps(empresa.cidade))        at 193 format "x(20)"
+    substr(string(empresa.cep),1,5)             at 213 format "99999"          
+    substr(string(empresa.cep),6,3)             at 218 format "x(03)"
+    fn-free-accent(caps(empresa.uf))            at 221 format "x(02)"         
+    " "                                         at 240 format "x(01)"
+    skip.
+
+/* ap1001AA.i1 */

@@ -1,0 +1,63 @@
+/*------------------------------------------------------------------------------
+    Purpose:     
+    Parameters:  <none>
+    Notes:  Elimina Integra‡äes do AP com Caixa e Bancos, Gerencial e FASB
+------------------------------------------------------------------------------*/
+
+/*---- INTEGRA€åES - ELIMINA€ÇO ----*/     
+{app/ap9100.i2}
+assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap)
+       tt-integ-ap.tt-ge0102b     = yes
+       tt-integ-ap.tt-ge0102g     = yes
+       tt-integ-ap.tt-cb0110a     = yes
+       tt-integ-ap.tt-cb1202a     = yes
+       tt-integ-ap.tt-op-ge0102b  = 6
+       tt-integ-ap.tt-op-ge0102g  = 6
+       tt-integ-ap.tt-op-cb0110a  = 6
+       tt-integ-ap.tt-op-cb1202a  = 6.
+raw-transfer tt-integ-ap to raw-integracao.
+run app/ap9100.p (Input raw-integracao, input-output table tt-erro).
+            
+for each  mov-ap
+    where mov-ap.ep-codigo = tit-ap.ep-codigo
+    and   mov-ap.cod-est   = tit-ap.cod-est
+    and   mov-ap.cod-esp   = tit-ap.cod-esp
+    and   mov-ap.serie     = tit-ap.serie
+    and   mov-ap.nr-docto  = tit-ap.nr-docto
+    and   mov-ap.parcela   = tit-ap.parcela
+    and   mov-ap.cod-forn  = tit-ap.cod-fornec
+    and  (mov-ap.transacao = 5
+    or    mov-ap.transacao = 2) no-lock:
+    /*---- INTEGRA€åES ----*/     
+    {app/ap9100.i2}
+    assign tt-integ-ap.tt-row-tit-ap = rowid(tit-ap)
+           tt-integ-ap.tt-row-mov-ap = rowid(mov-ap)
+           tt-integ-ap.tt-cb1202a    = yes
+           tt-integ-ap.tt-op-cb1202a = 22.
+    raw-transfer tt-integ-ap to raw-integracao.
+    run app/ap9100.p (Input raw-integracao, input-output table tt-erro).
+end.
+
+/*---- INTEGRA€åES - ELIMINA€ÇO ----*/     
+find first espec-ap where espec-ap.cod-esp = tit-ap.cod-esp no-lock no-error.
+if  avail espec-ap and espec-ap.tipo = 2 then do:            
+    for each  mov-ap
+        where mov-ap.ep-codigo = tit-ap.ep-codigo
+        and   mov-ap.cod-est   = tit-ap.cod-est
+        and   mov-ap.cod-esp   = tit-ap.cod-esp
+        and   mov-ap.serie     = tit-ap.serie
+        and   mov-ap.nr-docto  = tit-ap.nr-docto
+        and   mov-ap.parcela   = tit-ap.parcela
+        and   mov-ap.cod-forn  = tit-ap.cod-fornec:
+        /*---- INTEGRA€åES ----*/     
+        {app/ap9100.i2}
+        assign tt-integ-ap.tt-row-tit-ap = rowid(tit-ap)
+               tt-integ-ap.tt-row-mov-ap = rowid(mov-ap)
+               tt-integ-ap.tt-cb0201a    = yes
+               tt-integ-ap.tt-op-cb0201a = 6.
+        raw-transfer tt-integ-ap to raw-integracao.
+        run app/ap9100.p (Input raw-integracao, input-output table tt-erro).
+    end.
+end.    
+
+/* Fim */

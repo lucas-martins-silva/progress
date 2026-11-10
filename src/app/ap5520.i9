@@ -1,0 +1,42 @@
+/****************************************************************
+**
+** ap5520.i9 - ROTINA DE EXTENSO, MENSAGEM NO FINAL DO BORDERO
+**
+*****************************************************************/
+
+assign de-val9100 = if de-total-liq < 0 then de-total-liq * -1 else de-total-liq
+       i-num9100  = 2
+       i-tam9100  = 111.
+
+run app/ap5520e.p. /* ROTINA DE EXTENSO, ESPECIFICO PARA O BORDERO */
+
+disp c-tot-bord
+     c-ext9100[1]
+     c-ext9100[2] 
+     with frame f-extenso.
+
+if  bord-rec.mens-final > 0 then do:
+    find mensagem
+         where mensagem.cod-mensagem = bord-rec.mens-final no-lock no-error.
+    if  available mensagem then do:
+        assign c-mensagem         = mensagem.texto-mensag
+               c-mensagem         = replace(c-mensagem, chr(10), " ")
+               c-mensagem         = replace(c-mensagem, chr(13), " ")
+               c-texto-mensag1[1] = substring(c-mensagem, 001, 100)
+               c-texto-mensag1[2] = substring(c-mensagem, 071, 100)
+               c-texto-mensag1[3] = substring(c-mensagem, 141, 100)
+               c-texto-mensag1[4] = substring(c-mensagem, 211, 100)
+               c-texto-mensag1[5] = substring(c-mensagem, 281, 100).
+
+        disp c-texto-mensag1[1]
+             c-texto-mensag1[2]
+             c-texto-mensag1[3]              
+             c-texto-mensag1[4]
+             c-texto-mensag1[5]
+             with frame f-mensag-fim.
+    end.         
+end.
+
+view frame f-pagina.
+
+/* fim */

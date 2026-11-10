@@ -1,0 +1,104 @@
+PROCEDURE pi-cria-ttDest:
+
+    /*
+    === ttDest ===
+    CEP            AS CHARACTER INITIAL ?  /*CEP*/
+    cMun           AS INT       INITIAL ?  /*C¢digo do munic¡pio (utilizar a tabela do IBGE), informar 9999999 para opera‡äes com o exterior.*/
+    CNPJ           AS CHARACTER INITIAL ?  /*N£mero do CNPJ*/
+    cPais          AS INT       INITIAL ?  /*C¢digo do pa¡s*/
+    CPF            AS CHARACTER INITIAL ?  /*N£mero do CPF*/
+    fone           AS CHARACTER INITIAL ?  /*Telefone*/
+    IE             AS CHARACTER INITIAL ?  /*Inscri‡Æo Estadual (obrigat¢rio nas opera‡äes com contribuintes do ICMS)*/
+    ISUF           AS CHARACTER INITIAL ?  /*Inscri‡Æo na SUFRAMA (Obrigat¢rio nas opera‡äes com as  reas com benef¡cios de incentivos fiscais sob controle da SUFRAMA)*/
+    nro            AS CHARACTER INITIAL ?  /*N£mero*/
+    UF             AS CHARACTER INITIAL ?  /*Sigla da UF, , informar EX para opera‡äes com o exterior.*/
+    xBairro        AS CHARACTER INITIAL ?  /*Bairro*/
+    xCpl           AS CHARACTER INITIAL ?  /*Complemento*/
+    xLgr           AS CHARACTER INITIAL ?  /*Logradouro*/
+    xMun           AS CHARACTER INITIAL ?  /*Nome do munic¡pio, , informar EXTERIOR para opera‡äes com o exterior.*/
+    xNome          AS CHARACTER INITIAL ?  /*RazÆo Social ou nome do destinat rio*/
+    xPais          AS CHARACTER INITIAL ?  /*Nome do pa¡s*/
+    email          AS CHARACTER INITIAL ?  /*E-mail Destinatario*/
+    idEstrangeiro  AS CHARACTER INITIAL ?  /*Identificador do destinat rio, em caso de comprador estrangeiro (Informar esta tag no caso de opera‡Æo com o exterior, ou para comprador estrangeiro. Informar o n£mero do  assaporte ou outro documento legal para identificar pessoa estrangeira.)*/
+    indIEDest      AS CHARACTER INITIAL ?  /*Indicador da IE do destinat rio: 1=Contribuinte ICMS (informar a IE do destinat rio); 2=Contribuinte isento de Inscri‡Æo no cadastro de Contribuintes do ICMS; 9=NÆo Contribuinte, que pode ou nÆo possuir Inscri‡Æo Estadual no Cadastro de Contribuintes do ICMS*/
+    IM             AS CHARACTER INITIAL ?  /*Inscri‡Æo Municipal do tomador do servi‡o*/
+    */
+
+        /* Pedido de origem e-commerce */
+        IF  AVAIL nota-fiscal 
+        AND AVAIL emitente
+        AND trim(fn-trata-caracteres(emitente.endereco_text)) > "" 
+        AND CAN-FIND(FIRST ped-venda 
+                     WHERE ped-venda.nome-abrev = nota-fiscal.nome-ab-cli           
+                       AND ped-venda.nr-pedcli  = nota-fiscal.nr-pedcli     
+                       AND ped-venda.origem     = 22 NO-LOCK)
+        THEN ASSIGN l-e-commerce = YES.
+        ELSE ASSIGN l-e-commerce = NO.
+                                                                                                                 
+	IF (i-natureza > 1 AND emitente.natureza = i-natureza) OR 
+	   (i-natureza = 1 AND l-prod-rural = NO) OR
+    (l-prod-rural AND i-natureza = 1 AND 
+     LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(nota-fiscal.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) > 11 ) THEN
+		run pi-cria-ttDest-tp-pessoa(INPUT emitente.cep,
+									 INPUT emitente.pais,
+									 INPUT emitente.cgc,
+									 INPUT emitente.ins-estadual,
+									 INPUT emitente.estado,
+									 INPUT emitente.bairro,
+									 INPUT emitente.cidade,
+									 INPUT (
+										 IF CAN-FIND(FIRST funcao WHERE funcao.cd-funcao = "spp-nfe-end-completo" AND funcao.ativo = YES) 
+											AND fn-trata-caracteres(emitente.endereco_text) > "" OR l-e-commerce THEN
+											fn-trata-caracteres(emitente.endereco_text)
+										 ELSE
+											emitente.endereco
+									 ),
+									 INPUT emitente.nome-emit).
+	ELSE 
+		run pi-cria-ttDest-tp-pessoa(INPUT nota-fiscal.cep,         
+									 INPUT nota-fiscal.pais,        
+									 INPUT nota-fiscal.cgc,         
+									 INPUT nota-fiscal.ins-estadual,
+									 INPUT nota-fiscal.estado,      
+									 INPUT nota-fiscal.bairro,      
+									 INPUT nota-fiscal.cidade,      
+									 INPUT nota-fiscal.endereco,
+									 INPUT emitente.nome-emit).
+
+    RUN pi-Trata-NT-002-2011.
+
+    IF  NOT AVAIL ttIde THEN
+        FIND FIRST ttIde NO-ERROR.
+    ASSIGN ttIde.idDest = (IF (SUBSTRING(c-cod-cfop,1,1) = "3":U OR SUBSTRING(c-cod-cfop,1,1) = "7":U)
+                           THEN "3":U /*3 = Opera‡Æo com exterior*/
+                           ELSE IF (SUBSTRING(c-cod-cfop,1,1) = "2":U OR SUBSTRING(c-cod-cfop,1,1) = "6":U)
+                                THEN "2":U /*2 = Opera‡Æo Interestadual*/
+                                ELSE IF (SUBSTRING(c-cod-cfop,1,1) = "1":U OR SUBSTRING(c-cod-cfop,1,1) = "5":U)
+                                     THEN "1":U /*1 = Opera‡Æo Interna*/
+                                     ELSE "1":U).
+
+    /* Chave EMS */
+    ASSIGN ttDest.CodEstabelNF = nota-fiscal.cod-estabel
+           ttDest.SerieNF      = nota-fiscal.serie
+           ttDest.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttDest THEN
+        ASSIGN ttDest.CEP        = fn-ajusta-tamanho-campo(ttDest.CEP    , 8)
+               ttDest.cMun       = fn-ajusta-tamanho-campo(ttDest.cMun   , 7)
+               ttDest.CNPJ       = fn-ajusta-tamanho-campo(ttDest.CNPJ   ,14)
+               ttDest.cPais      = fn-ajusta-tamanho-campo(ttDest.cPais  , 4)
+               ttDest.CPF        = fn-ajusta-tamanho-campo(ttDest.CPF    ,14)
+               ttDest.fone       = fn-ajusta-tamanho-campo(ttDest.fone   ,14)
+               ttDest.IE         = fn-ajusta-tamanho-campo(ttDest.IE     ,14)
+               ttDest.ISUF       = fn-ajusta-tamanho-campo(ttDest.ISUF   ,14)
+               ttDest.nro        = fn-ajusta-tamanho-campo(ttDest.nro    ,60)
+               ttDest.UF         = fn-ajusta-tamanho-campo(ttDest.UF     , 2)
+               ttDest.xBairro    = fn-ajusta-tamanho-campo(ttDest.xBairro,60)
+               ttDest.xCpl       = fn-ajusta-tamanho-campo(ttDest.xCpl   ,60)
+               ttDest.xLgr       = fn-ajusta-tamanho-campo(ttDest.xLgr   ,60)
+               ttDest.xMun       = fn-ajusta-tamanho-campo(ttDest.xMun   ,60)
+               ttDest.xNome      = fn-ajusta-tamanho-campo(ttDest.xNome  ,60)
+               ttDest.xPais      = fn-ajusta-tamanho-campo(ttDest.xPais  ,60).
+
+END PROCEDURE.

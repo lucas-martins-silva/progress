@@ -1,0 +1,35 @@
+PROCEDURE pi-localiza-tabelas-ttEmitNFCom: 
+
+    IF  NOT VALID-HANDLE(h-cdapi704) THEN
+        RUN cdp/cdapi704.p PERSISTENT SET h-cdapi704.
+
+    IF  NOT AVAIL estabelec
+    OR (AVAIL estabelec 
+        AND estabelec.cod-estabel <> cCodEstabel) THEN
+        FOR FIRST estabelec NO-LOCK
+            WHERE estabelec.cod-estabel = cCodEstabel:
+        END.
+
+    IF  NOT AVAIL bf-emitente-est THEN
+        FOR FIRST bf-emitente-est NO-LOCK
+            WHERE bf-emitente-est.cod-emitente = estabelec.cod-emitente:
+        END.
+
+    IF  NOT AVAIL bf-cidade-est THEN
+        FOR FIRST bf-cidade-est 
+            WHERE bf-cidade-est.cidade = estabelec.cidade
+              AND bf-cidade-est.estado = estabelec.estado
+              AND bf-cidade-est.pais   = estabelec.pais   NO-LOCK:
+        END.
+
+    /*FOR FIRST pais NO-LOCK
+        WHERE pais.nome-pais = estabelec.pais:
+    END.*/
+
+    IF  NOT AVAIL bf-unid-feder-est THEN
+        FOR FIRST bf-unid-feder-est NO-LOCK
+            WHERE bf-unid-feder-est.pais   = estabelec.pais
+              AND bf-unid-feder-est.estado = estabelec.estado:
+        END.
+
+END PROCEDURE.

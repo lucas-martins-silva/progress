@@ -1,0 +1,173 @@
+/****************************************************************************
+**
+** AP0706.I5
+** Objetivo: Calcular o saldo anterior considerando previsÆo. (Fasb)
+**
+****************************************************************************/
+
+
+    
+                        
+find param-fasb
+    where param-fasb.ep-codigo = i-ep-codigo-usuario no-lock no-error.
+
+for each emitente
+    where emitente.cod-emitente >= tt-param.fornec-ini
+    and   emitente.cod-emitente <= tt-param.fornec-fim
+    and   emitente.identific <> 1 no-lock:
+
+
+    assign de-tot-cr = 0
+           de-tot-db = 0.
+    
+    tit-block:
+    for each tit-ap use-index ch-liq no-lock
+        where tit-ap.ep-codigo     = i-ep-codigo-usuario
+        and   tit-ap.cod-fornec    = emitente.cod-emitente
+        and   tit-ap.dt-liq       >= tt-param.dt-transac-ini
+        and   tit-ap.cod-estabel  >= tt-param.estab-ini
+        and   tit-ap.cod-estabel  <= tt-param.estab-fim
+        and   tit-ap.cod-esp      >= tt-param.espec-ini
+        and   tit-ap.cod-esp      <= tt-param.espec-fim
+        and   tit-ap.dt-transacao <  tt-param.dt-transac-ini
+        and   tit-ap.tipo         <> 4
+        and   tit-ap.tipo         <> 5
+        and  (tit-ap.tipo         <> 7
+        or    tt-param.l-lista-op)
+        break by tit-ap.cod-fornec:
+        {app/ap9999.i1 tit-ap tt-param.moeda}
+
+        assign l-valido = yes.
+
+        find espec-ap
+            where espec-ap.cod-esp = tit-ap.cod-esp no-lock no-error.
+            
+        if  not avail espec-ap
+        or  (avail espec-ap and espec-ap.contabiliza = no and tt-param.l-espec-ctbl = yes) then
+            assign l-valido = no.
+
+        if  l-valido = yes then do:
+            assign de-dolar = 1.
+            if  tit-ap.tipo = 2 then do:
+                if  param-fasb.moeda-fasb <> 0 then do:
+                    find cotacao
+                        where cotacao.mo-codigo   = param-fasb.moeda-fasb
+                        and   cotacao.ano-periodo = string(year(tit-ap.dt-emissao)) + string(month(tit-ap.dt-emissao),"99":U)
+                        and   cotacao.cotacao[day(tit-ap.dt-emissao)] <> 0 no-lock no-error.
+                    if  avail cotacao then
+                        assign de-dolar = cotacao.cotacao[day(tit-ap.dt-emissao)].
+                end.
+            end.
+            else do:
+                if  param-fasb.tipo-calculo = 0 then do:
+                    if  param-fasb.moeda-fasb <> 0 then do:
+                        find cotacao
+                            where cotacao.mo-codigo   = param-fasb.moeda-fasb
+                            and   cotacao.ano-periodo = string(year(tit-ap.dt-emissao)) + string(month(tit-ap.dt-emissao),"99":U)
+                            and   cotacao.cotacao[day(tit-ap.dt-emissao)] <> 0 no-lock no-error.
+                        if  avail cotacao then do:
+                            assign de-dolar = cotacao.cotacao[day(tit-ap.dt-emissao)].
+                        end.
+                    end.
+                    assign de-dolar = de-dolar * (tit-ap.vl-sal-fasb / tit-ap.vl-orig-fasb).
+                end.
+                else
+                    assign de-dolar = tit-ap.vl-sal-fasb / 100.
+            end.
+            assign de-vl-saldo = if de-dolar = 0 then de-calc-valor-saldo
+                                 else fn_ajust_dec((de-calc-valor-saldo / de-dolar),tt-param.moeda).
+             if  tit-ap.tipo <> 2 then do:
+                assign de-tot-cr = de-tot-cr + de-vl-saldo.
+    
+                if  tit-ap.valor-saldo <> tit-ap.vl-original then do:
+                movto-block:
+                for each mov-ap use-index codigo
+                    where mov-ap.ep-codigo     = tit-ap.ep-codigo
+                    and   mov-ap.cod-fornec    = tit-ap.cod-fornec
+                    and   mov-ap.cod-estabel   = tit-ap.cod-estabel
+                    and   mov-ap.cod-esp       = tit-ap.cod-esp
+                    and   mov-ap.serie         = tit-ap.serie
+                    and   mov-ap.nr-docto      = tit-ap.nr-docto
+                    and   mov-ap.parcela       = tit-ap.parcela
+                    and   mov-ap.dt-transacao >= tt-param.dt-transac-ini
+                    and  (mov-ap.transacao     = 2
+                    or   (mov-ap.transacao     = 6 and mov-ap.lancamento = 1)
+                    or    mov-ap.transacao     = 3
+                    or    mov-ap.transacao     = 8
+                    or    mov-ap.transacao     = 5) no-lock:
+
+                    {app/ap9999.i2 mov-ap tt-param.moeda tit-ap}
+    
+                    if  mov-ap.transacao = 5 and mov-ap.lancamento = 1 then
+                        assign de-tot-cr = de-tot-cr - mov-ap.vl-mov-fasb.
+                    else do:
+                        if  mov-ap.transacao <> 8 then
+                            assign de-tot-cr = de-tot-cr + mov-ap.vl-mov-fasb.
+                        else do:
+                            assign de-vl-movto = de-calc-valor-mov + de-calc-valor-juros.
+                            if  de-vl-movto < 0 then
+                                assign de-tot-db = de-tot-db + (de-vl-movto * -1).
+                            else
+                                assign de-tot-cr = de-tot-cr + de-vl-movto.
+                        end.
+                    end.
+                end.
+                end.
+            end.
+            else do:
+                assign de-tot-db = de-tot-db + de-vl-saldo.
+    
+                movto-block:
+                for each mov-ap use-index ch-antecip
+                    where mov-ap.ep-codigo     = tit-ap.ep-codigo
+                    and   mov-ap.cod-estabel   = tit-ap.cod-estabel
+                    and   mov-ap.esp-ant       = tit-ap.cod-esp
+                    and   mov-ap.serie-ant     = tit-ap.serie
+                    and   mov-ap.docto-ant     = tit-ap.nr-docto
+                    and   mov-ap.parc-ant      = tit-ap.parcela
+                    and   mov-ap.fornec-ant    = tit-ap.cod-fornec
+                    and   mov-ap.dt-transacao >= tt-param.dt-transac-ini
+                    and  (mov-ap.transacao  = 2 or mov-ap.transacao = 3) no-lock:
+    
+                    assign de-tot-db = de-tot-db + mov-ap.vl-ant-fasb.
+                    
+                end.
+    
+                movto-block:
+                for each mov-ap use-index codigo
+                    where mov-ap.ep-codigo     = tit-ap.ep-codigo
+                    and   mov-ap.cod-fornec    = tit-ap.cod-fornec
+                    and   mov-ap.cod-estabel   = tit-ap.cod-estabel
+                    and   mov-ap.cod-esp       = tit-ap.cod-esp
+                    and   mov-ap.serie         = tit-ap.serie
+                    and   mov-ap.nr-docto      = tit-ap.nr-docto
+                    and   mov-ap.parcela       = tit-ap.parcela
+                    and   mov-ap.dt-transacao >= tt-param.dt-transac-ini
+                    and   mov-ap.transacao     = 5 no-lock:
+    
+                    assign de-tot-db = if  mov-ap.lancamento = 1 then
+                                            de-tot-db + mov-ap.vl-mov-fasb
+                                       else de-tot-db - mov-ap.vl-mov-fasb.
+                end.
+            end.
+        end.
+
+        if  last-of(tit-ap.cod-fornec)
+        and (de-tot-cr - de-tot-db) <> 0 then do transaction:
+            create mov-ap.
+            assign mov-ap.dt-transacao = tt-param.dt-transac-fim
+                   mov-ap.ep-codigo    = i-ep-codigo-usuario
+                   mov-ap.cod-estabel  = tit-ap.cod-estabel
+                   mov-ap.cod-esp      = tit-ap.cod-esp
+                   mov-ap.tp-codigo    = tit-ap.tp-codigo
+                   mov-ap.cod-fornec   = emitente.cod-emitente
+                   mov-ap.valor-mov    = de-tot-cr - de-tot-db
+                   mov-ap.vl-mov-fasb  = de-tot-cr - de-tot-db
+                   mov-ap.transacao    = 7
+                   de-tot-cr           = 0
+                   de-tot-db           = 0.
+        end.
+    end.
+end.
+  
+/* Fim */

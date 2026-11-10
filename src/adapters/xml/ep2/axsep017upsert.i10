@@ -1,0 +1,243 @@
+PROCEDURE pi-cria-ttIde:
+
+    DEFINE VARIABLE cIndPag      AS CHARACTER   NO-UNDO.
+    
+    /*
+    === ttIde ===
+    cDV            AS CHARACTER INITIAL ?  /*Digito Verificador da Chave de Acesso da NF-e*/
+    cMunFG         AS INT       INITIAL ?  /*C¢digo do Munic°pio de Ocorrància do Fato Gerador (utilizar a tabela do IBGE)*/
+    cNF            AS CHARACTER INITIAL ?  /*C¢digo numÇrico que comp‰e a Chave de Acesso. N£mero aleat¢rio gerado pelo emitente para cada NF-e.*/
+    cUF            AS INT       INITIAL ?  /*C¢digo da UF do emitente do Documento Fiscal. Utilizar a Tabela do IBGE.*/
+    dEmi           AS DATE      INITIAL ?  /*Data de emiss∆o do Documento Fiscal (AAAA-MM-DD)*/
+    dSaiEnt        AS DATE      INITIAL ?  /*Data de sa°da ou de entrada da mercadoria / produto (AAAA-MM-DD)*/
+    finNFe         AS CHARACTER INITIAL ?  /*Finalidade da emiss∆o da NF-e: 1 - NFe normal 2 - NFe complementar 3 - NFe de ajuste*/
+    indPag         AS CHARACTER INITIAL ?  /*Indicador da forma de pagamento: 0 - pagamento Ö vista; 1 - pagamento ‡ prazo; 2 - outros.*/
+    mod            AS CHARACTER INITIAL ?  /*C¢digo do modelo do Documento Fiscal. Utilizar 55 para identificaá∆o da NF-e, emitida em substituiá∆o ao modelo 1 e 1A.*/
+    natOp          AS CHARACTER INITIAL ?  /*Descriá∆o da Natureza da Operaá∆o*/
+    nNF            AS CHARACTER INITIAL ?  /*N£mero do Documento Fiscal*/
+    procEmi        AS CHARACTER INITIAL ?  /*Processo de emiss∆o utilizado com a seguinte codificaá∆o: 0 - emiss∆o de NF-e com aplicativo do contribuinte; 1 - emiss∆o de NF-e avulsa pelo Fisco; 2 - emiss∆o de NF-e avulsa, pelo contribuinte com seu certificado digital, atravÈs do site do Fisco; 3- emiss∆o de NF-e pelo contribuinte com aplicativo fornecido pelo Fisco.*/
+    serie          AS CHARACTER INITIAL ?  /*SÈrie do Documento Fiscal*/
+    tpAmb          AS CHARACTER INITIAL ?  /*Identificaá∆o do Ambiente: 1 - Produá∆o 2 - Homologaá∆o*/
+    tpEmis         AS CHARACTER INITIAL ?  /*Forma de emiss∆o da NF-e (1 - Normal; 2 - Contingància)*/
+    tpImp          AS CHARACTER INITIAL ?  /*Formato de impress∆o do DANFE (1 - Retrato; 2 - Paisagem)*/
+    tpNF           AS CHARACTER INITIAL ?  /*Tipo do Documento Fiscal (0 - entrada; 1 - sa°da)*/
+    verProc        AS CHARACTER INITIAL ?  /*vers∆o do aplicativo utilizado no processo de emiss∆o*/
+    hSaiEnt        AS CHARACTER INITIAL ?  /*Hora de Sa°da ou da Entrada da Mercadoria/Produto*/
+    */
+
+
+    FOR FIRST param-nf-estab NO-LOCK
+        WHERE param-nf-estab.cod-estabel = nota-fiscal.cod-estabel: END.
+
+    IF  nota-fiscal.ind-tip-nota <> 8 THEN
+        RUN cdp/cd2712.p (INPUT  ROWID(nota-fiscal),
+                          OUTPUT cIndPag).
+    ELSE 
+        IF  AVAIL cond-pagto
+        AND nota-fiscal.cod-cond-pag <> 0 THEN /* nao e condicao especial */
+            ASSIGN cIndPag = (IF cond-pagto.cod-vencto = 2
+                              THEN "0"
+                              ELSE IF cond-pagto.cod-vencto = 3
+                                   THEN "2"
+                                   ELSE "1").
+        ELSE
+            ASSIGN cIndPag = "2". /* Outros */
+
+    ASSIGN l-nota-compl-imp = NO.
+
+   /* IF  i-natureza > 1 THEN*/   /*alteraá∆o referente ao chamado AAGEVO*/
+        IF  nota-fiscal.ind-tip-nota = 4 
+        OR  (nota-fiscal.ind-tip-nota = 8 /* Nota Entrada */
+        AND  nota-fiscal.int-2        = 4003) THEN DO: /*Nota Complementar de Imposto de Importacao gerada exclusivamente com a funcao especial e via FT4003*/
+            FIND it-nota-fisc WHERE /*nao use find first*/
+                 it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel AND
+                 it-nota-fisc.serie       = nota-fiscal.serie AND
+                 it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis NO-LOCK NO-ERROR.
+            IF  AVAIL it-nota-fisc              
+            AND (it-nota-fisc.qt-faturada[1] = 1 OR it-nota-fisc.qt-faturada[1] = 0)
+            AND it-nota-fisc.vl-merc-liq    = 0 
+            AND it-nota-fisc.vl-merc-tab    = 0
+            AND it-nota-fisc.tipo-contr     = 4 /*debito direto*/ THEN
+                ASSIGN l-nota-compl-imp = YES.
+        END.
+
+    CREATE ttIde.
+    ASSIGN ttIde.cDV     = (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                            &then SUBSTRING( STRING   (nota-fiscal.cod-chave-aces-nf-eletro),44,1)
+                            &else SUBSTRING( SUBSTRING(nota-fiscal.char-2,3,60)             ,44,1) &endif)
+           ttIde.cMunFG  = STRING(IF  estabelec.pais = "Brasil":U
+                                  THEN (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                                        &then IF AVAIL bf-cidade-est THEN bf-cidade-est.cdn-munpio-ibge ELSE 0
+                                        &else IF AVAIL bf-cidade-est THEN bf-cidade-est.int-2           ELSE 0 &endif)
+                                  ELSE 9999999)
+           ttIde.cNF     = (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                            &then SUBSTRING ( STRING   (nota-fiscal.cod-chave-aces-nf-eletro),36,8)
+                            &else SUBSTRING ( SUBSTRING(nota-fiscal.char-2,3,60)             ,36,8) &endif)
+           ttIde.cUF     = STRING(IF  estabelec.pais = "Brasil":U
+                                  THEN (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                                        &then IF AVAIL bf-unid-feder-est THEN INT(bf-unid-feder-est.cod-uf-ibge)           ELSE 0
+                                        &else IF AVAIL bf-unid-feder-est THEN INT(SUBSTRING(bf-unid-feder-est.char-1,1,2)) ELSE 0 &endif)
+                                  ELSE 99)
+           ttIde.dEmi    = nota-fiscal.dt-emis-nota
+           ttIde.dSaiEnt = nota-fiscal.dt-saida
+           ttIde.finNFe  = IF TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "" AND TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "0" THEN
+                              TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) /*Finalidade NF-e*/
+                           ELSE
+                           (IF nota-fiscal.ind-tip-nota = 3 /*3 Diferenca de Preco*/ 
+                            THEN "3"
+                            ELSE IF l-nota-compl-imp /*2 Complementar de Imposto*/
+                                 THEN "2"
+                                 ELSE "1")
+           ttIde.indPag  = cIndPag
+           /*ttIde.indPag  = (IF nota-fiscal.emite-duplic
+                            THEN "1"  /* cond pagto especial */
+                            ELSE "0") WHEN (NOT AVAIL cond-pagto) OR (AVAIL cond-pagto AND cond-pagto.cod-cond-pag = 0)*/
+           ttIde.mod     = &if '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                           bf-natur-oper-nf.cod-model-nf-eletro WHEN AVAIL bf-natur-oper-nf
+                           &ELSE
+                           SUBSTRING(bf-natur-oper-nf.char-2,120,2) WHEN AVAIL bf-natur-oper-nf
+                           &endif
+           ttIde.natOp   = (&if '{&bf_dis_versao_ems}' >= '2.05':U &then 
+                                IF SUBSTRING(bf-natur-oper-nf.char-1,166,1) = "1":U THEN bf-natur-oper-nf.denominacao 
+                                ELSE IF AVAIL cfop-natur THEN cfop-natur.des-cfop
+                                    ELSE ""
+                            &else
+                                IF AVAIL ped-curva
+                                THEN ped-curva.nome 
+                                ELSE IF AVAIL bf-natur-oper-nf THEN bf-natur-oper-nf.denominacao ELSE ""
+                            &endif)
+           ttIde.nNF     = STRING( DEC(nota-fiscal.nr-nota-fis) )  /* Para retirar zeros Ö esquerda */
+           ttIde.procEmi = (IF lLayoutTXT
+                            THEN "3"  /*3 - emiss∆o de NF-e pelo contribuinte com aplicativo fornecido pelo FISCO*/
+                            ELSE "0") /*0 - emiss∆o de NF-e com aplicativo do contribuinte*/
+           ttIde.serie   = c-serie.
+
+
+    IF  LOOKUP(tp-integ, "TSS,TC,TC2":U) > 0 THEN DO:
+        ASSIGN ttIde.tpAmb   = IF  AVAIL param-nf-estab AND 
+                                   tp-integ <> "TC2":U THEN 
+                                   &if "{&BF_DIS_VERSAO_EMS}" >= "2.08" &then
+                                   STRING(param-nf-estab.idi-tip-emis-amb-sefaz)
+                                   &else
+                                   STRING(param-nf-estab.num-livre-1)
+                                   &endif
+                               ELSE 
+                                   (IF &if "{&BF_DIS_VERSAO_EMS}" >= "2.07" &then
+                                       estabelec.idi-tip-emis-nf-eletro    = 3
+                                       &else
+                                       INT(SUBSTR(estabelec.char-1,168,1)) = 3  /* Processo Emiss∆o NF-e - CD0403 */
+                                       &endif
+                                    THEN "1"  /* Produá∆o    */
+                                    ELSE "2") /* Homologaá∆o */. 
+    END.
+    ELSE DO:
+        ASSIGN ttIde.tpAmb   = (IF &if "{&BF_DIS_VERSAO_EMS}" >= "2.07" &then
+                                   estabelec.idi-tip-emis-nf-eletro    = 3
+                                   &else
+                                   INT(SUBSTR(estabelec.char-1,168,1)) = 3  /* Processo Emiss∆o NF-e - CD0403 */
+                                   &endif
+                                THEN "1"  /* Produá∆o    */
+                                ELSE "2") /* Homologaá∆o */
+                                .
+    END.
+
+    ASSIGN ttIde.tpEmis  =  (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                             &then STRING   (nota-fiscal.idi-forma-emis-nf-eletro)
+                             &else SUBSTRING(nota-fiscal.char-2,65,2) &endif)
+           ttIde.tpImp   = (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                            &then STRING   (ser-estab.idi-format-emis-danfe)
+                            &else SUBSTRING(ser-estab.char-1,4,1) &endif) WHEN AVAIL ser-estab
+           ttIde.tpImp   = (IF  ttIde.tpImp = "3" THEN "1" ELSE 
+                            IF  ttIde.tpImp = "4" THEN "2"
+                                                  ELSE ttIde.tpImp)
+           ttIde.tpNF    = (IF c-cod-cfop = "" OR c-cod-cfop = ?
+                            THEN "" /* nao enviar 0 ou 1 quando CFOP = "" ou ? */
+                            ELSE IF SUBSTRING(c-cod-cfop,1,1) = "1" OR 
+                                    SUBSTRING(c-cod-cfop,1,1) = "2" OR 
+                                    SUBSTRING(c-cod-cfop,1,1) = "3"
+                                 THEN "0"  /*Entrada*/
+                                 ELSE "1") /*Sa°da  */
+           ttIde.verProc = (IF lLayoutTXT
+                            THEN (IF &if  "{&bf_dis_versao_ems}" >= "2.09" &then 
+                                       estabelec.des-vers-software-emissor
+                                     &else 
+                                       TRIM(SUBSTRING(estabelec.char-1,251,10)) &endif
+                                  <> "":U
+                                  THEN &if  "{&bf_dis_versao_ems}" >= "2.09"
+                                       &then estabelec.des-vers-software-emissor
+                                       &else TRIM(SUBSTRING(estabelec.char-1,251,10)) &endif
+                                  ELSE "2.0.2")
+                            ELSE "5.0")
+           .
+
+    IF  ttIde.tpEmis <> "1" THEN DO:
+        FOR FIRST reg-inf-compl NO-LOCK
+            WHERE reg-inf-compl.cod-tab-inform   = "estabelec"
+            AND   reg-inf-compl.cod-campo-inform = "cdn-msg-contingen",
+            FIRST inf-compl NO-LOCK
+            WHERE inf-compl.cdn-identif = reg-inf-compl.cdn-identif
+            AND   inf-compl.cod-indice  = nota-fiscal.cod-estabel:
+            FIND FIRST mensagem NO-LOCK WHERE mensagem.cod-mensagem = inf-compl.num-campo NO-ERROR.
+            IF  AVAIL mensagem THEN DO:
+
+                IF  INDEX(nota-fiscal.observ-nota,"Data/Hora entrada em contingencia":U) = 0 THEN /* ainda n∆o gravou msg de contingencia na observaá∆o */
+                    ASSIGN cHoraContingencia = STRING(TIME,"HH:MM:SS"). /* pega hora do sistema */
+                ELSE
+                    ASSIGN cHoraContingencia = SUBSTR(nota-fiscal.observ-nota, INDEX(nota-fiscal.observ-nota,"Data/Hora entrada em contingencia":U) + 46, 8).
+                                               /* pega hora j† gravada na observaá∆o da nota */
+            
+                ASSIGN ttIde.dhCont = STRING(YEAR(nota-fiscal.dt-emis-nota),"9999")  + "-"
+                                    + STRING(MONTH(nota-fiscal.dt-emis-nota),"99") + "-"
+                                    + STRING(DAY(nota-fiscal.dt-emis-nota),"99") + "T" 
+                                    + cHoraContingencia            /* Formato AAAA-MM-DDTHH:MM:SS */
+                       ttIde.xJust  = "Justificativa entrada em contingencia: " + mensagem.texto-mensag.
+
+            END.
+        END.
+    END.
+    ELSE
+        ASSIGN ttIde.dhCont      = ""
+               ttIde.xJust       = ""
+               ttIde.hSaiEnt     = "".
+
+    /*---- NOTA DE CRêDITO DE ATIVO ---*/
+    IF TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "" AND TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "0" THEN
+        ASSIGN ttIde.finNFe = TRIM(SUBSTRING(nota-fiscal.char-2,211,2)). /*Finalidade NF-e*/
+    ELSE
+        IF (nota-fiscal.ind-tip-nota = 8
+        AND nota-fiscal.int-2        = 4003  /*GERADA VIA FT4003 COM NATUREZA DE ENTRADA E FUNCAO ESPECIAL "NFEFT4003"*/
+        AND CAN-FIND (FIRST funcao
+                      WHERE funcao.cd-funcao = "spp-NFEFT4003":U
+                        AND funcao.ativo))
+        OR (nota-fiscal.ind-tip-nota = 4
+        AND nota-fiscal.int-2        = 207)  /*GERADA VIA MRI - RI0207*/
+        THEN
+            ASSIGN ttIde.finNFe = "3". /*Para o Fisco este tipo de nota de ser gerado como 3 Œ NF-e de Ajuste*/
+    /*---*/
+
+    /* Chave EMS */
+    ASSIGN ttIde.CodEstabelNF = nota-fiscal.cod-estabel
+           ttIde.SerieNF      = nota-fiscal.serie
+           ttIde.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttIde THEN
+        ASSIGN ttIde.cDV         = fn-ajusta-tamanho-campo(ttIde.cDV    , 1)
+               ttIde.cMunFG      = fn-ajusta-tamanho-campo(ttIde.cMunFG , 7)
+               ttIde.cNF         = fn-ajusta-tamanho-campo(ttIde.cNF    , 8)
+               ttIde.cUF         = fn-ajusta-tamanho-campo(ttIde.cUF    , 2)
+               ttIde.finNFe      = fn-ajusta-tamanho-campo(ttIde.finNFe , 1)
+               ttIde.indPag      = fn-ajusta-tamanho-campo(ttIde.indPag , 1)
+               ttIde.mod         = fn-ajusta-tamanho-campo(ttIde.mod    , 2)
+               ttIde.natOp       = fn-ajusta-tamanho-campo(ttIde.natOp  ,60)
+               ttIde.nNF         = fn-ajusta-tamanho-campo(ttIde.nNF    , 9)
+               ttIde.procEmi     = fn-ajusta-tamanho-campo(ttIde.procEmi, 1)
+               ttIde.serie       = fn-ajusta-tamanho-campo(ttIde.serie  , 3)
+               ttIde.tpAmb       = fn-ajusta-tamanho-campo(ttIde.tpAmb  , 1)
+               ttIde.tpEmis      = fn-ajusta-tamanho-campo(ttIde.tpEmis , 1)
+               ttIde.tpImp       = fn-ajusta-tamanho-campo(ttIde.tpImp  , 1)
+               ttIde.tpNF        = fn-ajusta-tamanho-campo(ttIde.tpNF   , 1)
+               ttIde.xJust       = fn-ajusta-tamanho-campo(ttIde.xJust  ,256)
+               ttIde.verProc     = fn-ajusta-tamanho-campo(ttIde.verProc,20).
+
+END PROCEDURE.

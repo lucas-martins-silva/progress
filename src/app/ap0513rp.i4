@@ -1,0 +1,120 @@
+/******************************************************************************
+***
+***  pi-tratar-traducao.
+***
+******************************************************************************/
+
+def input param p-dt-transacao like mov-ap.dt-transacao no-undo.
+def         var c-cod-esp      like mov-ap.cod-esp      no-undo.
+
+
+find tt-emitente
+    where tt-emitente.cod-emitente = mov-ap.cod-fornec
+    and   tt-emitente.identific <> 1 no-lock no-error.
+if  not avail tt-emitente then do:
+    find emitente
+        where emitente.cod-emitente = mov-ap.cod-fornec
+        and   emitente.identific <> 1 no-lock no-error.
+    
+    if  not avail emitente then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 91,
+                           input string(mov-ap.cod-fornec)).
+        disp return-value @ tt-editor.conteudo
+             with frame f-msg-editor.
+        down with frame f-msg-editor.
+        return.
+    end.
+    create tt-emitente.
+    buffer-copy emitente to tt-emitente.
+end.    
+
+
+assign c-cod-esp = if  mov-ap.esp-ant <> ""
+                   then mov-ap.esp-ant
+                   else mov-ap.cod-esp.
+                   
+find tt-conta-ap
+    where tt-conta-ap.ep-codigo = mov-ap.ep-codigo
+    and   tt-conta-ap.cod-estab = mov-ap.cod-estabel
+    and   tt-conta-ap.cod-esp   = c-cod-esp
+    and   tt-conta-ap.cod-grupo = tt-emitente.cod-gr-for
+    no-lock no-error.
+if  not avail tt-conta-ap then do:                       
+    find conta-ap
+        where conta-ap.ep-codigo   = mov-ap.ep-codigo
+        and   conta-ap.cod-estabel = mov-ap.cod-estabel
+        and   conta-ap.cod-esp     = c-cod-esp
+        and   conta-ap.cod-grupo   = tt-emitente.cod-gr-for no-lock no-error.
+    if  not avail conta-ap then do:
+        run utp/ut-msgs.p (input "help",
+                           input 1823,
+                           input mov-ap.cod-estabel + "~~" +
+                                 c-cod-esp + "~~" +
+                                string(tt-emitente.cod-gr-for)).
+        disp return-value @ tt-editor.conteudo
+             with frame f-msg-editor.
+        down with frame f-msg-editor.
+        return.
+    end.
+    create tt-conta-ap.
+    buffer-copy conta-ap to tt-conta-ap.
+end.    
+
+find tt-ext-cmi
+    where tt-ext-cmi.ep-codigo = mov-ap.ep-codigo
+    and   tt-ext-cmi.ct-codigo = tt-conta-ap.ct-saldo
+    and   tt-ext-cmi.sc-codigo = tt-conta-ap.sc-saldo
+    no-lock no-error.
+if  not avail tt-ext-cmi then do:    
+    find ext-cmi
+        where ext-cmi.ep-codigo = mov-ap.ep-codigo
+        and   ext-cmi.ct-codigo = tt-conta-ap.ct-saldo
+        and   ext-cmi.sc-codigo = tt-conta-ap.sc-saldo no-lock no-error.
+    if  not avail ext-cmi then do:
+        {utp/ut-table.i mgadm ext-cmi 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 3039,
+                           input return-value + "~~" +
+                           tt-conta-ap.conta-saldo).
+        disp return-value @ tt-editor.conteudo
+             with frame f-msg-editor.
+        down with frame f-msg-editor.
+        return.
+    end.
+    create tt-ext-cmi.
+    buffer-copy ext-cmi to tt-ext-cmi.
+end.
+
+
+if  mov-ap.acerto-cmi <> 0 then do:
+    create traducao.
+    assign traducao.ep-codigo      = mov-ap.ep-codigo
+           traducao.cod-estabel    = mov-ap.cod-estabel
+           traducao.cod-emitente   = mov-ap.cod-fornec
+           traducao.cod-esp        = mov-ap.cod-esp
+           traducao.serie          = mov-ap.serie
+           traducao.nr-docto       = mov-ap.nr-docto
+           traducao.parcela        = mov-ap.parcela
+           traducao.ct-codigo      = ext-cmi.ct-codigo
+           traducao.sc-codigo      = ext-cmi.sc-codigo
+           traducao.conta-contabil = ext-cmi.conta-contabil
+           traducao.ct-cp-trad     = ext-cmi.ct-acerto-1
+           traducao.sc-cp-trad     = ext-cmi.sc-acerto-1
+           traducao.conta-traducao = ext-cmi.conta-gp-cmcac
+           traducao.dt-trans       = p-dt-transacao
+           traducao.referencia     = c-ref-s
+           traducao.observacao     = "CMCAC"
+           traducao.vl-original[2] = if  mov-ap.acerto-cmi > 0 then
+                                         mov-ap.acerto-cmi else 0
+           traducao.vl-real[2]     = if  mov-ap.acerto-cmi < 0 then
+                                         mov-ap.acerto-cmi * -1 else 0.
+   
+    /***** Multi-Planta (traducao) ***********************/       
+    assign i-tipo-movto = 1.
+    run pi-cria-tt-dados-traducao (input i-tipo-movto).  
+    /****************************************************/    
+
+end.
+
+/* Fim de Include */

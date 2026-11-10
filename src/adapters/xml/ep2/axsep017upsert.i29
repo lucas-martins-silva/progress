@@ -1,0 +1,30 @@
+PROCEDURE pi-grava-ttICMS40:
+
+    /*
+    === ttICMS40 ===
+    CST            AS CHARACTER INITIAL ?  /*Tributaá∆o pelo ICMS 40 - Isenta 41 - N∆o tributada 50 - Suspens∆o 51 - Diferimento */
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importaá∆o direta 2 - Estrangeira - Adquirida no mercado interno */
+    ICMS           AS DECIMAL   INITIAL ?  /*Valor do ICMS*/
+    otDesICMS      AS CHARACTER INITIAL ?  /*Motivo da desoneraá∆o do ICMS*/    
+    */
+
+    CREATE ttICMS40.
+    ASSIGN ttICMS40.CST        = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS40.orig       = SUBSTRING(c-niv-trib-icms,1,1)
+           /*ttICMS40.vICMS = */
+           ttICMS40.motDesICMS = "".
+
+    /* Venda para ZF - Nota Tecnica 2011/004*/
+    IF  r-cidade-zf <> ? AND it-nota-fisc.dec-1 > 0 THEN DO:  /* it-nota-fisc.dec-1 - Desoneracao ICMS*/
+        ASSIGN ttICMS40.vICMS      = it-nota-fisc.dec-1
+               ttICMS40.motDesICMS = "7" /* SUFRAMA */.
+    END.
+
+    /* Chave EMS */
+    ASSIGN ttICMS40.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS40.SerieNF      = nota-fiscal.serie
+           ttICMS40.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS40.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS40.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.

@@ -1,0 +1,218 @@
+PROCEDURE pi-cria-ttInfAdic:
+
+    DEFINE VARIABLE c-observacao AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE c-infAdFisco AS CHARACTER   NO-UNDO.
+
+    DEFINE VARIABLE c-emitente   AS INTEGER     NO-UNDO.
+    DEFINE VARIABLE l-armazem    AS LOGICAL     NO-UNDO.
+    
+    DEFINE BUFFER bf-emit-dep-ext      FOR emitente.
+    DEFINE BUFFER bf-dist-emit-dep-ext FOR dist-emitente.
+    DEFINE BUFFER bf-estab-dep-ext     FOR estabelec.
+
+    /*
+    === ttInfAdic ===
+    infAdFisco     AS CHARACTER INITIAL ?  /*Informaá‰es adicionais de interesse do Fisco*/
+    infCpl         AS CHARACTER INITIAL ?  /*Informaá‰es complementares de interesse do Contribuinte*/
+    */
+    
+
+    IF INDEX(nota-fiscal.observ-nota,"INFADFISCO") > 0 THEN
+        ASSIGN c-observacao = TRIM(SUBSTRING(nota-fiscal.observ-nota,1,INDEX(nota-fiscal.observ-nota,"INFADFISCO") - 1))
+               c-infAdFisco = REPLACE(TRIM(SUBSTRING(nota-fiscal.observ-nota,INDEX(nota-fiscal.observ-nota,"INFADFISCO"),LENGTH(nota-fiscal.observ-nota))),"INFADFISCO","").
+    ELSE 
+        ASSIGN c-observacao = nota-fiscal.observ-nota
+               c-infAdFisco = "".
+               
+
+    IF  AVAIL nota-fiscal AND (AVAIL ttIde AND ttIde.tpemis <> "1") THEN DO: /* TODOS QUE S«O DIFERENTE DE 1 S«O CONTIGENCIA */
+        FIND b-nota-fiscal EXCLUSIVE-LOCK WHERE ROWID(b-nota-fiscal) = ROWID(nota-fiscal) NO-ERROR.
+        
+        IF  AVAIL b-nota-fiscal THEN DO:
+            IF  INDEX(b-nota-fiscal.observ-nota,"Data/Hora entrada em contingencia":U) = 0 THEN /* ainda n∆o gravou msg de contingencia na observaá∆o */
+                ASSIGN c-observacao              = c-observacao 
+                                                 + " " 
+                                                 + ttIde.xJust  /* carregado na pi-cria-ttDet - mensagem.texto-mensag */
+                                                 + " Data/Hora entrada em contingencia: ":U
+                                                 + STRING(DAY(b-nota-fiscal.dt-emis-nota),"99")    + "/"
+                                                 + STRING(MONTH(b-nota-fiscal.dt-emis-nota),"99")  + "/"
+                                                 + STRING(YEAR(b-nota-fiscal.dt-emis-nota),"9999") + " " 
+                                                 + cHoraContingencia       /* Formato DD/MM/YYYY HH:MM:SS */
+                                                 + " |" /* separador observaá∆o de msgs diferentes */
+                       b-nota-fiscal.observ-nota = c-observacao + "INFADFISCO" + c-infAdFisco.
+        END.
+    END.   
+
+    IF NOT l-retira-out-desp-obs THEN
+        ASSIGN c-observacao = c-observacao + IF d-total-pis-st        > 0 THEN ("   " + "VL PIS-ST: "                                             + TRIM(STRING(d-total-pis-st       ,">,>>>,>>>,>>9.99"))) ELSE "" WHEN l-impressao-danfe
+               c-observacao = c-observacao + IF d-total-cofins-st     > 0 THEN (" | " + "VL COFINS-ST: "                                          + TRIM(STRING(d-total-cofins-st    ,">,>>>,>>>,>>9.99"))) ELSE "" WHEN l-impressao-danfe
+               c-observacao = c-observacao + IF d-total-IPI-espec     > 0 THEN (" | " + "VL IPI (Outras Despesas): "                              + TRIM(STRING(d-total-IPI-espec    ,">,>>>,>>>,>>9.99"))) ELSE ""
+               c-observacao = c-observacao + IF d-total-icms-ST-espec > 0 THEN (" | " + "VL ICMS-ST (Outras Despesas): "                          + TRIM(STRING(d-total-icms-ST-espec,">,>>>,>>>,>>9.99"))) ELSE ""
+               c-observacao = c-observacao + IF d-total-ipi-out-tot   > 0 THEN (" | " + "VL IPI Outros (Outras Despesas): "                       + TRIM(STRING(d-total-ipi-out-tot  ,">,>>>,>>>,>>9.99"))) ELSE ""
+               c-observacao = c-observacao + IF d-total-desp-n-destaq > 0 THEN (" | " + "VL Despesas Frete/Seguro/Embalagem (Outras Despesas): "  + TRIM(STRING(d-total-desp-n-destaq,">,>>>,>>>,>>9.99"))) ELSE ""
+               .
+               
+    /*=====================================================================================================================================================
+    O conte£do do campo vICMSDeson, enquanto n∆o for previsto no leiaute do DANFE, dever† ser copiado no campo de Informaá‰es Complementares de 
+    Interesse do Contribuinte (infCpl) para que a informaá∆o conste impressa no DANFE. NT2013.005_v1.22
+    =====================================================================================================================================================*/
+    IF  ttICMSTot.vICMSDeson > 0 AND (NOT nota-fiscal.dec-1 > 0) THEN /*Para Desconto ZFM (dec-1) j† Ç mostrado no campo (bodi317ef.m31). Para outrs descontos de ICMS, mostrar a frase*/
+        ASSIGN c-observacao = c-observacao + "  Valor do ICMS desonerado R$ " + TRIM(STRING(ttICMSTot.vICMSDeson,"->>>,>>>,>>>,>>9.99")) + " (vICMSDeson).".
+    /*===================================================================================================================================================*/
+    
+    FOR FIRST ttEntrega NO-LOCK:
+    
+        ASSIGN c-observacao = c-observacao +
+                              "  LOCAL DE ENTREGA: "    + 
+                              (IF ttEntrega.xNome <> ? AND ttEntrega.xNome <> ""
+                              THEN " Raz∆o Social: " + ttEntrega.xNome
+                              ELSE "")
+                              +
+                              " Endereáo: "             + (ttEntrega.xLgr + " " + ttEntrega.nro + " " + ttEntrega.xCpl) +
+                              " Bairro/Distrito: "      + ttEntrega.xBairro +
+                              " Municipio: "            + ttEntrega.xMun    + 
+                              (IF ttEntrega.CEP <> ? AND ttEntrega.CEP <> ""
+                              THEN " CEP: " + ttEntrega.CEP
+                              ELSE "")
+                              +
+                              " UF: "                   + ttEntrega.UF      +
+                              (IF ttEntrega.xPais <> ? AND ttEntrega.xPais <> ""
+                              THEN " Pais: " + ttEntrega.xPais
+                              ELSE "")
+                              +
+                              (IF ttEntrega.fone <> ? AND ttEntrega.fone <> ""
+                              THEN " Telefone: " + ttEntrega.fone
+                              ELSE "")
+                              +
+                              (IF ttEntrega.email <> ? AND ttEntrega.email <> ""
+                              THEN " Email: " + ttEntrega.email
+                              ELSE "")
+                              +
+                              (IF ttEntrega.IE <> ? AND ttEntrega.IE <> ""
+                              THEN " Inscriá∆o Estadual: " + ttEntrega.IE
+                              ELSE "").
+    END.         
+
+    FOR FIRST ttRetirada NO-LOCK: 
+    
+        ASSIGN l-armazem = NO.       
+                          
+        /* Gerar o CNPJ no DANFE para ArmazÇm Geral */
+        FOR FIRST bf-emit-dep-ext NO-LOCK 
+            WHERE bf-emit-dep-ext.nome-abrev = ttRetirada.xNomeRetirada:           
+            ASSIGN c-emitente = bf-emit-dep-ext.cod-emitente.
+        END.  
+        IF ttRetirada.xNomeRetirada <> "" 
+        AND NOT AVAIL bf-emit-dep-ext THEN 
+            FOR FIRST bf-emit-dep-ext
+                WHERE bf-emit-dep-ext.cod-emitente = INT(ttRetirada.xNomeRetirada) NO-LOCK:                 
+                ASSIGN c-emitente = bf-emit-dep-ext.cod-emitente.
+            END.  
+        
+        IF CAN-FIND(FIRST bf-estab-dep-ext NO-LOCK 
+                    WHERE bf-estab-dep-ext.cod-emitente            = c-emitente
+                    AND   SUBSTRING(bf-estab-dep-ext.char-1,396,1) <> "S") THEN DO:   /* Estabelecimento DepΩsito Fechado */                          
+                    
+            FOR FIRST bf-dist-emit-dep-ext NO-LOCK 
+                WHERE bf-dist-emit-dep-ext.cod-emitente = bf-emit-dep-ext.cod-emitente: 
+
+                IF  CAN-FIND(FIRST fat-ser-lote NO-LOCK
+                             WHERE fat-ser-lote.cod-estabel  = nota-fiscal.cod-estabel
+                               AND fat-ser-lote.serie        = nota-fiscal.serie
+                               AND fat-ser-lote.nr-nota-fis  = nota-fiscal.nr-nota-fis
+                               AND fat-ser-lote.cod-depos    = bf-dist-emit-dep-ext.cod-dep-ext)
+                AND CAN-FIND(FIRST deposito NO-LOCK
+                             WHERE deposito.cod-depos    = bf-dist-emit-dep-ext.cod-dep-ext
+                             AND   deposito.ind-tipo-dep = 2) /* Se o emitente do estabelecimento do local de retirada ? um depΩsito fechado */ THEN DO:                    
+                    ASSIGN l-armazem = YES. 
+
+                END.
+            END.          
+        END.           
+       
+        ASSIGN c-observacao = c-observacao              +
+                              "  LOCAL DE RETIRADA: "   + 
+                              (IF ttRetirada.xNome <> ? AND ttRetirada.xNome <> ""
+                              THEN " Raz∆o Social: " + ttRetirada.xNome
+                              ELSE "")
+                              +
+                              " Endereáo: "             + (ttRetirada.xLgr + " " + ttRetirada.nro + " " + ttRetirada.xCpl) +
+                              " Bairro/Distrito: "      + ttRetirada.xBairro +
+                              " Municipio: "            + ttRetirada.xMun    + 
+                              (IF ttRetirada.CEP <> ? AND ttRetirada.CEP <> ""
+                              THEN " CEP: " + ttRetirada.CEP
+                              ELSE "")
+                              +
+                              " UF: "                   + ttRetirada.UF      +
+                              (IF ttRetirada.xPais <> ? AND ttRetirada.xPais <> ""
+                              THEN " Pais: " + ttRetirada.xPais
+                              ELSE "")
+                              +
+                              (IF ttRetirada.fone <> ? AND ttRetirada.fone <> ""
+                              THEN " Telefone: " + ttRetirada.fone
+                              ELSE "")
+                              +
+                              (IF ttRetirada.email <> ? AND ttRetirada.email <> ""
+                              THEN " Email: " + ttRetirada.email
+                              ELSE "")
+                              +
+                              (IF ttRetirada.IE <> ? AND ttRetirada.IE <> ""
+                              THEN " Inscriá∆o Estadual: " + ttRetirada.IE
+                              ELSE "")
+                              +
+                              (IF (    AVAIL nota-fiscal
+                                   AND SUBSTRING(nota-fiscal.char-2,256,1) = "S")
+                               OR l-armazem = YES
+                               THEN IF ttRetirada.CPF <> ? AND ttRetirada.CPF <> "" 
+                                    THEN " CPF: " + ttRetirada.CPF
+                                    ELSE IF ttRetirada.CNPJ <> ? AND ttRetirada.CNPJ <> "" 
+                                         THEN " CNPJ: " + ttRetirada.CNPJ
+                                         ELSE ""
+                               ELSE "").
+    END. 	
+    	
+    /*
+    Emenda Constitucional 87/2015 - NT 2015.003
+    N∆o haver† alteraá∆o no leiaute do DANFE, mas as empresas remetentes devem informar, no campo de ÀInformaá‰es ComplementaresÃ, os valores descritos no grupo de tributaá∆o do ICMS para a UF de destino.
+    */
+    IF (d-total-vFCPUFDest   > 0
+    OR  d-total-vICMSUFDest  > 0
+    OR  d-total-vICMSUFRemet > 0) THEN
+        ASSIGN c-infAdFisco = c-infAdFisco + " | EC 87/2015 "
+               c-infAdFisco = c-infAdFisco + IF d-total-vFCPUFDest   > 0 THEN (" Valor ICMS FCP UF Destino: "         + TRIM(STRING(d-total-vFCPUFDest  ,">,>>>,>>>,>>9.99"))) ELSE ""
+               c-infAdFisco = c-infAdFisco + IF d-total-vICMSUFDest  > 0 THEN (" Valor ICMS Partilha UF Destino: "    + TRIM(STRING(d-total-vICMSUFDest ,">,>>>,>>>,>>9.99"))) ELSE ""
+               c-infAdFisco = c-infAdFisco + IF d-total-vICMSUFRemet > 0 THEN (" Valor ICMS Partilha UF Remetente: "  + TRIM(STRING(d-total-vICMSUFRemet,">,>>>,>>>,>>9.99"))) ELSE ""
+               c-infAdFisco = c-infAdFisco + " |".
+
+    /*
+    NF-e 4.00 - NT 2016.002
+    Os valores de totais do FCP (id: W04b e W06a) devem ser informados em "Informaá‰es Adicionais de Interesse do Fisco, campo "infAdFisco", quando existirem."
+    id W04b - vFCP
+    id W06a - vFCPST
+    */
+    IF (d-total-vFCP   > 0
+    OR  d-total-vFCPST > 0) THEN DO:
+        ASSIGN c-infAdFisco = c-infAdFisco + IF d-total-vFCP   > 0 THEN (" Valor FCP: "    + TRIM(STRING(d-total-vFCP  ,">,>>>,>>>,>>>,>>9.99"))) ELSE "".
+        
+        IF l-Majora-FCP = NO THEN
+            ASSIGN c-infAdFisco = c-infAdFisco + IF d-total-vFCPST > 0 THEN (" Valor FCP ST: " + TRIM(STRING(d-total-vFCPST,">,>>>,>>>,>>>,>>9.99"))) ELSE "".
+    END.
+
+    CREATE ttInfAdic.
+    ASSIGN ttInfAdic.infAdFisco   = c-infAdFisco
+           ttInfAdic.infCpl       = REPLACE(c-observacao,CHR(10), " ")
+           ttInfAdic.infCpl       = REPLACE(ttInfAdic.infCpl,       CHR(13), " ")
+           ttInfAdic.infCpl       = REPLACE(ttInfAdic.infCpl,       CHR(9), " ")
+           ttInfAdic.infCpl       = IF  lLayoutTXT THEN REPLACE(ttInfAdic.infCpl, "|", "/") ELSE ttInfAdic.infCpl
+           ttInfAdic.infCpl       = fn-ajusta-espacos-branco(ttInfAdic.infCpl)
+           ttInfAdic.infCpl       = fn-ajusta-tamanho-campo(ttInfAdic.infCpl ,5000)
+           ttInfAdic.infAdFisco   = fn-ajusta-espacos-branco(ttInfAdic.infAdFisco)
+           ttInfAdic.infAdFisco   = fn-ajusta-tamanho-campo(ttInfAdic.infAdFisco ,2000).
+
+    /* Chave EMS */
+    ASSIGN ttInfAdic.CodEstabelNF = nota-fiscal.cod-estabel
+           ttInfAdic.SerieNF      = nota-fiscal.serie
+           ttInfAdic.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+
+END PROCEDURE.

@@ -1,0 +1,63 @@
+PROCEDURE pi-enviaEmailDestTransp:
+    
+    /* Integra‡Æo TSS */
+    IF  LOOKUP(tp-integ, "TSS,TC":U) > 0 THEN DO:
+        
+        IF  NOT AVAIL ttInfAdic THEN
+            FIND FIRST ttInfAdic NO-ERROR.
+
+        IF  cEmailDestTransp <> ""  THEN
+            ASSIGN ttInfAdic.infCpl = ttInfAdic.infCpl + " [EMAIL=":U + cEmailDestTransp + "]":U.
+
+    END.
+    /* Fim - Integra‡Æo TSS Sincrono */
+    
+    /* Integra‡Æo Neogrid */
+    IF  tp-integ <> "TSS":U THEN DO:
+        
+        IF  cEmailDest <> "" THEN DO:
+            CREATE ttObsCont.
+            ASSIGN ttObsCont.xCampo       = "mailDest":U
+                   ttObsCont.xTexto       = fn-ajusta-tamanho-campo(cEmailDest, 60)
+                   /* Chave EMS */
+                   ttObsCont.CodEstabelNF = nota-fiscal.cod-estabel  
+                   ttObsCont.SerieNF      = nota-fiscal.serie        
+                   ttObsCont.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+        END.
+
+        IF  cEmailTransp <> "" THEN DO:
+            CREATE ttObsCont.
+            ASSIGN ttObsCont.xCampo       = "mailTransp":U
+                   ttObsCont.xTexto       = fn-ajusta-tamanho-campo(cEmailTransp, 60)
+                   /* Chave EMS */
+                   ttObsCont.CodEstabelNF = nota-fiscal.cod-estabel  
+                   ttObsCont.SerieNF      = nota-fiscal.serie        
+                   ttObsCont.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+        END.
+
+    END.
+      if  LOOKUP(tp-integ, "TSS,TC,TC2":U) > 0 then do:
+      
+          IF  cEmailDest <> "" THEN DO:
+              create ttObsCont.
+              assign ttObsCont.xCampo       = "mailDest":U
+                     ttObsCont.xTexto       = fn-ajusta-tamanho-campo(cEmailDest, 60)
+                     /* Chave EMS */
+                     ttObsCont.CodEstabelNF = nota-fiscal.cod-estabel  
+                     ttObsCont.SerieNF      = nota-fiscal.serie        
+                     ttObsCont.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+        END.
+                      
+          if  cEmailTransp <> "" then do:
+              create ttObsCont.
+              assign ttObsCont.xCampo       = "mailTransp":U
+                     ttObsCont.xTexto       = fn-ajusta-tamanho-campo(cEmailTransp, 60)
+                     /* Chave EMS */
+                     ttObsCont.CodEstabelNF = nota-fiscal.cod-estabel  
+                     ttObsCont.SerieNF      = nota-fiscal.serie        
+                     ttObsCont.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+          end.              
+      end.
+    /* Fim - Integra‡Æo Neogrid */
+
+END PROCEDURE.

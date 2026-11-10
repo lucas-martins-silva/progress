@@ -1,0 +1,15 @@
+/*********************************************************************
+***
+***     Include: ap1001.i6 - Busca tipo de pagamento do emitente
+***
+**********************************************************************/
+
+if  i-tipo-pag-ant = 5 then do:
+    find first emitente where emitente.cod-emit = {1}
+                    and emitente.identific <> 1 no-lock no-error.
+    if  avail emitente then
+        assign i-tipo-pag = emitente.tp-pagto.
+end.
+
+
+/*  fim */

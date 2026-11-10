@@ -1,0 +1,27 @@
+if c-seq-refer <> "" then do:
+    find first tt-param-nom no-lock
+         where tt-param-nom.ep-codigo = i-ep-codigo-usuario
+           and tt-param-nom.portador  = input frame {&frame-name} i-portador
+           and tt-param-nom.nr-cheque = input frame {&frame-name} c-nr-cheque no-error.
+    if avail tt-param-nom then do:
+        for each tt-baixa no-lock:
+            for each che-emit exclusive-lock
+               where che-emit.ep-codigo   = i-ep-codigo-usuario
+                 and che-emit.portador    = tt-param-nom.portador
+                 and che-emit.nr-cheque   = tt-param-nom.nr-cheque
+                 and che-emit.cod-fornec  = tt-baixa.cod-fornec
+                 and che-emit.cod-estabel = tt-baixa.cod-estabel
+                 and che-emit.cod-esp     = tt-baixa.cod-esp
+                 and che-emit.serie       = tt-baixa.serie
+                 and che-emit.nr-docto    = tt-baixa.nr-docto
+                 and che-emit.parcela     = tt-baixa.parcela:
+                    
+                &IF "{&mgadm_version}" >= "2.07" &THEN
+                    assign che-emit.cod-refer-sem-desemb = c-seq-refer.
+                &ELSE
+                    assign substring(che-emit.char-2,01,10) = c-seq-refer.
+                &ENDIF
+            end.
+        end.
+    end.
+end.

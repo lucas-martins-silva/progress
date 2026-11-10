@@ -1,0 +1,12 @@
+/**********************************************************************************
+***
+***   BH0102.i2 - Defini‡Æo da Temp-Table w-per
+***
+**********************************************************************************/
+
+def temp-table w-per
+    field i-emp  like empresa.ep-codigo
+    field c-mod  as char format "x(02)"
+    field da-per as date format "99/99/9999".
+
+/*--- BH0102.i2 ---*/

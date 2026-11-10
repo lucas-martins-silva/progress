@@ -1,0 +1,45 @@
+IF tt-pedido-compr.data-pedido = ? THEN
+    ASSIGN tt-pedido-compr.data-pedido = TODAY.
+
+IF VALID-HANDLE(h-boin295) THEN
+    RUN preparaPedidoCompra IN h-boin295 (output c-formato-cgc,
+                                          output l-modulo-ge,
+                                          output c-end-cobranca-aux,
+                                          output c-end-entrega-aux,
+                                          output i-cod-mensagem,
+                                          output c-seg-usuario,
+                                          output i-cond-pagto).
+
+IF VALID-HANDLE(h-boin295desc) THEN
+   run getTransp in h-boin295desc ( input  tt-pedido-compr.cod-emitente,
+                                    output i-cod-transp ).
+                                    
+IF tt-pedido-compr.cod-transp = 0 THEN
+    ASSIGN tt-pedido-compr.cod-transp   = i-cod-transp.  /*transportadora vindo da cotacao*/
+ELSE
+    ASSIGN tt-pedido-compr.cod-transp   = i-cod-transp-aux.
+
+IF tt-pedido-compr.end-cobranca = "" THEN
+    ASSIGN tt-pedido-compr.end-cobranca = c-end-cobranca-aux.
+
+IF tt-pedido-compr.cod-mensagem = 0 THEN
+    ASSIGN tt-pedido-compr.cod-mensagem = i-cod-mensagem.
+
+IF tt-pedido-compr.responsavel = "" THEN
+    ASSIGN tt-pedido-compr.responsavel  = c-seg-usuario.
+
+IF tt-pedido-compr.end-entrega = "" THEN 
+    ASSIGN tt-pedido-compr.end-entrega  = c-end-entrega-aux.
+
+
+IF tt-pedido-compr.cod-cond-pag = 0 THEN DO:
+    IF NOT l-integra-webb THEN
+        ASSIGN  tt-pedido-compr.cod-cond-pag =  i-cond-pagto.
+    ELSE IF cTranAction = "upd":U THEN DO:
+        find cond-especif WHERE cond-especif.num-pedido = pedido-compr.num-pedido NO-LOCK no-error.
+
+        CREATE tt-cond-especif.
+        BUFFER-COPY cond-especif TO tt-cond-especif.
+        ASSIGN tt-cond-especif.ind-tipo-movto = 2.
+    END.
+END.

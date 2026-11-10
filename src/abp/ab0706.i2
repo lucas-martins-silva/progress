@@ -1,0 +1,186 @@
+/****************************************************************************
+** Copyright DATASUL S.A. (2005)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*****************************************************************************
+**
+**       PROGRAMA: AB0706.I2
+**
+**       DATA....: MAIO de 2005
+**
+**       AUTOR...: DATASUL S.A.
+**
+**       OBJETIVO: Importaá∆o Cadastros B†sicos Frotas
+**       Versao..: 
+**
+*****************************************************************************/
+
+/*------------------------------------------------------------------------------
+  Purpose:     importa dados de cada tabela
+  Parameters:  {1} = nome tabela           (Ex.: mab-grp-eqpto), 
+               {2} = dump                  (Ex.: fr007), 
+               {3} = Descricao nome tabela (Ex.: Grupo Equipamento)
+               {4} = Descricao M¢dulo      (Ex.: Equipamento)
+               {5} = input do gotokey  - para verificaá∆o de registro j† existente ou n∆o.
+  Notes:       chamada pelo programa de importaá∆o de Cadastros Basicos Frotas - 
+               ab0706rp.p - para cada tabela a importar.
+------------------------------------------------------------------------------*/
+
+PROCEDURE importa-{1}:
+
+DEFINE VARIABLE c-tabela AS CHARACTER FORMAT "x(50)":U NO-UNDO.
+DEFINE VARIABLE c-modulo AS CHARACTER FORMAT "x(50)":U NO-UNDO.
+DEFINE VARIABLE c-sucesso AS CHARACTER FORMAT "x(40)":U NO-UNDO.
+DEFINE VARIABLE c-atualizado-sucesso AS CHARACTER FORMAT "x(40)":U NO-UNDO.
+DEFINE VARIABLE c-programa AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE h-{1} AS HANDLE     NO-UNDO.
+
+ASSIGN iLinha = 0.
+EMPTY temp-table tt-{1}.
+EMPTY temp-table tt-{1}-linha.
+
+{utp/ut-liter.i Registro_Cadastrado_com_Sucesso. *}
+ASSIGN c-sucesso = RETURN-VALUE.
+{utp/ut-liter.i Registro_Atualizado_com_Sucesso. *}
+assign c-atualizado-sucesso = return-value.
+{utp/ut-liter.i {3} *}
+ASSIGN c-tabela = RETURN-VALUE.
+{utp/ut-liter.i {4} *}
+ASSIGN c-modulo = RETURN-VALUE.    
+
+/*****IMPORTANDO DO TXT*****/
+INPUT FROM VALUE(tt-param.dir-entrada + "{2}.txt":U) CONVERT SOURCE "ISO8859-1".
+/*acompanhamento*/
+{utp/ut-liter.i Lendo_Cadastro *}
+run pi-acompanhar in h-acomp (input RETURN-VALUE + ": ":U + c-tabela).
+
+REPEAT:  
+
+    CREATE tt-{1}-linha.
+
+    IMPORT DELIMITER ";" tt-{1}-linha no-error.  
+
+    ASSIGN iLinha                   = iLinha + 1
+           tt-{1}-linha.i-linha     = iLinha.
+
+    CREATE tt-dados.
+    ASSIGN tt-dados.linha     = iLinha
+           tt-dados.erro      = 0   
+           tt-dados.descricao = c-sucesso
+           tt-dados.tabela    = c-tabela
+           tt-dados.modulo    = c-modulo
+           i-contador-geral   = i-contador-geral + 1
+           tt-dados.i-chave   = i-contador-geral.     
+
+    /*Se a tabela for mgf-param, obrigatoriamente importar† apenas 1 linha.
+      Pois caso ele procure a pr¢xima linha, mesmo que n∆o exista, gera um erro
+      na gravaá∆o da tt devido ao fato de seu registro padr∆o ter a 
+      chave num-seq com valor 0 e seu valor default ser 0 tambÇm*/
+    if "{1}":U = "mgf-param":U then
+        leave.
+      
+END. /*repeat*/
+
+/*delete a tt-{1}-linha importada da £ltima linha (em branco)*/
+for each tt-{1}-linha where tt-{1}-linha.i-linha = 0 or tt-{1}-linha.i-linha = ? exclusive-lock:
+    delete tt-{1}-linha.
+end.
+
+/******EFETIVANDO DADOS NA BO*******/
+/*:T--- inicializa DBO ---*/
+
+assign c-programa = "{2}".
+
+IF SUBSTRING(c-programa,1,2) = "fr" THEN do:
+    IF NOT VALID-HANDLE(h-{1}) OR
+       h-{1}:TYPE <> "PROCEDURE":U OR
+       h-{1}:FILE-NAME <> "frbo/bo{2}.p":U THEN DO:
+       run frbo/bo{2}.p persistent set h-{1}.
+    END.
+    RUN openQueryStatic IN h-{1} (INPUT "Main":U) NO-ERROR.
+end.
+
+IF SUBSTRING(c-programa,1,2) = "mn" THEN do:
+    IF NOT VALID-HANDLE(h-{1}) OR
+        h-{1}:TYPE <> "PROCEDURE":U OR
+        h-{1}:FILE-NAME <> "mnbo/bo{2}.p":U THEN DO:
+        run mnbo/bo{2}.p persistent set h-{1}.
+    END.
+    RUN openQueryStatic IN h-{1} (INPUT "Default":U) NO-ERROR.
+end.
+
+FOR EACH tt-{1}-linha:
+
+      EMPTY TEMP-TABLE tt-{1}.
+      EMPTY TEMP-TABLE RowErrors.
+      CREATE tt-{1}.
+      buffer-copy tt-{1}-linha except i-linha to tt-{1}.
+           
+      /*acompanhamento*/
+      {utp/ut-liter.i Importando_Cadastro *}
+      run pi-acompanhar in h-acomp (input RETURN-VALUE + ": ":U + c-tabela).
+    
+      /*--- Limpa temp-table RowErrors no DBO ---*/
+      RUN emptyRowErrors IN h-{1}.
+      /*Caso a opcao Atualizar Cadastros J† Existentes esteja flegada, ele verifica se o cadastro j† existe e efetua a atualizaá∆o*/
+      if tt-param.l-atualiza then do:  
+              run goToKey in h-{1} ({5}).
+              if return-value = "OK":U then do:
+                 /*atualiza a msg de exibiá∆o para "atualizado" e atualiza na BO*/
+                 FOR FIRST tt-dados WHERE tt-dados.tabela = c-tabela AND tt-dados.linha = tt-{1}-linha.i-linha EXCLUSIVE-LOCK:
+                 END.                 
+                 if avail tt-dados then
+                     assign tt-dados.descricao = c-atualizado-sucesso.
+                 /*--- Transfere temp-table para o DBO ---*/
+                 run getRowid in h-{1} (output tt-{1}.r-rowid).
+                 RUN setRecord IN h-{1} (INPUT TABLE tt-{1}).
+                 run updateRecord in h-{1}.
+              end.   
+              else do:
+                  /*--- Transfere temp-table para o DBO ---*/
+                 RUN setRecord IN h-{1} (INPUT TABLE tt-{1}).
+                 run createRecord in h-{1}.
+              end.
+      end. /*if tt-param.l-atualiza*/           
+      else do:
+      /*Sen∆o apenas cria o registro*/
+          RUN setRecord IN h-{1} (INPUT TABLE tt-{1}).
+          RUN createRecord IN h-{1}.  
+      end.            
+      /*--- Verifica ocorrºncia de erros durante a gravaªío ---*/
+      IF RETURN-VALUE = "NOK":U THEN DO:
+            /*--- Retorna temp-table RowErrors do DBO ---*/
+            RUN getRowErrors IN h-{1} (OUTPUT TABLE RowErrors).
+            FOR EACH RowErrors NO-LOCK:
+                /** Busca ultimo tt-dados e verifica se era erro ou registro de cadastro com sucesso **/
+                FOR FIRST tt-dados WHERE tt-dados.tabela = c-tabela AND tt-dados.linha = tt-{1}-linha.i-linha EXCLUSIVE-LOCK:
+                END.
+                IF AVAIL tt-dados AND tt-dados.erro = 0 THEN
+                    ASSIGN tt-dados.erro      = RowErrors.ErrorNumber
+                           tt-dados.descricao = RowErrors.ErrorDescription.
+                /*caso j† haja*/
+                ELSE DO:
+                    CREATE tt-dados.
+                    ASSIGN tt-dados.linha     = tt-{1}-linha.i-linha
+                           tt-dados.erro      = RowErrors.ErrorNumber   
+                           tt-dados.descricao = RowErrors.ErrorDescription
+                           tt-dados.tabela    = c-tabela
+                           tt-dados.modulo    = c-modulo
+                           i-contador-geral   = i-contador-geral + 1
+                           tt-dados.i-chave   = i-contador-geral.
+                END.
+            END.        
+      end. /*IF cReturnAux = "NOK":U*/
+END.  
+
+/*finalizando handle*/
+if valid-handle(h-{1}) THEN   
+    run Destroy in h-{1}.
+
+RETURN "OK":U.
+
+END PROCEDURE.

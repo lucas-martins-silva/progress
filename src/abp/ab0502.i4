@@ -1,0 +1,407 @@
+/********************************************************************************
+**
+**  Include: abp/ab0502.i4
+**
+**  Imprime Relat¢rio por Equipamentos
+**
+********************************************************************************/
+procedure pi-bomba:
+
+
+assign cEmp        = ?
+       cPosto      = ""
+       cBomba      = ""
+       cTpMater    = ""
+       iNumDoc     = ?
+       c-quantde-1 = 0 
+       c-quantde-2 = 0
+       c-quantde-3 = 0
+       c-ptgem     = 0
+       c-Inicial   = 0
+       c-Final     = 0
+       c-total-1   = 0
+       c-total-2   = 0
+       c-total-3   = 0
+       c-total-4   = 0
+       l-first     = no.
+
+for  each mab-posto fields (cod-posto des-posto ep-codigo) 
+     use-index mabposto_ix2
+    where mab-posto.ep-codigo       >=  tt-param.i-cod-emp-ini
+      and mab-posto.ep-codigo       <=  tt-param.i-cod-emp-fim
+      and mab-posto.cod-posto       >=  tt-param.c-posto-ini
+      and mab-posto.cod-posto       <=  tt-param.c-posto-fim
+      and mab-posto.cod-estabel     >=  tt-param.c-cod-estabel-ini
+      and mab-posto.cod-estabel     <=  tt-param.c-cod-estabel-fim
+      no-lock,
+      
+     each mab-bomba fields (cod-bomba cod-posto cod-tip-mater )
+    where mab-bomba.cod-posto  = mab-posto.cod-posto
+      and mab-bomba.cod-bomba >=  tt-param.c-bomba-ini    
+      and mab-bomba.cod-bomba <=  tt-param.c-bomba-fim
+      no-lock,
+      
+     each mab-control-bomba fields (val-quant cod-bomba num-docto val-leitura-inicial cod-posto-orig val-dat-hora-invrtda dat-apont hra-apont val-leitura-inicial )
+        use-index mbcntrl_ix4
+    where mab-control-bomba.idi-tip-movto    =  3
+      and mab-control-bomba.cod-posto-orig   = mab-posto.cod-posto
+      and mab-control-bomba.cod-bomba        = mab-bomba.cod-bomba   
+      and mab-control-bomba.dat-apont       >= tt-param.d-data-ini
+      and mab-control-bomba.dat-apont       <= tt-param.d-data-fim
+      and mab-control-bomba.hra-apont       >= tt-param.c-hora-ini
+      and mab-control-bomba.hra-apont       <= tt-param.c-hora-fim
+      no-lock
+             break by mab-posto.ep-codigo
+                   by mab-posto.cod-posto
+                   by mab-bomba.cod-bomba
+                   by mab-bomba.cod-tip-mater
+                   by mab-control-bomba.val-dat-hora-invrtda: 
+                                   
+     /* Inicio -- Projeto Internacional */
+     {utp/ut-liter.i "Bomba" *}
+     run pi-acompanhar in h-acomp (input RETURN-VALUE + ": " + string(mab-bomba.cod-bomba)).                           
+                           
+     if not avail empresa or empresa.ep-codigo <> mab-posto.ep-codigo then do: 
+        for first empresa fields (ep-codigo nome) 
+             where   empresa.ep-codigo  = mab-posto.ep-codigo no-lock:
+        end.
+
+     end. 
+     if not avail mab-tip-mater or mab-tip-mater.cod-tip-mater  <> mab-bomba.cod-tip-mater then do:         
+        for first  mab-tip-mater fields (cod-tip-mater des-tip-mater) 
+            where   mab-tip-mater.cod-tip-mater   = mab-bomba.cod-tip-mater no-lock:
+        end.
+     end.
+     
+     /**logica para n∆o imprimir primeiro registro se n∆o existir apontamento anterior**/      
+     if not can-find (first bfControlBomba 
+                      where  bfControlBomba.cod-bomba              = mab-control-bomba.cod-bomba
+                      and    bfControlBomba.cod-posto-orig         = mab-control-bomba.cod-posto-orig 
+                      and    bfControlBomba.idi-tip-movto          = 3
+                      and    bfControlBomba.val-dat-hora-invrtda   < mab-control-bomba.val-dat-hora-invrtda) then next.
+      
+     /**logica para n∆o imprimir primeiro registro se n∆o existir apontamento anterior**/      
+     for last bfControlBomba fields (cod-bomba cod-posto-orig val-dat-hora-invrtda val-leitura-inicial num-docto)
+         use-index mbcntrl_ix4 
+         where  bfControlBomba.idi-tip-movto          = 3
+         and    bfControlBomba.cod-posto-orig         = mab-control-bomba.cod-posto-orig 
+         and    bfControlBomba.cod-bomba              = mab-control-bomba.cod-bomba
+         and    bfControlBomba.val-dat-hora-invrtda   < mab-control-bomba.val-dat-hora-invrtda no-lock:
+         assign dHoraInvert = bfControlBomba.val-dat-hora-invrtda.
+     end.
+     
+     /*display para impress∆o do relat¢rio */   
+                           
+     if tt-param.rs-considera = 1 then do:  
+        if cEmp <> mab-posto.ep-codigo
+           or cPosto <> mab-posto.cod-posto 
+           or cBomba  <> mab-bomba.cod-bomba
+           or cTpMater <> mab-bomba.cod-tip-mater then do:
+                        
+           display LabelEmp
+                   mab-posto.ep-codigo
+                   empresa.nome 
+                   mab-posto.cod-posto 
+                   mab-posto.des-posto 
+                   mab-bomba.cod-bomba 
+                   mab-bomba.cod-tip-mater
+                   mab-tip-mater.des-tip-mater
+                   with  frame f-bomba-res. 
+                   put skip(1).
+           display  c-leitura-bombas-2           
+                    c-soma-abastec-2           
+                    c-diferenca                
+                    c-docto            
+                    c-data             
+                    c-hora             
+                    LabelIn    
+                    LabelFim   
+                    Labelqtde-1
+                    Labelqtde-2
+                    Labelqtde-3
+                    Labelpt
+                    with frame f-cabecalho-res-3.
+           down with frame f-cabecalho-res-3. 
+        end.
+        assign cEmp        = mab-posto.ep-codigo
+               cPosto      = mab-posto.cod-posto
+               cBomba      = mab-bomba.cod-bomba
+               cTpMater    = mab-bomba.cod-tip-mater
+               c-Inicial   =  bfControlBomba.val-leitura-inicial  
+               c-Final     =  mab-control-bomba.val-leitura-inicial
+               c-quantde-1 =  mab-control-bomba.val-quant
+               c-quantde-2 = 0
+               c-quantde-3 = 0
+               c-ptgem     = 0
+               c-total-1   = 0
+               c-total-2   = 0
+               c-total-3   = 0
+               c-total-4   = 0.    
+                          
+        for  each mab-item-abastec fields (cod-bomba cod-tip-mater cod-posto val-dat-hora-invrtda val-quant ep-codigo)
+        use-index mbtmbstc_ix5
+             where mab-item-abastec.cod-posto             = mab-bomba.cod-posto
+               and mab-item-abastec.cod-bomba             = mab-bomba.cod-bomba
+               and mab-item-abastec.val-dat-hora-invrtda  > bfControlBomba.val-dat-hora-invrtda
+               and mab-item-abastec.val-dat-hora-invrtda  <= mab-control-bomba.val-dat-hora-invrtda no-lock:
+                 
+               assign c-quantde-2 = c-quantde-2  + mab-item-abastec.val-quant
+                      c-Inicial  =  bfControlBomba.val-leitura-inicial   
+                      c-Final    =  mab-control-bomba.val-leitura-inicial          
+                      c-quantde-1 =  c-Final - c-Inicial                 
+                      c-quantde-3 =  c-quantde-1 - c-quantde-2          
+                      c-ptgem     =  (c-quantde-3 / c-quantde-1) * 100.
+        end.  
+        for  each bfControlBomba fields (cod-bomba cod-posto-orig  val-dat-hora-invrtda val-quant num-docto )
+             use-index mbcntrlb_ix5 
+             where  bfControlBomba.idi-tip-movto          = 1                                      
+             and    bfControlBomba.cod-posto-orig         = mab-control-bomba.cod-posto-orig       
+             and    bfControlBomba.cod-bomba              = mab-control-bomba.cod-bomba            
+             and    bfControlBomba.val-dat-hora-invrtda   > dHoraInvert
+             and    bfControlBomba.val-dat-hora-invrtda   <= mab-control-bomba.val-dat-hora-invrtda no-lock:
+                 
+             /**Totalizadores relatorio resumido ***/
+             assign c-quantde-2 = c-quantde-2  + bfControlBomba.val-quant
+                    c-quantde-3 =  c-quantde-1 - c-quantde-2
+                    c-ptgem     =  (c-quantde-3 / c-quantde-1) * 100.
+        end. 
+         for  each bfControlBomba fields (idi-tip-movto cod-bomba cod-posto-orig  val-dat-hora-invrtda val-quant num-docto)
+             use-index mbcntrlb_ix5 
+              where  bfControlBomba.idi-tip-movto          = 2                                     
+              and    bfControlBomba.cod-posto-orig         = mab-control-bomba.cod-posto-orig       
+              and    bfControlBomba.cod-bomba              = mab-control-bomba.cod-bomba            
+              and    bfControlBomba.val-dat-hora-invrtda   > dHoraInvert
+              and    bfControlBomba.val-dat-hora-invrtda   <= mab-control-bomba.val-dat-hora-invrtda no-lock:
+                 
+             /**Totalizadores relatorio resumido ***/
+             assign c-quantde-2 = c-quantde-2  + bfControlBomba.val-quant
+                    c-quantde-3 =  c-quantde-1 - c-quantde-2
+                    c-ptgem     =  (c-quantde-3 / c-quantde-1) * 100.
+        end.   
+                         
+        display   mab-control-bomba.num-docto
+                  mab-control-bomba.dat-apont
+                  mab-control-bomba.hra-apont
+                  c-Inicial     
+                  c-Final            
+                  c-quantde-1       
+                  c-quantde-2    
+                  c-quantde-3       
+                  c-ptgem           
+                  with frame f-resumido-3.
+        down with frame f-resumido-3.    
+    end.
+                 
+    if tt-param.rs-considera = 2 then do:
+   
+       if cEmp <> mab-posto.ep-codigo
+          or cPosto <> mab-posto.cod-posto 
+          or cBomba  <> mab-bomba.cod-bomba
+          or cTpMater <> mab-bomba.cod-tip-mater then do:
+                                 
+          display LabelEmp
+                  mab-posto.ep-codigo
+                  empresa.nome 
+                  mab-posto.cod-posto 
+                  mab-posto.des-posto 
+                  mab-bomba.cod-bomba 
+                  mab-bomba.cod-tip-mater
+                  mab-tip-mater.des-tip-mater
+                  with  frame f-detalhe-1. 
+          put skip(1).
+          display c-leitura-bombas-2         
+                  c-soma-abastec           
+                  c-diferenca              
+                  c-data           
+                  c-hora           
+                  c-docto          
+                  LabelIn          
+                  LabelFim         
+                  Labelqtde-1      
+                  c-data-2         
+                  c-docto-2        
+                  Labelqtde-2      
+                  Labelqtde-3      
+                  Labelpt
+                  with frame f-cab-det-1.
+
+       end.
+       assign cEmp  = mab-posto.ep-codigo
+              cPosto   = mab-posto.cod-posto
+              cBomba   = mab-bomba.cod-bomba
+              cTpMater = mab-bomba.cod-tip-mater
+              c-Inicial   =  bfControlBomba.val-leitura-inicial  
+              c-Final     =  mab-control-bomba.val-leitura-inicial
+              c-quantde-1 =  mab-control-bomba.val-quant
+              c-quantde-2 = 0
+              c-quantde-3 = 0
+              c-ptgem     = 0
+              c-total-1   = 0
+              c-total-2   = 0
+              c-total-3   = 0
+              c-total-4   = 0.    
+              
+        for each  mab-item-abastec fields (cod-bomba cod-tip-mater val-dat-hora-invrtda val-quant num-docto)
+        use-index mbtmbstc_ix5
+            where mab-item-abastec.cod-posto            = mab-bomba.cod-posto
+            and   mab-item-abastec.cod-bomba            = mab-bomba.cod-bomba
+            and   mab-item-abastec.val-dat-hora-invrtda > bfControlBomba.val-dat-hora-invrtda
+            and   mab-item-abastec.val-dat-hora-invrtda <= mab-control-bomba.val-dat-hora-invrtda no-lock
+            by    mab-item-abastec.val-dat-hora-invrtda:
+                           
+           /**totalizadores do relatorio detalhado**/
+            assign  c-data-3     =  substring(string(mab-item-abastec.val-dat-hora-invrtda),7,2) + "/" +
+                                    substring(string(mab-item-abastec.val-dat-hora-invrtda),5,2) + "/" +
+                                    substring(string(mab-item-abastec.val-dat-hora-invrtda),1,4) 
+                                  
+                    c-quantde-2 =  c-quantde-2  + mab-item-abastec.val-quant 
+                    c-quantde-3 =  c-quantde-1 - c-quantde-2
+                    c-ptgem     =  (c-quantde-3 / c-quantde-1) * 100 
+                    c-total-1   =  c-total-1 + c-quantde-1
+                    c-total-2   =  c-quantde-2
+                    c-total-3   =  c-quantde-3
+                    c-total-4   =  c-ptgem
+                    iDocto      =   mab-item-abastec.num-docto
+                    dValQtde    =   mab-item-abastec.val-quant.
+          
+            /**L¢gica para imprimir s¢ a primeira vez o numero do documento da bomba**/
+            if iNumDoc <> mab-control-bomba.num-docto then do:
+               assign l-first  = yes.
+            end.
+            else do:
+               assign l-first = no.
+            end.
+            disp mab-control-bomba.dat-apont when l-first = yes
+                 mab-control-bomba.hra-apont when l-first = yes
+                 mab-control-bomba.num-docto when l-first = yes
+                 c-Inicial                   when l-first = yes 
+                 c-Final                     when l-first = yes
+                 c-quantde-1                 when l-first = yes
+                 c-data-3
+                 iDocto  
+                 dValQtde
+                 with frame f-detalhe.
+                 down with frame f-detalhe.
+                                       
+            assign iNumDoc  = mab-control-bomba.num-docto.        
+        end. 
+        for  each bfControlBomba fields (cod-bomba cod-posto-orig  val-dat-hora-invrtda val-quant num-docto)
+             use-index mbcntrlb_ix5 
+              where bfControlBomba.idi-tip-movto          = 1                                      
+                and bfControlBomba.cod-posto-orig         = mab-control-bomba.cod-posto-orig       
+                and bfControlBomba.cod-bomba              = mab-control-bomba.cod-bomba            
+                and bfControlBomba.val-dat-hora-invrtda   > dHoraInvert
+                and bfControlBomba.val-dat-hora-invrtda   <= mab-control-bomba.val-dat-hora-invrtda no-lock:
+           
+             /**totalizadores do relatorio detalhado**/
+             assign  c-data-3     =  substring(string(bfControlBomba.val-dat-hora-invrtda),7,2) + "/" +
+                                     substring(string(bfControlBomba.val-dat-hora-invrtda),5,2) + "/" +
+                                     substring(string(bfControlBomba.val-dat-hora-invrtda),1,4) 
+                 
+                     c-quantde-2 =  c-quantde-2  + bfControlBomba.val-quant 
+                     c-quantde-3 =  c-quantde-1 - c-quantde-2
+                     c-ptgem     =  (c-quantde-3 / c-quantde-1) * 100 
+                     c-total-1   =  c-total-1 + c-quantde-1
+                     c-total-2   =  c-quantde-2
+                     c-total-3   =  c-quantde-3
+                     c-total-4   =  c-ptgem
+                     iDocto      =  bfControlBomba.num-docto 
+                     dValQtde    =  bfControlBomba.val-quant. 
+
+             /**L¢gica para imprimir s¢ a primeira vez o numero do documento da bomba**/
+             if iNumDoc <> mab-control-bomba.num-docto then do:
+                assign l-first  = yes.
+             end.
+             else do:
+                assign l-first = no.
+             end.
+             disp mab-control-bomba.dat-apont when l-first = yes
+                  mab-control-bomba.hra-apont when l-first = yes
+                  mab-control-bomba.num-docto when l-first = yes
+                  c-Inicial                   when l-first = yes 
+                  c-Final                     when l-first = yes
+                  c-quantde-1                 when l-first = yes
+                  c-data-3
+                  iDocto    
+                  dValQtde  
+                  with frame f-detalhe.
+             down with frame f-detalhe.
+                       
+             assign iNumDoc  = mab-control-bomba.num-docto.        
+       end. 
+           for  each bfControlBomba fields (cod-bomba cod-posto-orig  val-dat-hora-invrtda val-quant num-docto)
+                use-index mbcntrlb_ix5 
+                where  bfControlBomba.idi-tip-movto          = 2                                     
+                  and  bfControlBomba.cod-posto-orig         = mab-control-bomba.cod-posto-orig       
+                  and  bfControlBomba.cod-bomba              = mab-control-bomba.cod-bomba            
+                  and  bfControlBomba.val-dat-hora-invrtda   > dHoraInvert
+                  and  bfControlBomba.val-dat-hora-invrtda   <= mab-control-bomba.val-dat-hora-invrtda no-lock:
+                             
+            /**totalizadores do relatorio detalhado**/
+            assign  c-data-3     =  substring(string(bfControlBomba.val-dat-hora-invrtda),7,2) + "/" +
+                                  substring(string(bfControlBomba.val-dat-hora-invrtda),5,2) + "/" +
+                                  substring(string(bfControlBomba.val-dat-hora-invrtda),1,4) 
+                 
+                    c-quantde-2 =  c-quantde-2  + bfControlBomba.val-quant 
+                    c-quantde-3 =  c-quantde-1 - c-quantde-2
+                    c-ptgem     =  (c-quantde-3 / c-quantde-1) * 100 
+                    c-total-1   =  c-total-1 + c-quantde-1
+                    c-total-2   =  c-quantde-2
+                    c-total-3   =  c-quantde-3
+                    c-total-4   =  c-ptgem
+                    iDocto      =  bfControlBomba.num-docto 
+                    dValQtde    =  bfControlBomba.val-quant.
+
+                   /**L¢gica para imprimir s¢ a primeira vez o numero do documento da bomba**/
+            if iNumDoc <> mab-control-bomba.num-docto then do:
+               assign l-first  = yes.
+            end.
+            else do:
+               assign l-first = no.
+            end.
+            disp mab-control-bomba.dat-apont when l-first = yes
+                 mab-control-bomba.hra-apont when l-first = yes
+                 mab-control-bomba.num-docto when l-first = yes
+                 c-Inicial                   when l-first = yes 
+                 c-Final                     when l-first = yes
+                 c-quantde-1                 when l-first = yes
+                 c-data-3
+                 iDocto   
+                 dValQtde 
+                 with frame f-detalhe.
+            down with frame f-detalhe.
+                       
+            assign iNumDoc  = mab-control-bomba.num-docto.        
+        end.   
+        if c-total-2  > 0 then do:
+           display  c-title            
+                    c-total-2 NO-LABEL  
+                    c-total-3 NO-LABEL  
+                    c-total-4 NO-LABEL  
+                    with  frame f-total-1.
+            assign     c-total-2 = 0.           
+            put skip(1).
+                                  
+        end.
+  end. /** do relat¢rio detalhado**/
+                        
+ /* ***Controle para quebra de P†gina***/
+ if tt-param.l-insere = yes then do:
+    page.
+ end. 
+                   
+end.   /**for each mab-control-bomba***/
+
+/**Imprime sub-totais para o £ltimo registro***/
+ if c-total-2  > 0 then do:
+    display  c-title            
+             c-total-2 NO-LABEL  
+             c-total-3 NO-LABEL  
+             c-total-4 NO-LABEL  
+             with  frame f-total-1.
+ end.  
+
+return 'OK'.
+
+end procedure.
+/* FIM */    

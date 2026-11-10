@@ -1,0 +1,28 @@
+if c-nr-docto-ini = c-nr-docto-fim then
+        open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+                   where {&TABLE-NAME}.ep-codigo     = i-empresa          and
+                         {&TABLE-NAME}.nr-docto      = c-nr-docto-ini     AND
+                         {&TABLE-NAME}.cod-fornec   >= i-cod-fornec-ini   AND 
+                         {&TABLE-NAME}.cod-fornec   <= i-cod-fornec-fim   and 
+                         (mov-ap.transacao = 11 or mov-ap.transacao = 12)  
+                   by mov-ap.{1} INDEXED-REPOSITION. 
+else do:
+    if i-cod-fornec-ini = i-cod-fornec-fim then
+        open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+                   where {&TABLE-NAME}.ep-codigo     = i-empresa          and
+                         {&TABLE-NAME}.cod-fornec    = i-cod-fornec-ini   AND
+                         {&TABLE-NAME}.nr-docto     >= c-nr-docto-ini     AND
+                         {&TABLE-NAME}.nr-docto     <= c-nr-docto-fim     AND
+                         (mov-ap.transacao = 11 or mov-ap.transacao = 12)  
+                   by mov-ap.{1} INDEXED-REPOSITION.     
+    else
+        open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+                   where {&TABLE-NAME}.ep-codigo     = i-empresa          and
+                         {&TABLE-NAME}.nr-docto     >= c-nr-docto-ini     AND
+                         {&TABLE-NAME}.nr-docto     <= c-nr-docto-fim     AND
+                         {&TABLE-NAME}.cod-fornec   >= i-cod-fornec-ini   AND 
+                         {&TABLE-NAME}.cod-fornec   <= i-cod-fornec-fim   and 
+                         (mov-ap.transacao = 11 or mov-ap.transacao = 12)  
+                   by mov-ap.{1} INDEXED-REPOSITION. 
+end.
+

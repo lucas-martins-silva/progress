@@ -1,0 +1,65 @@
+/**************************************************************************
+**
+**  Include.: AP0704.I6
+**  Objetivo: Calcula o RESUMO GERAL
+**
+*************************************************************************/
+
+    if  tit-ap.dt-vencimen <= tt-param.da-calc-venc then do:
+        assign nr-dias = tt-param.da-calc-venc - tit-ap.dt-vencimen.
+        if  nr-dias <= 30 then
+            assign de-ven-30  = de-ven-30  {1} de-saldo
+                   de-est-30  = de-est-30  {1} de-saldo
+                   de-total   = de-total   {1} de-saldo
+                   de-est-tot = de-est-tot {1} de-saldo.
+        if  nr-dias > 30 and nr-dias <= 60 then
+            assign de-ven-60  = de-ven-60  {1} de-saldo
+                   de-est-60  = de-est-60  {1} de-saldo
+                   de-total   = de-total   {1} de-saldo
+                   de-est-tot = de-est-tot {1} de-saldo.
+        if  nr-dias > 60 and nr-dias <= 90 then
+            assign de-ven-90  = de-ven-90  {1} de-saldo
+                   de-est-90  = de-est-90  {1} de-saldo
+                   de-total   = de-total   {1} de-saldo
+                   de-est-tot = de-est-tot {1} de-saldo.
+        if  nr-dias > 90 and nr-dias <= 120 then
+            assign de-ven-120 = de-ven-120 {1} de-saldo
+                   de-est-120 = de-est-120 {1} de-saldo
+                   de-total   = de-total   {1} de-saldo
+                   de-est-tot = de-est-tot {1} de-saldo.
+        if  nr-dias > 120 then
+            assign de-ven-999 = de-ven-999 {1} de-saldo
+                   de-est-999 = de-est-999 {1} de-saldo
+                   de-total   = de-total   {1} de-saldo
+                   de-est-tot = de-est-tot {1} de-saldo.
+    end.
+    else do:
+        assign nr-dias = tit-ap.dt-vencimen - tt-param.da-calc-venc.
+        if  nr-dias <= 30 then
+            assign de-ven1-30  = de-ven1-30  {1} de-saldo
+                   de-est1-30  = de-est1-30  {1} de-saldo
+                   de-total1   = de-total1   {1} de-saldo
+                   de-est1-tot = de-est1-tot {1} de-saldo.
+        if  nr-dias > 30 and nr-dias <= 60 then
+            assign de-ven1-60  = de-ven1-60  {1} de-saldo
+                   de-est1-60  = de-est1-60  {1} de-saldo
+                   de-total1   = de-total1   {1} de-saldo
+                   de-est1-tot = de-est1-tot {1} de-saldo.
+        if  nr-dias > 60 and nr-dias <= 90 then
+            assign de-ven1-90  = de-ven1-90  {1} de-saldo
+                   de-est1-90  = de-est1-90  {1} de-saldo
+                   de-total1   = de-total1   {1} de-saldo
+                   de-est1-tot = de-est1-tot {1} de-saldo.
+        if  nr-dias > 90 and nr-dias <= 120 then
+            assign de-ven1-120 = de-ven1-120 {1} de-saldo
+                   de-est1-120 = de-est1-120 {1} de-saldo
+                   de-total1   = de-total1   {1} de-saldo
+                   de-est1-tot = de-est1-tot {1} de-saldo.
+        if  nr-dias > 120 then
+            assign de-ven1-999 = de-ven1-999 {1} de-saldo
+                   de-est1-999 = de-est1-999 {1} de-saldo
+                   de-total1   = de-total1   {1} de-saldo
+                   de-est1-tot = de-est1-tot {1} de-saldo.
+    end.
+
+/* AP0704.I6 */

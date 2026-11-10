@@ -1,0 +1,200 @@
+DEFINE VARIABLE c-l-cdn-produt-rural    AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Produtor *}
+ASSIGN c-l-cdn-produt-rural = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-nome-emit           AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Nome *}
+ASSIGN c-l-nome-emit = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cod-pto-coleta      AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Ponto_de_coleta *}
+ASSIGN c-l-cod-pto-coleta = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-des-pto-coleta      AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Descri‡Æo *}
+ASSIGN c-l-des-pto-coleta = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cod-propried        AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Propriedade *}
+ASSIGN c-l-cod-propried = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-des-propried        AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Descri‡Æo_Propriedade *}
+ASSIGN c-l-des-propried = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cdn-grp-produt      AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Grupo *}
+ASSIGN c-l-cdn-grp-produt = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-des-grp-produt      AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Descri‡Æo_Grupo *}
+ASSIGN c-l-des-grp-produt = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cod-rota            AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Rota *}
+ASSIGN c-l-cod-rota = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-des-rota            AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Descri‡Æo_Rota *}
+ASSIGN c-l-des-rota = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cod-regiao          AS CHARACTER NO-UNDO.
+{utp/ut-liter.i RegiÆo *}
+ASSIGN c-l-cod-regiao = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-des-regiao          AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Descri‡Æo_RegiÆo *}
+ASSIGN c-l-des-regiao = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cidade              AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Cidade *}
+ASSIGN c-l-cidade = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-qtd-period          AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Quantidade *}
+ASSIGN c-l-qtd-period = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-preco-base      AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Pre‡o_Base *}
+ASSIGN c-l-val-preco-base = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-var-qualid      AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Var._Qualidade *}
+ASSIGN c-l-val-var-qualid = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-var-volum       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Var._Volume *}
+ASSIGN c-l-val-var-volum = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-bonus-fix       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i B“nus_Fixo *}
+ASSIGN c-l-val-bonus-fix = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-pre-unit        AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Pre‡o_Unit *}
+ASSIGN c-l-val-pre-unit = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-bonus-fix-inf   AS CHARACTER NO-UNDO.
+{utp/ut-liter.i B“nus_Inf *}
+ASSIGN c-l-val-bonus-fix-inf = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-pre-final       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Pre‡o_final *}
+ASSIGN c-l-val-pre-final = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-pre-liq-ant     AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Final_Anterior *}
+ASSIGN c-l-val-pre-liq-ant = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-ajuste          AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Ajuste *}
+ASSIGN c-l-val-ajuste = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-incentivo       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Incentivo *}
+ASSIGN c-l-val-incentivo = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-pre-bruto       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Pre‡o_Bruto *}
+ASSIGN c-l-val-pre-bruto = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-tot-prov        AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Total_Proventos *}
+ASSIGN c-l-val-tot-prov = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-outr-cred       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Outros_Cr‚ditos *}
+ASSIGN c-l-val-outr-cred = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-adiantamentos   AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Adiantamentos *}
+ASSIGN c-l-val-adiantamentos = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-emprestimos     AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Empr‚stimos *}
+ASSIGN c-l-val-emprestimos = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-convenios       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Convˆnios *}
+ASSIGN c-l-val-convenios = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-outr-debitos    AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Outros_D‚bitos *}
+ASSIGN c-l-val-outr-debitos = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-desconto-tot    AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Desconto_Total *}
+ASSIGN c-l-val-desconto-tot = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-imp-retido      AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Imp._Retido *}
+ASSIGN c-l-val-imp-retido = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-val-liq-receb-tot   AS CHARACTER NO-UNDO.
+{utp/ut-liter.i L¡quido_a_receber_Total *}
+ASSIGN c-l-val-liq-receb-tot = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-banco               AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Banco *}
+ASSIGN c-l-banco = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-agencia             AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Agˆncia *}
+ASSIGN c-l-agencia = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-conta               AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Conta *}
+ASSIGN c-l-conta = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cdn-correntista     AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Cod_Correntista *}
+ASSIGN c-l-cdn-correntista = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-titular             AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Titular *}
+ASSIGN c-l-titular = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-id-unico-emit       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i CPF/CNPJ_Correntista *}
+ASSIGN c-l-id-unico-emit = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-item                AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Item *}
+ASSIGN c-l-item = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-desc-item           AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Descri‡Æo_Item *}
+ASSIGN c-l-desc-item = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-periodo             AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Per¡odo *}
+ASSIGN c-l-periodo = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cod-estabel         AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Estabelecimento *}
+ASSIGN c-l-cod-estabel = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-nro-docto           AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Nota *}
+ASSIGN c-l-nro-docto = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-serie-docto         AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Serie *}
+ASSIGN c-l-serie-docto = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-impto-sanid         AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Imp._Sanid_Anim *}
+ASSIGN c-l-impto-sanid = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-uf                  AS CHARACTER NO-UNDO.
+{utp/ut-liter.i UF *}
+ASSIGN c-l-uf = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-cnpj                AS CHARACTER NO-UNDO.
+{utp/ut-liter.i CPF/CNPJ *}
+ASSIGN c-l-cnpj = RETURN-VALUE.
+
+DEFINE VARIABLE c-l-insc-estadual       AS CHARACTER NO-UNDO.
+{utp/ut-liter.i Inscri‡Æo_Estadual *}
+ASSIGN c-l-insc-estadual = RETURN-VALUE.
+

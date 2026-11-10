@@ -1,0 +1,27 @@
+if  i-cod-banco-ini = i-cod-banco-fim then do:
+    open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+               where {&TABLE-NAME}.ep-codigo-mvto = i-empresa          and
+                     {&TABLE-NAME}.cod-banco      = i-cod-banco-ini    AND 
+                     {&TABLE-NAME}.agencia       >= c-agencia-ini      AND
+                     {&TABLE-NAME}.agencia       <= c-agencia-fim      AND
+                     {&TABLE-NAME}.conta-corren  >= c-conta-corren-ini AND
+                     {&TABLE-NAME}.conta-corren  <= c-conta-corren-fim AND
+                     {&TABLE-NAME}.nr-cheque     >= i-nr-cheque-ini    AND
+                     {&TABLE-NAME}.nr-cheque     <= i-nr-cheque-fim    and
+                     {&TABLE-NAME}.origem         = 6
+                     by {&TABLE-NAME}.{1} indexed-reposition.
+end.
+else do:
+    open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+               where {&TABLE-NAME}.ep-codigo-mvto = i-empresa          and
+                     {&TABLE-NAME}.cod-banco     >= i-cod-banco-ini    AND 
+                     {&TABLE-NAME}.cod-banco     <= i-cod-banco-fim    AND
+                     {&TABLE-NAME}.agencia       >= c-agencia-ini      AND
+                     {&TABLE-NAME}.agencia       <= c-agencia-fim      AND
+                     {&TABLE-NAME}.conta-corren  >= c-conta-corren-ini AND
+                     {&TABLE-NAME}.conta-corren  <= c-conta-corren-fim AND
+                     {&TABLE-NAME}.nr-cheque     >= i-nr-cheque-ini    AND
+                     {&TABLE-NAME}.nr-cheque     <= i-nr-cheque-fim    and
+                     {&TABLE-NAME}.origem         = 6
+                     by {&TABLE-NAME}.{1} indexed-reposition.
+end.

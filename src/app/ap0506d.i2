@@ -1,0 +1,89 @@
+/***************************************************************************
+**
+** app/ap0506d.i2 - Include consiste cancelamento
+**
+****************************************************************************/
+
+    /* Verifica a existˆncia da esp‚cie de documento qdo for <> brancos */
+    if mov-ap.cod-esp <> "" then do:
+       find espec-ap where espec-ap.cod-esp = mov-ap.cod-esp no-lock no-error.
+       if  not avail espec-ap then do:
+           run utp/ut-msgs.p (input "show",
+                              input 624,
+                              input mov-ap.cod-esp).
+           assign l-erro = yes.
+           leave.
+       end.
+    end.            
+    
+    /* Verifica existˆncia emitente */
+    find first emitente
+        where  emitente.cod-emit   = mov-ap.cod-fornec
+        and    emitente.identific <> 1 no-lock no-error.
+           
+    if  not avail emitente then do:
+        /* Emitente nÆo Cadastrado */
+        run utp/ut-msgs.p (input "show",
+                           input 3486,
+                           input string(mov-ap.cod-fornec)).
+        assign l-erro = yes.
+        leave.
+    end.
+                    
+    /* Verifica existˆncia do documento */
+    if mov-ap.cod-esp <> "" then do:
+    
+       find first tit-ap
+            where tit-ap.ep-codigo   = mov-ap.ep-codigo
+            and   tit-ap.cod-fornec  = mov-ap.cod-fornec
+            and   tit-ap.cod-estabel = mov-ap.cod-estabel
+            and   tit-ap.cod-esp     = mov-ap.cod-esp
+            and   tit-ap.serie       = mov-ap.serie
+            and   tit-ap.nr-docto    = mov-ap.nr-docto
+            and   tit-ap.parcela     = mov-ap.parcela no-error.
+              
+       if  not avail tit-ap then do:
+           /* Titulo nao cadastrado */
+           run utp/ut-msgs.p (input "show",
+                              input 474,
+                              input string(mov-ap.ep-codigo)   + "~~" +
+                                           mov-ap.cod-estabel  + "~~" +
+                                           mov-ap.cod-esp      + "~~" +
+                                           mov-ap.serie    + "~~" +
+                                           mov-ap.nr-docto    + "~~" +
+                                           mov-ap.parcela).
+           assign l-erro = yes.
+           leave.
+       end.
+    end.
+                
+    /* Verifica existˆncia da antecipa‡Æo */
+    if  mov-ap.vl-antecip > 0 and mov-ap.cod-esp <> "" then do:
+        if  mov-ap.transacao <> 8 and mov-ap.transacao <> 9 then do:
+            find first tit-ap
+                 where tit-ap.ep-codigo   = mov-ap.ep-codigo
+                 and   tit-ap.cod-fornec  = mov-ap.fornec-ant
+                 and   tit-ap.cod-estabel = mov-ap.cod-estabel
+                 and   tit-ap.cod-esp     = mov-ap.esp-ant
+                 and   tit-ap.serie       = mov-ap.serie-ant
+                 and   tit-ap.nr-docto    = mov-ap.docto-ant
+                 and   tit-ap.parcela     = mov-ap.parc-ant 
+                 no-error.
+                      
+            if  not avail tit-ap then do:
+                /* Titulo nao cadastrado */
+                run utp/ut-msgs.p (input "show",
+                                   input 474,
+                                   input string(mov-ap.ep-codigo)   + "~~" +
+                                                mov-ap.cod-estabel  + "~~" +
+                                                mov-ap.esp-ant      + "~~" +
+                                                mov-ap.serie-ant    + "~~" +
+                                                mov-ap.docto-ant    + "~~" +
+                                                mov-ap.parc-ant).
+                assign l-erro = yes.
+                leave.
+            end.
+        end.    
+    end.
+    
+/*** Fim da Include ***/    

@@ -1,0 +1,334 @@
+/*******************************************************************************
+**
+**   AP0521c.i1 - Atualiza se o tipo de documento do bordero for um Pagamento
+**                Extra Fornecedor.
+**
+*******************************************************************************/
+create mov-ap.
+assign mov-ap.ep-codigo       = bordero-ap.ep-codigo
+       mov-ap.cod-estabel     = bordero-ap.cod-estabel
+       mov-ap.cod-esp         = bordero-ap.cod-esp
+       mov-ap.serie           = bordero-ap.serie
+       mov-ap.nr-docto        = bordero-ap.nr-docto
+       mov-ap.parcela         = bordero-ap.parcela
+       mov-ap.cod-fornec      = bordero-ap.cod-fornec
+       mov-ap.referencia      = bordero-ap.referencia
+       mov-ap.transacao       = bordero-ap.transacao
+       mov-ap.dt-emissao      = p-dt-transacao
+       mov-ap.dt-vencimen     = p-dt-transacao
+       mov-ap.dt-transacao    = p-dt-transacao
+       mov-ap.dt-pagamento    = p-dt-transacao
+       mov-ap.moeda           = 0
+       mov-ap.cotacao-dia     = 1
+       mov-ap.valor-mov       = bordero-ap.vl-docto
+       mov-ap.valor-mov-me    = bordero-ap.vl-docto
+       mov-ap.portador        = bordero-ap.portador
+       mov-ap.nr-cheque       = 0
+       mov-ap.conta-contabil  = bordero-ap.conta-debito
+       mov-ap.ct-conta        = bordero-ap.ct-codigo
+       mov-ap.sc-conta        = bordero-ap.sc-codigo
+       mov-ap.historico       = bordero-ap.historico
+       mov-ap.nr-bordero      = bordero-ap.nr-bordero
+       mov-ap.tp-codigo       = bordero-ap.tp-codigo
+       mov-ap.port-transf     = bordero-ap.port-transf
+       mov-ap.tp-recta-transf = bordero-ap.dec-1
+       mov-ap.num-ord-inv     = bordero-ap.dec-2
+       mov-ap.banco           = tt-portador.cod-banco      when avail tt-portador
+       mov-ap.agencia         = tt-portador.agencia        when avail tt-portador
+       mov-ap.cta-corrente    = tt-portador.conta-corren   when avail tt-portador
+       mov-ap.nome-abrev      = tt-emitente.nome-abrev  when avail tt-emitente
+       mov-ap.dt-today        = today
+       mov-ap.c-time          = string(time, "HH:MM")
+       mov-ap.usuario         = p-usuario.
+
+run pi-versao in this-procedure (input 3). /* Conta-corrente-forn Procedure no ap0521ca.p */            
+
+/*-----Execu‡Æo Or‡ament ria-----*/
+/*--- Se for PEF ---*/
+if avail bordero-ap AND bordero-ap.transacao = 3 then do:
+
+    &IF "{&mgadm_version}" >= "2.04" &THEN
+        if  l-execucao-orcamentaria = yes 
+        AND l-integra-pef-bgc = YES then do:
+
+            /*--- Verifica se h  controle or‡ament rio ---*/
+            IF NOT l-conec-bas OR
+               NOT l-conec-fin OR
+               NOT l-conec-uni THEN DO:
+                
+                run utp/ut-msgs.p(input "show",
+                                  input 30648,
+                                  input "":U).
+                if valid-handle(h-acomp) THEN DO:
+                   run pi-finalizar in h-acomp.
+                END.
+                                  
+                undo,RETURN "NOK":U.
+                
+
+            END.
+            
+            run prgfin/bgc/bgc700zc.py(input  1,
+                                       input  i-ep-codigo-usuario,
+                                       output i-log-exec).
+
+            if i-log-exec = 0 then do:
+               assign v_sequencia = v_sequencia + 1.   
+               /*--- Cria tt_xml_input_1 ---*/
+               {app/ap0521c.i2 "Atualiza Titulo"}
+
+               for each tt_log_erros:
+                   delete tt_log_erros.
+               end.
+
+               run prgfin/bgc/bgc700za.py (input  1,
+                                           input  table tt_xml_input_1,
+                                           output table tt_log_erros).
+               for each tt_xml_input_1:
+                   delete tt_xml_input_1.
+               end.
+
+               find first tt_log_erros no-lock no-error.
+               if avail tt_log_erros then do:
+                  run utp/ut-msgs.p(input "show",
+                                    input 25997,
+                                    input tt_log_erros.ttv_des_erro + '~~' +
+                                          tt_log_erros.ttv_des_ajuda).
+                                          
+
+                  return "NOK".
+
+               end.
+            end.
+        end.
+    &ENDIF
+END.    
+/*---------------------------*/
+
+if  c-nom-prog-dpc-mg97  <> "" or
+           c-nom-prog-appc-mg97 <> "" or
+           c-nom-prog-upc-mg97  <> "" then do: 
+        /* PONTO CHAMADA UPC SOLICITADA PELA UNISINOS FO 839.135 */
+        for each  tt-epc where 
+                  tt-epc.cod-event = "create-mov-ap-pef"
+                  exclusive-lock:
+            delete tt-epc.
+        end.
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "create-mov-ap-pef"
+               tt-epc.cod-parameter = "rowid-mov-ap"
+               tt-epc.val-parameter = string(rowid(mov-ap)).
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "create-mov-ap-pef"
+               tt-epc.cod-parameter = "rowid-bordero-ap"
+               tt-epc.val-parameter = string(rowid(bordero-ap)).
+
+        {include/i-epc201.i "create-mov-ap-pef"}
+        /* FIM PONTO CHAMADA UPC UNISINOS */
+end.        
+
+/*--- Integra‡äes Investimentos ---*/
+if  l-modulo-in = yes then do:
+    if  mov-ap.num-ord-inv > 0 then do:
+        if  connected("mginv") then do:
+            run inp/in3001d.p (input rowid(mov-ap),
+                               input "inclui-movap").
+        end.
+    end.        
+end.
+
+find first tit-ap exclusive-lock
+     where tit-ap.ep-codigo   = bordero-ap.ep-codigo
+     and   tit-ap.cod-estabel = bordero-ap.cod-estabel
+     and   tit-ap.cod-esp     = bordero-ap.cod-esp
+     and   tit-ap.serie       = bordero-ap.serie
+     and   tit-ap.nr-docto    = bordero-ap.nr-docto
+     and   tit-ap.parcela     = bordero-ap.parcela
+     and   tit-ap.cod-fornec  = bordero-ap.cod-fornec no-error.
+
+if  avail tit-ap then do:
+    if  tit-ap.tipo = 2 then do:
+
+        /*------- INTEGRA€åES --------*/
+        {app/ap9100.i2}
+        assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap)
+               tt-integ-ap.tt-row-mov-ap  = rowid(mov-ap)
+               tt-integ-ap.tt-ge0102g     = yes
+               tt-integ-ap.tt-cb1202a     = yes
+               tt-integ-ap.tt-op-ge0102g  = 6
+               tt-integ-ap.tt-op-cb1202a  = 6.
+        raw-transfer tt-integ-ap to raw-integracao.
+        run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+
+        assign tit-ap.dt-ult-pagto  = p-dt-transacao
+               tit-ap.nr-bordero    = bordero-ap.nr-bordero
+               mov-ap.esp-ant       = bordero-ap.cod-esp
+               mov-ap.serie-ant     = bordero-ap.serie
+               mov-ap.docto-ant     = bordero-ap.nr-docto
+               mov-ap.parc-ant      = bordero-ap.parcela
+               mov-ap.vl-antecip    = bordero-ap.vl-docto
+               mov-ap.vl-antecip-me = bordero-ap.vl-docto
+               tit-ap.valor-saldo   = if  bordero-ap.transacao = 3 then
+                                         tit-ap.valor-saldo - bordero-ap.vl-docto
+                                     else
+                                         tit-ap.valor-saldo + bordero-ap.vl-docto
+               tit-ap.vl-saldo-me   = tit-ap.valor-saldo.
+
+        /*------- INTEGRA€åES --------*/
+        {app/ap9100.i2}
+        assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap)
+               tt-integ-ap.tt-row-mov-ap  = rowid(mov-ap)
+               tt-integ-ap.tt-ge0102g     = yes
+               tt-integ-ap.tt-cb1202a     = yes
+               tt-integ-ap.tt-op-ge0102g  = 16
+               tt-integ-ap.tt-op-cb1202a  = 16.
+        raw-transfer tt-integ-ap to raw-integracao.
+        run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+
+    end.
+    else do:
+        if  tit-ap.tipo = 3 then do:
+
+            /*------- INTEGRA€åES --------*/
+            {app/ap9100.i2}
+            assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap)
+                   tt-integ-ap.tt-row-mov-ap  = rowid(mov-ap)
+                   tt-integ-ap.tt-cb0110a     = yes
+                   tt-integ-ap.tt-cb1202a     = yes
+                   tt-integ-ap.tt-op-cb0110a  = 6
+                   tt-integ-ap.tt-op-cb1202a  = 6.
+            raw-transfer tt-integ-ap to raw-integracao.
+            run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+
+            assign tit-ap.valor-saldo   = if  bordero-ap.transacao = 3 then
+                                              tit-ap.valor-saldo - bordero-ap.vl-docto
+                                          else
+                                              tit-ap.valor-saldo + bordero-ap.vl-docto
+                   tit-ap.vl-saldo-me   = tit-ap.valor-saldo.
+
+            /*------- INTEGRA€åES --------*/
+            {app/ap9100.i2}
+            assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap)
+                   tt-integ-ap.tt-row-mov-ap  = rowid(mov-ap)
+                   tt-integ-ap.tt-cb0110a     = yes
+                   tt-integ-ap.tt-cb1202a     = yes
+                   tt-integ-ap.tt-op-cb0110a  = 16
+                   tt-integ-ap.tt-op-cb1202a  = 16.
+            raw-transfer tt-integ-ap to raw-integracao.
+            run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+
+        end.
+        else do:
+             if  tit-ap.tipo = 10 then do:
+                 assign mov-ap.esp-ant       = bordero-ap.cod-esp
+                        mov-ap.serie-ant     = bordero-ap.serie
+                        mov-ap.docto-ant     = bordero-ap.nr-docto
+                        mov-ap.fornec-ant    = bordero-ap.cod-fornec
+                        mov-ap.parc-ant      = bordero-ap.parcela
+                        mov-ap.nr-docto      = ""
+                        mov-ap.serie         = ""
+                        mov-ap.parcela       = ""
+                        mov-ap.cod-fornec    = 0
+                        mov-ap.cod-esp       = ""
+                        mov-ap.tipo          = tit-ap.tipo.
+
+                 /*------- INTEGRA€åES --------*/
+                 {app/ap9100.i2}
+                 assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap)
+                        tt-integ-ap.tt-row-mov-ap  = rowid(mov-ap)
+                        tt-integ-ap.tt-cb0201a     = yes
+                        tt-integ-ap.tt-op-cb0201a  = 16.
+                 raw-transfer tt-integ-ap to raw-integracao.
+                 run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+
+                 create mov-ap.
+                 assign mov-ap.ep-codigo       = bordero-ap.ep-codigo
+                        mov-ap.cod-estabel     = bordero-ap.cod-estabel
+                        mov-ap.cod-esp         = bordero-ap.cod-esp
+                        mov-ap.serie           = bordero-ap.serie
+                        mov-ap.nr-docto        = bordero-ap.nr-docto
+                        mov-ap.parcela         = bordero-ap.parcela
+                        mov-ap.cod-fornec      = bordero-ap.cod-fornec
+                        mov-ap.referencia      = bordero-ap.referencia
+                        mov-ap.transacao       = 5
+                        mov-ap.dt-emissao      = p-dt-transacao
+                        mov-ap.dt-vencimen     = p-dt-transacao
+                        mov-ap.dt-transacao    = p-dt-transacao
+                        mov-ap.dt-pagamento    = p-dt-transacao
+                        mov-ap.moeda           = 0
+                        mov-ap.cotacao-dia     = 1
+                        mov-ap.valor-mov       = if  bordero-ap.vl-docto > tit-ap.valor-saldo 
+                                                 then tit-ap.valor-saldo
+                                                 else bordero-ap.vl-docto
+                        mov-ap.valor-mov-me    = if  bordero-ap.vl-docto > tit-ap.valor-saldo 
+                                                 then tit-ap.valor-saldo
+                                                 else bordero-ap.vl-docto
+                        mov-ap.portador        = bordero-ap.portador
+                        mov-ap.nr-cheque       = 0
+                        mov-ap.conta-contabil  = bordero-ap.conta-debito
+                        mov-ap.ct-conta        = bordero-ap.ct-codigo
+                        mov-ap.sc-conta        = bordero-ap.sc-codigo
+                        mov-ap.historico       = bordero-ap.historico
+                        mov-ap.nr-bordero      = bordero-ap.nr-bordero
+                        mov-ap.tp-codigo       = bordero-ap.tp-codigo
+                        mov-ap.port-transf     = bordero-ap.port-transf
+                        mov-ap.tp-recta-transf = bordero-ap.dec-1
+                        mov-ap.num-ord-inv     = bordero-ap.dec-2
+                        mov-ap.banco           = tt-portador.cod-banco       when avail tt-portador
+                        mov-ap.agencia         = tt-portador.agencia         when avail tt-portador
+                        mov-ap.cta-corrente    = tt-portador.conta-corren    when avail tt-portador
+                        mov-ap.nome-abrev      = tt-emitente.nome-abrev   when avail tt-emitente
+                        mov-ap.dt-today        = today
+                        mov-ap.c-time          = string(time, "HH:MM")
+                        mov-ap.usuario         = p-usuario
+                        mov-ap.contabiliza     = no
+                        mov-ap.contabilizou    = no
+                        mov-ap.flag-contab     = no
+                        mov-ap.esp-ant         = bordero-ap.cod-esp
+                        mov-ap.serie-ant       = bordero-ap.serie
+                        mov-ap.docto-ant       = bordero-ap.nr-docto
+                        mov-ap.fornec-ant      = bordero-ap.cod-fornec
+                        mov-ap.parc-ant        = bordero-ap.parcela
+                        mov-ap.tipo            = tit-ap.tipo
+                        tit-ap.valor-saldo     = tit-ap.valor-saldo - bordero-ap.vl-docto
+                        tit-ap.vl-saldo-me     = tit-ap.valor-saldo.
+             end.
+             else do:
+                if  bordero-ap.vl-docto >= tit-ap.valor-saldo then do:
+                    assign tit-ap.valor-saldo = 0
+                           tit-ap.vl-saldo-me = 0.
+                end.
+             end.
+        end.
+    end.            
+
+    assign tit-ap.nr-bordero = bordero-ap.nr-bordero.
+
+    /*********** Multiplanta ***********/  
+    run pi-cria-tt-dados-tit (input 2).     
+    /******** Fim-Multiplanta **********/ 
+
+end.
+
+/*********** Multiplanta ***********/  
+run pi-cria-tt-dados-mov (input 1).     
+/******** Fim-Multiplanta **********/ 
+
+/*------- INTEGRA€åES --------*/
+{app/ap9100.i2}
+assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap) when avail tit-ap
+       tt-integ-ap.tt-row-mov-ap  = rowid(mov-ap)
+       tt-integ-ap.tt-ge0102b     = yes
+       tt-integ-ap.tt-fc1014a     = yes
+       tt-integ-ap.tt-fc1114a     = yes
+       tt-integ-ap.tt-cb0201a     = yes
+       tt-integ-ap.tt-cb1202a     = yes
+       tt-integ-ap.tt-op-ge0102b  = 2
+       tt-integ-ap.tt-op-cb0201a  = 16
+       tt-integ-ap.tt-op-cb1202a  = 21.
+raw-transfer tt-integ-ap to raw-integracao.
+run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+
+/* Fim de Include */

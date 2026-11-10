@@ -1,0 +1,224 @@
+IF l-integra-webb THEN DO:
+   
+    EMPTY TEMP-TABLE ttPurchaseOrderLine012.
+            
+    FOR EACH tt-pedido-compr-approve:
+        DELETE tt-pedido-compr-approve.
+    END.
+    CREATE tt-pedido-compr-approve.    
+
+    FIND FIRST tt-pedido-compr NO-ERROR.
+
+    BUFFER-COPY tt-pedido-compr TO tt-pedido-compr-approve.
+
+    FOR EACH tt-ordem-compra BREAK BY(tt-ordem-compra.num-pedido):
+        FIND FIRST ordem-compra WHERE ordem-compra.numero-ordem = tt-ordem-compra.numero-ordem NO-LOCK NO-ERROR.
+        FIND FIRST ITEM WHERE ITEM.it-codigo = ordem-compra.it-codigo NO-LOCK NO-ERROR.
+
+        find first tt-cotacao-item where tt-cotacao-item.numero-ordem = tt-ordem-compra.numero-ordem no-lock no-error.
+                         
+        FIND FIRST ttDeliveryScheduleInforma_00 NO-ERROR.
+
+        CREATE ttPurchaseOrderLine012.
+        ASSIGN ttPurchaseOrderLine012.POLineNumberWebb     = &IF  "{&bf_mat_versao_ems}"  <  "2.09"  &THEN
+                                                                SUBSTRING(tt-ordem-compra.char-1,92,50)
+                                                             &ELSE
+                                                                tt-ordem-compra.cod-ord-portal
+                                                             &ENDIF
+               ttPurchaseOrderLine012.DeliveryDate         = ttDeliveryScheduleInforma_00.DeliveryDate     
+               ttPurchaseOrderLine012.ItemCode             = ordem-compra.it-codigo
+               ttPurchaseOrderLine012.ItemDescription      = ITEM.desc-item
+               ttPurchaseOrderLine012.POLineNumber         = ordem-compra.numero-ordem
+               ttPurchaseOrderLine012.PriceVendor          = ordem-compra.preco-fornec
+               ttPurchaseOrderLine012.Quantity             = ordem-compra.qt-solic
+               ttPurchaseOrderLine012.UnitPriceVendor      = ordem-compra.pre-unit-for
+               ttPurchaseOrderLine012.CurrencyID           = ordem-compra.mo-codigo
+               ttPurchaseOrderLine012.UnitPrice            = &IF  "{&bf_mat_versao_ems}"  <  "2.09"  &THEN
+                                                                decimal(substring(tt-cotacao-item.char-2, 157, 17)).  
+                                                             &ELSE
+                                                                tt-cotacao-item.val-preco-liq-item.
+                                                             &ENDIF
+
+        IF cTranAction = "add":U THEN DO:
+                                
+            FOR EACH tt-cotacao-item:
+
+                RUN ccp/ccapi340.p (INPUT tt-cotacao-item.cod-emitente,
+                                    INPUT tt-cotacao-item.numero-ordem,
+                                    INPUT tt-cotacao-item.it-codigo,
+                                    INPUT tt-cotacao-item.seq-cotac,
+                                    OUTPUT TABLE tt-erros-geral).
+                 
+                if can-find(first tt-erros-geral) then
+                    return "NOK".
+                
+            END.
+
+            if avail ordem-compra and param-global.modulo-in and ordem-compra.num-ord-inv <> 0 then do:                              
+                run ivbo/boiv028.p persistent set h-boiv028.
+                run UpdateOrdPed in h-boiv028 (input rowid(ordem-compra), 
+                                               input-output table RowErrors).
+                delete procedure h-boiv028.   
+
+                FOR EACH RowErrors WHERE RowErrors.ErrorSubType = "error":U:
+                    CREATE tt-erros-geral.
+                    ASSIGN tt-erros-geral.cod-erro = RowErrors.ErrorNumber
+                           tt-erros-geral.des-erro = RowErrors.ErrorDescription.
+                END.
+
+                IF CAN-FIND(FIRST RowErrors WHERE RowErrors.ErrorSubType = "error":U) THEN
+                    LEAVE.
+            end.
+
+            /* Aprovaá∆o de compras */
+            RUN inbo/boin666.p PERSISTENT SET h-boin666.
+            RUN getFirst    IN h-boin666.
+            RUN getLogField IN h-boin666 (INPUT "aprov-total-pedido":U,
+                                          OUTPUT l-aprov-total-pedido).
+            delete procedure h-boin666.
+   
+            RUN inbo/boin274vl PERSISTENT SET h-boin274vl.
+
+            IF  param-compra.log-1 AND l-aprov-total-pedido THEN DO:
+
+                IF LAST-OF(tt-ordem-compra.num-pedido) THEN
+                    RUN aprovaAddOrdemCompraPedidos IN h-boin274vl (INPUT rowid(ordem-compra),
+                                                                    OUTPUT TABLE RowErrors).   
+
+                FOR EACH RowErrors WHERE RowErrors.ErrorSubType = "error":U:
+                    CREATE tt-erros-geral.
+                    ASSIGN tt-erros-geral.cod-erro = RowErrors.ErrorNumber
+                           tt-erros-geral.des-erro = RowErrors.ErrorDescription.
+                END.
+
+                IF CAN-FIND(FIRST RowErrors WHERE RowErrors.ErrorSubType = "error":U) THEN
+                    LEAVE.
+            END.     
+            ELSE DO:
+
+                RUN aprovaAddOrdemCompraPedidos IN h-boin274vl (INPUT rowid(ordem-compra),
+                                                                OUTPUT TABLE RowErrors).
+                FOR EACH RowErrors WHERE RowErrors.ErrorSubType = "error":U:
+                    CREATE tt-erros-geral.
+                    ASSIGN tt-erros-geral.cod-erro = RowErrors.ErrorNumber
+                           tt-erros-geral.des-erro = RowErrors.ErrorDescription.
+                END.
+
+                IF CAN-FIND(FIRST RowErrors WHERE RowErrors.ErrorSubType = "error":U) THEN
+                    LEAVE.
+            END.
+            /* Fim aprovaá∆o de compras*/
+            delete procedure h-boin274vl.
+
+
+            /* Verifica se h† pendàncias de aprovaá∆o para o pedido, 
+               caso n∆o haja dever† ser enviada uma mensagem ao portal */
+            IF LAST-OF(tt-ordem-compra.num-pedido) THEN DO:
+                DEFINE VARIABLE l-pendente AS LOGICAL     NO-UNDO.
+                                
+                IF param-compra.log-1 THEN DO:
+
+                    FOR EACH ordem-compra WHERE ordem-compra.num-pedido = tt-pedido-compr.num-pedido NO-LOCK:
+                        ASSIGN l-pendente = NO.
+
+                        RUN cdp/cdapi172.p (INPUT 4,
+                                            INPUT ROWID(ordem-compra),
+                                            OUTPUT l-pendente).
+
+                        IF l-pendente THEN
+                            LEAVE.
+
+                    END.
+
+                    IF NOT l-pendente THEN DO:
+                        FIND FIRST doc-pend-aprov WHERE doc-pend-aprov.num-pedido = tt-pedido-compr.num-pedido NO-LOCK NO-ERROR.
+                        if avail doc-pend-aprov then
+                            assign c-narrativa = doc-pend-aprov.narrativa-apr.
+                        else do:
+                            run utp/ut-msgs.p (input "msg":U,
+                                               input 16725,
+                                               input "":U).                           
+                            assign c-narrativa = return-value.
+                        end.
+
+                        FIND FIRST ttPurchaseOrderLine012 NO-ERROR.
+
+                        IF AVAIL ttPurchaseOrderLine012 then do:
+                                                                 
+                            run adapters/xml/su2/axssu012.p (input "add":u,
+                                                             input "axrsu004.p":u,
+                                                             input "approve":U,
+                                                             input c-narrativa,
+                                                             input table tt-pedido-compr-approve,
+                                                             input table ttPurchaseOrderLine012,
+                                                             output table tt_log_erro APPEND).
+
+                            FIND FIRST pedido-compr WHERE pedido-compr.num-pedido = tt-pedido-compr.num-pedido EXCLUSIVE-LOCK NO-ERROR.
+
+                            &IF "{&bf_mat_versao_ems}"  <  "2.09" &THEN 
+                            ASSIGN OVERLAY(pedido-compr.char-1, 53, 1) = "s":U. 
+                            &ELSE 
+                                ASSIGN pedido-compr.log-envda-aprovac-portal = YES.
+                            &ENDIF
+                            
+                            RELEASE pedido-compr.
+                        END.
+                    END.
+                END.
+                ELSE DO: /* Se n∆o utilizar aprovaá∆o de compras envia mensagem de aprovaá∆o ao portal */
+                    FIND FIRST ttPurchaseOrderLine012 NO-ERROR.
+
+                    IF AVAIL ttPurchaseOrderLine012 then do:
+
+                        run adapters/xml/su2/axssu012.p (input "add":u,
+                                                         input "axrsu004.p":u,
+                                                         input "approve":U,
+                                                         input "APROVADO":U,
+                                                         input table tt-pedido-compr-approve,
+                                                         input table ttPurchaseOrderLine012,
+                                                         output table tt_log_erro APPEND).
+
+                        FIND FIRST pedido-compr WHERE pedido-compr.num-pedido = tt-pedido-compr.num-pedido EXCLUSIVE-LOCK NO-ERROR.
+
+                        &IF "{&bf_mat_versao_ems}"  <  "2.09" &THEN 
+                        ASSIGN OVERLAY(pedido-compr.char-1, 53, 1) = "s":U. 
+                        &ELSE 
+                            ASSIGN pedido-compr.log-envda-aprovac-portal = YES.
+                        &ENDIF
+                        
+                        RELEASE pedido-compr.
+                    END.
+                END.
+            END.
+        END.
+        ELSE DO:       
+
+            IF LAST-OF(tt-ordem-compra.num-pedido) THEN DO:
+
+                FIND FIRST ttPurchaseOrderLine012 NO-ERROR.
+
+                IF AVAIL ttPurchaseOrderLine012 then do:
+
+                    run adapters/xml/su2/axssu012.p (input "add":u,
+                                                     input "axrsu004.p":u,
+                                                     input "approve":U,
+                                                     input "APROVADO":U,
+                                                     input table tt-pedido-compr-approve,
+                                                     input table ttPurchaseOrderLine012,
+                                                     output table tt_log_erro APPEND).
+
+                    FIND FIRST pedido-compr WHERE pedido-compr.num-pedido = tt-pedido-compr.num-pedido EXCLUSIVE-LOCK NO-ERROR.
+
+                    &IF "{&bf_mat_versao_ems}"  <  "2.09" &THEN 
+                    ASSIGN OVERLAY(pedido-compr.char-1, 53, 1) = "s":U. 
+                    &ELSE 
+                        ASSIGN pedido-compr.log-envda-aprovac-portal = YES.
+                    &ENDIF
+                    
+                    RELEASE pedido-compr.
+                END.
+            END.
+
+        END.      
+    END.
+END.

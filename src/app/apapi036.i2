@@ -1,0 +1,24 @@
+/* Cria temp com AVA inconsistente - erro
+
+{1} - C¢d. Erro. 
+{2} - Mensagem. */
+
+create tt-retorno-mov-ap.
+assign tt-retorno-mov-ap.ep-codigo   = tt-movto-ap.ep-codigo
+       tt-retorno-mov-ap.cod-estabel = tt-movto-ap.cod-estabel
+       tt-retorno-mov-ap.cod-esp     = tt-movto-ap.cod-esp
+       tt-retorno-mov-ap.serie       = tt-movto-ap.serie
+       tt-retorno-mov-ap.nr-docto    = tt-movto-ap.nr-docto
+       tt-retorno-mov-ap.parcela     = tt-movto-ap.parcela
+       tt-retorno-mov-ap.cod-fornec  = tt-movto-ap.cod-fornec
+       tt-retorno-mov-ap.cod-erro    = {1}.
+
+if {1} = 0 then
+   assign tt-retorno-mov-ap.conta-contabil = tt-movto-ap.conta-contabil
+          tt-retorno-mov-ap.transacao      = tt-movto-ap.transacao
+          tt-retorno-mov-ap.lancamento     = tt-movto-ap.lancamento
+          tt-retorno-mov-ap.valor-mov      = tt-movto-ap.valor-mov.
+else
+   assign tt-retorno-mov-ap.desc-erro      = {2}.
+
+/* Fim apapi036.i2 */

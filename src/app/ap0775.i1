@@ -1,0 +1,38 @@
+def temp-table tt-conc-autom no-undo
+    field tta-cod-estab                    as character format "x(3)" label "Estabelecimento" column-label "Estab"
+    field tta-cdn-febraban                 as integer   format ">>9" label "Portador" column-label "Portador"
+    field tta-cod-tit-ap-bco               as character format "x(20)" label "T¡tulo  Banco" column-label "T¡tulo Banco"
+    field tta-dat-vencto                   as date format "99/99/9999" initial ? label "Vencimento" column-label "Vencimento"
+    field tta-val-tit-ap-bcio              as decimal format "->>>,>>>,>>9.99" decimals 2 initial 0 label "Valor T¡tulo Bcio" column-label "Valor T¡tulo Bcio"
+    field tta-cdn-empresa                  like tit-ap.ep-codigo
+    field tta-cod-fornec-tit-ap            as integer
+    field tta-cod-estab-tit-ap             as character format "x(3)" label "Estabel APB" column-label "Estabel APB"
+    field tta-cod-espec-docto              as char
+    field tta-cod-serie                    as char
+    field tta-cod-docto                    as char
+    field tta-cod-parcela                  as char
+    field tta-dat-vencto-tit-ap            as date format "99/99/9999" initial today label "Data Vencimento" column-label "Dt Vencto"
+    field tta-val-tit-ap                   as decimal format "->>>,>>>,>>9.99" decimals 2 initial 0 label "Valor T¡tulo" column-label "Valor T¡tulo"
+    field tta-cdn-fornecedor               as Integer format ">>>,>>>,>>9" initial 0 label "Fornecedor" column-label "Fornecedor"
+    field tta-log-concil                   as logical format "Sim/NÆo" initial no label "Tit. Conciliado" column-label "Tit. Conciliado"
+    field ttv-log-descta                   as logical format "Sim/NÆo" initial no
+    field ttv-num-seq                      as integer format ">>>,>>9" label "Seqˆncia" column-label "Seq"
+    field ttv-cod-data                     as character format "x(10)"
+    field ttv-cod-estab-browse             as character format "x(3)" label "Estabelecimento" column-label "Estab"
+    field ttv-cod-fornec-browse            as character format "x(11)" label "C¢d. Fornec." column-label "C¢d. Fornec."
+    field ttv-cod-tit-ap-bco-browse        as character format "x(20)" label "T¡tulo Banc rio" column-label "T¡tulo Banc rio"
+    field ttv-log-concil-prim              as logical format "Sim/NÆo" initial no
+    field ttv-cdn-matriz-fornec-inic       as Integer format ">>>,>>>,>>9" label "Matriz Inicial" column-label "Matriz Inicial"
+    index tt-display                       is primary unique
+          tta-cod-estab                    ascending
+          tta-cdn-fornecedor               ascending
+          tta-cod-tit-ap-bco               ascending
+          ttv-num-seq                      ascending
+    index tt-tit-ap                       
+          tta-cod-estab-tit-ap             ascending
+          tta-cdn-fornecedor               ascending
+          tta-cod-serie                    ascending
+          tta-cod-espec-docto              ascending
+          tta-cod-docto                    ascending
+          tta-cod-parcela                  ascending
+    .

@@ -1,0 +1,266 @@
+<?xml version="1.0"?>
+<WizardAdapters xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Currency</Name>
+  <Id />
+  <XsdFileName>\\araca\ReqPro_Projects\Fin\FIN_MCD\Release 2.07\Moeda - Camada XML\20. Análise de Projeto\xmlschema\fi2\Currency_207_000.xsd</XsdFileName>
+  <HasSchemaChanges>false</HasSchemaChanges>
+  <HasReceive>false</HasReceive>
+  <HasSend>true</HasSend>
+  <ReceiveAdapter>
+    <Product />
+    <Release>207</Release>
+    <Module>MCD</Module>
+    <Application />
+    <FileName>C:\temp\adapterCurrency\axrfi002.p</FileName>
+    <OverrideInc>false</OverrideInc>
+    <MinVersion />
+    <MaxVersion />
+    <ListActions>add,upd,del</ListActions>
+  </ReceiveAdapter>
+  <SendAdapter>
+    <Product>EMS2</Product>
+    <Release>207</Release>
+    <Module>MCD</Module>
+    <Application>FI2</Application>
+    <FileName>C:\temp\adapterCurrency\adapters\xml\fi2\axsfi002.p</FileName>
+    <OverrideInc>false</OverrideInc>
+    <Version>000</Version>
+  </SendAdapter>
+  <ListOfField>
+    <Field>
+      <Name>BusinessContentType</Name>
+      <ApiField />
+      <DefaultValue />
+      <IsOk>false</IsOk>
+      <Type>ComplexType</Type>
+      <ListOfChild>
+        <Child>
+          <Name>Upsert</Name>
+          <ApiField>Upsert</ApiField>
+          <DefaultValue />
+          <IsOk>true</IsOk>
+          <Type>ComplexType</Type>
+          <ListOfChild>
+            <Child>
+              <Name>ListOfCurrency</Name>
+              <ApiField>ListOfCurrency</ApiField>
+              <DefaultValue />
+              <IsOk>true</IsOk>
+              <Type>ComplexType</Type>
+              <ListOfChild>
+                <Child>
+                  <Name>Currency</Name>
+                  <ApiField>ttCurrency</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>Code</Name>
+                      <ApiField>Code</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>true</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Código da Moeda (Uso Interno: emsuni.moeda.mo-codigo)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Description</Name>
+                      <ApiField>Description</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Descrição da Moeda. (Uso Interno: emsuni.moeda.descricao)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>ShortName</Name>
+                      <ApiField>ShortName</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Sigla da Moeda. (Uso Interno: emsuni.moeda.sigla)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>DecimalPlaces</Name>
+                      <ApiField>DecimalPlaces</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Número de casa decimais. (Uso Interno: emsuni.moeda.qtd-dec)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Variance</Name>
+                      <ApiField>Variance</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Indicador da variação. Pode ser 1 = Diario, 2 = Mensal. (Uso Interno: emsuni.moeda.ind-variacao)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Readjust</Name>
+                      <ApiField>Readjust</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Indicador de reajuste. Pode ser 1 = Diario, 2 = Mensal. (Uso Interno: emsuni.moeda.ind-reajuste)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>true</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Moeda</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+              </ListOfChild>
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Lista de Moedas</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+          </ListOfChild>
+          <IsMultiple>false</IsMultiple>
+          <IsKeyField>false</IsKeyField>
+          <IsRequired>true</IsRequired>
+          <Enabled>true</Enabled>
+          <Annotation>Operação de Inclusão ou Alteração</Annotation>
+          <TestLogic />
+          <IsNewPI>false</IsNewPI>
+        </Child>
+        <Child>
+          <Name>Delete</Name>
+          <ApiField>Delete</ApiField>
+          <DefaultValue />
+          <IsOk>true</IsOk>
+          <Type>ComplexType</Type>
+          <ListOfChild>
+            <Child>
+              <Name>ListOfCurrency</Name>
+              <ApiField>ListOfCurrency_00</ApiField>
+              <DefaultValue />
+              <IsOk>true</IsOk>
+              <Type>ComplexType</Type>
+              <ListOfChild>
+                <Child>
+                  <Name>Currency</Name>
+                  <ApiField>ttCurrency_00</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>Code</Name>
+                      <ApiField>Code</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>true</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Código da Moeda (Uso Interno: emsuni.moeda.mo-codigo)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Description</Name>
+                      <ApiField>Description</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Descrição da Moeda. (Uso Interno: emsuni.moeda.descricao)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>true</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Moeda</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+              </ListOfChild>
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Lista de Moedas</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+          </ListOfChild>
+          <IsMultiple>false</IsMultiple>
+          <IsKeyField>false</IsKeyField>
+          <IsRequired>true</IsRequired>
+          <Enabled>true</Enabled>
+          <Annotation />
+          <TestLogic />
+          <IsNewPI>false</IsNewPI>
+        </Child>
+      </ListOfChild>
+      <IsMultiple>false</IsMultiple>
+      <IsKeyField>false</IsKeyField>
+      <IsRequired>false</IsRequired>
+      <Enabled>true</Enabled>
+      <Annotation />
+      <TestLogic />
+      <IsNewPI>false</IsNewPI>
+    </Field>
+  </ListOfField>
+  <IsNew>false</IsNew>
+  <ConfFileName>C:\temp\adapterCurrency\adapters\xml\fi2\axsfi002.p.eai</ConfFileName>
+  <RecentLoad>false</RecentLoad>
+</WizardAdapters>

@@ -1,0 +1,310 @@
+/*********************************************************************************
+***
+*** app/ap506frp.i2 - pi-validar-substituicoes.
+***
+*********************************************************************************/
+
+nota-block:
+for each  nota-dup use-index referencia no-lock
+    where nota-dup.ep-codigo-n  = tt-param.i-ep-codigo
+    and   nota-dup.referencia   = tt-param.referencia
+    and   nota-dup.dt-transacao = tt-param.dt-transacao
+    on error  undo nota-block, return error
+    on endkey undo nota-block, return error
+    on stop   undo nota-block, return error:
+ 
+  
+      find first bordero-ap
+           where bordero-ap.ep-codigo    = nota-dup.ep-codigo-n
+           and   bordero-ap.cod-fornec   = nota-dup.fornec-dup
+           and   bordero-ap.cod-estabel  = nota-dup.cod-estabel-d
+           and   bordero-ap.cod-esp      = nota-dup.cod-esp-d
+           and   bordero-ap.serie        = nota-dup.serie-d
+           and   bordero-ap.nr-docto     = nota-dup.nr-docto-d
+           and   bordero-ap.parcela      = nota-dup.parcela-d
+           and   bordero-ap.tp-transacao = 1 /*C*/
+           no-lock no-error.
+      if  avail  bordero-ap then do:
+          run utp/ut-msgs.p (input "msg",
+                             input 405,
+                             input " ").
+          assign c-mensagem = return-value.
+          disp nota-dup.referencia
+               nota-dup.dt-transacao
+               nota-dup.cod-estabel-n
+               nota-dup.cod-esp-n
+               nota-dup.serie-n
+               fill(" ", 16 - length(nota-dup.nr-docto-n)) + nota-dup.nr-docto-n
+               @ nota-dup.nr-docto-n
+               nota-dup.parcela-n
+               nota-dup.cod-fornec
+               nota-dup.cod-estabel-d
+               nota-dup.cod-esp-d
+               nota-dup.serie-d
+               fill(" ", 16 - length(nota-dup.nr-docto-d)) + nota-dup.nr-docto-d
+               @ nota-dup.nr-docto-d
+               nota-dup.parcela-d
+               nota-dup.fornec-dup
+               c-mensagem
+               with frame f-nota-dup.
+          down with frame f-nota-dup.
+          undo nota-block, return error.
+      end.
+      
+      find first mov-ap
+           where mov-ap.ep-codigo    = nota-dup.ep-codigo-n
+           and   mov-ap.cod-fornec   = nota-dup.cod-fornec
+           and   mov-ap.cod-estabel  = nota-dup.cod-estabel-n
+           and   mov-ap.cod-esp      = nota-dup.cod-esp-n
+           and   mov-ap.serie        = nota-dup.serie-n
+           and   mov-ap.nr-docto     = nota-dup.nr-docto-n
+           and   mov-ap.parcela      = nota-dup.parcela-n
+           and   mov-ap.transacao    = 6 /*SND*/
+           and   mov-ap.referencia   = nota-dup.referencia
+           and   mov-ap.dt-transacao = nota-dup.dt-transacao
+           no-lock no-error.
+      if not avail mov-ap then do:     
+         find first mov-ap
+              where mov-ap.ep-codigo    = nota-dup.ep-codigo-n
+              and   mov-ap.cod-fornec   = nota-dup.cod-fornec
+              and   mov-ap.cod-estabel  = nota-dup.cod-estabel-n
+              and   mov-ap.cod-esp      = nota-dup.cod-esp-n
+              and   mov-ap.serie        = nota-dup.serie-n
+              and   mov-ap.nr-docto     = nota-dup.nr-docto-n
+              and   mov-ap.parcela      = nota-dup.parcela-n
+              and   mov-ap.transacao    = 2 /*BND* para pagar‚ e ordem de pago*/
+              and   mov-ap.referencia   = nota-dup.referencia
+              and   mov-ap.dt-transacao = nota-dup.dt-transacao
+              no-lock no-error.
+         if not avail mov-ap then       
+            find first mov-ap
+                 where mov-ap.ep-codigo    = nota-dup.ep-codigo-n
+                 and   mov-ap.cod-fornec   = nota-dup.cod-fornec
+                 and   mov-ap.cod-estabel  = nota-dup.cod-estabel-n
+                 and   mov-ap.cod-esp      = nota-dup.cod-esp-n
+                 and   mov-ap.serie        = nota-dup.serie-n
+                 and   mov-ap.nr-docto     = nota-dup.nr-docto-n
+                 and   mov-ap.parcela      = nota-dup.parcela-n
+                 and   mov-ap.transacao    = 5 /*AVA* para pagar‚ e ordem de pago*/
+                 and   mov-ap.impostos     = yes
+                 no-lock no-error.
+        
+      end.
+      if  avail mov-ap and mov-ap.contabilizou = yes then do:
+          run utp/ut-msgs.p (input "msg",
+                             input 1173,
+                             input " ").
+          assign c-mensagem = return-value.
+          disp nota-dup.referencia
+               nota-dup.dt-transacao
+               nota-dup.cod-estabel-n
+               nota-dup.cod-esp-n
+               nota-dup.serie-n
+               fill(" ", 16 - length(nota-dup.nr-docto-n)) + nota-dup.nr-docto-n
+               @ nota-dup.nr-docto-n
+               nota-dup.parcela-n
+               nota-dup.cod-fornec
+               nota-dup.cod-estabel-d
+               nota-dup.cod-esp-d
+               nota-dup.serie-d
+               fill(" ", 16 - length(nota-dup.nr-docto-d)) + nota-dup.nr-docto-d
+               @ nota-dup.nr-docto-d
+               nota-dup.parcela-d
+               nota-dup.fornec-dup
+               c-mensagem
+               with frame f-nota-dup.
+          down with frame f-nota-dup.
+          undo nota-block, return error.
+      end.
+  
+  
+      find first tit-ap
+          where tit-ap.ep-codigo    = nota-dup.ep-codigo-n
+          and   tit-ap.cod-fornec   = nota-dup.fornec-dup
+          and   tit-ap.cod-estabel  = nota-dup.cod-estabel-d
+          and   tit-ap.cod-esp      = nota-dup.cod-esp-d
+          and   tit-ap.serie        = nota-dup.serie-d
+          and   tit-ap.nr-docto     = nota-dup.nr-docto-d
+          and   tit-ap.parcela      = nota-dup.parcela-d
+          no-lock no-error.
+      
+      if  not avail  tit-ap
+      or (avail tit-ap and tit-ap.vl-original > tit-ap.valor-saldo) then do:
+           run utp/ut-msgs.p (input "msg",
+                              input 1174,
+                              input " ").
+          assign c-mensagem = return-value.
+          disp nota-dup.referencia
+               nota-dup.dt-transacao
+               nota-dup.cod-estabel-n
+               nota-dup.cod-esp-n
+               nota-dup.serie-n
+               fill(" ", 16 - length(nota-dup.nr-docto-n)) + nota-dup.nr-docto-n
+               @ nota-dup.nr-docto-n
+               nota-dup.parcela-n
+               nota-dup.cod-fornec
+               nota-dup.cod-estabel-d
+               nota-dup.cod-esp-d
+               nota-dup.serie-d
+               fill(" ", 16 - length(nota-dup.nr-docto-d)) + nota-dup.nr-docto-d
+               @ nota-dup.nr-docto-d
+               nota-dup.parcela-d
+               nota-dup.fornec-dup
+               c-mensagem
+               with frame f-nota-dup.
+          down with frame f-nota-dup.
+          undo nota-block, return error.
+      end.
+      
+      find first bord-tit
+          where bord-tit.ep-codigo   = nota-dup.ep-codigo-n
+          and   bord-tit.cod-estabel = nota-dup.cod-estabel-d
+          and   bord-tit.cod-esp     = nota-dup.cod-esp-d
+          and   bord-tit.serie       = nota-dup.serie-d
+          and   bord-tit.nr-docto    = nota-dup.nr-docto-d
+          and   bord-tit.parcela     = nota-dup.parcela-d
+          and   bord-tit.cod-fornec  = nota-dup.fornec-dup no-lock no-error.
+        
+      if  avail bord-tit then do:
+          run utp/ut-msgs.p (input "msg", 
+                             input 399, /* Documento esta em preparacao no bordero - validando duplicata*/
+                             input " ").
+                           
+          assign c-mensagem = trim(return-value).
+        
+          disp nota-dup.referencia
+               nota-dup.dt-transacao
+               nota-dup.cod-estabel-n
+               nota-dup.cod-esp-n
+               nota-dup.serie-n
+               fill(" ", 16 - length(nota-dup.nr-docto-n)) + nota-dup.nr-docto-n
+               @ nota-dup.nr-docto-n
+               nota-dup.parcela-n
+               nota-dup.cod-fornec
+               nota-dup.cod-estabel-d
+               nota-dup.cod-esp-d
+               nota-dup.serie-d
+               fill(" ", 16 - length(nota-dup.nr-docto-d)) + nota-dup.nr-docto-d
+               @ nota-dup.nr-docto-d
+               nota-dup.parcela-d
+               nota-dup.fornec-dup
+               c-mensagem
+               with frame f-nota-dup.
+          down with frame f-nota-dup.
+          undo nota-block, return error.
+      end.  
+      
+      &if defined(BF_FIN_MODUL_CAMBIO) &then
+
+           if param-global.modulo-mec = yes then do:
+              find first emitente no-lock
+                   where emitente.cod-emitente = nota-dup.cod-fornec no-error.
+   
+               if tit-ap.moeda <> 0 and emitente.natureza = 3 then do:
+                  run adbo/boad342.p persistent set h-boad342.
+                  run pi-vld-cancela-titulo-ap in h-boad342 (input  nota-dup.ep-codigo-n,
+                                                             input  nota-dup.cod-fornec,
+                                                             input  nota-dup.cod-estabel-d,
+                                                             input  nota-dup.cod-esp-d,
+                                                             input  nota-dup.serie-d,
+                                                             input  nota-dup.nr-docto-d,
+                                                             input  nota-dup.parcela-d,
+                                                             output c-cod-estab,
+                                                             output c-referencia,
+                                                             output d-dt-transacao).
+                  if c-referencia <> "" then do:
+                     run utp/ut-msgs.p (input "msg",
+                                        input 25107,
+                                        input c-referencia + "~~" + string(d-dt-transacao)).
+                      assign c-mensagem = return-value.
+                      disp nota-dup.referencia
+                      nota-dup.dt-transacao
+                      nota-dup.cod-estabel-n
+                      nota-dup.cod-esp-n
+                      nota-dup.serie-n
+                      fill(" ", 16 - length(nota-dup.nr-docto-n)) + nota-dup.nr-docto-n
+                      @ nota-dup.nr-docto-n
+                      nota-dup.parcela-n
+                      nota-dup.cod-fornec
+                      nota-dup.cod-estabel-d
+                      nota-dup.cod-esp-d
+                      nota-dup.serie-d
+                      fill(" ", 16 - length(nota-dup.nr-docto-d)) + nota-dup.nr-docto-d
+                      @ nota-dup.nr-docto-d
+                      nota-dup.parcela-d
+                      nota-dup.fornec-dup
+                      c-mensagem
+                      with frame f-nota-dup.
+                  down with frame f-nota-dup.
+
+                  undo nota-block, return error.
+                  end.
+               end.
+               if valid-handle(h-boad342) then
+                  delete procedure h-boad342.
+            end.
+      &endif      
+                 
+      if avail tit-ap then do:        
+         
+         if  tit-ap.enviado = yes then do:
+             run utp/ut-msgs.p (input "help",
+                                input 28652,
+                                input "").
+             assign c-mensagem = return-value.
+             disp nota-dup.referencia
+                  nota-dup.dt-transacao
+                  nota-dup.cod-estabel-n
+                  nota-dup.cod-esp-n
+                  nota-dup.serie-n
+                  fill(" ", 16 - length(nota-dup.nr-docto-n)) + nota-dup.nr-docto-n
+                  @ nota-dup.nr-docto-n
+                  nota-dup.parcela-n
+                  nota-dup.cod-fornec
+                  nota-dup.cod-estabel-d
+                  nota-dup.cod-esp-d
+                  nota-dup.serie-d
+                  fill(" ", 16 - length(nota-dup.nr-docto-d)) + nota-dup.nr-docto-d
+                  @ nota-dup.nr-docto-d
+                  nota-dup.parcela-d
+                  nota-dup.fornec-dup
+                  c-mensagem
+                  with frame f-nota-dup.
+             down with frame f-nota-dup.
+             undo nota-block, return error.                   
+         end.                       
+           
+         if tit-ap.nr-bordero <> 0 then do:                           
+            
+            run utp/ut-msgs.p (input "msg",
+                               input 19224,
+                               input " ").
+            assign c-mensagem = return-value.
+            disp nota-dup.referencia
+                 nota-dup.dt-transacao
+                 nota-dup.cod-estabel-n
+                 nota-dup.cod-esp-n
+                 nota-dup.serie-n
+                 fill(" ", 16 - length(nota-dup.nr-docto-n)) + nota-dup.nr-docto-n
+                 @ nota-dup.nr-docto-n
+                 nota-dup.parcela-n
+                 nota-dup.cod-fornec
+                 nota-dup.cod-estabel-d
+                 nota-dup.cod-esp-d
+                 nota-dup.serie-d
+                 fill(" ", 16 - length(nota-dup.nr-docto-d)) + nota-dup.nr-docto-d
+                 @ nota-dup.nr-docto-d
+                 nota-dup.parcela-d
+                 nota-dup.fornec-dup
+                 c-mensagem
+                 with frame f-nota-dup.
+            down with frame f-nota-dup.
+            undo nota-block, return error.
+         end.
+      end.   
+  
+    run pi-acompanhar in h-acomp (input (c-obj-proces + nota-dup.nr-docto-n + "/" + nota-dup.parcela-n)).
+      
+end.
+
+/* Fim de Include */

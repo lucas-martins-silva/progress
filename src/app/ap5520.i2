@@ -1,0 +1,688 @@
+/***************************************************************************************************
+**
+** app/ap5520.i2 - Defini‡Æo de vari veis e forms
+**
+*****************************************************************************************************/
+
+&if "{&mgadm_version}" < "2.02" &then
+    form tit-ap.cod-estabel    at 1
+         tit-ap.cod-esp        at 5
+         tit-ap.serie          at 9
+         tit-ap.nr-docto       at 16
+         "/"                   at 32
+         tit-ap.parcela        at 33
+         tit-ap.cod-fornec     to 45
+         tit-ap.dt-emissao     at 48
+         tit-ap.dt-vencimen    at 59
+         tit-ap.valor-saldo    to 85  format ">>>>>>>>>,>>9.99" 
+         tit-ap.jur-dia-fasb   to 99  format ">>>,>>>,>>9.99"
+         tit-ap.vl-desc-fasb   to 116
+         tit-ap.vl-var-monet   to 132 format ">>>>>>>>>,>>9.99" skip
+         c-cgc-fornec            format "x(19)" space(1)
+         emitente.nome-emit      format "x(35)"
+         emitente.cidade         format "x(20)" space(1)
+         banco.nome-banco        format "x(20)" space(2)
+         emitente.conta-corren                  space(2)
+         de-liquido              format ">>>,>>>,>>9.99" skip
+         "Agencia: "
+         emitente.agencia
+         "-"
+         agencia.endereco
+         agencia.cidade          skip 
+         mov-ap.historico
+         with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero.
+
+    form tit-ap.cod-estabel    at 1
+         tit-ap.cod-esp        at 5
+         tit-ap.serie          at 9
+         tit-ap.nr-docto       at 16
+         "/"                   at 32
+         tit-ap.parcela        at 33
+         tit-ap.cod-fornec     to 45
+         tit-ap.dt-emissao     at 48
+         tit-ap.dt-vencimen    at 59
+         tit-ap.valor-saldo    to 85  format ">>>>>>>>>,>>9.99" 
+         tit-ap.jur-dia-fasb   to 99  format ">>>,>>>,>>9.99"
+         tit-ap.vl-desc-fasb   to 116
+         tit-ap.vl-var-monet   to 132 format ">>>>>>>>>,>>9.99" skip
+         c-cgc-fornec            format "x(19)" space(1)
+         emitente.nome-emit      format "x(35)"
+         emitente.cidade         format "x(20)" space(1)
+         banco.nome-banco        format "x(20)" space(2)
+         emitente.conta-corren                  space(2)
+         de-liquido              format ">>>,>>>,>>9.99" skip
+         "Agencia: "
+         emitente.agencia
+         "-"
+         agencia.endereco
+         agencia.cidade                  
+         with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero-sem-historico.         
+&endif.
+
+&if "{&mgadm_version}" >= "2.02" &then            
+    form 
+         tit-ap.cod-estabel      at 1  
+         tit-ap.cod-esp          at 5
+         tit-ap.serie            at 9
+         tit-ap.nr-docto         at 16
+         "/"                     at 32
+         tit-ap.parcela          at 33
+         tit-ap.cod-fornec       to 45
+         tit-ap.dt-emissao       at 48
+         tit-ap.dt-vencimen      at 59
+         tit-ap.valor-saldo      to 85   format ">>>>>>>>>,>>9.99"
+         tit-ap.jur-dia-fasb     to 99   format ">>>,>>>,>>9.99"
+         tit-ap.vl-desc-fasb     to 116          
+         tit-ap.vl-var-monet     to 132  format ">>>>>>>>>,>>9.99" skip
+         &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+            mov-ap.vl-multa-fasb                               TO 091
+            mov-ap.vl-abatimento-fasb                          TO 111
+            de-liquido              format ">>>,>>>,>>9.99"    TO 132 skip
+         &ENDIF
+         c-cgc-fornec            format "x(19)" space(1)
+         emitente.nome-emit      format "x(35)"
+         emitente.cidade         format "x(20)" space(1)
+         banco.nome-banco        format "x(20)" space(2)       
+         i-conta-corrente        space(2)
+         &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+             skip
+         &ELSE
+             de-liquido              format ">>>,>>>,>>9.99"           skip
+         &ENDIF
+         "Agencia: "
+         i-agencia
+         "-"
+         agencia.endereco
+         agencia.cidade                   
+         with stream-io width 132 overlay no-attr-space no-box no-label down frame f-versao2-sem-historico.
+
+    form 
+         tit-ap.cod-estabel      at 1  
+         tit-ap.cod-esp          at 5
+         tit-ap.serie            at 9
+         tit-ap.nr-docto         at 16
+         "/"                     at 32
+         tit-ap.parcela          at 33
+         tit-ap.cod-fornec       to 45
+         tit-ap.dt-emissao       at 48
+         tit-ap.dt-vencimen      at 59
+         tit-ap.valor-saldo      to 85   format ">>>>>>>>>,>>9.99"
+         tit-ap.jur-dia-fasb     to 99   format ">>>,>>>,>>9.99"
+         tit-ap.vl-desc-fasb     to 116          
+         tit-ap.vl-var-monet     to 132  format ">>>>>>>>>,>>9.99" skip
+         &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+            mov-ap.vl-multa-fasb                               TO 091
+            mov-ap.vl-abatimento-fasb                          TO 111
+            de-liquido              format ">>>,>>>,>>9.99"    TO 132 skip
+         &ENDIF
+         c-cgc-fornec            format "x(19)" space(1)
+         emitente.nome-emit      format "x(35)"
+         emitente.cidade         format "x(20)" space(1)
+         banco.nome-banco        format "x(20)" space(2)       
+         i-conta-corrente        space(2)
+         &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+             skip
+         &ELSE
+             de-liquido              format ">>>,>>>,>>9.99"           skip
+         &ENDIF
+         "Agencia: "
+         i-agencia
+         "-"
+         agencia.endereco
+         agencia.cidade          skip 
+         mov-ap.historico
+         with stream-io width 132 overlay no-attr-space no-box no-label down frame f-versao2.
+
+&endif.
+
+form 
+     tit-ap.cod-estabel  at 1
+     tit-ap.cod-esp      at 5
+     tit-ap.serie        at 9
+     tit-ap.nr-docto     at 16
+     "/"                 at 32
+     tit-ap.parcela      at 33
+     tit-ap.cod-fornec   to 45
+     tit-ap.dt-emissao   at 48
+     tit-ap.dt-vencimen  at 59
+     tit-ap.valor-saldo  to 85  format ">>>>>>>>>,>>9.99"
+     tit-ap.jur-dia-fasb to 99  format ">>>,>>>,>>9.99"
+     tit-ap.vl-desc-fasb to 116
+     tit-ap.vl-var-monet to 132 format ">>>>>>>>>,>>9.99" skip
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+         mov-ap.vl-multa-fasb        TO 91
+         mov-ap.vl-abatimento-fasb   TO 111
+         de-liquido             format ">>>,>>>,>>9.99"    to 132 skip
+     &ENDIF
+     c-cgc-fornec            format "x(19)" space(1)
+     emitente.nome-emit      format "x(35)"
+     emitente.conta-corren   format "9999999999-xx"
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+         skip
+     &ELSE
+         de-liquido             format ">>>,>>>,>>9.99" at 112 
+     &ENDIF     
+     with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero3-sem-historico.
+
+form 
+     tit-ap.cod-estabel  at 1
+     tit-ap.cod-esp      at 5
+     tit-ap.serie        at 9
+     tit-ap.nr-docto     at 16
+     "/"                 at 32
+     tit-ap.parcela      at 33
+     tit-ap.cod-fornec   to 45
+     tit-ap.dt-emissao   at 48
+     tit-ap.dt-vencimen  at 59
+     tit-ap.valor-saldo  to 85  format ">>>>>>>>>,>>9.99"
+     tit-ap.jur-dia-fasb to 99  format ">>>,>>>,>>9.99"
+     tit-ap.vl-desc-fasb to 116
+     tit-ap.vl-var-monet to 132 format ">>>>>>>>>,>>9.99" skip
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+         mov-ap.vl-multa-fasb        TO 91
+         mov-ap.vl-abatimento-fasb   TO 111
+         de-liquido             format ">>>,>>>,>>9.99"    to 132 skip
+     &ENDIF
+     c-cgc-fornec            format "x(19)" space(1)
+     emitente.nome-emit      format "x(35)"
+     emitente.conta-corren   format "9999999999-xx"
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+         skip
+     &ELSE
+         de-liquido             format ">>>,>>>,>>9.99" at 112  skip
+     &ENDIF
+     mov-ap.historico              
+     with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero3.
+
+form 
+     tit-ap.cod-estabel  at 1
+     tit-ap.cod-esp      at 5
+     tit-ap.serie        at 9
+     tit-ap.nr-docto     at 16
+     "/"                 at 32
+     tit-ap.parcela      at 33
+     tit-ap.cod-fornec   to 45
+     tit-ap.dt-emissao   at 48
+     tit-ap.dt-vencimen  at 59
+     tit-ap.valor-saldo  to 85  format ">>>>>>>>>,>>9.99"
+     tit-ap.jur-dia-fasb to 99  format ">>>,>>>,>>9.99"
+     tit-ap.vl-desc-fasb to 116
+     tit-ap.vl-var-monet to 132 format ">>>>>>>>>,>>9.99" skip
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        mov-ap.vl-multa-fasb        TO 091
+        mov-ap.vl-abatimento-fasb   TO 111
+        de-liquido             format ">>>,>>>,>>9.99"    to 132 skip
+     &ENDIF
+     c-cgc-fornec            format "x(19)" space(1)
+     emitente.nome-emit      format "x(35)"
+     emitente.cidade         format "x(20)" space(1)
+     banco.nome-banco        format "x(20)" space(2)   
+     emitente.conta-corren  format "9999999999-xx"  space(2)
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+         skip
+     &ELSE
+         de-liquido             format ">>>,>>>,>>9.99" skip
+     &ENDIF
+     "Agencia: "
+     emitente.agencia       format "999999-x" 
+     "  -  "
+     agencia.endereco
+     agencia.cidade
+     c-instrucao            no-label skip
+     mov-ap.historico 
+     with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero2.
+
+form 
+     tit-ap.cod-estabel  at 1
+     tit-ap.cod-esp      at 5
+     tit-ap.serie        at 9
+     tit-ap.nr-docto     at 16
+     "/"                 at 32
+     tit-ap.parcela      at 33
+     tit-ap.cod-fornec   to 45
+     tit-ap.dt-emissao   at 48
+     tit-ap.dt-vencimen  at 59
+     tit-ap.valor-saldo  to 85  format ">>>>>>>>>,>>9.99"
+     tit-ap.jur-dia-fasb to 99  format ">>>,>>>,>>9.99"
+     tit-ap.vl-desc-fasb to 116
+     tit-ap.vl-var-monet to 132 format ">>>>>>>>>,>>9.99" skip
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        mov-ap.vl-multa-fasb        TO 091
+        mov-ap.vl-abatimento-fasb   TO 111
+        de-liquido             format ">>>,>>>,>>9.99"    to 132 skip
+     &ENDIF
+     c-cgc-fornec            format "x(19)" space(1)
+     emitente.nome-emit      format "x(35)"
+     emitente.cidade         format "x(20)" space(1)
+     banco.nome-banco        format "x(20)" space(2)   
+     emitente.conta-corren  format "9999999999-xx"  space(2)
+     &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+         skip
+     &ELSE
+         de-liquido             format ">>>,>>>,>>9.99" skip
+     &ENDIF
+     "Agencia: "
+     emitente.agencia       format "999999-x" 
+     "  -  "
+     agencia.endereco
+     agencia.cidade
+     c-instrucao            no-label
+     with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero2-sem-historico.
+
+form 
+    tit-ap.cod-estabel  at 1
+    tit-ap.cod-esp      at 5
+    tit-ap.serie        at 9
+    tit-ap.nr-docto     at 16
+    "/"                 at 32
+    tit-ap.parcela      at 33
+    tit-ap.cod-fornec   to 45
+    tit-ap.dt-emissao   at 48
+    tit-ap.dt-vencimen  at 59
+    tit-ap.valor-saldo  to 85  format ">>>>>>>>>,>>9.99" 
+    tit-ap.jur-dia-fasb to 99  format ">>>,>>>,>>9.99"
+    tit-ap.vl-desc-fasb to 116
+    tit-ap.vl-var-monet to 132 format ">>>>>>>>>,>>9.99" skip
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        mov-ap.vl-multa-fasb       TO 091
+        mov-ap.vl-abatimento-fasb  TO 111
+        de-liquido            format ">>>,>>>,>>9.99"    to 132 skip
+    &ENDIF
+    c-cgc-fornec            format "x(19)" space(1)
+    emitente.nome-emit      format "x(35)"
+    emitente.conta-corren format "9999999999-xx"
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        skip
+    &ELSE
+        space(2)
+        de-liquido            format ">>>,>>>,>>9.99" skip
+    &ENDIF
+    c-instrucao no-label  skip
+    mov-ap.historico
+    with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero4.
+
+form 
+    tit-ap.cod-estabel  at 1
+    tit-ap.cod-esp      at 5
+    tit-ap.serie        at 9
+    tit-ap.nr-docto     at 16
+    "/"                 at 32
+    tit-ap.parcela      at 33
+    tit-ap.cod-fornec   to 45
+    tit-ap.dt-emissao   at 48
+    tit-ap.dt-vencimen  at 59
+    tit-ap.valor-saldo  to 85  format ">>>>>>>>>,>>9.99" 
+    tit-ap.jur-dia-fasb to 99  format ">>>,>>>,>>9.99"
+    tit-ap.vl-desc-fasb to 116
+    tit-ap.vl-var-monet to 132 format ">>>>>>>>>,>>9.99" skip
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        mov-ap.vl-multa-fasb       TO 091
+        mov-ap.vl-abatimento-fasb  TO 111
+        de-liquido            format ">>>,>>>,>>9.99"    to 132 skip
+    &ENDIF
+    c-cgc-fornec            format "x(19)" space(1)
+    emitente.nome-emit      format "x(35)"
+    emitente.conta-corren format "9999999999-xx"
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        skip
+    &ELSE
+        space(2)
+        de-liquido            format ">>>,>>>,>>9.99" skip
+    &ENDIF
+    c-instrucao no-label  
+    with stream-io width 132 overlay no-attr-space no-box no-label down frame f-bordero4-sem-historico.
+
+form header
+    c-pg  at 121 page-number format ">>99"
+    with stream-io no-label no-box no-attr page-bottom width 132 frame f-pagina.
+
+{utp/ut-liter.i PµG}
+assign c-pg  = trim(return-value) + ":" .
+
+form
+    c-empresa    at 1 empresa.razao-social
+    c-endereco   at 1 empresa.endereco
+    c-cidade     at 1 empresa.cidade "-" empresa.uf "-" empresa.cep
+    c-cgc        at 1 empresa.cgc
+    c-banco      at 1 portador.nome
+    c-agencia    at 1 portador.agencia
+    c-corrente   at 50 c-conta
+    c-bordero    at 1 bord-rec.nr-bordero space(3) c-reemissao
+    c-data       at 1 da-today format "99/99/9999"
+    c-texto-mensag[1] colon 52
+    c-texto-mensag[2] colon 52
+    "+-------- Para uso do Banco -----------+" at 1
+    c-texto-mensag[3] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[4] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[5] colon 52
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "+--------------------------------------+" at 1
+    "----------------------------------------" at 67 skip (03)
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    c-estab       at 1
+    c-esp         at 5
+    c-serie       at 9
+    c-documento   at 16
+    c-parc        at 32
+    c-fornec      to 45
+    c-emissao     at 48
+    c-vencimento  at 59
+    c-valor-doc   to 85
+    c-juros       to 99   
+    c-desconto    to 116   
+    c-variacao    to 132   
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        c-multa          AT 081
+        c-abat           AT 096
+        c-vl-liq         AT 120
+    &ENDIF
+    "CPF / CNPJ          " at 01
+    c-razao                at 21
+    c-praca                at 57
+    c-nome-banc            at 78
+    c-cont-corrent         at 100    
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    &ELSE
+        c-vl-liq         at 120
+    &ENDIF
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------"  at 121
+    with stream-io no-box no-label width 132 frame f-empresa.
+
+form
+    c-empresa  at 1 empresa.razao-social
+    c-endereco at 1 empresa.endereco
+    c-cidade   at 1 empresa.cidade "-" empresa.uf "-" empresa.cep
+    c-cgc      at 1 empresa.cgc
+    c-banco    at 1 portador.nome
+    c-agencia  at 1 portador.agencia
+    c-corrente at 50 c-conta
+    c-bordero  at 1 bord-rec.nr-bordero space(3) c-reemissao
+    c-data     at 1 da-today format "99/99/9999"
+    c-texto-mensag[1] colon 52
+    c-texto-mensag[2] colon 52
+    "+-------- Para uso do Banco -----------+" at 1
+    c-texto-mensag[3] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[4] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[5] colon 52
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "+--------------------------------------+" at 1
+    "----------------------------------------" at 67 skip (03)
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    c-estab       at 1
+    c-esp         at 5
+    c-serie       at 9
+    c-documento   at 16
+    c-parc        at 32
+    c-fornec      to 45
+    c-emissao     at 48
+    c-vencimento  at 59
+    c-valor-doc   to 85   
+    c-juros       to 99    
+    c-desconto    to 116   
+    c-variacao    to 132   
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        c-multa          AT 081
+        c-abat           AT 096
+        c-vl-liq         AT  120
+    &ENDIF
+    "CPF/ CNPJ          "
+    c-razao          at 21 
+    c-praca 
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    &ELSE
+        c-vl-liq         at 120
+    &ENDIF
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    with stream-io no-box no-label width 132 frame f-empresa2.
+
+form
+    c-empresa    at 1 empresa.razao-social
+    c-endereco   at 1 empresa.endereco
+    c-cidade     at 1 empresa.cidade "-" empresa.uf "-" empresa.cep
+    c-cgc        at 1 empresa.cgc
+    c-banco      at 1 portador.nome
+    c-agencia    at 1 portador.agencia
+    c-corrente   at 50 c-conta
+    c-bordero    at 1 bord-rec.nr-bordero space(3) c-reemissao
+    c-data       at 1 da-today format "99/99/9999"
+    c-texto-mensag[1] colon 52
+    c-texto-mensag[2] colon 52
+    "+-------- Para uso do Banco -----------+" at 1
+    c-texto-mensag[3] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[4] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[5] colon 52
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "+--------------------------------------+" at 1
+    "----------------------------------------" at 67 skip (03)
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121    
+    c-estab         at 1
+    c-esp           at 5
+    c-serie         at 9
+    c-documento     at 16
+    c-parc          at 32
+    c-fornec        to 45
+    c-emissao       at 48
+    c-vencimento    at 59
+    c-valor-doc     to 85
+    c-juros         to 99
+    c-desconto      to 116    
+    c-variacao      to 132
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        c-multa          AT 081
+        c-abat           AT 096
+        c-vl-liq     at 120
+    &ENDIF
+    "CPF / CNPJ          " at 01
+    c-razao                at 21
+    c-praca                at 57
+    c-nome-banc            at 78
+    c-cont-corrent         at 100
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    &ELSE
+        c-vl-liq at 120
+    &ENDIF
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    with stream-io page-top no-box no-label width 132 frame f-empresa9.
+
+form
+    c-empresa   at 1 empresa.razao-social
+    c-endereco  at 1 empresa.endereco
+    c-cidade    at 1 empresa.cidade "-" empresa.uf "-" empresa.cep
+    c-cgc       at 1 empresa.cgc
+    c-banco     at 1 portador.nome
+    c-agencia   at 1 portador.agencia
+    c-corrente  at 50 c-conta
+    c-bordero   at 1 bord-rec.nr-bordero space(3) c-reemissao
+    c-data      at 1 da-today format "99/99/9999"
+    c-texto-mensag[1] colon 52
+    c-texto-mensag[2] colon 52
+    "+-------- Para uso do Banco -----------+" at 1
+    c-texto-mensag[3] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[4] colon 52
+    "|" at 1 "|" at 40
+    c-texto-mensag[5] colon 52
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "|" at 1 "|" at 40
+    "+--------------------------------------+" at 1
+    "----------------------------------------" at 67 skip (03)
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    c-estab      at 1
+    c-esp        at 5
+    c-serie      at 9
+    c-documento  at 16
+    c-parc       at 32
+    c-fornec     to 45  
+    c-emissao    at 48 
+    c-vencimento at 59
+    c-valor-doc  to 85 
+    c-juros      to 99 
+    c-desconto   to 116 
+    c-variacao   to 132  
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        c-multa          AT 081
+        c-abat           AT 096
+        c-vl-liq    at 120
+    &ENDIF
+    "CPF / CNPJ          "
+    c-razao     at 21
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    &ELSE
+        c-vl-liq    at 120
+    &ENDIF
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    with stream-io page-top no-box no-label width 132 frame f-empresa29.
+
+form
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------"      at 121    
+    "EST"               at 1 
+    "ESP"               at 5
+    "SRIE"             at 9
+    "NéMERO DOCUMENTO"  at 16
+    "/P"                at 32
+    "FORNEC"            to 45
+    "EMISSÇO"           at 48
+    "VENCIMENTO"        at 59
+    "VALOR DOCTO"       to 85       
+    "VALOR JUROS"       to 99 
+    "VALOR DESCONTO"    to 116 
+    "VARIA€ÇO MONET"    to 132
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        "VALOR MULTA"       at 081
+        "VALOR ABATIMENTO"  at 096
+        "VALOR LÖQUIDO"     at 120
+    &ENDIF
+    "CPF / CNPJ"            at 01
+    "RAZÇO SOCIAL"          at 21
+    "PRA€A"                 at 57
+    "NOME BANCO"            at 78
+    "CONTA CORRENTE"         at 100
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    &ELSE
+        "VALOR LÖQUIDO"     at 120
+    &ENDIF
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    with stream-io no-box no-label width 132 page-top frame f-empresa1.
+
+form
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    "EST"                     at 1
+    "ESP"                     at 5
+    "SRIE"                   at 9
+    "NéMERO DOCUMENTO"        at 16
+    "/P"                      at 32
+    "FORNEC"                  to 45
+    "EMISSÇO"                 at 48
+    "VENCIMENTO"              at 59
+    "VALOR DOCTO"             to 85   
+    "VALOR JUROS"             to 99     
+    "VALOR DESCONTO"          to 116    
+    "VARIA€ÇO MONET"          to 132
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+        "VALOR MULTA"         at 081
+        "VALOR ABATIMENTO"    at 096
+        "VALOR LÖQUIDO"       at 120
+    &ENDIF
+    "CPF / CNPJ          "    at 01
+    "RAZÇO SOCIAL"            at 21
+    &IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    &ELSE
+        "VALOR LÖQUIDO"        at 120
+    &ENDIF
+    "----------------------------------------" at 1
+    "----------------------------------------" at 41
+    "----------------------------------------" at 81
+    "------------" at 121
+    with stream-io no-box no-label width 132 page-top frame f-empresa21.
+
+form
+    "----------------------------------------"  at 001
+    "----------------------------------------"  at 041
+    "----------------------------------------"  at 081
+    "------------"                              at 121
+    c-total-geral                                 skip
+    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+    de-total-multa format "->>>,>>>,>>>,>>9.99" to 087
+    de-total-abat  format "->>>,>>>,>>>,>>9.99" to 106
+    &endif
+    de-total-liq   format "->>>,>>>,>>>,>>9.99" to 132
+    "----------------------------------------"  at 001
+    "----------------------------------------"  at 041
+    "----------------------------------------"  at 081
+    "------------" at 121
+    with stream-io no-label no-box no-attr width 133 frame f-total.
+
+form
+    "----------------------------------------"              at  01
+    "----------------------------------------"              at  41
+    "----------------------------------------"              at  81
+    "------------"                                          at 121
+    c-tot-bord at 01             no-label 
+    c-ext9100[1] format "x(111)" no-label
+    c-ext9100[2] format "x(111)" no-label                   at  21
+    "----------------------------------------"              at  01
+    "----------------------------------------"              at  41
+    "----------------------------------------"              at  81
+    "------------"                                          at 121
+    with stream-io side-labels no-box no-attr width 132 frame f-extenso.
+
+
+form
+    skip(2)
+    c-texto-mensag1[1] at 32
+    c-texto-mensag1[2] at 32
+    c-texto-mensag1[3] at 32
+    c-texto-mensag1[4] at 32
+    c-texto-mensag1[5] at 32
+    skip(2)
+    "----------------------------------------" at 47
+    with stream-io no-labels no-attr width 132 no-box frame f-mensag-fim.
+
+/* Fim de Include */
+

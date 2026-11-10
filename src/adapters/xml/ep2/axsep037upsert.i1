@@ -1,0 +1,274 @@
+PROCEDURE PITransUpsert: 
+
+    /*PARAMETERS - BEGIN*/
+    
+    DEFINE INPUT  PARAMETER pTranAction    AS CHARACTER   NO-UNDO.
+    DEFINE INPUT  PARAMETER pTranEvent     AS CHARACTER   NO-UNDO.
+    DEFINE INPUT  PARAMETER pRowidNF       AS ROWID       NO-UNDO.
+    DEFINE OUTPUT PARAMETER TABLE FOR tt_log_erro.
+    
+    /*PARAMETERS - END*/
+        
+    /*LOCAL VARIABLES - BEGIN*/
+
+    /*DEFINIÄÂES NA axsep037ExtraDeclarations.i*/
+
+    /*LOCAL VARIABLES - END*/
+    
+    
+    
+    /* ******************************************* */
+    /* *************** BODY - BEGIN ************** */
+    /* ******************************************* */
+
+    /*=======================================================================================================================
+                                              
+                                                         ATENÄ«O
+                                             
+    QUALQUER NOVO C‡DIGO DE NEG‡CIO DEVE SER INSERIDO/MANUTENIDO NA PROCEDURE pi-prepara-dados.
+    
+    NESTA PROCEDURE PITransUpsert, S‡ DEVE HAVER A CHAMADA ∑ pi-prepara-dados E MAIS AS CHAMADAS AO imprimetxt e imprimexml.
+    
+    =======================================================================================================================*/
+
+
+    FOR FIRST nota-fiscal NO-LOCK
+        WHERE ROWID(nota-fiscal) = pRowidNF:
+
+        /* N∆o enviar nota cancelada */
+        IF  nota-fiscal.dt-cancela  <> ? THEN
+            NEXT.
+
+		RUN cdp/cd0360b.p (INPUT nota-fiscal.cod-estabel,
+						   INPUT "NF-e",
+						   OUTPUT tp-integ).
+        /* Preparaá∆o dos dados a serem gerados [XML, TXT ou DANFE] */
+        RUN pi-prepara-dados.
+    END.
+
+    IF  lLayoutXML THEN DO:
+
+        IF  LOOKUP(tp-integ, "TSS,TC,TC2,TPF":U) > 0 THEN
+            RUN pi-integra-XML.
+        ELSE
+        /* Via adapter -> Gerar XML para Aplicaá∆o Transmiss∆o */
+        RUN PIUpsert ( INPUT  pTranAction            , /* add / upd */
+                       INPUT  pTranEvent             , /* Evento    */
+                       INPUT  TABLE ttAdi            ,
+                       INPUT  TABLE ttArma           ,
+                       INPUT  TABLE ttAutXML         ,
+                       INPUT  TABLE ttAvulsa         ,
+                       INPUT  TABLE ttCobr           ,
+                       INPUT  TABLE ttCOFINSAliq     ,
+                       INPUT  TABLE ttCOFINSNT       ,
+                       INPUT  TABLE ttCOFINSOutr     ,
+                       INPUT  TABLE ttCOFINSQtde     ,
+                       INPUT  TABLE ttCOFINSST       ,
+                       INPUT  TABLE ttICMSUFDest     ,
+                       INPUT  TABLE ttComb           ,
+                       INPUT  TABLE ttOrigComb       ,
+                       INPUT  TABLE ttCompra         ,
+                       INPUT  TABLE ttDest           ,
+                       INPUT  TABLE ttDet            ,
+                       INPUT  TABLE ttDetObsCont     ,
+                       INPUT  TABLE ttDetObsFisco    ,
+                       INPUT  TABLE ttDetExport      ,
+                       INPUT  TABLE ttDI             ,
+                       INPUT  TABLE ttDup            ,
+                       INPUT  TABLE ttEmit           ,
+                       INPUT  TABLE ttEntrega        ,
+                       INPUT  TABLE ttExporta        ,
+                       INPUT  TABLE ttICMS00         ,
+                       INPUT  TABLE ttICMS02         ,
+                       INPUT  TABLE ttICMS10         ,
+                       INPUT  TABLE ttICMS15         ,
+                       INPUT  TABLE ttICMS20         ,
+                       INPUT  TABLE ttICMS30         ,
+                       INPUT  TABLE ttICMS40         ,
+                       INPUT  TABLE ttICMS51         ,
+                       INPUT  TABLE ttICMS53         ,
+                       INPUT  TABLE ttICMS60         ,
+                       INPUT  TABLE ttICMS61         ,
+                       INPUT  TABLE ttICMS70         ,
+                       INPUT  TABLE ttICMS90         ,
+                       INPUT  TABLE ttICMSTot        ,
+                       INPUT  TABLE ttIde            ,
+                       INPUT  TABLE ttII             ,
+                       INPUT  TABLE ttImpostoDevol   ,
+                       INPUT  TABLE ttInfAdic        ,
+                       INPUT  TABLE ttIPI            ,
+                       INPUT  TABLE ttISSQN          ,
+                       INPUT  TABLE ttISSQNtot       ,
+                       INPUT  TABLE ttLacres         ,
+                       INPUT  TABLE ttMed            ,
+                       INPUT  TABLE ttNFe            ,
+                       INPUT  TABLE ttrefNF          ,
+                       INPUT  TABLE ttObsCont        ,
+                       INPUT  TABLE ttObsFisco       ,
+                       INPUT  TABLE ttPISAliq        ,
+                       INPUT  TABLE ttPISNT          ,
+                       INPUT  TABLE ttPISOutr        ,
+                       INPUT  TABLE ttPISQtde        ,
+                       INPUT  TABLE ttPISST          ,
+                       INPUT  TABLE ttProcRef        ,
+                       INPUT  TABLE ttReboque        ,
+                       INPUT  TABLE ttRetirada       ,
+                       INPUT  TABLE ttRetTrib        ,
+                       INPUT  TABLE ttTransp         ,
+                       INPUT  TABLE ttVeic           ,
+                       INPUT  TABLE ttVol            ,
+                       INPUT  TABLE ttrefNFP         ,
+                       INPUT  TABLE ttrefCTe         ,
+                       INPUT  TABLE ttrefECF         ,
+                       INPUT  TABLE ttICMSPart       ,
+                       INPUT  TABLE ttICMSST         ,
+                       INPUT  TABLE ttICMSSN101      ,
+                       INPUT  TABLE ttICMSSN102      ,
+                       INPUT  TABLE ttICMSSN201      ,
+                       INPUT  TABLE ttICMSSN202      ,
+                       INPUT  TABLE ttICMSSN500      ,
+                       INPUT  TABLE ttICMSSN900      ,
+                       INPUT  TABLE ttCana           ,
+                       INPUT  TABLE ttForDia         ,
+                       INPUT  TABLE ttDeduc          ,
+                       INPUT  TABLE ttRastro         ,
+                       INPUT  TABLE ttPag            ,
+                       INPUT  TABLE ttInfIntermed    ,
+                       INPUT  TABLE ttDetPag         ,
+                       INPUT  TABLE ttDetPresumido   ,
+                       INPUT  TABLE ttAgropecuario   ,
+                       INPUT  TABLE ttgCompraGov     ,
+                       INPUT  TABLE ttgPagAntecipado ,
+                       INPUT  TABLE ttIBSCBS         ,
+                       INPUT  TABLE ttTribRT         ,
+                       INPUT  TABLE ttgTribRegular   ,
+                       INPUT  TABLE ttgCredPresOper  ,
+                       INPUT  TABLE ttgIBSCBSCredPres,
+                       INPUT  TABLE ttgTribCompraGov ,
+                       INPUT  TABLE ttgIBSCBSMono    ,
+                       INPUT  TABLE ttgTransfCred    ,
+                       INPUT  TABLE ttgAjusteCompet  ,
+                       INPUT  TABLE ttgEstornoCred   ,
+                       INPUT  TABLE ttgCredPresIBSZFM,
+                       INPUT  TABLE ttVB             ,
+                       INPUT  TABLE ttDFeReferenciado,
+                       INPUT  TABLE ttTotIBSCBSIS    ,
+                       INPUT  TABLE ttgALCZFMCBS     ,
+                       OUTPUT TABLE tt_log_erro      ).
+    END.
+    /* Via adapter -> Gerar TXT para Transmiss∆o Manual */
+    IF  lLayoutTXT THEN DO:
+    
+        IF c-extensao-arq = "2" THEN
+            RUN pi-transmissao-manual-xml.
+        ELSE DO:
+            IF  NOT AVAIL ttNFe THEN
+                FIND FIRST ttNFe NO-LOCK NO-ERROR.
+        
+            ASSIGN cArquivoNFeTXT  = ("NFe_" + ttNFe.NrNotaFisNF + "_" + ttNfe.CodEstabelNF + "_" + ttNfe.SerieNF + "_" + REPLACE(STRING(TODAY,"99/99/9999"),"/","_") + ".txt")
+                   cArquivoNFeTXT  = cLocalArqTXT + cArquivoNFeTXT.
+        
+            RUN adapters/xml/ep2/axsep037imprimetxt.p ( INPUT  cArquivoNFeTXT      ,
+                                                        INPUT  ?                   , /* Para o caso de imprimir Emissor (Estabelec) [Sera impresso somente via FT0910a.p] */
+                                                        INPUT  TABLE ttAdi         ,
+                                                        INPUT  TABLE ttArma        ,
+                                                        INPUT  TABLE ttAutXML      ,
+                                                        INPUT  TABLE ttAvulsa      ,
+                                                        INPUT  TABLE ttCobr        ,
+                                                        INPUT  TABLE ttCOFINSAliq  ,
+                                                        INPUT  TABLE ttCOFINSNT    ,
+                                                        INPUT  TABLE ttCOFINSOutr  ,
+                                                        INPUT  TABLE ttCOFINSQtde  ,
+                                                        INPUT  TABLE ttCOFINSST    ,
+                                                        INPUT  TABLE ttICMSUFDest  ,
+                                                        INPUT  TABLE ttComb        ,
+                                                        INPUT  TABLE ttCompra      ,
+                                                        INPUT  TABLE ttDest        ,
+                                                        INPUT  TABLE ttDet         ,
+                                                        INPUT  TABLE ttDetObsCont  ,
+                                                        INPUT  TABLE ttDetObsFisco ,         
+                                                        INPUT  TABLE ttDetExport   ,
+                                                        INPUT  TABLE ttDI          ,
+                                                        INPUT  TABLE ttDup         ,
+                                                        INPUT  TABLE ttEmit        ,
+                                                        INPUT  TABLE ttEntrega     ,
+                                                        INPUT  TABLE ttExporta     ,
+                                                        INPUT  TABLE ttICMS00      ,
+                                                        INPUT  TABLE ttICMS10      ,
+                                                        INPUT  TABLE ttICMS20      ,
+                                                        INPUT  TABLE ttICMS30      ,
+                                                        INPUT  TABLE ttICMS40      ,
+                                                        INPUT  TABLE ttICMS51      ,
+                                                        INPUT  TABLE ttICMS60      ,
+                                                        INPUT  TABLE ttICMS70      ,
+                                                        INPUT  TABLE ttICMS90      ,
+                                                        INPUT  TABLE ttICMSTot     ,
+                                                        INPUT  TABLE ttIde         ,
+                                                        INPUT  TABLE ttII          ,
+                                                        INPUT  TABLE ttImpostoDevol,
+                                                        INPUT  TABLE ttInfAdic     ,
+                                                        INPUT  TABLE ttIPI         ,
+                                                        INPUT  TABLE ttISSQN       ,
+                                                        INPUT  TABLE ttISSQNtot    ,
+                                                        INPUT  TABLE ttLacres      ,
+                                                        INPUT  TABLE ttMed         ,
+                                                        INPUT  TABLE ttNFe         ,
+                                                        INPUT  TABLE ttrefNF       ,
+                                                        INPUT  TABLE ttObsCont     ,
+                                                        INPUT  TABLE ttObsFisco    ,
+                                                        INPUT  TABLE ttPISAliq     ,
+                                                        INPUT  TABLE ttPISNT       ,
+                                                        INPUT  TABLE ttPISOutr     ,
+                                                        INPUT  TABLE ttPISQtde     ,
+                                                        INPUT  TABLE ttPISST       ,
+                                                        INPUT  TABLE ttProcRef     ,
+                                                        INPUT  TABLE ttReboque     ,
+                                                        INPUT  TABLE ttRetirada    ,
+                                                        INPUT  TABLE ttRetTrib     ,
+                                                        INPUT  TABLE ttTransp      ,
+                                                        INPUT  TABLE ttVeic        ,
+                                                        INPUT  TABLE ttVol         ,
+                                                        INPUT  TABLE ttrefNFP      ,
+                                                        INPUT  TABLE ttrefCTe      ,
+                                                        INPUT  TABLE ttrefECF      ,
+                                                        INPUT  TABLE ttICMSPart    ,
+                                                        INPUT  TABLE ttICMSST      ,
+                                                        INPUT  TABLE ttICMSSN101   ,
+                                                        INPUT  TABLE ttICMSSN102   ,
+                                                        INPUT  TABLE ttICMSSN201   ,
+                                                        INPUT  TABLE ttICMSSN202   ,
+                                                        INPUT  TABLE ttICMSSN500   ,
+                                                        INPUT  TABLE ttICMSSN900   ,
+                                                        INPUT  TABLE ttCana        ,
+                                                        INPUT  TABLE ttForDia      ,
+                                                        INPUT  TABLE ttDeduc       ,
+                                                        INPUT  TABLE ttRastro      ,
+                                                        INPUT  TABLE ttPag         ,
+                                                        INPUT  TABLE ttInfIntermed ,
+                                                        INPUT  TABLE ttDetPag      ,
+                                                        INPUT  TABLE ttDetPresumido,
+                                                        INPUT  TABLE ttAgropecuario,
+                                                        INPUT  TABLE ttgCompraGov,
+                                                        INPUT  TABLE ttgPagAntecipado,
+                                                        INPUT  TABLE ttIBSCBS,
+                                                        INPUT  TABLE ttTribRT,
+                                                        INPUT  TABLE ttgTribRegular,
+                                                        INPUT  TABLE ttgCredPresOper  ,
+                                                        INPUT  TABLE ttgIBSCBSCredPres,
+                                                        INPUT  TABLE ttgTribCompraGov,
+                                                        INPUT  TABLE ttgIBSCBSMono,
+                                                        INPUT  TABLE ttgTransfCred,
+                                                        INPUT  TABLE ttgAjusteCompet  ,
+                                                        INPUT  TABLE ttgEstornoCred   ,                                                        
+                                                        INPUT  TABLE ttgCredPresIBSZFM,
+                                                        INPUT  TABLE ttVB,
+                                                        INPUT  TABLE ttDFeReferenciado,
+                                                        INPUT  TABLE ttTotIBSCBSIS).
+        END.
+    END.
+
+    /* ******************************************* */
+    /* *************** BODY - END   ************** */
+    /* ******************************************* */
+
+END PROCEDURE.

@@ -1,0 +1,32 @@
+/**********************************************************************************
+***     
+*** app/ap0570.i2 - Cria temp-table tt-variacao-monetaria.
+***         
+**********************************************************************************/
+        
+assign i-sequencia = 10.
+            
+repeat:
+        
+   find last  tt-variacao-monetaria
+        where tt-variacao-monetaria.sequencia = i-sequencia no-error.
+        
+   if  avail tt-variacao-monetaria then
+       assign i-sequencia = i-sequencia + 10.
+   else 
+       leave.
+        
+end.
+
+find first tt-variacao-monetaria
+     where tt-variacao-monetaria.dt-calculo = {1} no-error.
+
+if  not avail tt-variacao-monetaria then do:            
+    create tt-variacao-monetaria.
+    assign tt-variacao-monetaria.dt-calculo = {1}
+           tt-variacao-monetaria.dt-inicial = {2}
+           tt-variacao-monetaria.dt-final   = {3}
+           tt-variacao-monetaria.sequencia  = i-sequencia.
+end.
+        
+/* Fim de Include */

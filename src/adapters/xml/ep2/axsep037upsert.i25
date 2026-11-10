@@ -1,0 +1,56 @@
+PROCEDURE pi-valores-desc-icms:
+
+    ASSIGN d-descto-zfm-pis    = 0
+           d-descto-zfm-cofins = 0
+           d-vl-desc-icms      = 0.      
+    
+    /*--- Calcula Valor Desconto ICMS ---*/ /*somente para quando NAO for Zona Franca, e sim Desconto de ICMS (com motivo de desonera‡Æo parametrizado)*/
+    IF (it-nota-fisc.per-des-icms > 0 AND 
+       (TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2)) <> "" AND 
+        TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2)) <> "0"))
+    AND ((r-cidade-zf = ? AND
+        (avail loc-entr and loc-entr.log-1 = no)) or
+        (r-cidade-zf <> ? and
+         TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2)) <> "7")) THEN DO:
+        
+        IF  bf-natur-oper-it.log-deduz-desc-zfm-tot-nf THEN
+            ASSIGN d-descto-zfm-pis    = bf-natur-oper-it.val-perc-desc-pis-zfm
+                   d-descto-zfm-cofins = bf-natur-oper-it.val-perc-desc-cofins-zfm.
+        
+        ASSIGN d-vl-desc-icms = (1 - ((IF trim(substr(it-nota-fisc.char-1,461,5)) <> ""
+                                       THEN dec(substring(it-nota-fisc.char-1,461,5))
+                                       ELSE dec(substring(bf-natur-oper-it.char-2,66,5))) + d-descto-zfm-pis + d-descto-zfm-cofins) / 100) * /* Totaliza Descontos Zona Franca */
+                                (1 - it-nota-fisc.per-des-icms / 100)                                                                        /* Soma com o Desconto ICMS */
+               d-vl-desc-icms = it-nota-fisc.vl-merc-liq / d-vl-desc-icms /*Valor Bruto sem os Descontos acima*/
+               d-vl-desc-icms = d-vl-desc-icms * it-nota-fisc.per-des-icms / 100 /*Valor referente ao Desconto ICMS (somente este [it-nota-fisc.per-des-icms], sem considerar os ZFM)*/
+               d-vl-desc-icms = (if d-vl-desc-icms < 0
+                                 then 0
+                                 else d-vl-desc-icms)
+               d-vl-desc-icms = round(d-vl-desc-icms, 2) NO-ERROR.
+
+        FOR FIRST ext-it-nota-fisc
+			WHERE ext-it-nota-fisc.cod-estabel = it-nota-fisc.cod-estabel
+			AND   ext-it-nota-fisc.serie       = it-nota-fisc.serie
+			AND   ext-it-nota-fisc.nr-nota-fis = it-nota-fisc.nr-nota-fis
+			AND   ext-it-nota-fisc.nr-seq-fat  = it-nota-fisc.nr-seq-fat
+			AND   ext-it-nota-fisc.it-codigo   = it-nota-fisc.it-codigo
+			AND   ext-it-nota-fisc.cod-param   = "Val-Desc-ICMS"
+            AND   NOT ext-it-nota-fisc.log-livre-1  NO-LOCK:
+			ASSIGN d-vl-desc-icms = ext-it-nota-fisc.val-livre-1.
+		END.
+               
+        if nota-fiscal.ind-tip-nota  = 8 then do: /*Origem Recebimento*/
+            FOR FIRST ext-item-doc-est NO-LOCK
+                WHERE ext-item-doc-est.serie-docto  = nota-fiscal.serie
+                  AND ext-item-doc-est.nro-docto    = nota-fiscal.nr-nota-ant
+                  AND ext-item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+                  AND ext-item-doc-est.nat-operacao = nota-fiscal.nat-operacao
+                  AND ext-item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped
+                  AND ext-item-doc-est.cod-param    = "icms-deson":U:
+                ASSIGN d-vl-desc-icms = IF ext-item-doc-est.log-livre-1 = YES THEN  /*aplica como desconto*/
+                                            ext-item-doc-est.val-livre-2 /*valor desconto icms*/
+                                        ELSE 0. 
+            END.
+        end.
+    END.   
+END PROCEDURE.

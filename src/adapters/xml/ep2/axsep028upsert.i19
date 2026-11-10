@@ -1,0 +1,166 @@
+PROCEDURE pi-cria-ttDest-tp-pessoa-NFCom:
+
+    DEFINE INPUT PARAMETER pc-cep          LIKE emitente.cgc           NO-UNDO. 
+    DEFINE INPUT PARAMETER pc-pais         LIKE emitente.pais          NO-UNDO.
+    DEFINE INPUT PARAMETER pc-cgc          LIKE emitente.cgc           NO-UNDO.
+    DEFINE INPUT PARAMETER pc-ins-estadual LIKE emitente.ins-estadual  NO-UNDO.
+    DEFINE INPUT PARAMETER pc-estado       LIKE emitente.estado        NO-UNDO.
+    DEFINE INPUT PARAMETER pc-bairro       LIKE emitente.bairro        NO-UNDO.
+    DEFINE INPUT PARAMETER pc-cidade       LIKE emitente.cidade        NO-UNDO.
+    DEFINE INPUT PARAMETER pc-endereco     AS   CHAR FORMAT "x(200)":U NO-UNDO.
+    DEFINE INPUT PARAMETER pc-nome         LIKE emitente.nome-emit     NO-UNDO.
+
+
+    ASSIGN c-endereco = TRIM(pc-endereco)
+           c-rua      = ""
+           c-nro      = ""
+           c-comp     = "".
+    
+    IF  INDEX(c-endereco,CHR(ASC("§"))) > 0 THEN /* Retirar caracter especial */
+        ASSIGN c-endereco = REPLACE(c-endereco,CHR(ASC("§")),"").
+    
+    RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco,
+                                         OUTPUT c-rua, 
+                                         OUTPUT c-nro, 
+                                         OUTPUT c-comp).
+    
+    IF  c-nro = "" THEN
+        ASSIGN c-nro = "S/N".
+
+    ASSIGN pc-cgc = REPLACE(REPLACE(REPLACE(REPLACE(pc-cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U).
+    
+    /*--- TRATAMENTO FONE - Sefaz aceita somente n£meros, e apenas 11 caracters -> DDD12345678 ---*/
+    
+    ASSIGN c-fone = "".
+    
+    DO  i-cont = 1 TO LENGTH(emitente.telefone[1]):
+    
+        /* Nao considerar o primeiro zero do telefone, caso inicie com 0 (DDD iniciando com 0 ou nro de telefone incorreto) */
+        IF  i-cont = 1
+        AND LOOKUP(SUBSTRING(emitente.telefone[1],i-cont,1),"0") > 0 THEN NEXT.
+    
+        IF  LOOKUP(SUBSTRING(emitente.telefone[1],i-cont,1),"0,1,2,3,4,5,6,7,8,9") > 0 THEN
+            ASSIGN c-fone = c-fone + SUBSTRING(emitente.telefone[1],i-cont,1).
+    END.
+    /*---*/
+    
+    CREATE ttDestNFCom.
+    ASSIGN ttDestNFCom.CEP           = REPLACE(pc-cep,"-","")
+           ttDestNFCom.CEP           = STRING (pc-cep,"99999999")
+           ttDestNFCom.cPais         = bf-pais.cod-pais-siscomex
+           ttDestNFCom.fone          = c-fone
+           ttDestNFCom.IE            = TRIM(pc-ins-estadual)
+           ttDestNFCom.IE            = fn-ajusta-campo-IE(ttDestNFCom.IE)
+           ttDestNFCom.nro           = c-nro
+           ttDestNFCom.UF            = (IF pc-pais <> "Brasil":U
+                                        THEN "EX"
+                                        ELSE pc-estado)
+           ttDestNFCom.UF            = (IF ttDestNFCom.UF <> ?
+                                        THEN ttDestNFCom.UF
+                                        ELSE "")
+           ttDestNFCom.xBairro       = (IF pc-bairro <> ""
+                                        THEN pc-bairro
+                                        ELSE "Nao Informado")
+           ttDestNFCom.xCpl          = c-comp
+           ttDestNFCom.xLgr          = c-rua
+           ttDestNFCom.xMun          = (IF pc-pais <> "Brasil":U
+                                        THEN "Exterior"
+                                        ELSE pc-cidade)
+           ttDestNFCom.cMun          = STRING(fn-retorna-codigo-cidade(ttDestNFCom.xMun,ttDestNFCom.UF,pc-pais)) /* Fun‡Æo para retornar Codigo IBGE - Parametros de entrada CIDADE/ESTADO/PAIS */                        
+           ttDestNFCom.xNome         = pc-nome 
+           ttDestNFCom.xPais         = pc-pais
+           .
+
+    IF i-natureza = emitente.natureza THEN do:
+    
+    
+        ASSIGN ttDestNFCom.CNPJ       =  (IF  emitente.pais <> "Brasil" OR i-natureza = 1 OR LENGTH(pc-cgc) = 11  /* Pessoa F¡sica */
+                                         THEN ""
+                                         ELSE IF LENGTH(trim(pc-cgc)) > 11 
+                                         THEN emitente.cgc 
+                                         ELSE "")
+               ttDestNFCom.CNPJ       =  REPLACE(ttDestNFCom.CNPJ,"-","")
+               ttDestNFCom.CNPJ       =  REPLACE(ttDestNFCom.CNPJ,".","")
+               ttDestNFCom.CNPJ       =  REPLACE(ttDestNFCom.CNPJ,"/","")
+               ttDestNFCom.CNPJ       =  (IF ttDestNFCom.CNPJ = "0000000000000" 
+                                          THEN ""
+                                          ELSE ttDestNFCom.CNPJ)
+               ttDestNFCom.CPF        = (IF i-natureza = 1 OR length(pc-cgc) = 11 /* Pessoa Fisica */
+                                         THEN pc-cgc
+                                         ELSE "")
+               ttDestNFCom.CPF        = (IF ttDestNFCom.CPF <> ? AND ttDestNFCom.CPF <> "00000000000"
+                                         THEN ttDestNFCom.CPF
+                                         ELSE "")
+               ttDestNFCom.i-natureza = i-natureza /* 1 - Pessoa F¡sica | 2 - Pessoa Jur¡dica | 3 - Estrangeiro | 4 - Trading */
+               .               
+                  
+        ASSIGN ttDestNFCom.idOutros   = (IF ttDestNFCom.CNPJ = "" AND ttDestNFCom.CPF = ""
+                                         THEN SUBSTRING(emitente.char-2,130,20)
+                                         ELSE "")
+               ttDestNFCom.idOutros   = REPLACE(ttDestNFCom.idOutros,"-","")
+               ttDestNFCom.idOutros   = REPLACE(ttDestNFCom.idOutros,".","")
+               ttDestNFCom.idOutros   = REPLACE(ttDestNFCom.idOutros,"/","")
+               .
+                              
+    end.
+    ELSE do:
+        ASSIGN ttDestNFCom.CNPJ       = (IF  emitente.pais <> "Brasil" OR i-natureza = 1 OR length(pc-cgc) = 11 /* Pessoa F¡sica */
+                                         THEN ""
+                                         ELSE trim(pc-cgc) /* Pessoa Juridica */)
+               ttDestNFCom.CNPJ       =  REPLACE(ttDestNFCom.CNPJ,"-","")
+               ttDestNFCom.CNPJ       =  REPLACE(ttDestNFCom.CNPJ,".","")
+               ttDestNFCom.CNPJ       =  REPLACE(ttDestNFCom.CNPJ,"/","")
+               ttDestNFCom.CNPJ       =  (IF ttDestNFCom.CNPJ = "0000000000000" 
+                                          THEN ""
+                                          ELSE ttDestNFCom.CNPJ)
+               ttDestNFCom.CPF        = (IF i-natureza = 1 OR length(pc-cgc) = 11 /* Pessoa Fisica */
+                                         THEN pc-cgc
+                                          ELSE "")
+               ttDestNFCom.CPF        = (IF ttDestNFCom.CPF <> ? AND ttDestNFCom.CPF <> "00000000000"
+                                         THEN ttDestNFCom.CPF
+                                         ELSE "")
+               ttDestNFCom.i-natureza = i-natureza /* 1 - Pessoa F¡sica | 2 - Pessoa Jur¡dica | 3 - Estrangeiro | 4 - Trading */
+               .
+                       
+        ASSIGN ttDestNFCom.idOutros   = (IF ttDestNFCom.CNPJ = "" AND ttDestNFCom.CPF = ""
+                                         THEN SUBSTRING(emitente.char-2,130,20)
+                                         ELSE "")
+               ttDestNFCom.idOutros   = REPLACE(ttDestNFCom.idOutros,"-","")
+               ttDestNFCom.idOutros   = REPLACE(ttDestNFCom.idOutros,".","")
+               ttDestNFCom.idOutros   = REPLACE(ttDestNFCom.idOutros,"/","")              
+               .
+
+    end.    
+    
+    /*NF-e 3.10*/
+    ASSIGN ttDestNFCom.indIEDest     = (IF NOT emitente.contrib-icms
+                                        THEN "9":U /*9 = NÆo Contribuinte*/
+                                        ELSE IF (emitente.contrib-icms AND (ttDestNFCom.IE <> "":U AND ttDestNFCom.IE <> "ISENTO":U AND ttDestNFCom.IE <> "ISENTA":U))
+                                        THEN "1":U /*1 = Contribuinte ICMS*/
+                                        ELSE IF (emitente.contrib-icms AND (ttDestNFCom.IE = "ISENTO":U OR ttDestNFCom.IE = "ISENTA":U))
+                                        THEN "2":U /*2 = Contribuinte Isento*/
+                                        ELSE "1" )
+           ttDestNFCom.IM            = TRIM(emitente.ins-municipal)
+           ttDestNFCom.IM            = REPLACE(ttDestNFCom.IM,"-","")
+           ttDestNFCom.IM            = REPLACE(ttDestNFCom.IM,".","")
+           ttDestNFCom.IM            = REPLACE(ttDestNFCom.IM,"/","")
+           ttDestNFCom.IM            = REPLACE(ttDestNFCom.IM,"~\","")
+           ttDestNFCom.IM            = REPLACE(ttDestNFCom.IM,",","")    . 
+      
+    /* Reeji‡Æo 431 - Se indicador de Destinat rio for igual a NÆo Contribuinte (indIEDest=9): - Rejeitar se o Destinat rio indicado possuir a tag IE informada */  
+    IF ttDestNFCom.indIEDest = "9":U THEN /*9 = NÆo Contribuinte*/
+        ASSIGN ttDestNFCom.IE = ? .
+    
+    /* Carrega email destinatario */
+    FOR FIRST cont-emit NO-LOCK
+        WHERE cont-emit.cod-emitente  = emitente.cod-emitente
+        AND   cont-emit.e-mail       <> ""
+        AND   &IF '{&bf_dis_versao_ems}' >= '2.09':U 
+              &THEN cont-emit.cdn-aplic-contat
+              &ELSE cont-emit.int-1 
+              &ENDIF = 5:
+        ASSIGN ttDestNFCom.email = cont-emit.e-mail.        
+    END.    
+    /* fim - Carrega email destinatario */    
+           
+END PROCEDURE.

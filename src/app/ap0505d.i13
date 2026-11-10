@@ -1,0 +1,39 @@
+/****************************************************************************
+**
+** ap0505d.i13 - Lista erros e elimina lote para origem AP 2.0
+**
+** Criada para manter num mesmo programa a chamada da consistˆncia e a 
+** include da atualiza‡Æo
+**
+****************************************************************************/
+
+    run app/ap0505db.p (input p-row-doc-b-ap). /* Elimina lote - criado porque estourou 64kb */
+       
+    /*---- Verifica se houve erros para mostrar no relat¢tio ----*/
+    find first tt-lin-b-ap no-lock no-error.
+    if avail tt-lin-b-ap then do:
+       run app/ap0501da.w (output v-nom-arquivo,
+                           input doc-b-ap.referencia).
+       if  v-nom-arquivo <> " " then do: 
+           output to value(v-nom-arquivo) paged page-size 64 append.
+                                              
+           view frame f-cabec. 
+           view frame f-rodape.
+           
+           for each tt-lin-b-ap no-lock: 
+               disp tt-lin-b-ap.tta-sequencia 
+                    tt-lin-b-ap.tta-cod-estabel
+                    tt-lin-b-ap.tta-cod-esp
+                    tt-lin-b-ap.tta-serie
+                    tt-lin-b-ap.tta-nr-docto
+                    tt-lin-b-ap.tta-parcela
+                    tt-lin-b-ap.tta-cod-fornec                 
+                    tt-lin-b-ap.ttv-des-mensagem
+                    with frame f-consiste.
+               down with frame f-consiste.
+           end.
+           output close.
+       end.
+    end.
+
+/* Fim da include */

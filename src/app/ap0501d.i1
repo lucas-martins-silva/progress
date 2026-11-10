@@ -1,0 +1,613 @@
+/******************************************************************************
+***
+***  app/ap0501d.i1 - Consistància dos Impostos do Documento.
+***
+******************************************************************************/
+
+def buffer b-emitente for emitente.
+def buffer b-espec-ap for espec-ap.
+
+assign de-vl-contabil = 0
+       de-vl-imposto  = 0.
+
+for each  lin-conta-ap no-lock
+    where lin-conta-ap.ep-codigo   = lin-i-ap.ep-codigo
+    and   lin-conta-ap.cod-estabel = lin-i-ap.cod-estabel
+    and   lin-conta-ap.cod-esp     = lin-i-ap.cod-esp
+    and   lin-conta-ap.serie       = lin-i-ap.serie
+    and   lin-conta-ap.nr-docto    = lin-i-ap.nr-docto
+    and   lin-conta-ap.parcela     = lin-i-ap.parcela
+    and   lin-conta-ap.cod-fornec  = lin-i-ap.cod-fornec
+    and   lin-conta-ap.char-1      = " ":
+    assign de-vl-contabil = de-vl-contabil + lin-conta-ap.vl-movto.    
+end.
+
+/* Se Pa°s for MÇxico */
+if i-pais-impto-usuario = 4 then do:
+    assign de-iva-normal = 0
+           de-iva-retido = 0.
+    for each  impto-tit-pend-ap use-index codigo
+        where impto-tit-pend-ap.ep-codigo  = lin-i-ap.ep-codigo
+        and   impto-tit-pend-ap.cod-est    = lin-i-ap.cod-est
+        and   impto-tit-pend-ap.cod-esp    = lin-i-ap.cod-esp
+        and   impto-tit-pend-ap.serie      = lin-i-ap.serie
+        and   impto-tit-pend-ap.nr-docto   = lin-i-ap.nr-docto
+        and   impto-tit-pend-ap.parcela    = lin-i-ap.parcela
+        and   impto-tit-pend-ap.cod-fornec = lin-i-ap.cod-fornec no-lock:
+        if impto-tit-pend-ap.tipo = 2 then
+            assign de-iva-normal = de-iva-normal + impto-tit-pend-ap.vl-imposto.
+        else
+            assign de-iva-retido = de-iva-retido + impto-tit-pend-ap.vl-imposto.
+    end.
+    if lin-i-ap.vl-liquido <> (lin-i-ap.vl-original - de-iva-normal + de-iva-retido) then do:
+        /*--- Valor Liquido diferente ---*/                   
+        run utp/ut-msgs.p (input "help",
+                       input 29965,
+                       input string(lin-i-ap.vl-liquido, "-zz,zzz,zz9.99") + "~~" +
+                             string(lin-i-ap.vl-original - de-iva-normal + de-iva-retido, "-zz,zzz,zz9.99")).
+
+        assign l-situacao = no
+           i-num-erro = 29965
+           c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                        string(lin-i-ap.referencia) + " , " +
+                        string(lin-i-ap.sequencia)  + " , " +
+                        string(lin-i-ap.seq-import).
+        {app/ap0501d.i "29965"}
+
+    end.
+end.
+
+assign de-vl-contabil = de-vl-contabil
+                      + lin-i-ap.frete
+                      + lin-i-ap.diversos.
+
+if  de-vl-contabil <> lin-i-ap.vl-original then do:
+    find first impto-tit-pend-ap use-index codigo
+         where impto-tit-pend-ap.ep-codigo  = lin-i-ap.ep-codigo
+         and   impto-tit-pend-ap.cod-est    = lin-i-ap.cod-est
+         and   impto-tit-pend-ap.cod-esp    = lin-i-ap.cod-esp
+         and   impto-tit-pend-ap.serie      = lin-i-ap.serie
+         and   impto-tit-pend-ap.nr-docto   = lin-i-ap.nr-docto
+         and   impto-tit-pend-ap.parcela    = lin-i-ap.parcela
+         and   impto-tit-pend-ap.cod-fornec = lin-i-ap.cod-fornec no-lock no-error.
+
+    if  not avail impto-tit-pend-ap then do:
+        /*---- Rateio n∆o Confere ---*/
+        run utp/ut-msgs.p (input "help",
+                           input 15937,
+                           input string(lin-i-ap.vl-original, "-zz,zzz,zz9.99") + "~~" +
+                                 string(de-vl-contabil, "-zz,zzz,zz9.99") + "~~" + "").
+
+        assign l-situacao = no
+               i-num-erro = 15937
+               c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                            string(lin-i-ap.referencia) + " , " +
+                            string(lin-i-ap.sequencia)  + " , " +
+                            string(lin-i-ap.seq-import).
+        {app/ap0501d.i "15937"}                                 
+    end.
+    else do:
+        for each  impto-tit-pend-ap use-index codigo
+            where impto-tit-pend-ap.ep-codigo  = lin-i-ap.ep-codigo
+            and   impto-tit-pend-ap.cod-est    = lin-i-ap.cod-est
+            and   impto-tit-pend-ap.cod-esp    = lin-i-ap.cod-esp
+            and   impto-tit-pend-ap.serie      = lin-i-ap.serie
+            and   impto-tit-pend-ap.nr-docto   = lin-i-ap.nr-docto
+            and   impto-tit-pend-ap.parcela    = lin-i-ap.parcela
+            and   impto-tit-pend-ap.cod-fornec = lin-i-ap.cod-fornec no-lock:
+            /** Se pais Ç diferente de MÇxico ***/
+            if i-pais-impto-usuario <> 4 then do:  
+                assign de-vl-imposto = de-vl-imposto 
+                                       + impto-tit-pend-ap.vl-imposto
+                                       + impto-tit-pend-ap.vl-percepcao.
+            end.
+            else do: /*** Sen∆o dever† ser descontado o valor do imposto IVA Retido ***/
+                if impto-tit-pend-ap.tipo = 1 then do:
+                    assign de-vl-imposto = de-vl-imposto 
+                                         - impto-tit-pend-ap.vl-imposto
+                                         + impto-tit-pend-ap.vl-percepcao.
+                end.
+                else do:
+                    assign de-vl-imposto = de-vl-imposto 
+                                         +  impto-tit-pend-ap.vl-imposto
+                                         + impto-tit-pend-ap.vl-percepcao.
+                end.
+            end.
+        end.
+
+        /*--- Total dos Impostos + Rateio deve ser igual ao valor Original ---*/
+        if  (de-vl-imposto + de-vl-contabil) <> lin-i-ap.vl-original then do:
+            {utp/ut-liter.i mais_IVA_e_Percepá∆o}
+            run utp/ut-msgs.p (input "help",
+                               input 15937,
+                               input string(lin-i-ap.vl-original, "-zz,zzz,zz9.99") + "~~" +
+                                     string(de-vl-imposto + de-vl-contabil, "-zz,zzz,zz9.99") + "~~" +
+                                     trim(return-value)).
+
+            assign l-situacao = no
+                   i-num-erro = 15937
+                   c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                string(lin-i-ap.referencia) + " , " +
+                                string(lin-i-ap.sequencia)  + " , " +
+                                string(lin-i-ap.seq-import).
+            {app/ap0501d.i "15937"}
+        end.
+    end.
+end.
+else do:
+    if  i-pais-impto-usuario = 4 
+    and lin-i-ap.conta-debito = " " then do:
+       for each  impto-tit-pend-ap use-index codigo
+            where impto-tit-pend-ap.ep-codigo  = lin-i-ap.ep-codigo
+            and   impto-tit-pend-ap.cod-est    = lin-i-ap.cod-est
+            and   impto-tit-pend-ap.cod-esp    = lin-i-ap.cod-esp
+            and   impto-tit-pend-ap.serie      = lin-i-ap.serie
+            and   impto-tit-pend-ap.nr-docto   = lin-i-ap.nr-docto
+            and   impto-tit-pend-ap.parcela    = lin-i-ap.parcela
+            and   impto-tit-pend-ap.cod-fornec = lin-i-ap.cod-fornec no-lock:
+                if impto-tit-pend-ap.tipo = 2 then do:
+                    assign de-vl-imposto = de-vl-imposto 
+                                         - impto-tit-pend-ap.vl-imposto
+                                         + impto-tit-pend-ap.vl-percepcao.
+                end.
+                else do:
+                    assign de-vl-imposto = de-vl-imposto 
+                                         +  impto-tit-pend-ap.vl-imposto
+                                         + impto-tit-pend-ap.vl-percepcao.
+                end.            
+        end.
+
+        /*--- Total dos Impostos + Rateio deve ser igual ao valor Original ---*/
+        if  (de-vl-imposto + de-vl-contabil) <> lin-i-ap.vl-original then do:
+            {utp/ut-liter.i mais_IVA_e_Percepá∆o}
+            run utp/ut-msgs.p (input "help",
+                               input 15937,
+                               input string(lin-i-ap.vl-original, "-zz,zzz,zz9.99") + "~~" +
+                                     string(de-vl-imposto + de-vl-contabil, "-zz,zzz,zz9.99") + "~~" +
+                                     trim(return-value)).
+
+            assign l-situacao = no
+                   i-num-erro = 15937
+                   c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                string(lin-i-ap.referencia) + " , " +
+                                string(lin-i-ap.sequencia)  + " , " +
+                                string(lin-i-ap.seq-import).
+            {app/ap0501d.i "15937"}
+        end.
+    end.
+end.
+
+for each  impto-tit-pend-ap use-index codigo
+    where impto-tit-pend-ap.ep-codigo  = lin-i-ap.ep-codigo
+    and   impto-tit-pend-ap.cod-fornec = lin-i-ap.cod-fornec
+    and   impto-tit-pend-ap.cod-est    = lin-i-ap.cod-est
+    and   impto-tit-pend-ap.cod-esp    = lin-i-ap.cod-esp
+    and   impto-tit-pend-ap.serie      = lin-i-ap.serie
+    and   impto-tit-pend-ap.nr-docto   = lin-i-ap.nr-docto
+    and   impto-tit-pend-ap.parcela    = lin-i-ap.parcela no-lock:
+
+    /*--- Verifica se existe conta de saldo para a espÇcie do imposto---*/        
+    find first b-emitente 
+        where b-emitente.cod-emitente = lin-i-ap.cod-fornec
+        no-lock no-error.
+
+    if avail b-emitente then do:
+        find b-espec-ap
+            where b-espec-ap.cod-esp  = trim(substring(impto-tit-pend-ap.char-1, 01,02))
+            no-lock no-error.
+
+        if avail b-espec-ap 
+            and  b-espec-ap.contabiliza 
+            and not can-find(first conta-ap
+                          where conta-ap.ep-codigo   = lin-i-ap.ep-codigo
+                            and conta-ap.cod-estabel = lin-i-ap.cod-estabel
+                            and conta-ap.cod-esp     = trim(substring(impto-tit-pend-ap.char-1, 01,02))
+                            and conta-ap.cod-grupo   = b-emitente.cod-gr-forn) then do:
+
+            run utp/ut-msgs.p (input "help":U,
+                               input 27392,
+                               input string(lin-i-ap.ep-codigo)                      + " ~~ " +
+                                     lin-i-ap.cod-estabel                             + " ~~ " +
+                                     trim(substring(impto-tit-pend-ap.char-1, 01,02)) + " ~~ " +
+                                     string(b-emitente.cod-gr-forn)).
+
+            assign l-situacao = no
+                   i-num-erro = 27392
+            c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                         string(lin-i-ap.cod-estabel) + " , " +
+                         string(b-espec-ap.cod-esp)     + " , " +
+                         string(b-emitente.cod-gr-forn).
+            {app/ap0501d.i "27392"}
+        end.
+    end.
+
+    if  l-ems2fin-x-mg  = no then do: 
+
+        find first tipo-tax
+             where tipo-tax.cod-tax = impto-tit-pend-ap.cod-imposto
+             no-lock no-error.
+        if  not avail tipo-tax then do:
+            run utp/ut-msgs.p (input "help",
+                               input 3459,
+                               input " ").
+
+            assign l-situacao = no
+                   i-num-erro = 3459
+                   c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                string(lin-i-ap.referencia) + " , " +
+                                string(lin-i-ap.sequencia)  + " , " +
+                                string(lin-i-ap.seq-import).
+            {app/ap0501d.i "3459"}                                 
+            run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+        end.
+        else do:
+
+            /* Verifica se n∆o existe mais de um imposto com o mesmo c¢digo,
+               n∆o pode existir sen∆o da erro na criaá∆o do compl-retenc-impto-pagto (chave duplicada).
+               A consistància vale para QUALQUER pais (MÇxico, Brasil, etc. */
+
+            find first b-impto-tit-pend-ap use-index codigo
+                 where b-impto-tit-pend-ap.ep-codigo   = lin-i-ap.ep-codigo
+                 and   b-impto-tit-pend-ap.cod-fornec  = lin-i-ap.cod-fornec
+                 and   b-impto-tit-pend-ap.cod-est     = lin-i-ap.cod-est
+                 and   b-impto-tit-pend-ap.cod-esp     = lin-i-ap.cod-esp
+                 and   b-impto-tit-pend-ap.serie       = lin-i-ap.serie
+                 and   b-impto-tit-pend-ap.nr-docto    = lin-i-ap.nr-docto
+                 and   b-impto-tit-pend-ap.parcela     = lin-i-ap.parcela 
+                 and   b-impto-tit-pend-ap.cod-imposto = impto-tit-pend-ap.cod-imposto
+                 and   rowid(b-impto-tit-pend-ap)     <> rowid(impto-tit-pend-ap)
+                 no-lock no-error.
+
+            if  avail b-impto-tit-pend-ap then do:
+                run utp/ut-msgs.p (input "help",
+                                   input 30823,
+                                   input string(impto-tit-pend-ap.cod-imposto) + "~~" + 
+                                         caps(trim(substring(impto-tit-pend-ap.char-1, 01,02))) + "~~" +
+                                         string(b-impto-tit-pend-ap.cod-imposto)).
+
+                assign l-situacao = no
+                       i-num-erro = 30823
+                       c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                    string(lin-i-ap.referencia) + " , " +
+                                    string(lin-i-ap.sequencia)  + " , " +
+                                    string(lin-i-ap.seq-import).
+                {app/ap0501d.i "30823"}                   
+            end.
+
+            if  i-pais-impto-usuario = 1 then do:
+
+                /* Verifica se h† + de 1 imposto com o mesmo c¢digo
+                   de retená∆o, para n∆o ocorrer problema com a DIRF */
+                &IF DEFINED(BF_FIN_EMS2_X_MG) &THEN
+                if  impto-tit-pend-ap.cod-retencao <> 0 then do:
+                    find first b-espec-ap no-lock
+                        where b-espec-ap.cod-esp = trim(substring(impto-tit-pend-ap.char-1, 01,02)) no-error.
+
+                    if not (avail b-espec-ap and b-espec-ap.log-1 = yes and b-espec-ap.inss-iss = yes) then do:
+                        find first b-impto-tit-pend-ap use-index codigo
+                             where b-impto-tit-pend-ap.ep-codigo    = lin-i-ap.ep-codigo
+                             and   b-impto-tit-pend-ap.cod-fornec   = lin-i-ap.cod-fornec
+                             and   b-impto-tit-pend-ap.cod-est      = lin-i-ap.cod-est
+                             and   b-impto-tit-pend-ap.cod-esp      = lin-i-ap.cod-esp
+                             and   b-impto-tit-pend-ap.serie        = lin-i-ap.serie
+                             and   b-impto-tit-pend-ap.nr-docto     = lin-i-ap.nr-docto
+                             and   b-impto-tit-pend-ap.parcela      = lin-i-ap.parcela 
+                             and   b-impto-tit-pend-ap.cod-retencao = impto-tit-pend-ap.cod-retencao
+                             and   rowid(b-impto-tit-pend-ap)       <> rowid(impto-tit-pend-ap)
+                             no-lock no-error.
+
+                        if  avail b-impto-tit-pend-ap then do:
+                            run utp/ut-msgs.p (input "help",
+                                               input 30824,
+                                               input string(impto-tit-pend-ap.cod-imposto) + "~~" +
+                                                     caps(trim(substring(impto-tit-pend-ap.char-1, 01,02))) + "~~" +
+                                                     string(b-impto-tit-pend-ap.cod-retencao)).
+
+                            assign l-situacao = no
+                                   i-num-erro = 30824
+                                   c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                                string(lin-i-ap.referencia) + " , " +
+                                                string(lin-i-ap.sequencia)  + " , " +
+                                                string(lin-i-ap.seq-import).
+                            {app/ap0501d.i "30824"}                   
+                        end.
+                    end.
+                end.
+                &ENDIF.
+            end.
+        end.      
+    end.
+
+    if  impto-tit-pend-ap.perc-imposto > 100 then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 374,
+                           input " ").
+
+        assign l-situacao = no
+               i-num-erro = 374
+               c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                            string(lin-i-ap.referencia) + " , " +
+                            string(lin-i-ap.sequencia)  + " , " +
+                            string(lin-i-ap.seq-import).
+        {app/ap0501d.i "374"}        
+        run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+    end.
+
+    /*-- Documento que n∆o foram gerados pelo acumulado de IR ---*/
+    if  impto-tit-pend-ap.conta-percepcao <> "" and
+        impto-tit-pend-ap.perc-percepcao = 0
+        &IF DEFINED (BF_FIN_TAB_PROG_IR) &THEN 
+            and impto-tit-pend-ap.l-acum-ir = no
+        &ENDIF
+        then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 2336,
+                           input "").
+
+        assign l-situacao = no
+               i-num-erro = 2336
+               c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                            string(lin-i-ap.referencia) + " , " +
+                            string(lin-i-ap.sequencia)  + " , " +
+                            string(lin-i-ap.seq-import).
+        {app/ap0501d.i "2336"}        
+        run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+    end.
+
+    if  impto-tit-pend-ap.perc-percepcao > 100 then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 374,
+                           input " ").
+
+        assign l-situacao = no
+               i-num-erro = 374
+               c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                            string(lin-i-ap.referencia) + " , " +
+                            string(lin-i-ap.sequencia)  + " , " +
+                            string(lin-i-ap.seq-import).
+        {app/ap0501d.i "374"}        
+        run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+    end.
+
+    /*-- Documento que n∆o foram gerados pelo acumulado de IR ---*/                    
+    if  impto-tit-pend-ap.conta-retencao <> "" and
+        impto-tit-pend-ap.perc-retencao = 0
+        &IF DEFINED (BF_FIN_TAB_PROG_IR) &THEN 
+            and impto-tit-pend-ap.l-acum-ir = no
+        &ENDIF
+
+         then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 2336,
+                           input "").
+
+        assign l-situacao = no
+               i-num-erro = 2336
+               c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                            string(lin-i-ap.referencia) + " , " +
+                            string(lin-i-ap.sequencia)  + " , " +
+                            string(lin-i-ap.seq-import).
+        {app/ap0501d.i "2336"}        
+        run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+    end.
+
+    if  impto-tit-pend-ap.perc-retencao > 100 then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 374,
+                           input " ").
+
+        assign l-situacao = no
+               i-num-erro = 374
+               c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                            string(lin-i-ap.referencia) + " , " +
+                            string(lin-i-ap.sequencia)  + " , " +
+                            string(lin-i-ap.seq-import).
+        {app/ap0501d.i "374"}        
+        run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+    end.
+
+    /*------ Valida Conta de Imposto -------*/
+
+    if  impto-tit-pend-ap.conta-imposto <> " " then do:
+        find first conta-contab no-lock
+             where conta-contab.ep-codigo      = impto-tit-pend-ap.ep-codigo
+             and   conta-contab.conta-contabil = impto-tit-pend-ap.conta-imposto
+             no-error.
+
+        if  not avail conta-contab then do:
+             /* Conta nao cadastrada */
+             run utp/ut-msgs.p (input "help",
+                               input 1060,
+                               input impto-tit-pend-ap.conta-imposto).
+
+            assign l-situacao = no
+                   i-num-erro = 1060
+                   c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                string(lin-i-ap.referencia) + " , " +
+                                string(lin-i-ap.sequencia)  + " , " +
+                                string(lin-i-ap.seq-import).
+            {app/ap0501d.i "1060"}        
+            run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+        end.
+        else do:
+            if  conta-contab.tipo = 6 then do:
+                /* Conta de Titulo nao pode receber lancamento */
+                run utp/ut-msgs.p (input "help",
+                                   input 1061,
+                                   input conta-contab.conta-contabil).
+
+                assign l-situacao = no
+                       i-num-erro = 1061
+                       c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                    string(lin-i-ap.referencia) + " , " +
+                                    string(lin-i-ap.sequencia)  + " , " +
+                                    string(lin-i-ap.seq-import).
+                {app/ap0501d.i "1061"}        
+                run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+            end.
+
+            if  conta-contab.estado <> 3 then do:
+                /* Conta Contabil nao e de Sistema */
+                run utp/ut-msgs.p (input "help",
+                                   input 1062,
+                                   input conta-contab.conta-contabil).
+
+                assign l-situacao = no
+                       i-num-erro = 1062
+                       c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                    string(lin-i-ap.referencia) + " , " +
+                                    string(lin-i-ap.sequencia)  + " , " +
+                                    string(lin-i-ap.seq-import).
+                {app/ap0501d.i "1062"}        
+                run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).            
+            end.                              
+        end.
+    end.
+    else do:
+        if  impto-tit-pend-ap.conta-imposto = " " then do:
+            /* Verifica rateio das contas de imposto. */
+            assign de-vl-contabil-impto = 0.
+            for each  lin-conta-ap no-lock
+                where lin-conta-ap.ep-codigo   =  impto-tit-pend-ap.ep-codigo
+                and   lin-conta-ap.cod-estabel =  impto-tit-pend-ap.cod-estabel
+                and   lin-conta-ap.cod-fornec  =  impto-tit-pend-ap.cod-fornec
+                and   lin-conta-ap.cod-esp     =  impto-tit-pend-ap.cod-esp
+                and   lin-conta-ap.serie       =  impto-tit-pend-ap.serie
+                and   lin-conta-ap.nr-docto    =  impto-tit-pend-ap.nr-docto
+                and   lin-conta-ap.parcela     =  impto-tit-pend-ap.parcela
+                and   lin-conta-ap.char-1      =  impto-tit-pend-ap.char-1
+                and   lin-conta-ap.char-1      <> " ":
+                assign de-vl-contabil-impto    = de-vl-contabil-impto + lin-conta-ap.vl-movto.
+            end.
+
+            if  de-vl-contabil-impto <> impto-tit-pend-ap.vl-imposto then do :
+                run utp/ut-msgs.p (input "help",
+                                   input 17647,
+                                   input string(impto-tit-pend-ap.vl-imposto, "-zz,zzz,zz9.99") + "~~" +
+                                         string(de-vl-contabil-impto, "-zz,zzz,zz9.99")).
+
+                assign l-situacao = no
+                       i-num-erro = 17647
+                       c-cod-msg  = string(impto-tit-pend-ap.ep-codigo)  + " , " +
+                                    string(impto-tit-pend-ap.cod-esp)    + " , " +
+                                    string(impto-tit-pend-ap.nr-docto)   + " , " +
+                                    string(impto-tit-pend-ap.parcela).
+                {app/ap0501d.i "17647"}
+                run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+            end.
+        end.
+    end.
+
+    /*------ Valida Conta de Percepá∆o -------*/
+    if  impto-tit-pend-ap.conta-percepcao <> " " then do:
+        find first conta-contab no-lock
+             where conta-contab.ep-codigo      = impto-tit-pend-ap.ep-codigo
+             and   conta-contab.conta-contabil = impto-tit-pend-ap.conta-percepcao
+             no-error.
+
+        if  not avail conta-contab then do:
+             /* Conta nao cadastrada */
+             run utp/ut-msgs.p (input "help",
+                               input 1060,
+                               input impto-tit-pend-ap.conta-percepcao).
+
+            assign l-situacao = no
+                   i-num-erro = 1060
+                   c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                string(lin-i-ap.referencia) + " , " +
+                                string(lin-i-ap.sequencia)  + " , " +
+                                string(lin-i-ap.seq-import).
+            {app/ap0501d.i "1060"}        
+            run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+        end.
+        else do:
+            if  conta-contab.tipo = 6 then do:
+                /* Conta de Titulo nao pode receber lancamento */
+                run utp/ut-msgs.p (input "help",
+                                   input 1061,
+                                   input conta-contab.conta-contabil).
+                assign l-situacao = no
+                       i-num-erro = 1061
+                       c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                    string(lin-i-ap.referencia) + " , " +
+                                    string(lin-i-ap.sequencia)  + " , " +
+                                    string(lin-i-ap.seq-import).
+                {app/ap0501d.i "1061"}       
+                run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+            end.
+
+            if  conta-contab.estado <> 3 then do:
+                /* Conta Contabil nao e de Sistema */
+                run utp/ut-msgs.p (input "help",
+                                   input 1062,
+                                   input conta-contab.conta-contabil).
+                assign l-situacao = no
+                       i-num-erro = 1062
+                       c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                    string(lin-i-ap.referencia) + " , " +
+                                    string(lin-i-ap.sequencia)  + " , " +
+                                    string(lin-i-ap.seq-import).
+                {app/ap0501d.i "1062"}        
+                run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+            end.
+
+        end.
+    end.
+
+    /*------ Valida Conta de Retená∆o -------*/
+    if  impto-tit-pend-ap.conta-retencao <> " " then do:
+        find first conta-contab no-lock
+             where conta-contab.ep-codigo      = impto-tit-pend-ap.ep-codigo
+             and   conta-contab.conta-contabil = impto-tit-pend-ap.conta-retencao
+             no-error.
+
+        if  not avail conta-contab then do:
+             /* Conta nao cadastrada */
+             run utp/ut-msgs.p (input "help",
+                               input 1060,
+                               input impto-tit-pend-ap.conta-retencao).
+            assign l-situacao = no
+                   i-num-erro = 1060
+                   c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                string(lin-i-ap.referencia) + " , " +
+                                string(lin-i-ap.sequencia)  + " , " +
+                                string(lin-i-ap.seq-import).
+            {app/ap0501d.i "1060"}        
+            run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+        end.
+        else do:
+            if  conta-contab.tipo = 6 then do:
+                /* Conta de Titulo nao pode receber lancamento */
+                run utp/ut-msgs.p (input "help",
+                                   input 1061,
+                                   input conta-contab.conta-contabil).
+                assign l-situacao = no
+                       i-num-erro = 1061
+                       c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                    string(lin-i-ap.referencia) + " , " +
+                                    string(lin-i-ap.sequencia)  + " , " +
+                                    string(lin-i-ap.seq-import).
+                {app/ap0501d.i "1061"}        
+                run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+            end.
+
+            if  conta-contab.estado <> 3 then do:
+                /* Conta Contabil nao e de Sistema */
+                run utp/ut-msgs.p (input "help",
+                                   input 1062,
+                                   input conta-contab.conta-contabil).
+                assign l-situacao = no
+                       i-num-erro = 1062
+                       c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                                    string(lin-i-ap.referencia) + " , " +
+                                    string(lin-i-ap.sequencia)  + " , " +
+                                    string(lin-i-ap.seq-import).
+                {app/ap0501d.i "1062"}        
+                run pi-alt-descricao (input-output tt-retorno-lin-i-ap.desc-erro).
+            end.
+
+        end.
+    end.
+end.
+
+/* Fim de Include */

@@ -1,0 +1,20 @@
+PROCEDURE pi-FCI-Item:
+
+    DEFINE VARIABLE h-bodi538               AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE c-nro-FCI               AS CHARACTER FORMAT "x(36)" NO-UNDO.
+
+    RUN dibo/bodi538.p PERSISTENT SET h-bodi538.
+
+    /*Gravar na it-nota-fisc as informacoes da FCI utilizada no calculo do Item*/
+    RUN pi-buscaFCI-ItNotaFisc-NFe IN h-bodi538 (INPUT  ROWID(it-nota-fisc)   ,
+                                                 OUTPUT c-nro-FCI).
+
+    IF  VALID-HANDLE(h-bodi538) THEN DO:
+        DELETE PROCEDURE h-bodi538.
+        ASSIGN h-bodi538 = ?.
+    END.
+
+    IF  TRIM(c-nro-FCI) <> "":U THEN
+        ASSIGN ttDet.nFCI = TRIM(c-nro-FCI).
+
+END PROCEDURE.

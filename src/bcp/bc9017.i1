@@ -1,0 +1,7 @@
+Find First usuar_mestre No-lock
+    Where usuar_mestre.cod_usuario = {1} No-error.
+
+If Not Avail usuar_mestre 
+   then Assign vLogOk = No.
+   else Assign vLogOk = Yes.
+

@@ -1,0 +1,30 @@
+/*********************************************************************************
+***
+*** app/ap0703rp.i2 - pi-listagemB
+***
+*********************************************************************************/
+
+Procedure pi-listagemB:
+ 
+  if da-a-vencer = ? then
+     assign da-a-vencer = 01/01/1001.
+ 
+  for each emitente
+      where emitente.cod-gr-forn >= tt-param.grupo-ini
+      and   emitente.cod-gr-forn <= tt-param.grupo-fim
+      and   emitente.cod-emit    >= tt-param.for-ini
+      and   emitente.cod-emit    <= tt-param.for-fim
+      and   emitente.identific   <> 1 no-lock,
+      {app/ap0703.i3 "tit-ap.cod-fornec = emitente.cod-emit"
+                     "emitente.nome-abrev by"
+                     " "
+                     " "
+                     " "
+                     "tit-ap.cod-fornec"
+                     "2"
+                     " "
+                     " "
+                     "'ap0703b'"}  
+End Procedure.                   
+
+/* Fim de Include */

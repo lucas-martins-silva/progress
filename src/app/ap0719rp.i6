@@ -1,0 +1,171 @@
+/********************************************************************
+***
+***  app/ap0719rp.i6 - Antigo programa "ap0719a.p" do Magnus I.
+***
+********************************************************************/
+
+if  l-natureza = yes then do:
+
+    for each dirf-apf
+        where dirf-apf.ep-codigo = i-empresa
+        and   dirf-apf.cod-est   = c-estabel
+        and   dirf-apf.ano-base  = i-ano-base no-lock:
+
+        run pi-acompanhar in h-acomp (input "Estabelecimento: "  + dirf-apf.cod-est).
+
+        assign i-cod-ret = dirf-apf.cod-ret.
+
+        if  i-cod-ret = 9991 then
+            assign i-cod-ret = 4424.
+
+        run pi-gerar-resumo (input i-cod-ret, output l-existe).
+        if  l-existe = no then
+            next.
+
+        find first tt-emitente 
+             where tt-emitente.cod-emit   = dirf-apf.cod-emit
+             and   tt-emitente.identific <> 1 no-lock no-error.
+        if  not avail tt-emitente then do:
+            find first emitente
+                 where emitente.cod-emit   = dirf-apf.cod-emit
+                 and   emitente.identific <> 1 no-lock no-error.
+
+            if  not avail emitente then
+                next.
+
+            create tt-emitente.
+            buffer-copy emitente to tt-emitente.    
+        end.    
+    
+        if  tt-emitente.natureza = 3 and l-estrangeiro = no then 
+            next.    
+
+        if  tt-emitente.natureza <> 1 and
+            tt-emitente.natureza <> 3 then
+            next.
+
+        if  l-cgc then do:
+            assign c-matriz = tt-emitente.nome-matriz.
+            if  tt-emitente.nome-abrev <> tt-emitente.nome-matriz then do:
+                find first tt-emitente 
+                     where tt-emitente.nome-abrev  = c-matriz no-lock no-error.
+                if  not avail tt-emitente then do:
+                    find first emitente
+                         where emitente.nome-abrev = c-matriz no-lock no-error.
+                    if  not avail emitente then
+                        next.
+
+                    create tt-emitente.
+                    buffer-copy emitente to tt-emitente.    
+                end.    
+            end.    
+        end.
+
+        {app/ap0719rp.i4}
+
+        find t-dirf
+             where t-dirf.cgc-decl = c-cgc-emp
+             and   t-dirf.cod-ret  = i-cod-ret
+             and   t-dirf.esp-ben  = 1
+             and   t-dirf.cgc-cpf-ben  = c-cgc-arq
+             exclusive-lock no-error.
+             
+        if  not avail t-dirf then do:
+            create t-dirf.
+            assign t-dirf.cgc-decl = c-cgc-emp
+                   t-dirf.cod-ret  = i-cod-ret
+                   t-dirf.esp-ben  = 1
+                   t-dirf.cgc-cpf-ben  = c-cgc-arq
+                   t-dirf.nome-ben = tt-emitente.nome-emit.
+        end.
+
+        if  l-tabela-progressiva then
+            run pi-acumulado.
+        else
+            run pi-normal.
+
+    end.
+end.
+
+for each dirf-ap use-index ch-retensao
+    where dirf-ap.ep-codigo     = i-empresa
+    and   dirf-ap.cod-est       = c-estabel
+    and   dirf-ap.dt-implant   >= da-ta-ini
+    and   dirf-ap.dt-implant   <= da-ta-fim no-lock:
+
+    assign i-cod-ret = int(dirf-ap.cod-retensao).
+        
+    run pi-gerar-resumo (input i-cod-ret, output l-existe).
+    if  l-existe = no then
+        next.
+            
+    find first tt-emitente 
+         where tt-emitente.cod-emit   = dirf-ap.cod-fornec
+         and   tt-emitente.identific <> 1 no-lock no-error.
+    if  not avail tt-emitente then do:
+        find first emitente
+             where emitente.cod-emit   = dirf-ap.cod-fornec
+             and   emitente.identific <> 1 no-lock no-error.
+        if  not avail emitente then
+            next.
+
+        create tt-emitente.
+        buffer-copy emitente to tt-emitente.    
+    end.    
+    if  tt-emitente.natureza = 3 and l-estrangeiro = no then 
+        next.    
+
+    if  tt-emitente.natureza <> 2 and
+        tt-emitente.natureza <> 3 then
+        next.
+
+    if  l-cgc then do:
+        assign c-matriz = tt-emitente.nome-matriz.
+        if  tt-emitente.nome-abrev <> tt-emitente.nome-matriz then do:
+            find first tt-emitente 
+                 where tt-emitente.nome-abrev  = c-matriz no-lock no-error.
+            if  not avail tt-emitente then do:
+                find first emitente
+                     where emitente.nome-abrev = c-matriz no-lock no-error.
+                if  not avail emitente then
+                    next.
+
+                create tt-emitente.
+                buffer-copy emitente to tt-emitente.    
+            end.    
+        end.    
+    end.
+
+    {app/ap0719rp.i4}
+
+    find t-dirf
+         where t-dirf.cgc-decl = c-cgc-emp
+         and   t-dirf.cod-ret  = i-cod-ret
+         and   t-dirf.esp-ben  = 2
+         and   t-dirf.cgc-cpf-ben  = c-cgc-arq
+         exclusive-lock no-error.
+    if  not avail t-dirf then do:
+        create t-dirf.
+        assign t-dirf.cgc-decl = c-cgc-emp
+               t-dirf.cod-ret  = i-cod-ret
+               t-dirf.esp-ben  = 2
+               t-dirf.cgc-cpf-ben  = c-cgc-arq
+               t-dirf.nome-ben = tt-emitente.nome-emit.
+    end.
+
+    {app/ap0719rp.i8 tt-emitente}
+
+    assign i-mes = month(dirf-ap.dt-implant).
+    if  i-rend-tributavel = 40      /* considera apenas 40% ou 60% como */
+    or  i-rend-tributavel = 60 then /* rendimento tributavel */
+        assign de-rend-fornec          = (dirf-ap.vl-rend-trib * i-rend-tributavel) / 100
+               t-dirf.rend-trib[i-mes] = t-dirf.rend-trib[i-mes] + de-rend-fornec.
+    else
+        assign t-dirf.rend-trib[i-mes] = t-dirf.rend-trib[i-mes]
+                                       + dirf-ap.vl-rend-trib.     
+
+     assign t-dirf.imp-ret[i-mes]   = t-dirf.imp-ret[i-mes]
+                                    + dirf-ap.valor-ir.
+end.
+
+/*--- Fim da Include AP0719RP.I6 ---*/

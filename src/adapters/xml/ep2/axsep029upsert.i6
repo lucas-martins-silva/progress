@@ -1,0 +1,24 @@
+PROCEDURE pi-cria-ttDCe:
+
+    /*
+    === ttDCe ===
+    CodEstabelDCe   AS CHARACTER INITIAL ?
+    SerieDCe        AS CHARACTER INITIAL ?
+    NrDCe           AS CHARACTER INITIAL ?
+    ChaveAcessoDCe  AS CHARACTER INITIAL ?
+    VersaoLayoutDCe AS CHARACTER INITIAL ?
+    */
+    
+    IF NOT AVAIL dce-param-estab THEN
+       FOR FIRST dce-param-estab 
+           WHERE dce-param-estab.cod-estabel = dce-documento.cod-estabel: 
+       END.    
+
+    CREATE ttDCe.
+    ASSIGN ttDCe.CodEstabelDCe    = dce-documento.cod-estabel
+           ttDCe.SerieDCe         = dce-documento.serie
+           ttDCe.NrDCe            = dce-documento.nr-dce
+           ttDCe.ChaveAcessoDCe   = dce-documento.cod-chave-aces-dce
+           ttDCe.VersaoLayoutDCe  = TRIM(dce-param-estab.versao-layout-dce).
+                                 
+END PROCEDURE.

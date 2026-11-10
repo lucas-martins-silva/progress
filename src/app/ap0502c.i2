@@ -1,0 +1,29 @@
+/*********************************************************
+**  Programa: ap0502c.i2
+**  Objetivo: Atualiza a variavel c-mov-relac-prev com 
+**            as informacoes do movimento para fazer a 
+**            vinculacao com o AVA que sera gerado.
+*********************************************************/
+
+&if defined(BF_FIN_RET_SALDO_PREV) &then 
+    assign c-mov-relac-prev = mov-ap.mov-relac-prev.
+&else
+    assign c-mov-relac-prev = mov-ap.char-2.
+&endif         
+ 
+if c-mov-relac-prev = "" then do: 
+   assign c-mov-relac-prev = trim(mov-ap.referencia     + ";" +
+                             string(mov-ap.transacao)   + ";" +
+                             string(mov-ap.portador)    + ";" +
+                             string(mov-ap.dt-emissao)  + ";" +
+                             string(mov-ap.dt-vencimen) + ";" +
+                             string(mov-ap.valor-mov)).
+
+   &if defined(BF_FIN_RET_SALDO_PREV) &then 
+       assign mov-ap.mov-relac-prev = c-mov-relac-prev.
+   &else
+       assign mov-ap.char-2 = c-mov-relac-prev. 
+   &endif         
+end.                                         
+
+/* Fim include */

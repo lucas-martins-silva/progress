@@ -1,0 +1,112 @@
+/******************************************************************************
+***
+*** app/ap0506.i1 - Api de atualiza‡Æo do acumulado e relacionamento
+***                         de impostos PIS/COFINS/CSLL
+***
+******************************************************************************/
+
+for each  imposto-pagto 
+    where imposto-pagto.num-id-mov-ap = {1} exclusive-lock:
+    
+    if  l-func-matriz-impto then 
+            find first acum-imposto-pagto
+                 where acum-imposto-pagto.ep-codigo   = imposto-pagto.ep-codigo
+                 and   acum-imposto-pagto.cod-estabel = ""
+                 and   acum-imposto-pagto.cod-fornec  = &if "{&mgadm_version}" >= "2.07" &then
+                                                            imposto-pagto.cdn-fornec-matriz 
+                                                        &else                                 
+                                                            imposto-pagto.num-livre-1       
+                                                        &endif  
+                 and   acum-imposto-pagto.dat-refer   = date(month({2}),01,year({2})) 
+                 and   acum-imposto-pagto.cod-imposto = imposto-pagto.cod-imposto exclusive-lock no-error.
+    else        
+            find first acum-imposto-pagto
+                 where acum-imposto-pagto.ep-codigo   = imposto-pagto.ep-codigo
+                 and   acum-imposto-pagto.cod-estabel = ""
+                 and   acum-imposto-pagto.cod-fornec  = imposto-pagto.cod-fornec
+                 and   acum-imposto-pagto.dat-refer   = date(month({2}),01,year({2})) 
+                 and   acum-imposto-pagto.cod-imposto = imposto-pagto.cod-imposto exclusive-lock no-error.
+                 
+    if  avail  acum-imposto-pagto then do:
+        assign acum-imposto-pagto.val-rendto-tribut           = acum-imposto-pagto.val-rendto-tribut - imposto-pagto.vl-base
+               acum-imposto-pagto.val-acum-impto-retid-period = acum-imposto-pagto.val-acum-impto-retid-period - imposto-pagto.vl-imposto.
+               
+        if  acum-imposto-pagto.val-rendto-tribut < 0 then
+            assign acum-imposto-pagto.val-rendto-tribut = 0.
+        
+        if  acum-imposto-pagto.val-acum-impto-retid-period < 0 then
+            assign acum-imposto-pagto.val-acum-impto-retid-period = 0.
+
+        if  acum-imposto-pagto.val-rendto-tribut           = 0
+        and acum-imposto-pagto.val-acum-impto-retid-period = 0 then
+            delete acum-imposto-pagto.
+            
+    end.
+    
+    if i-pais-impto-usuario = 1 and l-funcao-sem-desemb then do:
+        if imposto-pagto.transacao <> 5 then do:
+            for each b-mov-ap where 
+                b-mov-ap.ep-codigo    = mov-ap.ep-codigo   and
+                b-mov-ap.cod-fornec   = mov-ap.cod-fornec  and
+                b-mov-ap.cod-estabel  = mov-ap.cod-estabel and
+                b-mov-ap.cod-esp      = mov-ap.cod-esp     and
+                b-mov-ap.serie        = mov-ap.serie       and
+                b-mov-ap.nr-docto     = mov-ap.nr-docto    and
+                b-mov-ap.parcela      = mov-ap.parcela     and
+                b-mov-ap.transacao    = 5                  and
+                b-mov-ap.referencia   = mov-ap.referencia  and
+                b-mov-ap.dt-trans     = mov-ap.dt-trans   exclusive-lock:
+        
+                if  not can-find(first b-imposto-pagto
+                                 where b-imposto-pagto.num-id-mov-ap = mov-ap.num-id-mov-ap
+                                 and   b-imposto-pagto.vl-imposto    = b-mov-ap.valor-mov)
+                then next.
+        
+                assign tit-ap.valor-saldo  = tit-ap.valor-saldo + b-mov-ap.valor-mov.
+        
+                if  tit-ap.moeda = 0 then
+                    assign tit-ap.vl-saldo-me = tit-ap.vl-saldo-me + b-mov-ap.valor-mov.
+                else 
+                    assign tit-ap.vl-saldo-me = tit-ap.vl-saldo-me + b-mov-ap.valor-mov-me.
+        
+                delete b-mov-ap.
+            end.
+        end.
+    end.
+    else do:
+        if imposto-pagto.transacao <> 5 then do:
+            for each b-mov-ap where 
+                b-mov-ap.ep-codigo    = mov-ap.ep-codigo   and
+                b-mov-ap.cod-fornec   = mov-ap.cod-fornec  and
+                b-mov-ap.cod-estabel  = mov-ap.cod-estabel and
+                b-mov-ap.cod-esp      = mov-ap.cod-esp     and
+                b-mov-ap.serie        = mov-ap.serie       and
+                b-mov-ap.nr-docto     = mov-ap.nr-docto    and
+                b-mov-ap.parcela      = mov-ap.parcela     and
+                b-mov-ap.transacao    = 5                  and
+                b-mov-ap.referencia   = mov-ap.referencia  and
+                b-mov-ap.dt-trans     = mov-ap.dt-trans   exclusive-lock:
+            
+                if  i-pais-impto-usuario = 1 then do:
+                    if  not can-find(first b-imposto-pagto
+                                     where b-imposto-pagto.num-id-mov-ap = mov-ap.num-id-mov-ap
+                                     and   b-imposto-pagto.vl-imposto    = b-mov-ap.valor-mov)
+                    then next.
+                end.
+            
+                assign tit-ap.valor-saldo  = tit-ap.valor-saldo + b-mov-ap.valor-mov.
+            
+                if  tit-ap.moeda = 0 then
+                    assign tit-ap.vl-saldo-me = tit-ap.vl-saldo-me + b-mov-ap.valor-mov.
+                else 
+                    assign tit-ap.vl-saldo-me = tit-ap.vl-saldo-me + b-mov-ap.valor-mov-me.
+            
+                delete b-mov-ap.
+            end.
+        end.
+    end.
+
+    delete imposto-pagto.
+end.
+
+run pi-cancela-titulos-piscofinscsll.

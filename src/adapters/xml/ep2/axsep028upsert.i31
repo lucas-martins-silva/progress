@@ -1,0 +1,57 @@
+PROCEDURE pi-cria-ttICMSUFDest-NFCom:
+
+    /*
+    === ICMSUFDest ===
+    vBCUFDest      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99"  DECIMALS 2  /*Valor da Base de C lculo do ICMS na UF do destinat rio*/
+    pFCPUFDest     AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"          DECIMALS 4  /*Percentual adicional inserido na al¡quota interna da UF de destino, relativo ao Fundo de Combate … Pobreza (FCP) naquela UF*/
+    pICMSUFDest    AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"          DECIMALS 4  /*Al¡quota adotada nas opera‡äes internas na UF do destinat rio para o produto / mercadoria*/
+    pICMSInter     AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"          DECIMALS 4  /*Al¡quota interestadual das UF envolvidas: - 4% al¡quota interestadual para produtos importados; - 7% para os Estados de origem do Sul e Sudeste (exceto ES), destinado para os Estados do Norte e Nordeste  ou ES; - 12% para os demais casos*/
+    pICMSInterPart AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"          DECIMALS 4  /*Percentual de partilha para a UF do destinat rio: - 40% em 2016; - 60% em 2017; - 80% em 2018; - 100% a partir de 2019*/
+    vFCPUFDest     AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99"  DECIMALS 2  /*Valor do ICMS relativo ao Fundo de Combate … Pobreza (FCP) da UF de destino*/
+    vICMSUFDest    AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99"  DECIMALS 2  /*Valor do ICMS de partilha para a UF do destinat rio*/
+    vICMSUFRemet   AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99"  DECIMALS 2  /*Valor do ICMS de partilha para a UF do remetente. Nota: A partir de 2019, este valor ser  zero*/
+    */    
+    
+    FOR FIRST item-nf-adc NO-LOCK
+        WHERE item-nf-adc.cod-estab             = it-nota-fisc.cod-estabel
+        AND   item-nf-adc.cod-serie             = it-nota-fisc.serie
+        AND   item-nf-adc.cod-nota-fisc         = (if nota-fiscal.ind-tip-nota <> 8 then nota-fiscal.nr-nota-fis else nota-fiscal.nr-nota-ant)
+        AND   item-nf-adc.cdn-emitente          = nota-fiscal.cod-emitente
+        AND   item-nf-adc.cod-natur-operac      = it-nota-fisc.nat-operacao
+        AND   item-nf-adc.idi-tip-dado          = 24
+        AND   item-nf-adc.num-seq               = (if nota-fiscal.ind-tip-nota <> 8 then it-nota-fisc.nr-seq-fat else it-nota-fisc.nr-seq-ped)
+        AND   item-nf-adc.num-seq-item-nf       = (if nota-fiscal.ind-tip-nota <> 8 then it-nota-fisc.nr-seq-fat else it-nota-fisc.nr-seq-ped)
+        AND   item-nf-adc.cod-item              = it-nota-fisc.it-codigo:
+                        
+        CREATE ttICMSUFDestNFCom.
+        ASSIGN ttICMSUFDestNFCom.vBCUFDest      = item-nf-adc.val-livre-1
+               ttICMSUFDestNFCom.pFCPUFDest     = item-nf-adc.val-livre-2
+               ttICMSUFDestNFCom.pICMSUFDest    = DEC(item-nf-adc.cod-livre-1)
+               
+               ttICMSUFDestNFCom.vFCPUFDest     = DEC(item-nf-adc.cod-livre-4)
+               ttICMSUFDestNFCom.vICMSUFDest    = item-nf-adc.val-livre-3               
+               ttICMSUFDestNFCom.vICMSUFEmi     = item-nf-adc.val-livre-4.            
+                
+        /* Chave EMS */
+        ASSIGN ttICMSUFDestNFCom.CodEstabelNFCom = nota-fiscal.cod-estabel
+               ttICMSUFDestNFCom.SerieNFCom      = nota-fiscal.serie
+               ttICMSUFDestNFCom.NrNotaFisNFCom  = nota-fiscal.nr-nota-fis
+               ttICMSUFDestNFCom.ItCodigoNFCom   = it-nota-fisc.it-codigo
+               ttICMSUFDestNFCom.NrSeqFatNFCom   = it-nota-fisc.nr-seq-fat.
+               
+        FIND FIRST emitente 
+            where  emitente.cod-emitente = nota-fiscal.cod-emitente NO-LOCK NO-ERROR.
+        IF AVAIL emitente THEN DO:              
+            IF AVAIL ttEmitNFCom THEN
+                ASSIGN ttEmitNFCom.IEUFDest = fn-ajusta-campo-IE(emitente.ins-estadual)
+                       ttEmitNFCom.IEUFDest = fn-ajusta-tamanho-campo(ttEmitNFCom.IE ,14).
+            
+            FIND FIRST unid-feder no-lock 
+                where  unid-feder.pais   = emitente.pais  
+                 and   unid-feder.estado = emitente.estado no-error.
+            IF AVAIL unid-feder THEN 
+                ASSIGN ttICMSUFDestNFCom.cUFDest = string(unid-feder.cod-uf-ibge).
+        END.
+    END.
+
+END PROCEDURE.

@@ -1,0 +1,157 @@
+PROCEDURE pi-transmissao-manual-xml:
+    
+    DEFINE VARIABLE hXMLNFe              AS HANDLE      NO-UNDO.
+    DEFINE VARIABLE cArquivoHistoricoXML AS CHARACTER   NO-UNDO.
+    
+    DEFINE BUFFER bf-nota-fiscal FOR nota-fiscal.
+    
+    ASSIGN lcXMLNFe = "".
+
+    /* RESETA OS VALORES */
+    RUN reset IN hGenXml.
+    
+    /* SETA VALOR DE ENCODING */
+    RUN setEncoding IN hGenXml ("UTF-8").
+
+    RUN adapters/xml/ep2/axsep037imprimexml.p (INPUT hGenXml                ,
+                                               INPUT-OUTPUT TABLE ttStack   ,
+                                               INPUT TABLE ttAdi            ,                    
+                                               INPUT TABLE ttArma           ,   
+                                               INPUT TABLE ttAutXML         ,   
+                                               INPUT TABLE ttAvulsa         ,   
+                                               INPUT TABLE ttCobr           ,   
+                                               INPUT TABLE ttCOFINSAliq     ,   
+                                               INPUT TABLE ttCOFINSNT       ,   
+                                               INPUT TABLE ttCOFINSOutr     ,   
+                                               INPUT TABLE ttCOFINSQtde     ,   
+                                               INPUT TABLE ttCOFINSST       ,   
+                                               INPUT TABLE ttICMSUFDest     ,   
+                                               INPUT TABLE ttComb           ,
+                                               INPUT TABLE ttOrigComb       ,   
+                                               INPUT TABLE ttCompra         ,   
+                                               INPUT TABLE ttDest           ,   
+                                               INPUT TABLE ttDet            ,  
+                                               INPUT TABLE ttDetObsCont     ,
+                                               INPUT TABLE ttDetObsFisco    ,
+                                               INPUT TABLE ttDetExport      ,   
+                                               INPUT TABLE ttDI             ,   
+                                               INPUT TABLE ttDup            ,   
+                                               INPUT TABLE ttEmit           ,   
+                                               INPUT TABLE ttEntrega        ,   
+                                               INPUT TABLE ttExporta        ,   
+                                               INPUT TABLE ttICMS00         ,
+                                               INPUT TABLE ttICMS02         ,   
+                                               INPUT TABLE ttICMS10         ,
+                                               INPUT TABLE ttICMS15         ,   
+                                               INPUT TABLE ttICMS20         ,   
+                                               INPUT TABLE ttICMS30         ,   
+                                               INPUT TABLE ttICMS40         ,   
+                                               INPUT TABLE ttICMS51         ,
+                                               INPUT TABLE ttICMS53         ,   
+                                               INPUT TABLE ttICMS60         ,
+                                               INPUT TABLE ttICMS61         ,   
+                                               INPUT TABLE ttICMS70         ,   
+                                               INPUT TABLE ttICMS90         ,   
+                                               INPUT TABLE ttICMSTot        ,   
+                                               INPUT TABLE ttIde            ,   
+                                               INPUT TABLE ttII             ,   
+                                               INPUT TABLE ttImpostoDevol   ,   
+                                               INPUT TABLE ttInfAdic        ,   
+                                               INPUT TABLE ttIPI            ,   
+                                               INPUT TABLE ttISSQN          ,   
+                                               INPUT TABLE ttISSQNtot       ,   
+                                               INPUT TABLE ttLacres         ,   
+                                               INPUT TABLE ttMed            ,   
+                                               INPUT TABLE ttNFe            ,   
+                                               INPUT TABLE ttrefNF          ,   
+                                               INPUT TABLE ttObsCont        ,   
+                                               INPUT TABLE ttObsFisco       ,   
+                                               INPUT TABLE ttPISAliq        ,   
+                                               INPUT TABLE ttPISNT          ,   
+                                               INPUT TABLE ttPISOutr        ,   
+                                               INPUT TABLE ttPISQtde        ,   
+                                               INPUT TABLE ttPISST          ,   
+                                               INPUT TABLE ttProcRef        ,   
+                                               INPUT TABLE ttReboque        ,   
+                                               INPUT TABLE ttRetirada       ,   
+                                               INPUT TABLE ttRetTrib        ,   
+                                               INPUT TABLE ttTransp         ,   
+                                               INPUT TABLE ttVeic           ,   
+                                               INPUT TABLE ttVol            ,
+                                               INPUT TABLE ttrefNFP         ,
+                                               INPUT TABLE ttrefCTe         ,
+                                               INPUT TABLE ttrefECF         ,
+                                               INPUT TABLE ttICMSPart       ,
+                                               INPUT TABLE ttICMSST         ,
+                                               INPUT TABLE ttICMSSN101      ,
+                                               INPUT TABLE ttICMSSN102      ,
+                                               INPUT TABLE ttICMSSN201      ,
+                                               INPUT TABLE ttICMSSN202      ,
+                                               INPUT TABLE ttICMSSN500      ,
+                                               INPUT TABLE ttICMSSN900      ,
+                                               INPUT TABLE ttCana           ,
+                                               INPUT TABLE ttForDia         ,
+                                               INPUT TABLE ttDeduc          ,
+                                               INPUT TABLE ttRastro         ,
+                                               INPUT TABLE ttPag            ,
+                                               INPUT TABLE ttInfIntermed    ,
+                                               INPUT TABLE ttDetPag         ,
+                                               INPUT TABLE ttDetPresumido   ,
+                                               INPUT TABLE ttAgropecuario   ,
+                                               INPUT TABLE ttgCompraGov     ,
+                                               INPUT TABLE ttgPagAntecipado ,
+                                               INPUT TABLE ttIBSCBS         ,
+                                               INPUT TABLE ttTribRT         ,
+                                               INPUT TABLE ttgTribRegular   ,
+                                               INPUT TABLE ttgCredPresOper  ,
+                                               INPUT TABLE ttgIBSCBSCredPres,                                                   
+                                               INPUT TABLE ttgTribCompraGov ,
+                                               INPUT TABLE ttgIBSCBSMono    ,
+                                               INPUT TABLE ttgTransfCred    ,
+                                               INPUT TABLE ttgAjusteCompet  ,
+                                               INPUT TABLE ttgEstornoCred   ,                                                                                                  
+                                               INPUT TABLE ttgCredPresIBSZFM,
+                                               INPUT TABLE ttVB             ,
+                                               INPUT TABLE ttDFeReferenciado,
+                                               INPUT TABLE ttTotIBSCBSIS    ).
+                                               
+        
+    RUN generateXML IN hGenXml (OUTPUT hXMLNFe).
+
+    /* retirar o inicio do XML "<?xml version="1.0" encoding="utf-8" ?>" */
+    hXMLNFe:SAVE("LONGCHAR",lcXMLNFe).
+    
+    IF  NOT AVAIL ttNFe THEN
+        FIND FIRST ttNFe NO-LOCK NO-ERROR.
+        
+    FOR FIRST bf-nota-fiscal NO-LOCK
+        WHERE bf-nota-fiscal.cod-estabel = ttNfe.CodEstabelNF
+          AND bf-nota-fiscal.serie       = ttNfe.SerieNF
+          AND bf-nota-fiscal.nr-nota-fis = ttNFe.NrNotaFisNF:
+          
+        /* Regras espec°ficas para transmiss∆o de documentos eletrìnicos */
+        IF (SEARCH("ftp/ftapi924.p") <> ?
+         OR SEARCH("ftp/ftapi924.r") <> ?) THEN DO:      
+         
+            RUN ftp/ftapi924.p (INPUT "NF-e",
+                                INPUT ROWID(bf-nota-fiscal),
+                                INPUT-OUTPUT lcXMLNFe,
+                                OUTPUT TABLE tt_log_erro).
+             
+            hXMLNFe:LOAD("longchar",lcXMLNFe, FALSE) NO-ERROR.     
+        END.
+    END.
+
+    ASSIGN lcXMLNFe = SUBSTR(lcXMLNFe, INDEX(lcXMLNFe, "<NFe xmlns=")).        
+    
+    ASSIGN cArquivoHistoricoXML  = ("NFe_" + ttNFe.NrNotaFisNF + "_" + ttNfe.CodEstabelNF + "_" + ttNfe.SerieNF + "_" + REPLACE(STRING(TODAY,"99/99/9999"),"/","_") + ".xml")
+           cArquivoHistoricoXML  = cLocalArqTXT + cArquivoHistoricoXML.
+           
+    hXMLNFe:SAVE ('FILE', cArquivoHistoricoXML) NO-ERROR.
+
+    /*** FIM - GRAVA HISTORICO XML EM DIRETORIO ***/
+        
+    RETURN "OK":U.
+
+END PROCEDURE.
+

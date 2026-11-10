@@ -1,0 +1,28 @@
+/*********************************************************************************
+***
+*** app/apapi022.i10 - Atualiza‡Æo IR.
+***
+*********************************************************************************/
+
+find first tit-ap no-lock
+     where tit-ap.ep-codigo   = tt-antecip.ep-codigo
+     and   tit-ap.cod-estabel = tt-antecip.cod-estabel
+     and   tit-ap.cod-fornec  = tt-antecip.cod-fornec
+     and   tit-ap.cod-esp     = tt-antecip.cod-esp
+     and   tit-ap.serie       = tt-antecip.serie
+     and   tit-ap.nr-docto    = tt-antecip.nr-docto
+     and   tit-ap.parcela     = tt-antecip.parcela
+     no-error.
+    
+if  avail tit-ap then do:
+                        
+    /*--- Gera Documento Imposto de Renda Antecipa‡Æo. ---*/
+    run app/ap0503ac.p (input rowid(tit-ap),
+                        input table tt-ant-ir-aux).
+        
+    for each tt-ant-ir-aux:
+        delete tt-ant-ir-aux.
+    end.
+end.
+
+/*--- FIM app/apapi022.i10 ----*/

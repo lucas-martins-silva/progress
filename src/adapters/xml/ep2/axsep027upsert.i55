@@ -1,0 +1,57 @@
+PROCEDURE pi-cria-ttISSQNTot:
+
+    /*
+    === ttISSQNTot ===
+    vBC            AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Base de C lculo do ISS*/                                                    
+    vCOFINS        AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do COFINS sobre servi‡os*/                                            
+    vISS           AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor Total do ISS*/                                                        
+    vPIS           AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do PIS sobre servi‡os*/                                               
+    vServ          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor Total dos Servi‡os sob nÆo-incidˆncia ou nÆo tributados pelo ICMS */  
+    dCompet        AS DATE      INITIAL ?                                         /*Data da presta‡Æo do servi‡o  (AAAA-MM-DD)*/
+    vDeducao       AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor dedu‡Æo para redu‡Æo da base de c lculo*/
+    vOutro         AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor outras reten‡äes*/
+    vDescIncond    AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor desconto incondicionado*/
+    vDescCond      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor desconto condicionado*/
+    vISSRet        AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor Total Reten‡Æo ISS*/
+    cRegTrib       AS CHARACTER INITIAL ?                                         /*C¢digo do regime especial de tributa‡Æo*/
+    */
+
+    IF  NOT AVAIL param-nf-estab THEN
+        FOR FIRST param-nf-estab NO-LOCK
+            WHERE param-nf-estab.cod-estabel = nota-fiscal.cod-estabel: END.
+
+    CREATE ttISSQNTot.
+    ASSIGN ttISSQNTot.vBC         = d-total-base-iss
+           ttISSQNTot.vISS        = d-total-iss
+           ttISSQNTot.vServ       = d-total-serv
+           ttISSQNTot.vPIS        = d-total-pis-serv
+           ttISSQNTot.vCOFINS     = d-total-cofins-serv
+
+           ttISSQNTot.dCompet     = nota-fiscal.dt-emis-nota
+           ttISSQNTot.vDeducao    = ?
+           ttISSQNTot.vOutro      = ?
+           ttISSQNTot.vDescIncond = ?
+           ttISSQNTot.vDescCond   = ?
+           ttISSQNTot.vISSRet     = d-total-vl-iss-ret
+           ttISSQNTot.cRegTrib    = (IF AVAIL param-nf-estab AND &IF '{&bf_dis_versao_ems}' >= '2.09':U 
+                                                                 &THEN param-nf-estab.idi-regim-especial-tributac
+                                                                 &ELSE param-nf-estab.num-livre-4 
+                                                                 &ENDIF <> 0
+                                     THEN TRIM(STRING(&IF '{&bf_dis_versao_ems}' >= '2.09':U
+                                                      &THEN param-nf-estab.idi-regim-especial-tributac
+                                                      &ELSE param-nf-estab.num-livre-4
+                                                      &ENDIF))
+                                     ELSE ?)
+           .
+
+    IF lLayoutTXT AND ttISSQNTot.vPIS = 0 THEN
+       ASSIGN ttISSQNTot.vPIS = ?.
+    IF lLayoutTXT AND ttISSQNTot.vCOFINS = 0 THEN
+       ASSIGN ttISSQNTot.vCOFINS = ?.
+
+    /* Chave EMS */
+    ASSIGN ttISSQNTot.CodEstabelNF = nota-fiscal.cod-estabel
+           ttISSQNTot.SerieNF      = nota-fiscal.serie
+           ttISSQNTot.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+END PROCEDURE.

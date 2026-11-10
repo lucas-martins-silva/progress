@@ -1,0 +1,226 @@
+PROCEDURE pi-grava-ttICMS51:
+
+    /*
+    === ttICMS51 ===
+    CST            AS CHARACTER INITIAL ?  /*Tributá∆o pelo ICMS 20 - Com reduá∆o de base de c†lculo*/
+    modBC          AS CHARACTER INITIAL ?  /*Modalidade de determinaá∆o da BC do ICMS: 0 - Margem Valor Agregado (%); 1 - Pauta (valor); 2 - Preáo Tabelado M†ximo (valor); 3 - Valor da Operaá∆o.*/
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importaá∆o direta 2 - Estrangeira - Adquirida no mercado interno */
+    pICMS          AS DECIMAL   INITIAL ?  /*Al°quota do ICMS*/
+    pRedBC         AS DECIMAL   INITIAL ?  /*Percentual de reduá∆o da BC*/
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS*/
+    vICMS          AS DECIMAL   INITIAL ?  /*Valor do ICMS*/
+    vICMSOp        AS DECIMAL   INITIAL ?  /*Valor do ICMS da Operaá∆o*/
+    pDif           AS DECIMAL   INITIAL ?  /*Percentual do diferimento*/
+    vICMSDif       AS DECIMAL   INITIAL ?  /*Valor do ICMS da diferido*/
+    vBCFCP         AS DECIMAL   INITIAL ?  /*Valor da BC do FCP*/ 
+    pFCP           AS DECIMAL   INITIAL ?  /*Al°quota do FCP*/
+    vFCP           AS DECIMAL   INITIAL ?  /*Valor do FCP*/       
+    */
+
+    DEF BUFFER bf-nota-fiscal FOR nota-fiscal.
+    DEF VAR de-perc-diferim-cfg-trib AS DECIMAL NO-UNDO.
+    DEF VAR c-diferim-cfg-trib       AS CHAR    NO-UNDO.
+
+    CREATE ttICMS51.
+    ASSIGN ttICMS51.CST      = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS51.modBC    = (IF c-mod-base-icms = "2"
+                                THEN "1"
+                                ELSE IF c-mod-base-icms = "3"
+                                     THEN "2"
+                                     ELSE IF c-mod-base-icms = "4"
+                                          THEN "3"
+                                          ELSE "0")
+           ttICMS51.orig     = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS51.pICMS    = (IF  it-nota-fisc.cd-trib-icm <> 3
+                                OR (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                THEN d-aliquota-icms
+                                ELSE 0)
+           ttICMS51.pRedBC   = IF d-perc-redimp > 0 THEN d-perc-redimp  ELSE 0 /*ELSE IF lLayoutXML THEN ? ELSE IF lLayoutTXT THEN 0 ELSE ?)*/
+           ttICMS51.vBC      = (IF (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                THEN d-vl-imp-icmsou
+                                ELSE d-vl-bicms-it)
+           ttICMS51.vICMS    = (IF  it-nota-fisc.cd-trib-icm <> 3
+                                OR (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                THEN d-vl-imp-icms
+                                ELSE 0)       .
+                                
+    /*DIFERIMENTO - SOMENTE PARA DATASUL 11*/
+    IF  DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,308,6 ))) > 0 THEN 
+        ASSIGN ttICMS51.pDif     = DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,308,6 ))). /*val-perc-icms-diferim*/
+                    
+    /* Diferinmento Total RJ */         
+    IF  l-fcp-diferido = YES
+    AND ttICMS51.pDif  = 100 THEN
+        ASSIGN ttICMS51.vICMS = 0.        
+        
+    IF  DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,314,17))) > 0 OR ttICMS51.vICMS > 0 THEN        
+        ASSIGN ttICMS51.vICMSDif = DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,314,17))) /*val-diferim-icms-item*/
+               ttICMS51.vICMSOp  = ttICMS51.vICMS + ttICMS51.vICMSDif.
+               
+    /***  NT2019.001 ***/
+    /* Diferimento TOTAL tributaá∆o Outros */
+    /* ê necess†rio gerar 0 no vICMS pois se o parametro l-icms-outras-it estiver yes vai gerar valor nessa tag */
+    IF  l-NT2019001
+    AND it-nota-fisc.cd-trib-icm  = 3
+    AND (ttICMS51.pDif             = ? or
+         ttICMS51.pDif             = 100) THEN DO:
+
+        IF CAN-FIND(funcao                                       
+              WHERE funcao.cd-funcao = "icms-outras-nao-incluso" 
+                AND funcao.ativo)                                                        
+        AND (tticms51.vICMSOp = ? OR tticms51.vICMSOp = 0) THEN                   
+            ASSIGN ttICMS51.vBC     = 0                            
+                   ttICMS51.pICMS   = 0                             
+                   ttICMS51.pDif    = 0 .
+        ELSE 
+            ASSIGN ttICMS51.pDif      = 100
+                   ttICMS51.vBC       = d-vl-imp-icmsou
+                   ttICMS51.pICMS     = d-aliquota-icms
+                   ttICMS51.vICMSDif  = if ttICMS51.vICMSDif = 0 
+                                        or ttICMS51.vICMSDif = ? then d-vl-imp-icms     else ttICMS51.vICMSDif 
+                   ttICMS51.vICMSOp   = ttICMS51.vICMSDif
+                   ttICMS51.vICMS     = 0.       
+
+        IF NOT l-icms-outras-it THEN
+            ASSIGN d-total-base-icms  = d-total-base-icms + ttICMS51.vBC.                                    
+    END.
+    
+    /* Necess†ria a geraá∆o das Tags mesmo que zeradas */
+    /* Feito tratamento na impress∆o do bloco ICMS 51 */
+    ASSIGN ttICMS51.pDif     = if ttICMS51.pDif     = ? then 0 else ttICMS51.pDif    
+           ttICMS51.vICMSDif = if ttICMS51.vICMSDif = ? then 0 else ttICMS51.vICMSDif
+           ttICMS51.vICMSOp  = if ttICMS51.vICMSOp  = ? then 0 else ttICMS51.vICMSOp.
+    /***  NT2019.001 ***/
+
+    ASSIGN de-perc-diferim-cfg-trib = 0.   
+    if nota-fiscal.ind-tip-nota <> 8 then do:
+        {dibo/bodi630.i5 "ICMS_PercDif" "de-perc-diferim-cfg-trib" "it-nota-fisc"} 
+    end.
+    else do:
+        /* Leitura item-doc-est partindo do item da nota no FT */
+        FOR FIRST item-doc-est NO-LOCK
+            WHERE item-doc-est.serie-docto  = it-nota-fisc.serie
+              AND item-doc-est.nro-docto    = nota-fiscal.nr-nota-ant 
+              AND item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+              AND item-doc-est.nat-of       = it-nota-fisc.nat-operacao
+              AND item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped:
+            {dibo/bodi629.i2 item-doc-est ICMS_PercDif cod-memo-calc-trib c-diferim-cfg-trib}
+            ASSIGN de-perc-diferim-cfg-trib = dec(c-diferim-cfg-trib).
+        END.
+        IF NOT AVAIL item-doc-est AND nota-fiscal.esp-docto = 20 /*NFD*/ THEN DO:
+           IF CAN-FIND (FIRST natur-oper
+                        WHERE natur-oper.nat-operacao = it-nota-fisc.nat-operacao
+                          AND NOT natur-oper.transf 
+                          AND natur-oper.int-1 = 1  /*nota propria*/ ) THEN DO:
+              FIND FIRST bf-nota-fiscal NO-LOCK
+                   WHERE bf-nota-fiscal.cod-estabel   = it-nota-fisc.cod-estabel
+                     AND bf-nota-fiscal.serie         = it-nota-fisc.serie-docum  
+                     AND bf-nota-fiscal.nr-nota-fis   = it-nota-fisc.nr-docum  NO-ERROR.
+              IF AVAIL bf-nota-fiscal THEN DO:
+                   FOR FIRST docum-est NO-LOCK
+                       WHERE docum-est.serie-docto  = it-nota-fisc.serie
+                         AND docum-est.nro-docto    = it-nota-fisc.nr-nota-fis
+                         AND docum-est.cod-emitente = bf-nota-fiscal.cod-emitente
+                         AND docum-est.nat-operacao = it-nota-fisc.nat-operacao:
+                       IF  docum-est.nf-emitida-est 
+                       AND docum-est.cod-observa = 3 /*devolucao*/ THEN DO:
+                              
+                          FOR FIRST item-doc-est NO-LOCK
+                              WHERE item-doc-est.serie-docto  = it-nota-fisc.serie
+                                AND item-doc-est.nro-docto    = it-nota-fisc.nr-nota-fis
+                                AND item-doc-est.cod-emitente = bf-nota-fiscal.cod-emitente
+                                AND item-doc-est.nat-of       = it-nota-fisc.nat-operacao
+                                AND item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped:
+                              {dibo/bodi629.i2 item-doc-est ICMS_PercDif cod-memo-calc-trib c-diferim-cfg-trib}
+                              ASSIGN de-perc-diferim-cfg-trib = dec(c-diferim-cfg-trib). 
+                          END.   
+                       END.
+                   END.
+              END. 
+           END.
+        END.
+    end.
+    
+    IF de-perc-diferim-cfg-trib <> 0 THEN
+        ASSIGN ttICMS51.pDif = de-perc-diferim-cfg-trib.
+
+    /*--- Valores FCP ---*/
+    FOR FIRST item-nf-adc NO-LOCK
+        WHERE item-nf-adc.cod-estab         = nota-fiscal.cod-estabel
+        AND   item-nf-adc.cod-serie         = nota-fiscal.serie
+        AND   item-nf-adc.cod-nota-fisc     = (if nota-fiscal.ind-tip-nota <> 8 then nota-fiscal.nr-nota-fis else nota-fiscal.nr-nota-ant)
+        AND   item-nf-adc.idi-tip-dado      = 25
+        AND   item-nf-adc.cdn-emitente      = nota-fiscal.cod-emitente
+        AND   item-nf-adc.cod-natur-operac  = it-nota-fisc.nat-operacao
+        AND   item-nf-adc.num-seq-item-nf   = (if nota-fiscal.ind-tip-nota <> 8 then it-nota-fisc.nr-seq-fat else it-nota-fisc.nr-seq-ped)
+        AND   item-nf-adc.cod-item          = it-nota-fisc.it-codigo:
+        
+        IF (item-nf-adc.log-livre-2 = ?  /* Nova geraá∆o de FCP -> FCP e FCP ST juntos no mesmo item da nota */
+        AND (item-nf-adc.val-livre-3      > 0 OR /* Valores de FCP */
+             item-nf-adc.val-livre-4      > 0 OR
+             DEC(item-nf-adc.cod-livre-3) > 0)) 
+        THEN
+            ASSIGN ttICMS51.vBCFCP   = item-nf-adc.val-livre-3
+                   ttICMS51.pFCP     = item-nf-adc.val-livre-4
+                   ttICMS51.vFCP     = DEC(item-nf-adc.cod-livre-3).
+        ELSE  IF item-nf-adc.log-livre-1 = NO  /* NO = FCP Normal | YES = FCP ST */ /* Geraá∆o de dados antiga FCP ou FCP ST */
+        THEN
+            ASSIGN ttICMS51.vBCFCP   = item-nf-adc.val-livre-1
+                   ttICMS51.pFCP     = item-nf-adc.val-livre-2
+                   ttICMS51.vFCP     = DEC(item-nf-adc.cod-livre-4).                 
+        
+        /* Diferinmento Total RJ */  
+        IF l-fcp-diferido = YES THEN DO:            
+            ASSIGN ttICMS51.pFCPDif = DEC(TRIM(SUBSTRING(item-nf-adc.cod-livre-2,21,8)))  
+                   ttICMS51.vFCPDif = DEC(SUBSTRING(item-nf-adc.cod-livre-2,1,20)).  
+         
+            ASSIGN d-total-vFCP      = d-total-vFCP + ttICMS51.vFCP.     
+              
+            IF  ttICMS51.pFCPDif <> 0
+            AND ttICMS51.vFCPDif <> 0 THEN
+                ASSIGN ttICMS51.vFCPEfet = 0.        
+        END.
+        ELSE 
+            ASSIGN d-total-vFCP      = d-total-vFCP + ttICMS51.vFCP.     
+    END.  
+
+    /* cBenefRBC */
+    FOR FIRST item-nf-adc 
+        WHERE item-nf-adc.cod-estab         = nota-fiscal.cod-estabel
+        AND   item-nf-adc.cod-serie         = nota-fiscal.serie
+        AND   item-nf-adc.cod-nota-fisc     = nota-fiscal.nr-nota-fis
+        AND   item-nf-adc.idi-tip-dado      = 29
+        AND   item-nf-adc.cdn-emitente      = nota-fiscal.cod-emitente
+        AND   item-nf-adc.cod-natur-operac  = it-nota-fisc.nat-operacao
+        AND   item-nf-adc.num-seq-item-nf   = it-nota-fisc.nr-seq-fat
+        AND   item-nf-adc.cod-item          = it-nota-fisc.it-codigo
+        AND   item-nf-adc.log-livre-2       = YES NO-LOCK:
+             
+        ASSIGN ttICMS51.cBenefRBC = item-nf-adc.cod-livre-1.                                 
+    END.
+      
+    /* Chave EMS */
+    ASSIGN ttICMS51.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS51.SerieNF      = nota-fiscal.serie
+           ttICMS51.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS51.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS51.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+    IF NOT l-NT2019001 THEN DO:
+        /*Ajusta Campos para Layout TXT*/
+        IF  lLayoutTXT
+        AND ttICMS51.pICMS = 0 THEN
+            ASSIGN ttICMS51.pICMS = ?.
+
+        /*Ajusta Campos para Layout TXT*/
+        IF  lLayoutTXT
+        AND ttICMS51.vBC = 0 THEN
+            ASSIGN ttICMS51.vBC = ?.
+
+        /*Ajusta Campos para Layout TXT*/
+        IF  lLayoutTXT
+        AND ttICMS51.vICMS = 0 THEN
+            ASSIGN ttICMS51.vICMS = ?.         
+        
+    END.
+END PROCEDURE.

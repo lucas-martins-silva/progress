@@ -1,0 +1,845 @@
+/******************************************************************************
+**
+**     Programa: AP5520.I1
+**
+*******************************************************************************/
+/*--- ATEN€ÇO: Tratar quebra por dia de vencimento ---*/
+
+def temp-table tt-bordero
+    field dt-vencimen  like mov-ap.dt-vencimen
+    field cod-fornec   like mov-ap.cod-fornec
+    field cod-estabel  like mov-ap.cod-estabel
+    field cod-esp      like mov-ap.cod-esp
+    field serie        like mov-ap.serie
+    field nr-docto     like mov-ap.nr-docto
+    field parcela      like mov-ap.parcela
+    field dt-emissao   like mov-ap.dt-emissao
+    field historico    like mov-ap.historico
+    field dt-desconto  like mov-ap.dt-desconto
+    field valor-mov    like mov-ap.valor-mov
+    field vl-juro-fasb like mov-ap.vl-juro-fasb
+    field vl-desc-fasb like mov-ap.vl-desconto
+    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+    field vl-multa-fasb like mov-ap.vl-multa-fasb
+    field vl-abat-fasb  like mov-ap.vl-abatimento-fasb
+    &endif
+    field vl-var-monet like mov-ap.vl-var-monet 
+    field tipo         like mov-ap.tipo
+    &if  "{&mgadm_version}" >= "2.02" &then
+        field cod-banco-forn      like bordero-ap.cod-banco-forn
+        field agencia-forn        like bordero-ap.agencia-forn  
+        field conta-corrente-forn like bordero-ap.conta-corrente-forn
+    &endif    
+    field transacao    like bordero-ap.transacao  
+    field i-aux        as integer /*** 1 -> tit-ap
+                                       2 -> bordero-ap ***/
+    index codigo
+          cod-fornec
+          cod-estabel
+          cod-esp
+          serie
+          nr-docto
+          parcela
+    index vencim
+          dt-vencimen
+          cod-fornec
+          cod-estabel
+          cod-esp
+          serie
+          nr-docto
+          parcela
+    index estab_cod
+          cod-estabel
+          cod-fornec
+          cod-esp    
+          serie      
+          nr-docto   
+          parcela
+    index estab_venc
+          cod-estabel
+          dt-vencimen
+          cod-fornec
+          cod-esp
+          serie
+          nr-docto
+          parcela.
+
+define temp-table tt-banco no-undo
+       field cod-banco       like banco.cod-banco
+       field nome-banco      like banco.nome-banco
+       INDEX chave AS PRIMARY cod-banco.
+
+define temp-table tt-agencia no-undo
+       field cod-banco       like agencia.cod-banco
+       field agencia         like agencia.agencia
+       field nome            like agencia.nome
+       field endereco        like agencia.endereco
+       field cidade          like agencia.cidade
+       INDEX chave AS PRIMARY cod-banco agencia.
+
+/* a vari vel vl-antecip conter  valor somente quando a fun‡Æo l-an-bordero estiver ativa*/
+def var vl-antecip as dec initial 0 no-undo.                                               
+DEF VAR l-an-bordero        AS logical NO-UNDO.
+def new global shared var i-ep-codigo-usuario  as integer format ">>9" no-undo.
+def new global shared var i-pais-impto-usuario as integer format ">>9" no-undo.
+def var c-verif-sem-desembolso as char no-undo.
+def var l-funcao-sem-desemb    as log  no-undo.
+
+/*** Verificar se a funÂÆo especial est‰¿ habilitada ***/
+{include/getdefinedfunction.i}
+assign l-an-bordero = &if defined(BF_FIN_AN_BORDERO) &then YES &else GetDefinedFunction("SPP-AN-BORDERO") &endif
+       l-funcao-sem-desemb = &if defined(BF_FIN_SEM_DESEMB) &then yes &else GetDefinedFunction("SPP-SEM-DESEMB") &endif.
+
+find first param-ap no-lock
+     where param-ap.ep-codigo = i-ep-codigo-usuario no-error.
+
+for each tit-ap use-index bordero
+    where tit-ap.ep-codigo  = bord-rec.ep-codigo
+    and   tit-ap.nr-bordero = bord-rec.nr-bordero no-lock:
+
+    find first bord-tit 
+        where bord-tit.ep-codigo   = tit-ap.ep-codigo
+          and bord-tit.cod-fornec  = tit-ap.cod-fornec
+          and bord-tit.cod-estabel = tit-ap.cod-estabel
+          and bord-tit.cod-esp     = tit-ap.cod-esp
+          and bord-tit.serie       = tit-ap.serie
+          and bord-tit.nr-docto    = tit-ap.nr-docto
+          and bord-tit.parcela     = tit-ap.parcela 
+          and bord-tit.nr-bordero  = tit-ap.nr-bordero 
+          and bord-tit.portador    = tit-ap.portador no-lock no-error.
+          
+    if avail bord-tit then do:
+        if avail param-ap and i-pais-impto-usuario = 1 and l-funcao-sem-desemb then do:
+            &if '{&mgadm_version}' >= '2.07' &then
+                if param-ap.log-sem-desemb then
+                    assign c-verif-sem-desembolso = "s".
+            &else
+                assign c-verif-sem-desembolso = substring(param-ap.char-1,9,1).
+            &endif
+            if c-verif-sem-desembolso = "s" and bord-tit.vl-saldo = 0 then
+                next.
+        end.
+    end.
+
+    for each mov-ap
+        where mov-ap.ep-codigo   = tit-ap.ep-codigo
+        and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+        and   mov-ap.cod-estabel = tit-ap.cod-estabel
+        and   mov-ap.cod-esp     = tit-ap.cod-esp
+        and   mov-ap.serie       = tit-ap.serie
+        and   mov-ap.nr-docto    = tit-ap.nr-docto
+        and   mov-ap.parcela     = tit-ap.parcela
+        and   mov-ap.nr-bordero  = tit-ap.nr-bordero no-lock:
+
+        if  mov-ap.transacao <> 1
+        and mov-ap.transacao <> 3
+        and mov-ap.transacao <> 4 
+        and mov-ap.transacao <> 6 then 
+            next.
+
+        create tt-bordero.
+        assign tt-bordero.historico    = mov-ap.historico.
+        assign tt-bordero.dt-vencimen  = tit-ap.dt-vencimen
+               tt-bordero.cod-fornec   = tit-ap.cod-fornec
+               tt-bordero.cod-estabel  = tit-ap.cod-estabel
+               tt-bordero.cod-esp      = tit-ap.cod-esp
+               tt-bordero.serie        = tit-ap.serie
+               tt-bordero.nr-docto     = tit-ap.nr-docto
+               tt-bordero.parcela      = tit-ap.parcela
+               tt-bordero.dt-emissao   = tit-ap.dt-emissao
+               tt-bordero.dt-desconto  = tit-ap.dt-desconto
+               tt-bordero.valor-mov    = tit-ap.valor-saldo
+               tt-bordero.vl-juro-fasb = tit-ap.dec-2
+               tt-bordero.vl-desc-fasb = tit-ap.vl-desconto
+               tt-bordero.vl-var-monet = tit-ap.vl-var-monet
+               tt-bordero.tipo         = tit-ap.tipo
+               tt-bordero.transacao    = mov-ap.transacao
+               tt-bordero.i-aux        = 1.
+
+        &if defined(BF_FIN_MULTA_ABATIMENTO) &then 
+            if avail bord-tit then do:
+                assign tt-bordero.vl-multa-fasb = bord-tit.vl-multa 
+                       tt-bordero.vl-abat-fasb  = bord-tit.vl-abatimento.
+            end.
+        &endif
+
+        if tit-ap.inst-banc <> "" and           
+           substring(tit-ap.inst-banc,01,19) <> "UPDATE_FIELD_NR-BOR" and
+           substring(tit-ap.inst-banc,20,16) <> "UPDATE_FIELD_ENV" then do:                           
+
+           create w-bordero.
+           assign w-ep-codigo   = tit-ap.ep-codigo
+                  w-cod-estabel = tit-ap.cod-estabel
+                  w-serie       = tit-ap.serie
+                  w-cod-esp     = tit-ap.cod-esp
+                  w-nr-docto    = tit-ap.nr-docto
+                  w-parcela     = tit-ap.parcela
+                  w-fornecedor  = tit-ap.cod-fornec
+                  w-dt-vencimen = if  bord-rec.cons-dt-desc = no 
+                                  then tit-ap.dt-vencimen
+                                  else tit-ap.dt-desconto
+                  l-inst        = yes.
+           next.
+        end.
+    end.
+
+    if avail bord-tit then 
+        assign tt-bordero.valor-mov = bord-tit.vl-saldo.
+
+
+end.
+
+/*----------- Seleciona AN/PEF'S ------------*/
+for each  bordero-ap no-lock 
+    where bordero-ap.ep-codigo  = bord-rec.ep-codigo
+    and   bordero-ap.portador   = bord-rec.portador
+    and   bordero-ap.nr-bordero = bord-rec.nr-bordero:
+
+    create tt-bordero.
+    assign tt-bordero.cod-fornec   = bordero-ap.cod-fornec
+           tt-bordero.cod-estabel  = bordero-ap.cod-estabel
+           tt-bordero.cod-esp      = bordero-ap.cod-esp
+           tt-bordero.serie        = bordero-ap.serie
+           tt-bordero.nr-docto     = bordero-ap.nr-docto
+           tt-bordero.parcela      = bordero-ap.parcela
+           tt-bordero.dt-emissao   = bordero-ap.dt-transacao
+           tt-bordero.dt-vencimen  = bordero-ap.dt-vencto
+           tt-bordero.dt-desconto  = ?
+           tt-bordero.valor-mov    = bordero-ap.vl-docto
+           tt-bordero.transacao    = bordero-ap.transacao
+           tt-bordero.vl-juro-fasb = 0
+           tt-bordero.vl-desc-fasb = 0
+           &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+           tt-bordero.vl-multa-fasb = 0
+           tt-bordero.vl-abat-fasb  = 0
+           &endif
+           tt-bordero.vl-var-monet = 0
+           tt-bordero.tipo         = bordero-ap.tipo
+           tt-bordero.historico    = bordero-ap.historico
+           tt-bordero.i-aux        = 2
+           &if  "{&mgadm_version}" >= "2.02" &then
+                tt-bordero.cod-banco-forn      = bordero-ap.cod-banco-forn
+                tt-bordero.agencia-forn        = bordero-ap.agencia-forn  
+                tt-bordero.conta-corrente-forn = bordero-ap.conta-corrente-forn
+           &endif .
+end.
+
+
+find first emitente no-lock no-error.
+for each tt-bordero use-index {1}:
+
+    if  not avail emitente or emitente.cod-emitente <> tt-bordero.cod-fornec then do:
+        find emitente
+             where emitente.cod-emitente = tt-bordero.cod-fornec
+             and   emitente.identific   <> 1 no-lock no-error.
+    end.
+    if  not available emitente then 
+        next.
+
+    /**** FORMATO DO CPF/CNPJ ***/
+    {app/ap5520.i12}
+
+
+    if  l-sem-inst = no then do:
+        assign l-sem-inst = yes.
+        if  bord-rec.pag-cabec = 1 then do:
+            {app/ap5520.i11 " "} /* Sem cabecalho */
+            view frame f-empresa1.
+        end.
+        else do:
+            {app/ap5520.i11 "9"} /* Como cabecalho */
+        end.
+    end.
+
+
+    IF l-an-bordero THEN DO:
+        assign vl-antecip = 0.    
+
+        FOR EACH l-ant-ap  
+           where l-ant-ap.ep-codigo    = bord-rec.ep-codigo
+           and   l-ant-ap.cod-estabel  = tt-bordero.cod-estabel
+           and   l-ant-ap.cod-esp      = tt-bordero.cod-esp      
+           and   l-ant-ap.serie        = tt-bordero.serie        
+           and   l-ant-ap.cod-fornec   = tt-bordero.cod-fornec   
+           and   l-ant-ap.nr-docto     = tt-bordero.nr-docto     
+           and   l-ant-ap.parcela      = tt-bordero.parcela
+           AND   l-ant-ap.origem-antecip = 2 NO-LOCK: 
+                assign vl-antecip = vl-antecip + l-ant-ap.vl-antecip. 
+        end.
+    end.
+
+
+    assign de-liquido = (if tt-bordero.transacao = 4 then
+                         - tt-bordero.valor-mov
+                         else
+                         + tt-bordero.valor-mov)
+                         + tt-bordero.vl-juro-fasb
+                         - tt-bordero.vl-desc-fasb
+                         &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                         + tt-bordero.vl-multa-fasb
+                         - tt-bordero.vl-abat-fasb
+                         &endif
+                         + tt-bordero.vl-var-monet
+                         - vl-antecip. 
+
+&if "{&mgadm_version}" < "2.02" &then
+    
+    if  bord-rec.inf-banc = yes then do:
+        assign i-cod-banco = emitente.cod-banco.
+
+        find first tt-banco where tt-banco.cod-banco = i-cod-banco no-lock no-error.
+        if  not avail tt-banco then do:
+            find banco where banco.cod-banco = i-cod-banco no-lock no-error.
+            if avail banco then do:
+                create tt-banco.
+                assign tt-banco.cod-banco  = i-cod-banco
+                       tt-banco.nome-banco = banco.nome-banco.
+            end.
+        end.
+
+        find first tt-agencia where tt-agencia.cod-banco = i-cod-banco
+                              and   tt-agencia.agencia   = emitente.agencia no-lock no-error.
+        if  not avail tt-agencia then do:
+            find agencia
+                 where agencia.cod-banco = i-cod-banco
+                 and   agencia.agencia   = emitente.agencia no-lock no-error.
+            if  avail agencia then do:
+                create tt-agencia.
+                assign tt-agencia.cod-banco = agencia.cod-banco
+                       tt-agencia.agencia   = agencia.agencia
+                       tt-agencia.nome      = agencia.nome
+                       tt-agencia.endereco  = agencia.endereco
+                       tt-agencia.cidade    = agencia.cidade.
+            end.   
+        end.
+
+        if bord-rec.hist-prev then do:
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     tt-agencia.nome        when avail tt-agencia @ agencia.nome
+                     tt-banco.nome-banco    when avail tt-banco   @ banco.nome-banco
+                     tt-agencia.endereco    when avail tt-agencia @ agencia.endereco  
+                     tt-agencia.cidade      when avail tt-agencia @ agencia.cidade    
+                     emitente.cidade
+                     emitente.agencia            format "999999-x"
+                     emitente.conta-corren       format "9999999999-xx"
+                     de-liquido                  format "->>>>>>,>>>,>>9.99"
+                     with frame f-bordero.
+
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     c-cgc-fornec
+                     emitente.nome-emit 
+                     tt-bordero.historico @ mov-ap.historico 
+                     with frame f-bordero.        
+        end.
+        else do:
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     tt-agencia.nome        when avail tt-agencia @ agencia.nome
+                     tt-banco.nome-banco    when avail tt-banco   @ banco.nome-banco
+                     tt-agencia.endereco    when avail tt-agencia @ agencia.endereco  
+                     tt-agencia.cidade      when avail tt-agencia @ agencia.cidade    
+                     emitente.cidade
+                     emitente.agencia            format "999999-x"
+                     emitente.conta-corren       format "9999999999-xx"
+                     de-liquido                  format "->>>>>>,>>>,>>9.99"
+                     with frame f-bordero-sem-historico.
+
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     c-cgc-fornec
+                     emitente.nome-emit                      
+                     with frame f-bordero-sem-historico.
+        end.            
+    end.
+    else do:
+        if bord-rec.hist-prev then do:
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     de-liquido format "->>>,>>>,>>>,>>9.99"
+                     with frame f-bordero3.
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     c-cgc-fornec
+                     emitente.nome-emit 
+                     tt-bordero.historico @ mov-ap.historico
+                     with frame f-bordero3.
+        end.
+        else do:
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     de-liquido format "->>>,>>>,>>>,>>9.99"
+                     with frame f-bordero3-sem-historico.
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     c-cgc-fornec
+                     emitente.nome-emit                      
+                     with frame f-bordero3-sem-historico.
+        end.            
+    end.
+
+    if  bord-rec.cons-dt-desc = no then do:
+        if  bord-rec.inf-banc = yes then
+            if bord-rec.hist-prev then
+                disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero.
+            else
+                disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero-sem-historico.                
+        else
+            if bord-rec.hist-prev then
+                disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3.
+            else                
+                disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3-sem-historico.
+    end.
+    else do:
+        if  bord-rec.inf-banc = yes then do:
+            if  tt-bordero.dt-desconto <> ? then
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-bordero.
+                else
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-bordero-sem-historico.
+            else 
+                if bord-rec.hist-prev then            
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero.
+                else                        
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero-sem-historico.                
+        end.
+        else do:
+            if  tt-bordero.dt-desconto <> ? then
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-bordero3.
+                else                        
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-bordero3-sem-historico.
+            else
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3.
+                else                        
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3-sem-historico.
+        end.
+    end.
+
+    if  bord-rec.inf-banc = yes then
+        if bord-rec.hist-prev then
+                down with frame f-bordero.
+        else
+                down with frame f-bordero-sem-historico.                
+    else
+        if bord-rec.hist-prev then    
+                down with frame f-bordero3.
+        else
+                down with frame f-bordero3-sem-historico.                                
+
+    if  bord-rec.pula-linha = yes then do:
+        put " " skip.
+    end.
+
+    assign de-total-geral = de-total-geral + (if tt-bordero.transacao = 4 then 
+                                           - tt-bordero.valor-mov
+                                           else
+                                           + tt-bordero.valor-mov)
+           de-total-juros = de-total-juros + tt-bordero.vl-juro-fasb
+           de-total-desc  = de-total-desc  + tt-bordero.vl-desc-fasb
+           de-total-monet = de-total-monet + tt-bordero.vl-var-monet
+           de-total-liq   = de-total-liq   + de-liquido 
+           de-total-tit   = de-total-tit   + 1
+           de-tot-ger     = de-tot-ger     + (if tt-bordero.transacao = 4 then
+                                           - tt-bordero.valor-mov
+                                           else
+                                           + tt-bordero.valor-mov)
+           de-tot-monet   = de-tot-monet   + tt-bordero.vl-var-monet
+           de-tot-jur     = de-tot-jur     + tt-bordero.vl-juro-fasb
+           de-tot-desc    = de-tot-desc    + tt-bordero.vl-desc-fasb
+           de-tot-liq     = de-tot-liq     + de-liquido
+           de-tot-tit     = de-tot-tit     + 1.
+
+    if (bord-rec.pula-linha = yes and line-counter > (PAGE-SIZE - 4))
+    or  line-counter > (PAGE-SIZE - 4)
+    or  (line-counter + 7) >= page-size then do:
+        assign de-tot-liq = de-tot-liq
+               c-total-geral = c-tot-titulo
+                             + string(de-tot-tit,">>>>9")
+                             + "      " + c-tot-pag
+                             + string(de-tot-ger,"->>>,>>>,>>>,>>>,>>9.99")
+                             + " "
+                             + string(de-tot-jur,">>>,>>>,>>9.99") + " "
+                             + string(de-tot-desc, ">>>,>>>,>>>,>>9.99")
+                             + "          "
+                             + string(de-tot-monet,">>>,>>>,>>9.99")
+                             + "        "
+                             + string(de-tot-liq,  "->>>,>>>,>>>,>>9.99").
+
+        disp c-total-geral 
+             de-tot-liq @ de-total-liq with frame f-total.
+        view frame f-pagina.    
+        page.
+        assign c-total-geral = ""
+               de-tot-tit    = 0
+               de-tot-jur    = 0
+               de-tot-desc   = 0
+               de-tot-liq    = 0
+               de-tot-ger    = 0.
+    end.
+end.
+&endif.
+
+&if "{&mgadm_version}" >= "2.02" &then 
+      
+      if  bord-rec.inf-banc = yes then do:          
+          if  tt-bordero.i-aux = 1 then do:
+              find first tit-ap no-lock
+                   where tit-ap.ep-codigo   = bord-rec.ep-codigo
+                   and   tit-ap.cod-fornec  = tt-bordero.cod-fornec
+                   and   tit-ap.cod-estabel = tt-bordero.cod-estabel
+                   and   tit-ap.cod-esp     = tt-bordero.cod-esp
+                   and   tit-ap.serie       = tt-bordero.serie
+                   and   tit-ap.nr-docto    = tt-bordero.nr-docto
+                   and   tit-ap.parcela     = tt-bordero.parcela no-error.
+              if  avail tit-ap then do:
+                  assign i-cod-banco      = tit-ap.cod-banco-forn
+                         i-agencia        = tit-ap.agencia-forn
+                         i-conta-corrente = tit-ap.conta-corrente-forn.
+              end.
+          end.
+          else do:
+              find first bordero-ap no-lock
+                   where bordero-ap.ep-codigo           = bord-rec.ep-codigo
+                   and   bordero-ap.cod-fornec          = tt-bordero.cod-fornec
+                   and   bordero-ap.cod-estabel         = tt-bordero.cod-estabel
+                   and   bordero-ap.cod-esp             = tt-bordero.cod-esp
+                   and   bordero-ap.serie               = tt-bordero.serie
+                   and   bordero-ap.nr-docto            = tt-bordero.nr-docto
+                   and   bordero-ap.parcela             = tt-bordero.parcela 
+                   and   bordero-ap.cod-banco-forn      = tt-bordero.cod-banco-forn
+                   and   bordero-ap.agencia-forn        = tt-bordero.agencia-forn  
+                   and   bordero-ap.conta-corrente-forn = tt-bordero.conta-corrente-forn no-error.
+               if  avail bordero-ap then
+                   assign i-cod-banco      = bordero-ap.cod-banco-forn
+                          i-agencia        = bordero-ap.agencia-forn
+                          i-conta-corrente = bordero-ap.conta-corrente-forn.
+          end.
+          if  i-cod-banco = 0 then do:    
+              if  tt-bordero.i-aux = 1 then do:
+                  find first cta-emitente 
+                       where cta-emitente.cod-emitente = tit-ap.cod-fornec
+                         and cta-emitente.preferencia  = yes no-lock no-error.
+              end.
+              else do:           
+                  find first cta-emitente 
+                       where cta-emitente.cod-emitente = tt-bordero.cod-fornec
+                         and cta-emitente.preferencia  = yes no-lock no-error. 
+              end.
+
+              if  avail cta-emitente then do:
+                  assign i-cod-banco      = cta-emitente.cod-banco
+                         i-agencia        = cta-emitente.agencia
+                         i-conta-corrente = cta-emitente.conta-corrente.
+              end.
+              else do:
+                 assign i-cod-banco      = emitente.cod-banco    
+                        i-agencia        = emitente.agencia          
+                        i-conta-corrente = emitente.conta-corren.             
+              end.
+          end.
+
+          find first tt-banco where tt-banco.cod-banco = i-cod-banco no-lock no-error.
+          if  not avail tt-banco then do:
+              find banco where banco.cod-banco = i-cod-banco no-lock no-error.
+              if avail banco then do:  
+                  create tt-banco.
+                  assign tt-banco.cod-banco  = i-cod-banco
+                         tt-banco.nome-banco = banco.nome-banco.
+              end.
+          end.
+
+          find first tt-agencia where tt-agencia.cod-banco = i-cod-banco
+                                and   tt-agencia.agencia   = emitente.agencia no-lock no-error.
+          if  not avail tt-agencia then do:
+              find agencia
+                   where agencia.cod-banco = i-cod-banco
+                   and   agencia.agencia   = i-agencia no-lock no-error.
+              if  avail agencia then do:
+                  create tt-agencia.
+                  assign tt-agencia.cod-banco = agencia.cod-banco
+                         tt-agencia.agencia   = agencia.agencia
+                         tt-agencia.nome      = agencia.nome
+                         tt-agencia.endereco  = agencia.endereco
+                         tt-agencia.cidade    = agencia.cidade.
+              end.   
+          end.
+
+          /* Se foi parametrizado para mostrar o hist¢rico utiliza a frame j 
+             existente, caso contr rio utiliza a frame sem o campo hist¢rico */
+          if bord-rec.hist-prev then do:          
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     tt-agencia.nome        when avail tt-agencia @ agencia.nome
+                     tt-banco.nome-banco    when avail tt-banco   @ banco.nome-banco
+                     tt-agencia.endereco    when avail tt-agencia @ agencia.endereco
+                     tt-agencia.cidade      when avail tt-agencia @ agencia.cidade
+                     emitente.cidade
+                     i-agencia            format "999999-x"
+                     i-conta-corrente     format "9999999999-xx"  
+                     de-liquido           format "->>>>>>,>>>,>>9.99"
+                     with frame f-versao2.
+
+
+
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                       tt-bordero.vl-multa-fasb @ mov-ap.vl-multa-fasb
+                      (tt-bordero.vl-abat-fasb + vl-antecip)  @ mov-ap.vl-abatimento-fasb 
+                     &endif
+                     c-cgc-fornec
+                     emitente.nome-emit 
+                     tt-bordero.historico @ mov-ap.historico 
+                     with frame f-versao2.
+          end.
+          else do:
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     tt-agencia.nome        when avail tt-agencia @ agencia.nome
+                     tt-banco.nome-banco    when avail tt-banco   @ banco.nome-banco
+                     tt-agencia.endereco    when avail tt-agencia @ agencia.endereco
+                     tt-agencia.cidade      when avail tt-agencia @ agencia.cidade
+                     emitente.cidade
+                     i-agencia            format "999999-x"
+                     i-conta-corrente     format "9999999999-xx"  
+                     de-liquido           format "->>>>>>,>>>,>>9.99"
+                     with frame f-versao2-sem-historico.
+
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                       tt-bordero.vl-multa-fasb @ mov-ap.vl-multa-fasb
+                       (tt-bordero.vl-abat-fasb + vl-antecip)  @ mov-ap.vl-abatimento-fasb
+                     &endif
+                     c-cgc-fornec
+                     emitente.nome-emit 
+                     with frame f-versao2-sem-historico.                       
+          end.
+      end.
+      else do:          
+          /* Se foi parametrizado para mostrar o hist¢rico utiliza a frame j  
+             existente, caso contr rio utiliza a frame sem o campo hist¢rico */
+          if bord-rec.hist-prev then do:          
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     de-liquido format "->>>,>>>,>>>,>>9.99"
+                     with frame f-bordero3.
+
+
+
+
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                       tt-bordero.vl-multa-fasb @ mov-ap.vl-multa-fasb
+                       (tt-bordero.vl-abat-fasb + vl-antecip) @ mov-ap.vl-abatimento-fasb 
+                     &endif
+                     c-cgc-fornec
+                     emitente.nome-emit 
+                     tt-bordero.historico @ mov-ap.historico 
+                     with frame f-bordero3.
+          end.                     
+          else do:
+                disp tt-bordero.cod-estabel @ tit-ap.cod-estabel
+                     tt-bordero.cod-esp     @ tit-ap.cod-esp
+                     tt-bordero.serie       @ tit-ap.serie
+                     tt-bordero.nr-docto    @ tit-ap.nr-docto
+                     tt-bordero.parcela     @ tit-ap.parcela
+                     tt-bordero.cod-fornec  @ tit-ap.cod-fornec
+                     tt-bordero.dt-emissao  @ tit-ap.dt-emissao
+                     de-liquido format "->>>,>>>,>>>,>>9.99"
+                     with frame f-bordero3-sem-historico.
+
+
+
+
+                disp tt-bordero.valor-mov     @ tit-ap.valor-saldo
+                     tt-bordero.vl-juro-fasb  @ tit-ap.jur-dia-fasb
+                     tt-bordero.vl-desc-fasb  @ tit-ap.vl-desc-fasb
+                     tt-bordero.vl-var-monet  @ tit-ap.vl-var-monet
+                     &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                       tt-bordero.vl-multa-fasb @ mov-ap.vl-multa-fasb
+                       (tt-bordero.vl-abat-fasb + vl-antecip) @ mov-ap.vl-abatimento-fasb   
+                     &endif
+                     c-cgc-fornec
+                     emitente.nome-emit 
+                     with frame f-bordero3-sem-historico.  
+          end.                                     
+      end.
+
+    if bord-rec.cons-dt-desc = no then do:
+        if  bord-rec.inf-banc = yes then
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-versao2.
+                else
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-versao2-sem-historico.                                        
+        else
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3.
+                else
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3-sem-historico.
+    end.
+    else do:
+        if  bord-rec.inf-banc = yes then do:
+            if  tt-bordero.dt-desconto <> ? then
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-versao2.
+                else
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-versao2-sem-historico.
+            else 
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-versao2.
+                else
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-versao2-sem-historico.
+        end.
+        else do:
+            if  tt-bordero.dt-desconto <> ? then
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-bordero3.
+                else                
+                        disp tt-bordero.dt-desconto @ tit-ap.dt-vencimen with frame f-bordero3-sem-historico.
+            else
+                if bord-rec.hist-prev then
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3.
+                else
+                        disp tt-bordero.dt-vencimen @ tit-ap.dt-vencimen with frame f-bordero3-sem-historico.
+        end.
+    end.
+
+    if  bord-rec.inf-banc = yes then
+        if bord-rec.hist-prev then
+                down with frame f-versao2.
+        else                
+                down with frame f-versao2-sem-historico.
+    else
+        if bord-rec.hist-prev then
+                down with frame f-bordero3.                           
+        else                
+                down with frame f-bordero3-sem-historico.
+
+    if  bord-rec.pula-linha = yes then do:
+        put " " skip.
+    end.
+
+    assign de-total-geral = de-total-geral + (if tt-bordero.transacao = 4 then
+                                           - tt-bordero.valor-mov
+                                           else
+                                           + tt-bordero.valor-mov)
+           de-total-juros = de-total-juros + tt-bordero.vl-juro-fasb
+           de-total-desc  = de-total-desc  + tt-bordero.vl-desc-fasb
+           &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+           de-total-multa = de-total-multa + tt-bordero.vl-multa-fasb
+           de-total-abat  = de-total-abat  + tt-bordero.vl-abat-fasb + vl-antecip
+           de-tot-multa   = de-tot-multa   + tt-bordero.vl-multa-fasb                  
+           de-tot-abat    = de-tot-abat    + tt-bordero.vl-abat-fasb + vl-antecip
+           &endif
+           de-total-monet = de-total-monet + tt-bordero.vl-var-monet
+           de-total-liq   = de-total-liq   + de-liquido 
+           de-total-tit   = de-total-tit   + 1
+           de-tot-ger     = de-tot-ger     + (if tt-bordero.transacao = 4 then
+                                           - tt-bordero.valor-mov
+                                           else
+                                           + tt-bordero.valor-mov)
+           de-tot-monet   = de-tot-monet   + tt-bordero.vl-var-monet
+           de-tot-jur     = de-tot-jur     + tt-bordero.vl-juro-fasb
+           de-tot-desc    = de-tot-desc    + tt-bordero.vl-desc-fasb
+           de-tot-liq     = de-tot-liq     + de-liquido
+           de-tot-tit     = de-tot-tit     + 1.        
+
+    if (bord-rec.pula-linha = yes and (line-counter + 4) >= (PAGE-SIZE - 5))
+    or (line-counter + 4) > (PAGE-SIZE - 4) then do:
+        assign de-tot-liq = de-tot-liq
+               c-total-geral = c-tot-titulo
+                             + string(de-tot-tit,">>>>9")
+                             + "      " + c-tot-pag
+                             + string(de-tot-ger,"->>>,>>>,>>>,>>>,>>9.99")
+                             + " "
+                             + string(de-tot-jur,">>>,>>>,>>9.99") + " "
+                             + string(de-tot-desc, ">>>,>>>,>>>,>>9.99")
+                             + "          "
+                             + string(de-tot-monet,">>>,>>>,>>9.99")
+                             + "        "
+                             &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                             + string(de-tot-multa,">>>,>>>,>>9.99") + " "
+                             + string(de-tot-abat, ">>>,>>>,>>>,>>9.99")
+                             &endif
+                             + string(de-tot-liq,  "->>>,>>>,>>>,>>9.99").
+
+
+
+        disp c-total-geral
+             &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+             de-tot-multa @ de-total-multa
+             de-tot-abat @ de-total-abat 
+             &endif
+             de-tot-liq   @ de-total-liq
+             with frame f-total. 
+
+        view frame f-pagina.    
+        page.
+        assign c-total-geral = ""
+               de-tot-tit    = 0
+               de-tot-jur    = 0
+               de-tot-desc   = 0
+               &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+               de-tot-multa  = 0
+               de-tot-abat   = 0
+               &endif
+               de-tot-liq    = 0
+               de-tot-ger    = 0.
+    end.
+ end.
+&endif.
+/* Fim Include */

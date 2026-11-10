@@ -1,0 +1,43 @@
+/*****************************************************************************
+**
+** app/ap0501e.i6 - Emite AP.
+**
+*****************************************************************************/
+
+if not avail espec-ap or espec-ap.cod-esp <> lin-i-ap.cod-esp then
+   find espec-ap where espec-ap.cod-esp = lin-i-ap.cod-esp no-lock no-error.
+
+if  avail espec-ap then do:                
+    if  espec-ap.emite-ap = yes then do:
+        find first emite-ap
+             where emite-ap.ep-codigo   = tit-ap.ep-codigo
+             and   emite-ap.cod-estabel = tit-ap.cod-estabel
+             and   emite-ap.cod-esp     = tit-ap.cod-esp
+             and   emite-ap.serie       = tit-ap.serie
+             and   emite-ap.nr-docto    = tit-ap.nr-docto
+             and   emite-ap.parcela     = tit-ap.parcela
+             and   emite-ap.cod-fornec  = tit-ap.cod-fornec
+             and   emite-ap.transacao   = 1
+             no-lock no-error.
+
+        if  not avail emite-ap then do:
+            create emite-ap.
+            assign emite-ap.ep-codigo   = tit-ap.ep-codigo
+                   emite-ap.cod-estabel = tit-ap.cod-estabel
+                   emite-ap.cod-esp     = tit-ap.cod-esp
+                   emite-ap.serie       = tit-ap.serie
+                   emite-ap.nr-docto    = tit-ap.nr-docto
+                   emite-ap.parcela     = tit-ap.parcela
+                   emite-ap.cod-fornec  = tit-ap.cod-fornec
+                   emite-ap.dt-emissao  = tit-ap.dt-emissao
+                   emite-ap.dt-vencimen = tit-ap.dt-vencimen
+                   emite-ap.valor-ap    = tit-ap.valor-saldo
+                   emite-ap.referencia  = doc-i-ap.referencia
+                   emite-ap.transacao   = 1.
+        end.
+    end.
+end.    
+if  avail tit-ap then
+    assign i-emitente = tit-ap.cod-fornec.
+
+/* Fim Include */

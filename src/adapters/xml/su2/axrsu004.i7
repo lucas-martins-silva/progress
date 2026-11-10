@@ -1,0 +1,14 @@
+FOR EACH prazo-compra WHERE prazo-compra.numero-ordem = ttPurchaseOrderLine.POLineNumber NO-LOCK:
+
+    CREATE tt-prazo-compra.
+    BUFFER-COPY prazo-compra TO tt-prazo-compra.
+    ASSIGN tt-prazo-compra.ind-tipo-movto = 2
+           tt-prazo-compra.un             = ttDeliveryScheduleInforma_00.ItemUnitOfMeasure.
+
+    IF cTranAction = "add":U THEN
+        ASSIGN tt-prazo-compra.data-entrega   = ttDeliveryScheduleInforma_00.DeliveryDate
+               tt-prazo-compra.situacao       = 5.
+    ELSE
+        ASSIGN tt-prazo-compra.situacao       = 2.
+
+END.

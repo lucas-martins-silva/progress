@@ -1,0 +1,26 @@
+PROCEDURE pi-cria-ttIDEmitDCe:
+
+    /*
+    === ttIDEmitDCe===
+    CNPJ           AS CHARACTER INITIAL ?  //CNPJ da transportadora / J da empresa nos casos de emiss∆o pr¢pria
+    xNome          AS CHARACTER INITIAL ?  //Raz∆o Social ou Nome da Transportadora ou Empresa
+    Gerado conforme o tpEmit 2=Emissor pr¢prio 3=Transportadora
+    */
+    
+    CREATE ttIDEmitDCe.
+    ASSIGN /* Chave EMS */ 
+           ttIDEmitDCe.CodEstabelDCe = dce-documento.cod-estabel
+           ttIDEmitDCe.SerieDCe      = dce-documento.serie
+           ttIDEmitDCe.NrDCe         = dce-documento.nr-dce
+           /* Chave EMS */ 
+           
+           ttIDEmitDCe.CNPJ          = estabelec.cgc 
+           ttIDEmitDCe.xNome         = estabelec.nome.
+
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL  ttIDEmitDCe THEN
+        ASSIGN ttIDEmitDCe.CNPJ       = fn-ajusta-tamanho-campo(ttIDEmitDCe.CNPJ     ,14)
+               ttIDEmitDCe.xNome      = fn-ajusta-tamanho-campo(ttIDEmitDCe.xNome    ,60).
+
+END PROCEDURE.

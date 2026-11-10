@@ -1,0 +1,131 @@
+
+/******************************************************************************
+* Esta procedure se refere somente quando se utiliza a tabela progressiva     *
+* de imposto de renda para pessoa fisica. Passando nao mais a olhar os titulos
+*implantados e sim a tabela de acumulados gerada atraves da implantacao       *
+*****************************************************************************/ 
+assign  de-tot-no = 0 
+        de-tot-ir = 0.
+for each dirf-apf exclusive-lock:
+    assign  dirf-apf.char-1       = fill("0;",11) + "0"
+            dirf-apf.char-2       = fill("0;",11) + "0".
+end.
+
+&IF  DEFINED (BF_FIN_TAB_PROG_IR) &THEN
+     for each  acum-pagto
+         where acum-pagto.ep-codigo = tt-param.ep-codigo
+         and   (acum-pagto.dat-refer >= tt-param.da-ta-ini
+         and    acum-pagto.dat-refer <= tt-param.da-ta-fim)
+         no-lock
+         break by acum-pagto.cod-fornec:
+  
+         if  first-of(acum-pagto.cod-fornec) then do:
+             find first emitente 
+                  where emitente.cod-emite = acum-pagto.cod-fornec
+                  no-lock no-error.
+             if  line-counter > 62 then
+                 page.
+      
+             put skip(1).
+             if avail emitente then
+             disp emitente.cod-emit
+                  emitente.nome-abrev
+                  emitente.cgc
+                  emitente.nome-emit
+                  with frame f-cab-forn.
+             put skip(1).
+      
+             assign de-total-rendimentos = 0
+                    de-deduc-legal       = 0
+                    de-deduc-depend      = 0
+                    de-deduc-inss        = 0
+                    de-deduc-pensao      = 0
+                    de-deduc-outras      = 0
+                    de-total-ir          = 0.
+         end.
+  
+         if  acum-pagto.cod-retencao = 0
+         and l-gera-zero = no then
+             next.
+           
+         assign i-ano = year(acum-pagto.dat-refer)
+                i-mes = month(acum-pagto.dat-refer)
+                de-total-rendimentos = de-total-rendimentos 
+                                     + acum-pagto.val-rendto-tribut
+                de-deduc-legal       = de-deduc-legal 
+                                     + acum-pagto.val-deduc-legal
+                de-deduc-depend      = de-deduc-depend
+                                     + acum-pagto.val-deduc-depend
+                de-deduc-inss        = de-deduc-inss
+                                     + acum-pagto.val-deduc-inss
+                de-deduc-pensao      = de-deduc-pensao
+                                     + acum-pagto.val-deduc-pensao
+                de-deduc-outras      = de-deduc-outras
+                                     + acum-pagto.val-outras-deduc-impto
+                de-total-ir          = de-total-ir
+                                    + acum-pagto.val-acum-impto-retid-period
+                de-tot-no            = de-tot-no
+                                     + acum-pagto.val-rendto-tribut
+                de-tot-ir            = de-tot-ir
+                                   + acum-pagto.val-acum-impto-retid-period.
+  
+         if  last-of(acum-pagto.cod-fornec)  then do:
+             disp with frame f-cab-acum.
+             view frame f-cab-acum.
+             put  unformatted 
+                  fill(" ",3)
+                  fill("-",127)
+                  skip.
+             disp  de-total-rendimentos
+                   de-deduc-legal
+                   de-deduc-depend
+                   de-deduc-inss
+                   de-deduc-pensao
+                   de-deduc-outras
+                   de-total-ir
+                   with frame f-acum-pagto.
+             put skip(1).
+         end.
+           
+         find dirf-apf 
+              where dirf-apf.ep-codigo    = acum-pagto.ep-codigo
+              and   dirf-apf.cod-est      = acum-pagto.cod-est
+              and   dirf-apf.cod-emit     = acum-pagto.cod-fornec
+              and   dirf-apf.ano-base     = i-ano
+              and   dirf-apf.cod-retencao = acum-pagto.cod-retencao
+              exclusive-lock no-error.
+         if  not avail dirf-apf then do:
+             create dirf-apf.
+             assign dirf-apf.ep-codigo    = acum-pagto.ep-codigo         
+                    dirf-apf.cod-est      = acum-pagto.cod-est        
+                    dirf-apf.cod-emit     = acum-pagto.cod-fornec     
+                    dirf-apf.ano-base     = i-ano
+                    dirf-apf.cod-retencao = acum-pagto.cod-retencao
+                    dirf-apf.char-1       = fill("0;",11) + "0"
+                    dirf-apf.char-2       = fill("0;",11) + "0".
+         end.
+  
+         assign dirf-apf.base-bruta[i-mes] = dirf-apf.base-bruta[i-mes] 
+                                           + acum-pagto.val-rendto-tribut
+                dirf-apf.valor-irrf[i-mes] = dirf-apf.valor-irrf[i-mes] 
+                                           + acum-pagto.val-acum-impto-retid-period.
+                              
+         assign dirf-apf.nr-depend[i-mes]  = 1
+                dirf-apf.ded-depend[i-mes] = acum-pagto.val-deduc-depend
+                dirf-apf.ded-pensao[i-mes] = acum-pagto.val-deduc-pensao
+                dirf-apf.ded-inss[i-mes]   = acum-pagto.val-deduc-inss
+                entry(i-mes,dirf-apf.char-1,";") = string(acum-pagto.val-deduc-legal)
+                entry(i-mes,dirf-apf.char-2,";") = 
+                                  string(acum-pagto.val-outras-deduc-impto).
+                             
+         assign dirf-apf.base-liquida[i-mes] = acum-pagto.val-rendto-tribut
+                                         - acum-pagto.val-deduc-legal
+                                         - acum-pagto.val-deduc-inss
+                                         - acum-pagto.val-deduc-depend
+                                         - acum-pagto.val-deduc-pensao
+                                         - acum-pagto.val-outras-deduc-impto.
+     end.
+&ENDIF
+
+/*--- FIM AP0531.i2 ---*/
+

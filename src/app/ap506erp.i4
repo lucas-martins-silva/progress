@@ -1,0 +1,32 @@
+/********************************************************************************
+***
+*** app/ap506erp.i4 - Elimina bord-rec.
+***
+********************************************************************************/
+
+/*---- Elimina BORD-REC caso n∆o existam doctos vinculados ----*/
+find first bord-rec
+     where bord-rec.ep-codigo  = tt-param.i-ep-codigo
+     and   bord-rec.nr-bordero = tt-param.nr-bordero
+     and   bord-rec.portador   = tt-param.portador
+     exclusive-lock no-error.
+            
+if  avail bord-rec then do:
+    find first bord-tit
+         where bord-tit.ep-codigo  = bord-rec.ep-codigo
+         and   bord-tit.nr-bordero = bord-rec.nr-bordero
+         and   bord-tit.portador   = bord-rec.portador
+         no-error.
+                
+    find first bordero-ap
+         where bordero-ap.ep-codigo  = bord-rec.ep-codigo
+         and   bordero-ap.portador   = bord-rec.portador
+         and   bordero-ap.nr-bordero = bord-rec.nr-bordero
+         no-error.
+            
+    if  not avail bord-tit and not avail bordero-ap then do:
+        delete bord-rec validate (true,"").
+    end.
+end.
+
+/* Fim de Include */

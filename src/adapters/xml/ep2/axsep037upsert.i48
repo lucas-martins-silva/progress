@@ -1,0 +1,73 @@
+PROCEDURE pi-cria-ttIPI:
+
+    DEF VAR de-ipi-val-unit     AS DECIMAL      NO-UNDO.
+
+    /*
+    === ttIPI ===
+    cEnq           AS CHARACTER INITIAL ?  /*C¢digo de Enquadramento Legal do IPI (tabela a ser criada pela RFB)*/
+    clEnq          AS CHARACTER INITIAL ?  /*Classe de Enquadramento do IPI para Cigarros e Bebidas*/
+    CNPJProd       AS CHARACTER INITIAL ?  /*CNPJ do produtor da mercadoria, quando diferente do emitente. Somente para os casos de exportaá∆o direta ou indireta.*/
+    cSelo          AS CHARACTER INITIAL ?  /*C¢digo do selo de controle do IPI */
+    CSTIPINT       AS CHARACTER INITIAL ?  /*C¢digo da Situaá∆o Tribut†ria do IPI: 01-Entrada tributada com al°quota zero 02-Entrada isenta 03-Entrada n∆o-tributada 04-Entrada imune 05-Entrada com suspens∆o 51-Sa°da tributada com al°quota zero 52-Sa°da isenta 53-Sa°da n∆o-tributada 54-Sa°da imune 55-Sa°da com suspens∆o*/
+    CSTIPITrib     AS CHARACTER INITIAL ?  /*C¢digo da Situaá∆o Tribut†ria do IPI: 00-Entrada com recuperaá∆o de crÈdito 49 - Outras entradas 50-Sa°da tributada 99-Outras sa°das*/ 
+    pIPI           AS DECIMAL   INITIAL ?  /*Al°quota do IPI*/
+    qSelo          AS CHARACTER INITIAL ?  /*Quantidade de selo de controle do IPI*/
+    qUnid          AS DECIMAL   INITIAL ?  /*Quantidade total na unidade padr∆o para tributaá∆o */
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do IPI*/
+    vIPI           AS DECIMAL   INITIAL ?  /*Valor do IPI*/
+    vUnid          AS DECIMAL   INITIAL ?  /*Valor por Unidade Tribut†vel. Informar o valor do imposto Pauta por unidade de medida.*/
+    */                      
+
+    CREATE ttIPI.
+    ASSIGN /*ttIPI.clEnq      =*/
+           ttIPI.CNPJProd   = (IF ttIPI.CNPJProd <> ?
+                                THEN ttIPI.CNPJProd
+                               ELSE "")
+           /*ttIPI.cSelo      =    */
+           ttIPI.qSelo      = (IF ttIPI.qSelo <> ?
+                                THEN ttIPI.qSelo
+                               ELSE "")
+           ttIPI.cEnq       = (IF TRIM(SUBSTRING(it-nota-fisc.char-2,318,10)) <> ""
+                               THEN STRING(DEC(TRIM(SUBSTRING(it-nota-fisc.char-2,318,10))),">>>>>>>999")
+                               ELSE "999").
+           
+    /*--- IPI Trib ---*/
+    /* variaveis l-IPITributado e c-sit-trib-ipi s∆o carregadas na procedure pi-cria-ttDet */
+    ASSIGN ttIPI.l-ipi-trib = l-IPITributado.
+
+    IF  ttIPI.l-ipi-trib THEN DO:
+
+        ASSIGN de-ipi-val-unit = item.valor-ipi-beb.
+
+        /* buscar valores gerados pelo configurador de tributos */
+        {dibo/bodi630.i5 "IPI_ValUnit" "de-ipi-val-unit" "it-nota-fisc"} 
+
+        ASSIGN ttIPI.CSTIPITrib = (IF c-sit-trib-ipi = "00"
+                                   OR c-sit-trib-ipi = "49"
+                                   OR c-sit-trib-ipi = "50"
+                                   OR c-sit-trib-ipi = "99"
+                                   THEN c-sit-trib-ipi
+                                   ELSE "99")
+               ttIPI.pIPI       = it-nota-fisc.aliquota-ipi
+               ttIPI.vBC        = it-nota-fisc.vl-bipi-it
+               ttIPI.vBC        = (IF ttIPI.vBC = 0 AND it-nota-fisc.vl-ipiou-it <> 0
+                                   THEN it-nota-fisc.vl-ipiou-it
+                                   ELSE ttIPI.vBC)
+               ttIPI.vIPI       = it-nota-fisc.vl-ipi-it
+               ttIPI.qUnid      = it-nota-fisc.qt-faturada[1] WHEN c-sit-trib-ipi = "50"
+               ttIPI.vUnid      = de-ipi-val-unit             WHEN c-sit-trib-ipi = "50"
+               d-total-ipi      = d-total-ipi + it-nota-fisc.vl-ipi-it. 
+    END.
+    /*--- IPI NT ---*/
+    ELSE
+        ASSIGN ttIPI.CSTIPINT   = c-sit-trib-ipi.
+
+    /* Chave EMS */
+    ASSIGN ttIPI.CodEstabelNF = nota-fiscal.cod-estabel
+           ttIPI.SerieNF      = nota-fiscal.serie
+           ttIPI.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttIPI.ItCodigoNF   = it-nota-fisc.it-codigo 
+           ttIPI.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+
+END PROCEDURE.

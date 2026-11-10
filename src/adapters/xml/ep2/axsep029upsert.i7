@@ -1,0 +1,73 @@
+PROCEDURE pi-cria-ttIdeDCe: 
+
+    DEFINE VARIABLE p-dh-formatada AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE p-dh-servidor  AS CHARACTER  NO-UNDO.
+    
+    /*
+    === ttIdeDCe ===  
+   cUF                AS CHARACTER INITIAL ? //C¢digo da UF do usu†rio emitente da DCe. Utilizar a Tabela do IBGE de c¢digo de unidades da federaá∆o
+   cDC                AS CHARACTER INITIAL ? //C¢digo NumÇrico que comp‰e a Chave de Acesso
+   mod                AS CHARACTER INITIAL ? //C¢digo do Modelo da Declaraá∆o
+   serie              AS CHARACTER INITIAL ?
+   nDC                AS CHARACTER INITIAL ? //N£mero da Declaraáao
+   dhEmi              AS CHARACTER INITIAL ? //Data e hora de emiss∆o da declaraá∆o
+   tpEmis             AS CHARACTER INITIAL ? //Tipo de Emiss∆o da DCe 1-normal 2-Contingància
+   tpEmit             AS CHARACTER INITIAL ? //Tipo do Emitente da DCe 0=Fisco 1=Marketplace 2=Emissor pr¢prio 3=Transportadora
+   nSiteAutoriz       AS CHARACTER INITIAL ? //Site do Autorizador que recepcionou a DCe
+   cDV                AS CHARACTER INITIAL ? //Dgito Verificador da Chave de Acesso da DCe
+   tpAmb              AS CHARACTER INITIAL ? //Identificaá∆o do Ambiente 1=Produá∆o 2=Homologaá∆o
+   verProc            AS CHARACTER INITIAL ? //Vers∆o do Processo de emiss∆o da DCe
+    */
+
+    FOR FIRST dce-param-estab NO-LOCK
+        WHERE dce-param-estab.cod-estabel = dce-documento.cod-estabel: END.
+        
+    CREATE ttIdeDCe.
+    ASSIGN /* Chave EMS */ 
+           ttIdeDCe.CodEstabelDCe = dce-documento.cod-estabel
+           ttIdeDCe.SerieDCe      = dce-documento.serie
+           ttIdeDCe.NrDCe         = dce-documento.nr-dce
+           /* Chave EMS */       
+                                 
+           ttIdeDCe.cUF           = STRING(IF estabelec.pais = "Brasil":U THEN 
+                                      (IF AVAIL bf-unid-feder-est 
+                                          THEN INT(bf-unid-feder-est.cod-uf-ibge) 
+                                          ELSE 0)
+                                      ELSE 99)
+           ttIdeDCe.cDC           = TRIM(SUBSTRING(dce-documento.cod-chave-aces-dce, 38, 6))
+           ttIdeDCe.mod           = "99"   
+           ttIdeDCe.serie         = c-serie                                                   //dce-documento.serie - axsep029upsert.i2
+           ttIdeDCe.nDC           = STRING(DEC(dce-documento.nr-dce))                         //Para retirar zeros Ö esquerda 
+           ttIdeDCe.tpEmis        = STRING(dce-documento.idi-tipo-emissao)                //1 - Normal / 2 - Contingància.
+           ttIdeDCe.tpEmit        = STRING(dce-documento.tipo-emitente-dce)                //Tipo do Emitente da DCe 0=Fisco 1=Marketplace 2=Emissor pr¢prio 3=Transportadora
+           ttIdeDCe.nSiteAutoriz  = STRING(dce-param-estab.num-site-autorizador-dce)
+           ttIdeDCe.cDV           = TRIM(SUBSTRING(dce-documento.cod-chave-aces-dce,44,1))
+           ttIdeDCe.tpAmb         = STRING(dce-param-estab.idi-ambien-transm-dce)          //1=Produá∆o 2=Homologaá∆o
+           ttIdeDCe.verProc       = TRIM(dce-param-estab.versao-layout-dce)
+           ttIdeDCe.siteQRCode    = SUBSTRING(dce-param-estab.cod-livre-1,1,250).
+    
+    IF  dce-documento.dt-emissao <> ? THEN DO:
+        RUN cdp/cd0591.p (INPUT dce-documento.cod-estabel,
+                          INPUT dce-documento.dt-emissao,
+                          INPUT dce-documento.hr-emissao,
+                          INPUT NO, /* formatar hora sem aplicar o fuso */
+                          OUTPUT p-dh-formatada).
+    
+        ASSIGN ttIdeDCe.dhEmi = trim(p-dh-formatada).
+    END.
+    
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttIdeDCe THEN
+        ASSIGN ttIdeDCe.cUF                 = fn-ajusta-tamanho-campo(ttIdeDCe.cUF                ,  2)
+               ttIdeDCe.cDC                 = fn-ajusta-tamanho-campo(ttIdeDCe.cDC                ,  6)               
+               ttIdeDCe.mod                 = fn-ajusta-tamanho-campo(ttIdeDCe.mod                ,  2)
+               ttIdeDCe.serie               = fn-ajusta-tamanho-campo(ttIdeDCe.serie              ,  3) 
+               ttIdeDCe.nDC                 = fn-ajusta-tamanho-campo(ttIdeDCe.nDC                ,  9)
+               ttIdeDCe.tpEmis              = fn-ajusta-tamanho-campo(ttIdeDCe.tpEmis             ,  1)
+               ttIdeDCe.tpEmit              = fn-ajusta-tamanho-campo(ttIdeDCe.tpEmit             ,  1)
+               ttIdeDCe.nSiteAutoriz        = fn-ajusta-tamanho-campo(ttIdeDCe.nSiteAutoriz       ,  1)
+               ttIdeDCe.cDV                 = fn-ajusta-tamanho-campo(ttIdeDCe.cDV                ,  1)
+               ttIdeDCe.tpAmb               = fn-ajusta-tamanho-campo(ttIdeDCe.tpAmb              ,  1)
+               ttIdeDCe.verProc             = fn-ajusta-tamanho-campo(ttIdeDCe.verProc            , 20).
+
+END PROCEDURE.

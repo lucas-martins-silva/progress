@@ -1,0 +1,101 @@
+/*******************************************************************************
+***
+*** app/ap0740rp.i15 - pi-impressao.
+***
+*******************************************************************************/
+
+assign i-reg-lido = i-reg-lido + 1.
+        
+if  i-reg-lido mod 10 = 0 then
+    run pi-acompanhar in h-acomp(input c-acomp + " " 
+                                               + string(i-reg-lido)
+                                               + " => "
+                                               + string(i-qtde-reg)).
+    
+if  tt-tit-ap.valor-saldo = 0 then
+    next.
+            
+assign de-tot-esp-saldo = de-tot-esp-saldo + tt-tit-ap.valor-saldo
+       de-tot-esp-orig  = de-tot-esp-orig  + tt-tit-ap.vl-original.
+
+if  tt-tit-ap.tipo = 2 then do:
+    assign de-tot-ante-saldo   = de-tot-ante-saldo   + tt-tit-ap.valor-saldo
+           de-tot-ante-orig    = de-tot-ante-orig    + tt-tit-ap.vl-original
+           de-tot-mes-saldo    = de-tot-mes-saldo    - tt-tit-ap.valor-saldo
+           de-tot-mes-orig     = de-tot-mes-orig     - tt-tit-ap.vl-original
+           de-tot-tp-pag-saldo = de-tot-tp-pag-saldo - tt-tit-ap.valor-saldo
+           de-tot-tp-pag-orig  = de-tot-tp-pag-orig  - tt-tit-ap.vl-original
+           de-tot-matr-saldo   = de-tot-matr-saldo   - tt-tit-ap.valor-saldo
+           de-tot-matr-orig    = de-tot-matr-orig    - tt-tit-ap.vl-original
+           de-tot-forn-saldo   = de-tot-forn-saldo   - tt-tit-ap.valor-saldo
+           de-tot-forn-orig    = de-tot-forn-orig    - tt-tit-ap.vl-original
+           de-tot-conta-saldo  = de-tot-conta-saldo  - tt-tit-ap.valor-saldo
+           de-tot-conta-orig   = de-tot-conta-orig   - tt-tit-ap.vl-original
+           de-tot-geral-saldo  = de-tot-geral-saldo  - tt-tit-ap.valor-saldo
+           de-tot-geral-orig   = de-tot-geral-orig   - tt-tit-ap.vl-original.
+end.
+else do:
+    if  tt-tit-ap.tipo = 3 then       
+        assign de-tot-prev-saldo = de-tot-prev-saldo + tt-tit-ap.valor-saldo
+               de-tot-prev-orig  = de-tot-prev-orig  + tt-tit-ap.vl-original.
+    else
+        if tt-tit-ap.tipo = 10 then
+            assign de-tot-prov-saldo = de-tot-prov-saldo + tt-tit-ap.valor-saldo
+                   de-tot-prov-orig  = de-tot-prov-orig  + tt-tit-ap.vl-original.
+        else
+            assign de-tot-norm-saldo  = de-tot-norm-saldo + tt-tit-ap.valor-saldo
+                   de-tot-norm-orig   = de-tot-norm-orig  + tt-tit-ap.vl-original.
+        
+    assign de-tot-mes-saldo    = de-tot-mes-saldo    + tt-tit-ap.valor-saldo
+           de-tot-mes-orig     = de-tot-mes-orig     + tt-tit-ap.vl-original
+           de-tot-tp-pag-saldo = de-tot-tp-pag-saldo + tt-tit-ap.valor-saldo
+           de-tot-tp-pag-orig  = de-tot-tp-pag-orig  + tt-tit-ap.vl-original
+           de-tot-matr-saldo   = de-tot-matr-saldo   + tt-tit-ap.valor-saldo
+           de-tot-matr-orig    = de-tot-matr-orig    + tt-tit-ap.vl-original
+           de-tot-forn-saldo   = de-tot-forn-saldo   + tt-tit-ap.valor-saldo
+           de-tot-forn-orig    = de-tot-forn-orig    + tt-tit-ap.vl-original
+           de-tot-conta-saldo  = de-tot-conta-saldo  + tt-tit-ap.valor-saldo
+           de-tot-conta-orig   = de-tot-conta-orig   + tt-tit-ap.vl-original
+           de-tot-geral-saldo  = de-tot-geral-saldo  + tt-tit-ap.valor-saldo
+           de-tot-geral-orig   = de-tot-geral-orig   + tt-tit-ap.vl-original.
+
+end.
+
+run pi-totalizar-resumo.
+    
+disp tt-tit-ap.cod-estabel     
+     tt-tit-ap.cod-esp         
+     tt-tit-ap.serie           
+     tt-tit-ap.nr-docto        
+     tt-tit-ap.parcela  
+     tt-tit-ap.cod-fornec       
+     tt-tit-ap.transacao       
+     tt-tit-ap.referencia      
+     tt-tit-ap.dt-emissao      
+     tt-tit-ap.dt-vencimen     
+     tt-tit-ap.moeda           
+     tt-tit-ap.vl-original     
+     tt-tit-ap.lancamento
+     tt-tit-ap.valor-saldo     
+     tt-tit-ap.lancamento1
+     with frame f-detalhe.
+    
+down with frame f-detalhe.
+
+/*--- Impressío HistΩricos ---*/
+if  tt-tit-ap.historico <> "" then do:
+    if  tt-tit-ap.tipo = 3 then do:
+        if  tt-param.log-lis-hist-prev = yes then
+            put c-historico + " " + tt-tit-ap.historico format "x(100)".    
+    end. 
+    else do:
+        if  tt-param.log-lis-hist-docto = yes then
+            put c-historico + " " + tt-tit-ap.historico format "x(100)".
+    end.
+end.              
+    
+/*--- Impress∆o dos Erros ---*/
+if  tt-tit-ap.des-erro <> "" then
+    put tt-tit-ap.des-erro format "x(100)".    
+        
+/* Fim de Include */

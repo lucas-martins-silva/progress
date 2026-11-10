@@ -1,0 +1,26 @@
+/***************************************************************************
+***
+***  Programa: ap1001q.i2
+***  Objetivo: Detalhe do Citibank
+***
+***************************************************************************/
+
+if  l-antecipacao = no then do:
+    
+    {app/ap1001q.i3 "mov-ap.num-id-mov-ap"
+                    "tit-ap.dt-fluxo"}
+end.
+else do:
+    assign i-tipo-mov  = 0
+           de-desconto = 0
+           de-juros    = 0
+           c-cod-mov   = "00".
+    
+    {app/ap1001q.i3 "bordero-ap.char-2"
+                    "bordero-ap.dt-vencto"}
+                    
+    assign i-sequencial = i-sequencial + 1.
+end.
+ 
+/* Fim ap1001q.i2 */
+

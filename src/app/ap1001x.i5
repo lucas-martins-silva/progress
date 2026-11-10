@@ -1,0 +1,22 @@
+/*-----------------------------------------------------------------------------------------*/
+/*   Projeto 156 - Banking Connect                                                         */
+/*   AP1001x.i5                                                                            */
+/*   - Trailer de Arquivo                                                                  */
+/*-----------------------------------------------------------------------------------------*/
+
+
+/*-------------------------------------------------------*/
+/*  - Bloco principal                                    */
+/*-------------------------------------------------------*/
+put stream relat
+    banco.cod-febraban                                   format "999" at 001  /* 01 - CONTROLE   - Codigo do Banco          */
+    "9999"                                                            at 004  /* 02 -              Lote de Servico          */               
+    "9"                                                               at 008  /* 03 -              Tipo de Registro         */
+    /* CNAB */                                                                /* 04 -         Uso Exclusivo FEBRABAN / CNAB */
+    i-cont-lote-servico                               format "999999" at 018  /* 05 - TOTAIS     - Quantidades de Lotes     */
+    (i-num_registro + 2)                              format "999999" at 024  /* 06 -              Quantidadde de Registros */
+    "000000"                                                          at 030  /* 07                Qntdes de Contas p/ Conc */
+    " "                                                               at 240  /* 08           Uso Exclusivo FEBRABAN / CNAB */
+    skip.
+/*.......................................................*/
+

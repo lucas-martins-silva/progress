@@ -1,0 +1,797 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (2003)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*------------------------------------------------------------------------
+File        : AXRMA005.i02
+Description : Include para adapter de recebimento de itens (Manufatura)
+CREATEd     : 23/11/2007 - Samantha Preima
+Notes       :
+----------------------------------------------------------------------*/
+
+    def var i-demanda       as int  no-undo.
+    def var c-fm-codigo-man as char no-undo.
+    def var c-cod-imagem    as char no-undo.
+
+    create tt-item-man.
+    assign tt-item-man.it-codigo = tt-item.it-codigo.
+
+    run searchTag in hGenXml ("Manufacture":U, 1, OUTPUT iManufactureId).
+    if iManufactureId <> ? then do:
+        /*Alterado conforme causa II FO 1784641*/
+        run getSonDec in hGenXml (input iManufactureId, "SourceId":U, output i-origem).        
+        if i-origem >= 1 and
+           i-origem <= 99 then
+            assign tt-item.codigo-orig = i-origem.
+        else
+            assign tt-item.codigo-orig = 0.        
+
+        run getSonDec  in hGenXml (input iManufactureId, "BougthOrManufacturedItem":U, output i-compr-fabric).
+        if i-compr-fabric = 1 or
+           i-compr-fabric = 2 then
+            assign tt-item.compr-fabric = i-compr-fabric.
+        else
+            assign tt-item.compr-fabric = 1.
+
+        run getSonDec  in hGenXml (input iManufactureId, "ConversionFactor":U, output de-fator-conver).  
+        if de-fator-conver = 0 then
+            assign tt-item.fator-conver = 1.
+        else
+            assign tt-item.fator-conver = de-fator-conver.     
+
+        run getSonDate in hGenXml (input iManufactureId, "ObsoletionDate":U, output tt-item.data-obsol).
+        run getSonLog  in hGenXml (input iManufactureId, "IsImportLicenseNeeded":U, output l-log-necessita-li).
+        if l-log-necessita-li = ? then
+            assign tt-item.log-necessita-li = yes.
+        else
+            assign tt-item.log-necessita-li = l-log-necessita-li.
+
+        run getSonLog  in hGenXml (input iManufactureId, "IsUpdatedViaMultiPlant":U, output l-log-atualiz-via-mmp).
+        if l-log-atualiz-via-mmp = ? then
+            assign tt-item.log-atualiz-via-mmp = no.
+        else
+            assign tt-item.log-atualiz-via-mmp = l-log-atualiz-via-mmp.
+        
+        run searchTag  in hGenXml ("WareHouse":U, iManufactureId, output iWareHouseId).
+        if iWareHouseId <> ? then
+            run getSonVal in hGenXml (input iWareHouseId, "WareHouseCode":U, output tt-item.deposito-pad).              
+        
+        run getSonVal in hGenXml (input iManufactureId, "ManufactureFamily":U, output c-fm-codigo-man). 
+        if c-fm-codigo-man = ? then
+            assign tt-item-man.fm-codigo = tt-item.fm-codigo.
+            
+        run searchTag  in hGenXml ("TechnicalInformation":U, iManufactureId, output iTechnicalInformationId).
+        if iTechnicalInformationId <> ? then do:        
+        
+            run searchTag in hGenXml ("SpecificationSheet":U, iTechnicalInformationId, output iSpecificationSheetId).
+            if iSpecificationSheetId <> ? then 
+                run getSonVal in hGenXml (input iSpecificationSheetId, "SpecificationSheetCode":U, output tt-item.cd-folh-item).                
+               
+            run searchTag in hGenXml ("TargetList":U, iTechnicalInformationId, output iTargetListId).
+            if iTargetListId <> ? then 
+                run getSonVal in hGenXml (input iTargetListId, "TargetListCode":U, output tt-item.cod-lista-destino).            
+             
+            run searchTag in hGenXml ("ListOfReference":U, iTechnicalInformationId, output iListOfReferenceId).
+            if iListOfReferenceId <> ? then do:       
+                run getFirstSonId in hGenXml (input iListOfReferenceId, output iReferenceId).
+                do while iReferenceId <> ?:               
+                        
+                    run getSonVal in hGenXml (input iReferenceId, "ReferenceCode":U, output c-cod-refer).
+                    run getNextSonId in hGenXml (input iListOfReferenceId, iReferenceId, output iReferenceId).                                   
+
+                    create tt-ref-item.
+                    assign tt-ref-item.it-codigo = tt-item.it-codigo
+                           tt-ref-item.cod-refer = c-cod-refer.
+                end.                
+            end.
+            
+            run getSonVal in hGenXml (input iTechnicalInformationId, "AnotherItemCode":U, output tt-item.codigo-refer).            
+            run getSonVal in hGenXml (input iTechnicalInformationId, "SupplementaryInformation":U, output tt-item.inform-compl).
+            run getSonLog in hGenXml (input iTechnicalInformationId, "IsUpdatedCharacteristic":U, output l-log-carac-tec).
+            if l-log-carac-tec = ? then
+                assign tt-item.log-carac-tec = yes.
+            else
+                assign tt-item.log-carac-tec = l-log-carac-tec.   
+                
+            run getSonVal in hGenXml (input iTechnicalInformationId, "ImageCode":U, output c-cod-imagem).  
+            if c-cod-imagem = ? then
+                assign tt-item.cod-imagem = "".  
+            run getSonDec in hGenXml (input iTechnicalInformationId, "ItemDescType":U, output i-ind-imp-desc).  
+            if i-ind-imp-desc >= 1 and
+               i-ind-imp-desc <= 10 then
+                assign tt-item.ind-imp-desc = i-ind-imp-desc.
+            else
+                assign tt-item.ind-imp-desc = 1.
+                
+            run getSonVal in hGenXml (input iTechnicalInformationId, "DomesticDescription":U, output tt-item.desc-nacional).
+            run getSonVal in hGenXml (input iTechnicalInformationId, "InternationalDescription":U, output tt-item.desc-inter).
+            run getSonVal in hGenXml (input iTechnicalInformationId, "NarrativeText":U, output tt-item.narrativa).
+            run getSonDec in hGenXml (input iTechnicalInformationId, "GrossWeight":U, output de-peso-bruto).
+            if de-peso-bruto = ? then
+                assign tt-item.peso-bruto = 0.
+            else
+                assign tt-item.peso-bruto = de-peso-bruto.
+
+            run getSonDec in hGenXml (input iTechnicalInformationId, "NetWeight":U, output de-peso-liquido).
+            if de-peso-liquido = ? then
+                assign tt-item.peso-liquido = 0.
+            else
+                assign tt-item.peso-liquido = de-peso-liquido.            
+
+            run getSonDec in hGenXml (input iTechnicalInformationId, "Weight":U, output de-peso).   
+            if de-peso = ? then
+                assign tt-item-man.dec-1 = 0.
+            else
+                assign tt-item-man.dec-1 = de-peso.             
+
+            run getSonDec in hGenXml (input iTechnicalInformationId, "UnitOfWeight":U, output de-unid-peso).
+            if de-unid-peso >= 1 and
+               de-unid-peso <= 6 then
+                assign tt-item-man.int-1 = de-unid-peso.
+            else
+                assign tt-item-man.int-1 = 1.
+               
+            run getSonDec in hGenXml (input iTechnicalInformationId, "Height":U, output de-altura).
+            if de-altura = ? then
+                assign tt-item.altura = 0.
+            else
+                assign tt-item.altura = de-altura.               
+                
+            run getSonDec in hGenXml (input iTechnicalInformationId, "Width":U, output de-largura).
+            if de-largura = ? then
+                assign tt-item.largura = 0.
+            else
+                assign tt-item.largura = de-largura.
+                
+            run getSonDec in hGenXml (input iTechnicalInformationId, "Lenght":U, output de-comprim).  
+            if de-comprim = ? then 
+                assign tt-item.comprim = 0.
+            else
+                assign tt-item.comprim = de-comprim.         
+
+        end.       
+        
+        run searchTag in hGenXml ("ApprovalLevel":U, iManufactureId, output iApprovalLevelId).
+        if iApprovalLevelId <> ? then do: 
+             
+            run getSonDec in hGenXml (input iApprovalLevelId, "EletronicApprovalRequisition":U, output i-nivel-apr-requis).
+            if i-nivel-apr-requis >= 0 and
+               i-nivel-apr-requis <= 999 then
+                assign tt-item.nivel-apr-requis = 0.
+            else
+                assign tt-item.nivel-apr-requis = i-nivel-apr-requis.
+            
+            run getSonDec in hGenXml (input iApprovalLevelId, "EletronicApprovalRequest":U, output i-nivel-apr-solic).
+            if i-nivel-apr-solic >= 0 and
+               i-nivel-apr-solic <= 999 then
+                assign tt-item.nivel-apr-solic = 0.
+            else
+                assign tt-item.nivel-apr-solic = i-nivel-apr-solic.
+                            
+            run getSonDec in hGenXml (input iApprovalLevelId, "MaintenanceEletronicApproval":U, output i-nivel-apr-manut).
+            if i-nivel-apr-manut >= 0 and
+               i-nivel-apr-manut <= 999 then
+                assign tt-item.nivel-apr-manut = 0.
+            else
+                assign tt-item.nivel-apr-manut = i-nivel-apr-manut.
+                            
+            run getSonDec in hGenXml (input iApprovalLevelId, "OrdersEletronicApproval":U, output i-nivel-apr-compra).
+            if i-nivel-apr-compra >= 0 and
+               i-nivel-apr-compra <= 999 then
+                assign tt-item.nivel-apr-compra = 0.
+            else
+                assign tt-item.nivel-apr-compra = i-nivel-apr-compra.            
+            
+        end.       
+
+        run searchTag in hGenXml ("Production":U, iManufactureId, output iProductionId).
+        if iProductionId <> ? then do:
+        
+            run getSonDec in hGenXml (iProductionId, "IssueType":U, output i-tipo-requis).
+            if i-tipo-requis >= 1 and
+               i-tipo-requis <= 3 then
+                assign tt-item.tipo-requis = i-tipo-requis.
+            else
+                assign tt-item.tipo-requis = 1.            
+
+            run getSonDec in hGenXml (iProductionId, "HandlingScrap":U, output i-ind-refugo).
+            if i-ind-refugo = 1 or
+               i-ind-refugo = 2 then
+                assign tt-item.ind-refugo = i-ind-refugo.
+            else
+                assign tt-item.ind-refugo = 1.                
+
+            run getSonDec in hGenXml (iProductionId, "ScrapFactor":U, output de-fator-refugo).
+            if de-fator-refugo = ? then 
+                assign tt-item.fator-refugo = 0.
+            else
+                assign tt-item.fator-refugo = de-fator-refugo.
+                
+            run getSonDec in hGenXml (iProductionId, "PoliticsLotAdministration":U, output i-tp-adm-lote).
+            if i-tp-adm-lote >= 1 and
+               i-tp-adm-lote <= 5 then
+                assign tt-item.tp-adm-lote = i-tp-adm-lote.
+            else
+                assign tt-item.tp-adm-lote = 1.
+            
+            run getSonDec in hGenXml (iProductionId, "EconomicLotType":U, output i-tp-lote-economico).
+            if i-tp-lote-economico = 1 or
+               i-tp-lote-economico = 2 then
+                assign tt-item.tipo-lote-ec = i-tp-lote-economico.
+            else
+                assign tt-item.tipo-lote-ec = 1.               
+           
+            run getSonDec in hGenXml (iProductionId, "EconomicLot":U, output de-lote-economi).
+            if de-lote-economi = ? then 
+                assign de-lote-economi = 1.
+            
+            assign tt-item-man.lote-economi = de-lote-economi
+                   tt-item.lote-economi     = de-lote-economi.
+            
+            run getSonDec in hGenXml (iProductionId, "MultipleBatch":U, output de-lote-multipl).
+            if de-lote-multipl = ? then
+                assign de-lote-multipl = 1.
+                
+            assign tt-item-man.lote-multipl = de-lote-multipl
+                   tt-item.lote-multipl     = de-lote-multipl.            
+
+            run getSonDec in hGenXml (iProductionId, "MinimumLot":U, output de-lote-minimo).
+            if de-lote-minimo = ? then
+                assign de-lote-minimo = 1.
+                
+            assign tt-item-man.lote-minimo = de-lote-minimo
+                   tt-item.lote-minimo     = de-lote-minimo.                  
+            
+            run getSonDec in hGenXml (iProductionId, "InventoryControlType":U, output i-tp-contr-estoq).
+            if i-tp-contr-estoq >= 1 and
+               i-tp-contr-estoq <= 4 then
+                assign tt-item.tipo-con-est = i-tp-contr-estoq.
+            else
+                assign tt-item.tipo-con-est = 1.
+
+            run getSonDec in hGenXml (iProductionId, "OrderPrinting":U, output i-emissao-ord).
+            if i-emissao-ord = 1 or
+               i-emissao-ord = 2 then
+                assign tt-item.emissao-ord = i-emissao-ord.
+            else
+                assign tt-item.emissao-ord = 1.
+                
+            run getSonDec in hGenXml (iProductionId, "OrderDivision":U, output i-div-ordem).
+            if i-div-ordem >= 1 and
+               i-div-ordem <= 3 then
+                assign tt-item.div-ordem = i-div-ordem.
+            else
+                assign tt-item.div-ordem = 1.
+            
+            run getSonDec in hGenXml (iProductionId, "OrderGeneration":U, output i-geracao-ordem).  
+            &if defined(bf_man_205) &then
+                if i-geracao-ordem >= 1 and
+                   i-geracao-ordem <= 7 then
+                    assign tt-item.geracao-ordem = i-geracao-ordem.
+            &else 
+                if i-geracao-ordem >= 1 and
+                   i-geracao-ordem <= 7 then
+                    assign overlay(tt-item.char-1,62,1) = string(i-geracao-ordem).
+                else
+                    assign overlay(tt-item.char-1,62,1) = "".
+            &endif           
+            
+            run getSonLog in hGenXml (iProductionId, "IsGeneratedBackorder":U, output l-ind-backorder).
+            if l-ind-backorder = ? then 
+                assign tt-item.ind-backorder = no.
+            else
+                assign tt-item.ind-backorder = l-ind-backorder.               
+            
+            run searchTag in hGenXml ("ProductionLine":U, iProductionId, output iProductionLineId).
+            if iProductionLineId <> ? then do:
+                run getSonDec in hGenXml (iProductionLineId, "ProductionLineCode":U, output i-nr-linha).         
+                if i-nr-linha >= 0 and
+                   i-nr-linha <= 999 then
+                    assign tt-item.nr-linha = i-nr-linha.
+                else
+                    assign tt-item.nr-linha = 0.
+            end.
+                                
+            &if defined(bf_man_205) &then
+                run getSonLog in hGenXml (iProductionId, "IsRestrictedRawMaterial":U, output l-mp-restrit).
+                if l-mp-restrit = ? then
+                    assign tt-item.mp-restrit = no.
+                else
+                    assign tt-item.mp-restrit = l-mp-restrit.
+            &endif           
+            
+            run getSonDec in hGenXml (iProductionId, "StandardBatchSize":U, output de-qtd-batch-padrao). 
+            if de-qtd-batch-padrao = ? then
+                assign tt-item.qtd-batch-padrao = 1.
+            else
+                assign tt-item.qtd-batch-padrao = de-qtd-batch-padrao.
+            
+            run getSonDec in hGenXml (iProductionId, "FixedMaximum":U, output de-qtde-fixa).  
+            if de-qtde-fixa = ? then
+                assign de-qtde-fixa = 0.
+            &if defined(bf_man_205) &then
+                assign tt-item.qtde-fixa = de-qtde-fixa.
+            &else                  
+                assign overlay(tt-item.char-1,66,11) = string(de-qtde-fixa).
+            &endif
+            
+            run getSonDec in hGenXml (iProductionId, "QuantityMaximum":U, output de-qtde-max).  
+            if de-qtde-max = ? then
+                assign de-qtde-max = 0. 
+            &if defined(bf_man_205) &then
+                assign tt-item.qtde-max = de-qtde-max.
+            &else
+                assign overlay(tt-item.char-1,117,11) = string(de-qtde-max).
+            &endif           
+            
+            run getSonDec in hGenXml (iProductionId, "QuantityMaximumOrder":U, output de-qt-max-ordem).
+            if de-qt-max-ordem = ? then
+                assign tt-item.qt-max-ordem = 0.
+            else
+                assign tt-item.qt-max-ordem = de-qt-max-ordem.
+                
+            run getSonDec in hGenXml (iProductionId, "TypeConsumptionOverSalesForecasting":U, output de-tp-cons-prev).
+            if de-tp-cons-prev = ? then
+                assign tt-item.tp-cons-prev = 0.
+            else
+                assign tt-item.tp-cons-prev = de-tp-cons-prev.               
+               
+            run searchTag in hGenXml ("Reports":U, iProductionId, output iReportsId).
+            if iReportsId <> ? then do:
+                run getSonDec in hGenXml (iReportsId, "ReportLabor":U, output i-reporte-mob).
+                if i-reporte-mob = 1 or
+                   i-reporte-mob = 2 then
+                    assign tt-item.reporte-mob = i-reporte-mob.
+                else
+                    assign tt-item.reporte-mob = 1.
+                    
+                run getSonDec in hGenXml (iReportsId, "MfactureGeneralExpensesReport":U, output i-reporte-ggf).
+                if i-reporte-ggf = 1 or
+                   i-reporte-ggf = 2 then
+                    assign tt-item.reporte-ggf = i-reporte-ggf.
+                else
+                    assign tt-item.reporte-ggf = 1.
+                    
+                run getSonDec in hGenXml (iReportsId, "ProductionReport":U, output i-rep-prod).
+                if i-rep-prod >= 1 and
+                   i-rep-prod <= 4 then
+                    assign tt-item.rep-prod = i-rep-prod.
+                else
+                    assign tt-item.rep-prod = 1.               
+
+                run getSonDec in hGenXml (iReportsId, "LaborVariationOver":U, output de-var-mob-maior).
+                if de-var-mob-maior = ? then
+                    assign tt-item.var-mob-maior = 0.
+                else
+                    assign tt-item.var-mob-maior = de-var-mob-maior.
+                    
+                run getSonDec in hGenXml (iReportsId, "LaborVariationUnder":U, output de-var-mob-menor).
+                if de-var-mob-menor = ? then
+                    assign tt-item.var-mob-menor = 0.
+                else
+                    assign tt-item.var-mob-menor = de-var-mob-menor.
+                    
+                run getSonDec in hGenXml (iReportsId, "VariationQuantityReport":U, output de-var-rep).
+                if de-var-rep = ? then
+                    assign tt-item.var-rep = 0.
+                else
+                    assign tt-item.var-rep = de-var-rep.
+                    
+                run getSonDec in hGenXml (iReportsId, "VariationOfQuantityRequestLower":U, output de-var-req-menor).
+                if de-var-req-menor = ? then
+                    assign tt-item.var-req-menor = 0.
+                else
+                    assign tt-item.var-req-menor = de-var-req-menor.
+                    
+                run getSonDec in hGenXml (iReportsId, "VariationOfQuantityRequestOver":U, output de-var-req-maior).
+                if de-var-req-maior = ? then
+                    assign tt-item.var-req-maior = 0.
+                else
+                    assign tt-item.var-req-maior = de-var-req-maior.
+                    
+                run getSonDec in hGenXml (iReportsId, "VariationQuantityTransfered":U, output de-var-transf).
+                if de-var-transf = ? then
+                    assign tt-item.var-transf = 0.
+                else
+                    assign tt-item.var-transf = de-var-transf.
+                    
+            end.           
+
+            run searchTag in hGenXml ("Allocation":U, iProductionId, output iAllocationId).
+            if iAllocationId <> ? then do:
+                run getSonDec in hGenXml (iAllocationId, "TypeAllot":U, output i-sit-aloc).
+                if i-sit-aloc >= 1 and
+                   i-sit-aloc <= 3 then
+                    assign tt-item.sit-aloc = i-sit-aloc.
+                else
+                    assign tt-item.sit-aloc = 1.
+                    
+                run getSonLog in hGenXml (iAllocationId, "IsUniquePhysicalLocation":U, output l-loc-unica).
+                if l-loc-unica = ? then
+                    assign tt-item.loc-unica = yes.
+                else
+                    assign tt-item.loc-unica = l-loc-unica.
+                
+                run searchTag in hGenXml ("Location":U, iAllocationId, output iLocationId).
+                if iLocationId <> ? then
+                    run getSonVal in hGenXml (iLocationId, "LocationCode":U, output tt-item.cod-localiz).                                       
+
+            end.   
+           
+            run searchTag in hGenXml ("Reposition":U, iProductionId, output iRepositionId).
+            if iRepositionId <> ? then do:         
+                &if defined(bf_man_205) &then                
+                    run getSonDec in hGenXml (iRepositionId, "ReorderPoint":U, output de-pto-repos).
+                    if de-pto-repos = ? then
+                        assign tt-item.pto-repos = 0.
+                    else
+                        assign tt-item.pto-repos = de-pto-repos.
+                        
+                    run getSonDec in hGenXml (iRepositionId, "ReplacedLot":U, output de-lote-repos).                
+                    if de-lote-repos = ? then 
+                        assign tt-item.lote-repos = 0.
+                    else
+                        assign tt-item.lote-repos = de-lote-repos.
+                &endif
+                
+                run searchTag in hGenXml ("StandardCurr":U, iRepositionId, output iStandardCurrId).
+                if iStandardCurrId <> ? then do:
+                    run getSonDec in hGenXml (iStandardCurrId, "StandardCurrCode":U, output i-moeda-padrao).                                    
+                    if i-moeda-padrao >= 0 and
+                       i-moeda-padrao <= 999 then
+                        assign tt-item.moeda-padrao = i-moeda-padrao.
+                    else
+                        assign tt-item.moeda-padrao = 0.
+                end.
+                                         
+                run getSonDec in hGenXml (iRepositionId, "Policy":U, output i-politica).
+                if i-politica >= 1 and
+                   i-politica <= 6 then
+                    assign tt-item.politica = i-politica.
+                else
+                    assign tt-item.politica = 1.                           
+                    
+                run getSonLog in hGenXml (iRepositionId, "IsItRepresentsDemand":U, output l-demanda).
+                if l-demanda = yes then
+                    assign overlay(tt-item.char-1,132,1) = "1".
+                else
+                    assign overlay(tt-item.char-1,132,1) = "2". 
+                
+                run getSonDec in hGenXml (iRepositionId, "ForecastDemand":U, output i-ind-prev-demanda).           
+                if i-ind-prev-demanda = ? then
+                    assign tt-item.ind-prev-demanda = 1.
+                else
+                    assign tt-item.ind-prev-demanda = i-ind-prev-demanda.
+                
+                run getSonDec in hGenXml (iRepositionId, "FixedPeriod":U, output i-periodo-fixo).
+                if i-periodo-fixo = 0 or
+                   i-periodo-fixo = ? then
+                    assign tt-item.periodo-fixo = 1.
+                else
+                    assign tt-item.periodo-fixo = i-periodo-fixo.
+
+                run getSonDec in hGenXml (iRepositionId, "ManufactureReplenishmentType":U, output de-ressuprimento).
+                if de-ressuprimento = 1 or
+                   de-ressuprimento = 2 then 
+                    assign tt-item-man.tp-ressup = de-ressuprimento.
+                else
+                    assign tt-item-man.tp-ressup = 1.
+                    
+                run getSonDec in hGenXml (iRepositionId, "ManufactureFamilyBacklogPoint":U, output de-ponto-encomenda).
+                if de-ponto-encomenda = ? then
+                    assign tt-item-man.ponto-encomenda = 0.
+                else
+                    assign tt-item-man.ponto-encomenda = de-ponto-encomenda.
+                     
+                run getSonDec in hGenXml (iRepositionId, "IsIncludeForecastUsage":U, output l-cons-previsao).                 
+                if l-cons-previsao = ? then
+                    assign l-cons-previsao = no.
+                &if defined(bf_man_205) &then
+                    assign tt-item.cons-consumo = l-cons-previsao.
+                &else
+                    if l-cons-previsao = yes then
+                        assign overlay(tt-item.char-1,77,1) = "1".
+                    else 
+                        assign overlay(tt-item.char-1,77,1) = "2".
+                &endif    
+                
+                &if defined(bf_man_205) &then
+                    run getSonLog in hGenXml (iRepositionId, "IsUsageProduct":U, output l-cons-produto).
+                    if l-cons-produto = ? then
+                        assign tt-item.cons-produto = no.
+                    else
+                        assign tt-item.cons-produto = l-cons-produto.
+                        
+                    run getSonLog in hGenXml (iRepositionId, "IsIncludeOn-HandBalance":U, output l-cons-saldo).
+                    if l-cons-saldo = ? then
+                        assign tt-item.cons-saldo = yes.
+                    else
+                        assign tt-item.cons-saldo = l-cons-saldo.
+                &endif
+            
+                run getSonDec in hGenXml (iRepositionId, "ABCAnalysis":U, output i-classif-abc).                               
+                if i-classif-abc = ? then
+                    assign tt-item.classif-abc = if avail familia-mat then familia-mat.classif-abc else 3.
+                else
+                    assign tt-item.classif-abc = i-classif-abc.
+                
+            end.           
+
+            run getSonDec in hGenXml (iProductionId, "DemandType":U, output i-demanda).
+            if i-demanda <> 1 and
+               i-demanda <> 2 then 
+                assign tt-item.demanda = 1.
+            else
+                assign tt-item.demanda = i-demanda.
+
+        end.       
+        
+        run searchTag in hGenXml ("CapacityResourcePlanning":U, iManufactureId, output iCapacityResourcePlanningId).
+        if iCapacityResourcePlanningId <> ? then do:
+          
+            run getSonDec in hGenXml (iCapacityResourcePlanningId, "CodeSource":U, output i-cd-origem).
+            if i-cd-origem >= 1 and
+               i-cd-origem <= 3 then
+                assign tt-item.cd-origem = i-cd-origem.
+            else
+                assign tt-item.cd-origem = 1.
+        
+            run getSonDec in hGenXml (iCapacityResourcePlanningId, "ProductionTargetCalculateCriteria":U, output i-ind-calc-meta).
+            if i-ind-calc-meta >= 1 and
+               i-ind-calc-meta <= 3 then
+                assign tt-item.ind-calc-meta = i-ind-calc-meta.
+            else
+                assign tt-item.ind-calc-meta = 1.
+            
+            run getSonDec in hGenXml (iCapacityResourcePlanningId, "Priority":U, output i-prioridade).
+            if i-prioridade >= 0 and
+               i-prioridade <= 999 then
+                assign tt-item.prioridade = i-prioridade.
+            else
+                assign tt-item.prioridade = 0.
+                
+            run getSonDec in hGenXml (iCapacityResourcePlanningId, "Scheduling":U, output i-tipo-sched).
+            if i-tipo-sched = 1 or
+               i-tipo-sched = 2 then
+                assign tt-item.tipo-sched = i-tipo-sched.
+            else
+                assign tt-item.tipo-sched = 1.
+                
+            run getSonDec in hGenXml (iCapacityResourcePlanningId, "CostFactorDistribution":U, output de-val-fator-custo-dis).
+            if de-val-fator-custo-dis = ? then
+                assign tt-item.val-fator-custo-dis = 0.
+            else
+                assign tt-item.val-fator-custo-dis = de-val-fator-custo-dis.
+                
+            run getSonLog in hGenXml (iCapacityResourcePlanningId, "IsConfigUpdate":U, output l-atu-conf).
+            if l-atu-conf = ? then
+                assign tt-item.atu-conf = no.
+            else
+                assign tt-item.atu-conf = l-atu-conf.
+            
+            run getSonDec in hGenXml (iCapacityResourcePlanningId, "CalculateLeadTime":U, output i-calc-lead-time).          
+            if i-calc-lead-time = 1 or
+               i-calc-lead-time = 2 then
+                assign tt-item.calc-lead-time = i-calc-lead-time.
+            else
+                assign tt-item.calc-lead-time = 1.                
+
+            &if defined(bf_man_205) &then
+                run getSonDec in hGenXml (iCapacityResourcePlanningId, "FormulationType":U, output i-tipo-formula).
+                if i-tipo-formula >= 1 and
+                   i-tipo-formula <= 99 then
+                    assign tt-item.tipo-formula = i-tipo-formula.
+                else
+                    assign tt-item.tipo-formula = 1.
+            &endif
+            
+            run getSonDec in hGenXml (iCapacityResourcePlanningId, "FormulationCode":U, output i-cd-formula).
+            if i-cd-formula >= 1 and
+               i-cd-formula <= 8 then
+                assign tt-item.cd-formula = i-cd-formula.
+            else
+                assign tt-item.cd-formula = 1.
+            
+            &if defined(bf_man_205) &then
+                run getSonDec in hGenXml (iCapacityResourcePlanningId, "PartsForMilion":U, output de-per-ppm).
+                if de-per-ppm = ? then
+                    assign tt-item.per-ppm = 100.
+                else
+                    assign tt-item.per-ppm = de-per-ppm.
+
+                run searchTag in hGenXml ("ScrapItem":U, iCapacityResourcePlanningId, output iScrapItemId).
+                if iScrapItemId <> ? then do:
+                    run getSonLog in hGenXml (iScrapItemId, "ScrapControl":U, output l-log-control-estoq-refugo).
+                    if l-log-control-estoq-refugo = ? then
+                        assign tt-item.log-control-estoq-refugo = no.
+                    else
+                        assign tt-item.log-control-estoq-refugo = l-log-control-estoq-refugo.
+                        
+                    run getSonVal in hGenXml (iScrapItemId, "ScrapItemCode":U, output tt-item.cod-item-refugo).
+                    run getSonDec in hGenXml (iScrapItemId, "ScrapItemLink":U, output de-val-relac-refugo-item).
+                    if de-val-relac-refugo-item = ? then
+                        assign tt-item.val-relac-refugo-item = 0.
+                    else
+                        assign tt-item.val-relac-refugo-item = de-val-relac-refugo-item.
+                        
+                    run getSonLog in hGenXml (iScrapItemId, "IsScrapFiscalPrice":U, output l-log-refugo-preco-fisc).
+                    if l-log-refugo-preco-fisc = ? then
+                        assign tt-item.log-refugo-preco-fisc = no.
+                    else
+                        assign tt-item.log-refugo-preco-fisc = l-log-refugo-preco-fisc.
+                end.
+            &endif
+                   
+        end. 
+        
+        run searchTag in hGenXml ("MfgResourcePlanning":U, iManufactureId, output iMfgResourcePlanningId).
+        if iMfgResourcePlanningId <> ? then do:
+        
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "MaxStorageCapacityPlant":U, output de-cap-est-fabr).
+            if de-cap-est-fabr = ? then
+                assign tt-item.cap-est-fabr = 0.
+            else
+                assign tt-item.cap-est-fabr = de-cap-est-fabr.
+            
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "ReschedulingClass":U, output i-classe-repro).
+            if i-classe-repro >= 1 and
+               i-classe-repro <= 4 then
+                assign tt-item.classe-repro = i-classe-repro.
+            else
+                assign tt-item.classe-repro = 1.
+                
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "FamilyPlanControled":U, output i-contr-plan).
+            if i-contr-plan = 1 or
+               i-contr-plan = 2 then
+                assign tt-item.contr-plan = i-contr-plan.
+            else
+                assign tt-item.contr-plan = 1.
+                          
+            run searchTag in hGenXml ("Planner":U, iMfgResourcePlanningId, output iPlannerId).
+            if iPlannerId <> ? then
+                run getSonVal in hGenXml (iPlannerId, "PlannerCode":U, output tt-item.cd-planejado).      
+               
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "ListForRequirementsScheduling":U, output i-ind-lista-mrp).  
+            if i-ind-lista-mrp = 1 or 
+               i-ind-lista-mrp = 2 then
+                assign tt-item-man.ind-lista-mrp = i-ind-lista-mrp.
+            else
+                assign tt-item-man.ind-lista-mrp = 1.
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "QuantityMinResuppliment":U, output de-qt-min-res-fabr).
+            if de-qt-min-res-fabr = ? then
+                assign tt-item-man.qt-min-res-fabr = 0.
+            else
+                assign tt-item-man.qt-min-res-fabr = de-qt-min-res-fabr.
+                
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "VariationTimeRessupliment":U, output tt-item-man.var-tempo-res-fabr).
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "RessuplimentQuantityVariance":U, output de-var-qtd-res-fabr).
+            if de-var-qtd-res-fabr = ? then
+                assign tt-item-man.var-qtd-res-fabr = 0.
+            else
+                assign tt-item-man.var-qtd-res-fabr = de-var-qtd-res-fabr.
+                
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "ProcessCost":U, output i-ind-lista-csp).
+            if i-ind-lista-csp = 1 or
+               i-ind-lista-csp = 2 then
+                assign tt-item-man.ind-lista-csp = i-ind-lista-csp.
+            else
+                assign tt-item-man.ind-lista-csp = 1.
+                
+            run getSonLog in hGenXml (iMfgResourcePlanningId, "IsEvaluateConsumeSwitch":U, output l-log-ad-consumo).
+            if l-log-ad-consumo = ? then
+                assign tt-item-man.log-ad-consumo = yes.
+            else
+                assign tt-item-man.log-ad-consumo = l-log-ad-consumo.
+                
+            run getSonLog in hGenXml (iMfgResourcePlanningId, "IsAutomaticApproveStructut":U, output l-log-aprov-estrut).
+            if l-log-aprov-estrut = ? then
+                assign tt-item-man.log-aprov-estrut = yes.
+            else
+                assign tt-item-man.log-aprov-estrut = l-log-aprov-estrut.
+                
+            run getSonLog in hGenXml (iMfgResourcePlanningId, "IsAutomaticApproveRoute":U, output l-log-aprov-rot).
+            if l-log-aprov-rot = ? then
+                assign tt-item-man.log-aprov-rot = yes.
+            else
+                assign tt-item-man.log-aprov-rot = l-log-aprov-rot.
+
+            run getSonLog in hGenXml (iMfgResourcePlanningId, "IsReportFinalizeOrder":U, output l-log-finaliz-op).  
+            if l-log-finaliz-op = ? then
+                assign tt-item-man.log-finaliz-op = no.
+            else
+                assign tt-item-man.log-finaliz-op = l-log-finaliz-op.
+                
+            run getSonDec in hGenXml (iMfgResourcePlanningId, "FixedHorizon":U, output i-horiz-fixo).
+            if i-horiz-fixo >= 0 and
+               i-horiz-fixo <= 999 then
+                assign tt-item.horiz-fixo = i-horiz-fixo.
+            else
+                assign tt-item.horiz-fixo = 0.
+                
+            &if defined(bf_man_205) &then
+                run getSonVal in hGenXml (iMfgResourcePlanningId, "ReleaseHorizon":U, output c-horiz-lib).
+                assign overlay(tt-item.char-1,129,3) = c-horiz-lib.
+            &endif              
+
+        end.
+        
+        run searchTag in hGenXml ("User":U, iManufactureId, output iUserId).
+        if iUserId <> ? then do:
+        
+            run getSonVal in hGenXml (iUserId, "ReleaseUser":U, output tt-item-man.user-lib).
+            run getSonVal in hGenXml (iUserId, "UserReleaseStructure":U, output tt-item-man.user-lib-estrut).
+            run getSonVal in hGenXml (iUserId, "UserReleaseRouting":U, output tt-item-man.user-lib-rot).                 
+            
+            run getSonVal in hGenXml (iUserId, "UserLastAlteration":U, output tt-item.usuario-alt).
+            run getSonVal in hGenXml (iUserId, "UserMadeObsoletion":U, output tt-item.usuario-obsol).           
+            
+        end.
+        
+        run searchTag in hGenXml ("AdvancedPlanningSchedule":U, iManufactureId, output iAdvancedPlanningScheduleId). 
+        if iAdvancedPlanningScheduleId <> ? then do:
+         
+            run getSonDec in hGenXml (iAdvancedPlanningScheduleId, "PolicyAdvancedPlanningSchedule":U, output i-politica-aps).
+            if i-politica-aps >= 1 and
+               i-politica-aps <= 9 then do:
+                &if defined(bf_man_205) &then            
+                    assign tt-item.politica-aps = i-politica-aps.
+                &else
+                    assign overlay(tt-item.char-1,60,2) = string(i-politica-aps).          
+                &endif
+            end.
+            else do:
+                &if defined(bf_man_205) &then            
+                    assign tt-item.politica-aps = 0.
+                &else
+                    assign overlay(tt-item.char-1,60,2) = "".          
+                &endif
+            end.
+                    
+            run getSonLog in hGenXml (iAdvancedPlanningScheduleId, "IsMultiNetwork":U, output l-multi-malha).
+            if l-multi-malha = ? then
+                assign l-multi-malha = no.
+            
+            run getSonVal in hGenXml (iAdvancedPlanningScheduleId, "ProduceNetworkCode":U, output c-cod-malha).
+            run getSonVal in hGenXml (iAdvancedPlanningScheduleId, "BufferCode":U, output c-cod-pulmao).
+            &if defined(bf_man_205) &then
+                assign tt-item.log-multi-malha = l-multi-malha
+                       tt-item.cod-malha = c-cod-malha
+                       tt-item.cod-pulmao = c-cod-pulmao.
+            &else
+                assign overlay(tt-item.char-1,78,5) = c-cod-malha
+                       overlay(tt-item.char-1,83,5) = c-cod-pulmao.                   
+            &endif
+                
+        end.       
+        
+        run searchTag in hGenXml ("ShopFloorControl":U, iManufactureId, output iShopFloorControl).
+        if iShopFloorControl <> ? then do:
+            run getSonLog in hGenXml (iShopFloorControl, "ConsiderAllocationActivities":U, output l-considera-aloc-ativ).
+            if l-considera-aloc-ativ = ? then
+                assign l-considera-aloc-ativ = yes.
+                
+            run getSonDec in hGenXml (iShopFloorControl, "OverlapValue":U, output de-overlap).
+            run getSonLog in hGenXml (iShopFloorControl, "ProgrammingSFC":U, output l-program-sfc).           
+            if l-program-sfc = ? then
+                assign l-program-sfc = yes.
+            
+            &if defined(bf_man_207) &then
+                assign tt-item.log-consid-aloc-ativid = l-considera-aloc-ativ
+                       tt-item.val-overlap            = de-overlap
+                       tt-item.log-programac-sfc      = l-program-sfc.
+            &else
+                assign overlay(tt-item.char-1,259,1) = if l-considera-aloc-ativ = no then "N" else "S"
+                       overlay(tt-item.char-1,260,5) = string(de-overlap)
+                       overlay(tt-item.char-1,266,1) = if l-program-sfc = no then "N" else "S".
+            &endif
+        end. 
+
+    end. 
+
+/* fim do include */
+
+

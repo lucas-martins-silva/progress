@@ -1,0 +1,45 @@
+PROCEDURE pi-grava-ttICMS02:
+
+   /*
+   === ttICMS02 ===
+   
+   FIELD orig           AS CHARACTER INITIAL ?                                          /*Origem da Mercadoria */                                                         
+   FIELD CST            AS CHARACTER INITIAL ?                                          /*Tribut‡Æo pelo ICMS 02 - Tributação monofásica própria sobre combustíveis */    
+   FIELD qBCMono        AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.9999" DECIMALS 4  /* Base ICMS em Quantidade */                                                     
+   FIELD adRemICMS      AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"           DECIMALS 4  /* Alíquota ad rem do imposto*/                                                   
+   FIELD vICMSMono      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99"   DECIMALS 2  /*Valor do ICMS próprio */                                                           
+   */             
+
+   IF nota-fiscal.ind-tip-nota = 8 THEN DO:
+       FOR FIRST item-doc-est NO-LOCK
+           WHERE item-doc-est.serie-docto  = it-nota-fisc.serie
+             AND item-doc-est.nro-docto    = nota-fiscal.nr-nota-ant 
+             AND item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+             AND item-doc-est.nat-operacao = it-nota-fisc.nat-operacao
+             AND item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped:
+           {dibo/bodi629.i1 item-doc-est "ICMS" d-aliquota-icms d-vl-bicms-it d-vl-imp-icms}  
+       END.
+   END.
+   ELSE DO:
+       {dibo/bodi630.i4 "ICMS" d-aliquota-icms d-vl-bicms-it d-vl-imp-icms it-nota-fisc}.
+   end. 
+   
+    CREATE ttICMS02.
+    ASSIGN ttICMS02.orig        = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS02.CST         = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS02.qBCMono     = d-vl-bicms-it
+           ttICMS02.adRemICMS   = d-aliquota-icms
+           ttICMS02.vICMSMono   = d-vl-imp-icms  
+           .
+           
+    ASSIGN d-total-qBCMono      = d-total-qBCMono   + ttICMS02.qBCMono
+           d-total-vICMSMono    = d-total-vICMSMono + ttICMS02.vICMSMono.
+
+    /* Chave EMS */
+    ASSIGN ttICMS02.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS02.SerieNF      = nota-fiscal.serie
+           ttICMS02.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS02.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS02.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.

@@ -1,0 +1,30 @@
+disp c-div-retenc 
+     with frame f-div-retenc.
+
+for each b-tit-ap
+    where b-tit-ap.ep-codigo   = tit-ap.ep-codigo
+    and   b-tit-ap.cod-estabel = tit-ap.cod-estabel
+    and   b-tit-ap.cod-fornec  = tit-ap.cod-fornec
+    and   b-tit-ap.esp-ant     = tit-ap.cod-esp
+    and   b-tit-ap.serie-ant   = tit-ap.serie
+    and   b-tit-ap.docto-ant   = tit-ap.nr-docto
+    and   b-tit-ap.parc-ant    = tit-ap.parcela
+    and  (b-tit-ap.tipo        = 8
+    or    b-tit-ap.tipo        = 1) no-lock,
+    each espec-ap
+        where espec-ap.cod-esp = b-tit-ap.cod-esp no-lock:
+
+    disp b-tit-ap.cod-estabel
+         b-tit-ap.nr-docto
+         b-tit-ap.parcela
+         b-tit-ap.cod-esp
+         espec-ap.descricao
+         b-tit-ap.serie
+         b-tit-ap.cod-fornec
+         b-tit-ap.nome-abrev
+         b-tit-ap.vl-original
+         b-tit-ap.valor-saldo
+         with frame f-retenc.
+    down with frame f-retenc.
+end.
+

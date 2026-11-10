@@ -1,0 +1,284 @@
+PROCEDURE pi-integra-XML-NFCom:
+    
+        DEFINE VARIABLE h-TSSAPI                  AS HANDLE      NO-UNDO.
+        DEFINE VARIABLE hXMLNFCom                 AS HANDLE      NO-UNDO.
+        DEFINE VARIABLE lEnvioNotaTSSOK           AS LOGICAL     NO-UNDO.
+        DEFINE VARIABLE cArquivoHistoricoXMLNFCom AS CHARACTER   NO-UNDO.
+        
+        ASSIGN lcXMLNFCom = "".
+
+        /* RESETA OS VALORES */
+        RUN reset IN hGenXml.
+        
+        /* SETA VALOR DE ENCODING */
+        RUN setEncoding IN hGenXml ("UTF-8").
+
+        RUN adapters/xml/ep2/axsep028imprimexml.p (INPUT hGenXml                ,
+                                                   INPUT-OUTPUT TABLE ttStack   ,
+                                                   INPUT TABLE ttAssinante      ,
+                                                   INPUT TABLE ttDestNFCom      ,
+                                                   INPUT TABLE ttDetNFCom       ,
+                                                   INPUT TABLE ttEmitNFCom      ,
+                                                   INPUT TABLE ttICMSTotNFCom   ,
+                                                   INPUT TABLE ttIdeNFCom       ,
+                                                   INPUT TABlE ttNFCom          ,
+                                                   INPUT TABLE ttRetTribTotNFCom ,
+                                                   INPUT TABLE ttFUST           ,
+                                                   INPUT TABLE ttFUNTTEL        ,
+                                                   INPUT TABLE ttICMSSN         ,
+                                                   INPUT TABlE ttPISNFCom       ,
+                                                   INPUT TABlE ttCOFINSNFCom    ,
+                                                   INPUT TABLE ttTotal          ,
+                                                   INPUT TABLE ttICMSUFDestNFCom, 
+                                                   INPUT TABLE ttICMS00         ,
+                                                   INPUT TABLE ttICMS20         ,
+                                                   INPUT TABLE ttICMS40         ,
+                                                   INPUT TABLE ttICMS51         ,
+                                                   INPUT TABLE ttICMS90         ,
+                                                   INPUT TABLE ttgFatNFCom      ,
+                                                   INPUT TABLE ttRetTrib        ,
+                                                   INPUT TABLE ttInfAdicNFCom   ,
+                                                   INPUT TABLE ttgCompraGov     ,
+                                                   INPUT TABLE ttgPagAntecipado ,
+                                                   INPUT TABLE ttIBSCBS         ,
+                                                   INPUT TABLE ttTribRT         ,
+                                                   INPUT TABLE ttgTribRegular   ,
+                                                   INPUT TABLE ttgCredPresOper  ,
+                                                   INPUT TABLE ttgIBSCBSCredPres,
+                                                   INPUT TABLE ttgTribCompraGov ,
+                                                   INPUT TABLE ttgIBSCBSMono    ,
+                                                   INPUT TABLE ttgTransfCred    ,
+                                                   INPUT TABLE ttgAjusteCompet  ,
+                                                   INPUT TABLE ttgEstornoCred   ,
+                                                   INPUT TABLE ttgCredPresIBSZFM,
+                                                   INPUT TABLE ttVB             ,
+                                                   INPUT TABLE ttDFeReferenciado,
+                                                   INPUT TABLE ttTotIBSCBSIS    ,
+                                                   INPUT TABLE ttgSub           ,
+                                                   INPUT TABLE ttgALCZFMCBS     ).                                                                                                      
+                                                   
+        RUN generateXML IN hGenXml (OUTPUT hXMLNFCom).
+
+        hXMLNFCom:SAVE("LONGCHAR",lcXMLNFCom).
+        
+        IF NOT AVAIL param-global THEN
+            FIND FIRST param-global NO-LOCK NO-ERROR.
+			
+        /* retirar o inicio do XML "<?xml version="1.0" encoding="utf-8" ?>" */
+        /* para nao gerar erro na integra‡Æo com o TSS                       */  
+        ASSIGN lcXMLNFCom = SUBSTR(lcXMLNFCom, INDEX(lcXMLNFCom, "<NFCom xmlns=")).
+        
+        //IF  NOT lObtemXMLNFe THEN DO: /* efetuar integra‡Æo com TSS se lObtemXMLNFe estiver igual a NO */
+
+            IF  NOT AVAIL param-nf-estab THEN
+                FOR FIRST param-nf-estab NO-LOCK
+                    WHERE param-nf-estab.cod-estabel = nota-fiscal.cod-estabel: END.
+    
+            IF  NOT AVAIL param-nf-estab THEN
+                RETURN "NOK".
+			            
+            IF OPSYS <> "WIN32" 
+            AND CAN-FIND(FIRST funcao NO-LOCK
+                         WHERE funcao.cd-funcao = "SPP-XML-OPSYS"
+                           AND funcao.ativo) THEN
+					
+                ASSIGN cArquivoHistoricoXMLNFCom = TRIM(SUBSTRING(param-nf-estab.cod-livre-1,1617,250)).			
+            ELSE
+                ASSIGN cArquivoHistoricoXMLNFCom = TRIM(SUBSTRING(param-nf-estab.cod-livre-1,1367,250)).   
+                                           
+            ASSIGN cArquivoHistoricoXMLNFCom = REPLACE(cArquivoHistoricoXMLNFCom,"~\","/").
+			
+            IF  cArquivoHistoricoXMLNFCom <> "" THEN DO:
+                            
+                IF  NOT SUBSTR(cArquivoHistoricoXMLNFCom,LENGTH(cArquivoHistoricoXMLNFCom),LENGTH(cArquivoHistoricoXMLNFCom) - 1) = "/"  THEN
+                    ASSIGN cArquivoHistoricoXMLNFCom = cArquivoHistoricoXMLNFCom + "/".
+                
+                ASSIGN cArquivoHistoricoXMLNFCom =  cArquivoHistoricoXMLNFCom 
+                                                    + param-nf-estab.cod-estabel + SUBSTR(ttNFCom.ChaveAcessoNFCom,23,3) + TRIM(STRING(INTEGER(SUBSTR(ttNFCom.ChaveAcessoNFCom,26,9)),">>9999999"))
+                                                    + "/".
+    
+                ASSIGN FILE-INFO:FILE-NAME = cArquivoHistoricoXMLNFCom.
+				
+                IF  FILE-INFO:FULL-PATHNAME = ? THEN 
+                    OS-CREATE-DIR value(cArquivoHistoricoXMLNFCom) NO-ERROR. /* cria o diretorio caso nao exista */
+    
+                ASSIGN cArquivoHistoricoXMLNFCom =  cArquivoHistoricoXMLNFCom
+                                                    + STRING(YEAR(TODAY),"9999")              /* ex: 2010   (Ano)       */
+                                                    + STRING(MONTH(TODAY),"99")               /* ex: 05     (Mes Maio)  */
+                                                    + STRING(DAY(TODAY),"99")                 /* ex: 01     (Dia)       */
+                                                    + REPLACE(STRING(TIME,"HH:MM:SS"),":","") /* Ex: 140105 (14h01m05s) */
+                                                    + ".xml":U.
+                hXMLNFCom:SAVE ('FILE', cArquivoHistoricoXMLNFCom) NO-ERROR.
+                
+            END.
+            /*** FIM - GRAVA HISTORICO XML EM DIRETORIO ***/
+    
+            IF  NOT VALID-HANDLE(h-TSSAPI) THEN DO:
+                RUN ftp/ftapi511.p PERSISTENT SET h-TSSAPI. /*API de comunica»’o com o TSS*/
+            END.
+    
+            RUN setTSSURL IN h-TSSAPI (&if "{&bf_dis_versao_ems}" >= "2.08" &then
+                                         TRIM(param-nf-estab.cod-url-ws-tss)
+                                       &else
+                                         TRIM(SUBSTR(param-nf-estab.cod-livre-1,1,100))
+                                       &endif).
+                                   
+            RUN setTSSAuthParam IN h-TSSAPI (INPUT 1,
+                                             INPUT "*",
+                                             INPUT param-nf-estab.cod-estabel,
+                                             INPUT param-nf-estab.cod-url-ws-tss).
+    
+            EMPTY TEMP-TABLE ttNFComTSS.
+            EMPTY TEMP-TABLE ttNFComTSSRet.
+            EMPTY TEMP-TABLE ttNFES4.
+            EMPTY TEMP-TABLE TT_LOG_ERRO.
+            ASSIGN cReturnValue = "":U.
+    
+            CREATE ttNFComTSS.
+            ASSIGN ttNFComTSS.ID   = ttNFCom.ChaveAcessoNFCom
+                   ttNFComTSS.XML  = lcXMLNFCom.
+                       
+            RUN NFESBRA_REMESSA IN h-TSSAPI (param-nf-estab.ind-empresa, 
+                                             INPUT BUFFER ttNFComTSS:HANDLE, 
+                                             INPUT BUFFER ttNFComTSSRet:HANDLE,
+                                             YES). /* Criptografa XML BASE64 - Yes/No */
+                                             
+            ASSIGN cReturnValue = RETURN-VALUE.
+    
+            RUN disconnectTss IN h-TSSAPI ("NFESBRA").
+    
+            IF  cReturnValue <> "OK" THEN DO:
+            
+                CREATE TT_LOG_ERRO.
+                ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 36370.
+    
+                /*Busca Mensagem*/
+                RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                   INPUT 36370,
+                                   INPUT "[TSS REMESSA]" + "~~" + cReturnValue).
+                ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+    
+                /*Busca Help */
+                RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                   INPUT 36370,
+                                   INPUT "[TSS REMESSA]" + "~~" + cReturnValue).
+                ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+            END.
+            ELSE DO:
+                        
+                FOR EACH ttNFComTSSRet:
+                
+                    IF  TRIM(ttNFComTSSRet.STR) = TRIM(ttNFCom.ChaveAcessoNFCom) THEN
+                        ASSIGN lEnvioNotaTSSOK = YES.
+                END.
+        
+                IF  NOT lEnvioNotaTSSOK THEN DO:
+                /* NAO CRIOU A NOTA NO TSS, VERIFICAR ATRAVES DO METODO SCHEMA QUAL FOI O MOTIVO DE REJEICAO DA NOTA */
+    
+                    EMPTY TEMP-TABLE ttNFComTSS.
+                    EMPTY TEMP-TABLE ttNFES4.
+                    EMPTY TEMP-TABLE TT_LOG_ERRO.
+                    ASSIGN cReturnValue = "":U.
+    
+                    CREATE ttNFComTSS.
+                    ASSIGN ttNFComTSS.ID  = ttNFCom.ChaveAcessoNFCom
+                           ttNFComTSS.XML = lcXMLNFCom.
+    
+                    RUN NFESBRA_SCHEMA  IN h-TSSAPI (param-nf-estab.ind-empresa, 
+                                                     INPUT BUFFER ttNFComTSS:HANDLE, 
+                                                     INPUT BUFFER ttNFES4:HANDLE,
+                                                     YES). /* Criptografa XML BASE64 - Yes/No */ 
+                    
+                    ASSIGN cReturnValue = RETURN-VALUE.
+    
+                    RUN disconnectTss IN h-TSSAPI ("NFESBRA").
+    
+                    IF  cReturnValue <> "OK" THEN DO:
+    
+                        CREATE TT_LOG_ERRO.
+                        ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 36370.
+            
+                        /*Busca Mensagem*/
+                        RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                           INPUT 36370,
+                                           INPUT "[TSS SCHEMA]" + "~~" + cReturnValue).
+                        ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+            
+                        /*Busca Help */
+                        RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                           INPUT 36370,
+                                           INPUT "[TSS SCHEMA]" + "~~" + cReturnValue).
+                        ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+    
+                    END.
+                    ELSE DO:
+                        
+                        FOR EACH ttNFES4
+                            WHERE ttNFES4.MENSAGEM <> "":
+                            
+                            CREATE TT_LOG_ERRO.
+                            ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 36372.
+                
+                            /*Busca Mensagem*/
+                            RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                               INPUT 36372,
+                                               INPUT nota-fiscal.nr-nota-fis + "~~" + ttNFES4.MENSAGEM).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+                            
+                            /*Busca Help */
+                            RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                               INPUT 36372,
+                                               INPUT nota-fiscal.nr-nota-fis + "~~" + ttNFES4.MENSAGEM).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+    
+                        END.
+                        
+                        IF  CAN-FIND (FIRST ttNFES4 
+                                      WHERE ttNFES4.MENSAGEM <> "") THEN DO:
+                                                                  
+                            {adapters/xml/ep2/axrep012upsert.i}
+                            
+                            /*IF  CAN-FIND(funcao WHERE funcao.cd-funcao = "SPP-ATUALIZA-ESTOQUE-NFE" AND funcao.ativo)
+                            AND nota-fiscal.dt-confirma <> ? THEN DO:
+                                DEFINE VARIABLE h-bodi135 AS HANDLE      NO-UNDO.
+    
+                                RUN dibo/bodi135.p PERSISTENT SET h-bodi135.
+    
+                                RUN pi-desatualiza-nfe IN h-bodi135 (INPUT ROWID(nota-fiscal)).
+    
+                                DELETE PROCEDURE h-bodi135.
+                                ASSIGN h-bodi135 = ?.
+                            END.*/
+                        END.
+                        ELSE DO:
+                        
+                            CREATE TT_LOG_ERRO.
+                            ASSIGN TT_LOG_ERRO.TTV_NUM_COD_ERRO  = 36373.
+                
+                            /*Busca Mensagem*/
+                            RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                               INPUT 36373,
+                                               INPUT nota-fiscal.nr-nota-fis).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_ERRO  = RETURN-VALUE.
+                
+                            /*Busca Help */
+                            RUN utp/ut-msgs.p (INPUT "HELP":U,
+                                               INPUT 36373,
+                                               INPUT nota-fiscal.nr-nota-fis).
+                            ASSIGN TT_LOG_ERRO.TTV_DES_MSG_AJUDA = RETURN-VALUE.
+    
+                        END. /* ELSE DO : IF  CAN-FIND (FIRST ttNFES4  */
+    
+                    END. /* ELSE DO: IF  RETURN-VALUE <> "OK" THEN DO: */
+                END. /* IF  NOT lEnvioNotaTSSOK THEN DO: */                
+            END. 
+            
+            IF  VALID-HANDLE(h-TSSAPI) THEN DO:
+                DELETE PROCEDURE h-TSSAPI.
+                ASSIGN h-TSSAPI = ?.
+            END.
+        //END. /* Fim - IF  NOT lObtemXMLNFe THEN DO: */
+    RETURN "OK":U.
+
+END PROCEDURE.
+

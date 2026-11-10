@@ -1,0 +1,242 @@
+PROCEDURE pi-cria-ttEntrega:
+
+    /*
+    === ttEntrega ===
+    CNPJ           AS CHARACTER INITIAL ?    /*CNPJ*/
+    CPF            AS CHARACTER INITIAL ?    /*CPF*/
+    xNome          AS CHARACTER INITIAL ?    /*Raz∆o Social ou Nome do Recebedor*/
+    xLgr           AS CHARACTER INITIAL ?    /*Logradouro*/
+    nro            AS CHARACTER INITIAL ?    /*N£mero*/
+    xCpl           AS CHARACTER INITIAL ?    /*Complemento*/
+    xBairro        AS CHARACTER INITIAL ?    /*Bairro*/
+    cMun           AS CHARACTER INITIAL ?    /*C¢digo do munic°pio (utilizar a tabela do IBGE)*/
+    xMun           AS CHARACTER INITIAL ?    /*Nome do munic°pio*/
+    UF             AS CHARACTER INITIAL ?    /*Sigla da UF*/
+    CEP            AS CHARACTER INITIAL ?    /*C¢digo do CEP*/
+    cPais          AS CHARACTER INITIAL ?    /*C¢digo do Pa°s*/
+    xPais          AS CHARACTER INITIAL ?    /*Nome do Pa°s*/
+    fone           AS CHARACTER INITIAL ?    /*Telefone*/
+    email          AS CHARACTER INITIAL ?    /*Endereáo de e-mail do Recebedor*/
+    IE             AS CHARACTER INITIAL ?    /*Inscriá∆o Estadual do Estabelecimento Recebedor*/
+    */
+    
+    DEF VAR l-funcao-end-completo AS LOGICAL NO-UNDO .
+    ASSIGN  l-funcao-end-completo = CAN-FIND(FIRST funcao
+                                    WHERE funcao.cd-funcao = 'spp-nfe-end-completo':U
+                                    AND   funcao.ativo).
+      
+    IF l-funcao-end-completo AND trim(fn-trata-caracteres(nota-fiscal.endereco_text)) <> "" THEN 
+        ASSIGN c-endereco = trim(fn-trata-caracteres(nota-fiscal.endereco_text)).
+    ELSE IF nota-fiscal.endereco <> "" THEN
+        ASSIGN c-endereco = nota-fiscal.endereco.
+    ELSE DO:
+        IF l-funcao-end-completo AND trim(fn-trata-caracteres(emitente.endereco_text)) > "" THEN
+            ASSIGN c-endereco = trim(fn-trata-caracteres(emitente.endereco_text)).
+        ELSE
+            ASSIGN c-endereco = TRIM(emitente.endereco).
+    END.
+
+    /* Pedido de origem e-commerce */
+    IF AVAIL nota-fiscal 
+    AND CAN-FIND (FIRST ped-venda
+                  WHERE ped-venda.nome-abrev = nota-fiscal.nome-ab-cli
+                    AND ped-venda.nr-pedcli  = nota-fiscal.nr-pedcli
+                    AND ped-venda.origem     = 22 NO-LOCK) THEN DO:
+              
+        IF nota-fiscal.endereco <> "" THEN DO:
+        
+           IF trim(fn-trata-caracteres(nota-fiscal.endereco_text)) <> "" THEN 
+              ASSIGN c-endereco = trim(fn-trata-caracteres(nota-fiscal.endereco_text)).
+           ELSE
+              ASSIGN c-endereco = TRIM(nota-fiscal.endereco).   
+        
+        END.
+        ELSE DO:
+        
+           IF trim(fn-trata-caracteres(emitente.endereco_text)) > "" THEN
+              ASSIGN c-endereco = trim(fn-trata-caracteres(emitente.endereco_text)).     
+           ELSE
+              ASSIGN c-endereco = TRIM(emitente.endereco). 
+        
+        END.
+
+    END.    
+    
+    ASSIGN c-rua      = ""
+           c-nro      = ""
+           c-comp     = "".
+
+    IF  INDEX(c-endereco,CHR(ASC("ß"))) > 0 THEN /* Retirar caracter especial */
+        ASSIGN c-endereco = REPLACE(c-endereco,CHR(ASC("ß")),"").
+
+    RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco,
+                                         OUTPUT c-rua, 
+                                         OUTPUT c-nro, 
+                                         OUTPUT c-comp).
+
+    IF  c-nro = "" THEN
+        ASSIGN c-nro = "S/N".
+
+    CREATE ttEntrega.
+
+    IF  nota-fiscal.endereco <> "" THEN DO:
+        ASSIGN ttEntrega.CNPJ    = (IF ( nota-fiscal.pais <> "Brasil":U OR 
+                                         LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(nota-fiscal.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) = 11 ) AND 
+                                         lLayoutXML  /* Pessoa F≠sica */
+                                    THEN ""
+                                    ELSE IF ( nota-fiscal.pais <> "Brasil":U OR 
+                                              LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(nota-fiscal.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) = 11 ) AND 
+                                              lLayoutTXT
+                                    THEN ""
+                                    ELSE  nota-fiscal.cgc)
+               ttEntrega.CPF     = (IF LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(nota-fiscal.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) = 11  /* Pessoa Fisica */
+                                    THEN nota-fiscal.cgc
+                                    ELSE "")
+               ttEntrega.CPF     = (IF ttEntrega.CPF <> ?
+                                    THEN ttEntrega.CPF
+                                    ELSE "")
+               ttEntrega.nro     = c-nro
+               ttEntrega.UF      = (IF nota-fiscal.pais <> "Brasil":U
+                                    THEN "EX"
+                                    ELSE nota-fiscal.estado)
+               ttEntrega.UF      = (IF ttEntrega.UF <> ?
+                                    THEN ttEntrega.UF
+                                    ELSE "")
+               ttEntrega.xBairro = (IF nota-fiscal.bairro <> ""
+                                    THEN nota-fiscal.bairro
+                                    ELSE "Nao Informado")
+               ttEntrega.xCpl    = c-comp
+               ttEntrega.xLgr    = c-rua
+               ttEntrega.xMun    = (IF nota-fiscal.pais <> "Brasil":U
+                                    THEN "Exterior"
+                                    ELSE nota-fiscal.cidade)
+               ttEntrega.CEP     = nota-fiscal.cep
+               ttEntrega.xPais   = nota-fiscal.pais
+               ttEntrega.IE      = fn-ajusta-campo-IE(nota-fiscal.ins-estadual).
+               
+        FOR FIRST loc-entr NO-LOCK
+            WHERE loc-entr.nome-abrev  = emitente.nome-abrev
+              AND loc-entr.cod-entrega = nota-fiscal.cod-entrega:
+              
+            ASSIGN ttEntrega.email = loc-entr.e-mail
+		   ttEntrega.xNome = loc-entr.nom-razao-social
+		   ttEntrega.fone  = loc-entr.cod-telefone.
+        END.
+    END.
+    ELSE DO:
+        ASSIGN ttEntrega.CNPJ    = (IF (emitente.pais <> "Brasil":U OR 
+                                        LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(emitente.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) = 11 ) AND 
+                                        lLayoutXML  /* Pessoa F≠sica */
+                                    THEN ""
+                                    ELSE IF (emitente.pais <> "Brasil":U OR 
+                                             LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(emitente.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) = 11 ) AND 
+                                             lLayoutTXT
+                                    THEN ""
+                                    ELSE  emitente.cgc)
+               ttEntrega.CPF     = (IF LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(emitente.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) = 11  /* Pessoa Fisica */
+                                    THEN emitente.cgc
+                                    ELSE "")
+               ttEntrega.CPF     = (IF ttEntrega.CPF <> ?
+                                    THEN ttEntrega.CPF
+                                    ELSE "")
+               ttEntrega.xNome   = emitente.nome-emit
+               ttEntrega.nro     = c-nro
+               ttEntrega.UF      = (IF emitente.pais <> "Brasil":U
+                                    THEN "EX"
+                                    ELSE emitente.estado)
+               ttEntrega.UF      = (IF ttEntrega.UF <> ?
+                                    THEN ttEntrega.UF
+                                    ELSE "")
+               ttEntrega.xBairro = (IF emitente.bairro <> ""
+                                    THEN emitente.bairro
+                                    ELSE "Nao Informado")
+               ttEntrega.xCpl    = c-comp
+               ttEntrega.xLgr    = c-rua
+               ttEntrega.xMun    = (IF emitente.pais <> "Brasil":U
+                                    THEN "Exterior"
+                                    ELSE emitente.cidade)
+               ttEntrega.CEP     = emitente.cep
+               ttEntrega.xPais   = emitente.pais
+               ttEntrega.IE      = fn-ajusta-campo-IE(emitente.ins-estadual)
+               ttEntrega.email   = emitente.e-mail
+			   ttEntrega.fone    = emitente.telefone[1].
+     END.
+	
+	
+     ASSIGN ttEntrega.IE = (IF (ttEntrega.IE = "ISENTO":U OR ttEntrega.IE = "ISENTA":U)
+                            THEN "":U
+                            ELSE ttEntrega.IE).
+
+     /*--- TRATAMENTO FONE - Sefaz aceita somente números, e apenas 11 caracters -> DDD12345678 ---*/
+     ASSIGN c-fone = "".
+	
+     DO  i-cont = 1 TO LENGTH(ttEntrega.fone):
+	
+	/* Nao considerar o primeiro zero do telefone, caso inicie com 0 (DDD iniciando com 0 ou nro de telefone incorreto) */
+	IF  i-cont = 1
+	AND LOOKUP(SUBSTRING(ttEntrega.fone,i-cont,1),"0") > 0 THEN NEXT.
+	
+	IF  LOOKUP(SUBSTRING(ttEntrega.fone,i-cont,1),"0,1,2,3,4,5,6,7,8,9") > 0 THEN
+		ASSIGN c-fone = c-fone + SUBSTRING(ttEntrega.fone,i-cont,1).
+     END.
+     /*---*/
+	
+    ASSIGN ttEntrega.fone = c-fone.
+    
+    ASSIGN     ttEntrega.CNPJ    =  REPLACE(ttEntrega.CNPJ,"-","")
+               ttEntrega.CNPJ    =  REPLACE(ttEntrega.CNPJ,".","")
+               ttEntrega.CNPJ    =  REPLACE(ttEntrega.CNPJ,"/","").
+
+    IF (ttEntrega.xMun <> "Exterior"
+    AND ttEntrega.xMun <> ""
+    AND ttEntrega.xMun <> ?) THEN DO:
+        FOR FIRST bf-cidade-nf FIELDS(&if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U &then cdn-munpio-ibge &else int-2 &endif)
+            WHERE bf-cidade-nf.cidade = ttEntrega.xMun
+              AND bf-cidade-nf.estado = ttEntrega.UF
+              AND bf-cidade-nf.pais   = "Brasil"   NO-LOCK:
+    
+            ASSIGN ttEntrega.cMun = STRING(&if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U 
+                                           &then bf-cidade-nf.cdn-munpio-ibge
+                                           &else bf-cidade-nf.int-2 &endif).
+        END.
+        IF  NOT AVAIL bf-cidade-nf THEN
+            ASSIGN ttEntrega.cMun = "0".
+    END.
+    ELSE
+        ASSIGN ttEntrega.cMun = "9999999".
+        
+    IF  ttEntrega.xPais <> ""
+    AND ttEntrega.xPais <> ? THEN DO:
+        FOR FIRST bf-pais NO-LOCK
+            WHERE bf-pais.nome-pais = ttEntrega.xPais:
+            ASSIGN ttEntrega.cPais = bf-pais.cod-pais-siscomex.
+        END.
+    END.
+    ELSE
+        ASSIGN ttEntrega.cPais = "0".
+
+    /* Chave EMS */
+    ASSIGN ttEntrega.CodEstabelNF = nota-fiscal.cod-estabel
+           ttEntrega.SerieNF      = nota-fiscal.serie
+           ttEntrega.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttEntrega THEN
+        ASSIGN ttEntrega.cMun    = fn-ajusta-tamanho-campo(ttEntrega.cMun   , 7)
+               ttEntrega.CNPJ    = fn-ajusta-tamanho-campo(ttEntrega.CNPJ   ,14)
+               ttEntrega.CPF     = fn-ajusta-tamanho-campo(ttEntrega.CPF    ,11)
+               ttEntrega.nro     = fn-ajusta-tamanho-campo(ttEntrega.nro    ,60)
+               ttEntrega.UF      = fn-ajusta-tamanho-campo(ttEntrega.UF     , 2)
+               ttEntrega.xBairro = fn-ajusta-tamanho-campo(ttEntrega.xBairro,60)
+               ttEntrega.xCpl    = fn-ajusta-tamanho-campo(ttEntrega.xCpl   ,60)
+               ttEntrega.xLgr    = fn-ajusta-tamanho-campo(ttEntrega.xLgr   ,60)
+               ttEntrega.xMun    = fn-ajusta-tamanho-campo(ttEntrega.xMun   ,60)
+               ttEntrega.xNome   = fn-ajusta-tamanho-campo(ttEntrega.xNome  ,60)
+               ttEntrega.CEP     = fn-ajusta-tamanho-campo(ttEntrega.CEP    , 8)
+               ttEntrega.cPais   = fn-ajusta-tamanho-campo(ttEntrega.cPais  , 4)
+               ttEntrega.xPais   = fn-ajusta-tamanho-campo(ttEntrega.xPais  ,60)
+               ttEntrega.fone    = fn-ajusta-tamanho-campo(ttEntrega.fone   ,14)
+               ttEntrega.email   = fn-ajusta-tamanho-campo(ttEntrega.email  ,60)
+               ttEntrega.IE      = fn-ajusta-tamanho-campo(ttEntrega.IE     ,14).
+ 
+END PROCEDURE.

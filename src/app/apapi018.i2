@@ -1,0 +1,470 @@
+/*****************************************************************************
+***
+*** app/apapi018.i2 - Valida‡Æo Cancelamento.
+*** 
+*****************************************************************************/
+
+IF  c-nom-prog-upc-mg97  <> "" OR
+    c-nom-prog-dpc-mg97  <> "" OR
+    c-nom-prog-appc-mg97 <> "" THEN DO:
+                
+    /* Localiza‡Æo Argentina - ELIMINA€¶O DOCUMENTOS *************************
+       Verifica se a fatura j  foi paga atrav‚s de uma Ordem de Pagamento   */
+        
+    for each tt-epc where tt-epc.cod-event = "Verify-Doc" exclusive-lock:
+        delete tt-epc.
+    end.
+        
+    create tt-epc.
+    assign tt-epc.cod-event     = "Verify-Doc" 
+           tt-epc.cod-parameter = "tit-ap rowid"
+           tt-epc.val-parameter = string(rowid(tit-ap)).
+        
+    {include/i-epc201.i "Verify-Doc"}
+        
+    find first tt-epc 
+         where tt-epc.cod-parameter = "error" 
+         and   tt-epc.cod-event     = "Verify-doc" 
+         no-lock no-error.
+        
+    if  avail tt-epc then do:      
+        run utp/ut-msgs.p (input "Help", 
+                           input 16307, 
+                           input tit-ap.nr-docto + "~~" + 
+                                 string(tit-ap.cod-fornec) + "~~" +
+                                 tt-epc.val-parameter).
+        run pi-cria-tt-retorno-erro (input 16307, input trim(return-value)).
+    end.        
+end.
+IF  c-nom-prog-upc-mg97  <> "" OR
+    c-nom-prog-dpc-mg97  <> "" OR
+    c-nom-prog-appc-mg97 <> "" THEN DO:
+    
+    for each tt-epc where tt-epc.cod-event = "Retira-validacao-25513" exclusive-lock:
+        delete tt-epc.
+    end.
+        
+    create tt-epc.
+    assign tt-epc.cod-event     = "Retira-validacao-25513" 
+           tt-epc.cod-parameter = "Retira-validacao-25513"
+           tt-epc.val-parameter = string(rowid(tit-ap)).
+        
+    {include/i-epc201.i "Retira-validacao-25513"}
+    
+end.
+
+find first tt-epc 
+     where tt-epc.cod-event      = "Retira-validacao-25513" 
+     and   tt-epc.cod-parameter  = "Validacao-RAC"  no-lock no-error.        
+if not avail tt-epc then do:
+    /*** Verifica se o titulo ‚ de origem RAC ---*/
+    if  tit-ap.origem = 5 and index(program-name(6), 'rc0203') = 0 then do:
+        run utp/ut-msgs.p (input "Help", 
+                           input 25513, 
+                           input " ").
+        run pi-cria-tt-retorno-erro (input 25513,
+                                     input trim(return-value)).
+    end.
+end.    
+
+/*** Verifica se o titulo est  enviado ao banco ---*/
+if  tit-ap.enviado = yes then do:
+    run utp/ut-msgs.p (input "Help", 
+                       input 26743, 
+                       input " ").
+    run pi-cria-tt-retorno-erro (input 26743,
+                                 input trim(return-value)).
+end.
+
+/*** Valida que o usuario nÆo podera cancelar titulos vinculados a contrato de cambio ***/
+&if defined(BF_FIN_MODUL_CAMBIO) &then
+    if not verifica_program_name("EC0001",30) then do:    
+        /* find first param-global no-lock no-error.*/ 
+        if param-global.modulo-mec = yes then do:
+            find emitente where emitente.cod-emitente = tit-ap.cod-fornec no-lock no-error.
+            if avail emitente then do:
+                if emitente.natureza = 3 then do:
+                    if tit-ap.moeda <> 0 
+                    or tit-ap.tipo   = 2 then do:
+
+                        assign p-cod-estabel   = ""
+                               p-referencia    = ""
+                               p-dt-referencia = ?.
+
+                        run adbo/boad342.p persistent set h-boad342.
+                        run pi-vld-subst-titulo-ap in h-boad342 (input  tit-ap.ep-codigo,
+                                                                 input  tit-ap.cod-fornec,
+                                                                 input  tit-ap.cod-estabel,
+                                                                 input  tit-ap.cod-esp,
+                                                                 input  tit-ap.serie,
+                                                                 input  tit-ap.nr-docto,
+                                                                 input  tit-ap.parcela,
+                                                                 output p-cod-estabel,
+                                                                 output p-referencia,
+                                                                 output p-dt-referencia).
+                        if  valid-handle(h-boad342) then
+                            delete procedure h-boad342.
+                        if  p-referencia <> "" then do:
+                            run utp/ut-msgs.p (input "help",
+                                               input 25107,
+                                               input string(p-referencia) + "~~" +
+                                                     string(p-dt-referencia)).
+                            run pi-cria-tt-retorno-erro (input 25107,
+                                                         input trim(return-value)).
+                        end.
+                    end.
+                end.
+            end.
+        end.
+    end.
+&endif
+
+for each  mov-ap no-lock
+    where mov-ap.ep-codigo   = tit-ap.ep-codigo
+    and   mov-ap.cod-estabel = tit-ap.cod-estabel
+    and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+    and   mov-ap.cod-esp     = tit-ap.cod-esp
+    and   mov-ap.serie       = tit-ap.serie
+    and   mov-ap.nr-docto    = tit-ap.nr-docto
+    and   mov-ap.parcela     = tit-ap.parcela:
+    
+    if  mov-ap.transacao <> 1 
+    and mov-ap.transacao <> 6
+    and mov-ap.origem    <> 5
+    and tt-param.elimina-movto = no then do:
+
+        assign l-mostra-msg = yes.
+        if tt-param.elimina-ir = yes then do:
+            if  mov-ap.transacao = 5 then do:
+                find first b3-tit-ap 
+                     where b3-tit-ap.ep-codigo   = tit-ap.ep-codigo
+                     and   b3-tit-ap.cod-fornec  = tit-ap.cod-fornec
+                     and   b3-tit-ap.cod-estabel = tit-ap.cod-estabel
+                     and   b3-tit-ap.esp-ant     = tit-ap.cod-esp
+                     and   b3-tit-ap.serie-ant   = tit-ap.serie
+                     and   b3-tit-ap.docto-ant   = tit-ap.nr-docto
+                     and   b3-tit-ap.parc-ant    = tit-ap.parcela
+                     and   b3-tit-ap.tipo        = 8
+                     no-lock no-error.
+                 if  avail b3-tit-ap then 
+                     assign l-mostra-msg = no.
+            end.
+        end.
+        
+        if  l-mostra-msg = yes then do:
+        
+            find first tipo-tax 
+                 where tipo-tax.cod-tax = tit-ap.cod-impto-ret no-lock no-error.
+                    
+            IF  AVAIL tipo-tax AND tipo-tax.tipo <> 1 THEN DO:
+        
+                run utp/ut-msgs.p (input "help",
+                                   input 18172, 
+                                   input string(mov-ap.cod-estabel) + "~~" +
+                                         string(mov-ap.cod-fornec)  + "~~" +
+                                         string(mov-ap.cod-esp)     + "~~" +
+                                         string(mov-ap.serie)       + "~~" +
+                                         string(mov-ap.nr-docto)    + "~~" +
+                                         string(mov-ap.parcela)     + "~~" +
+                                         string(mov-ap.nr-cheque)   + "~~" +
+                                         string(mov-ap.referencia)).
+        
+                run pi-cria-tt-retorno-erro (input 18172,
+                                             input trim(return-value)).
+            end. 
+        end.
+        
+        if  mov-ap.transacao = 5 and mov-ap.tipo = 10 and mov-ap.docto-ant <> " " then do:
+            run utp/ut-msgs.p ("help",
+                               19447, 
+                               string(mov-ap.cod-estabel) + "~~" +
+                               string(mov-ap.fornec-ant)  + "~~" +
+                               string(mov-ap.esp-ant)     + "~~" +
+                               string(mov-ap.serie-ant)   + "~~" +
+                               string(mov-ap.docto-ant)   + "~~" +
+                               string(mov-ap.parc-ant)).
+        
+            run pi-cria-tt-retorno-erro (input 19447,
+                                         input trim(return-value)).
+        end.
+        
+        find first che-emit no-lock
+             where che-emit.ep-codigo   = mov-ap.ep-codigo
+             and   che-emit.portador    = mov-ap.portador
+             and   che-emit.nr-cheque   = mov-ap.nr-cheque
+             and   che-emit.cod-fornec  = mov-ap.cod-fornec
+             and   che-emit.cod-estabel = mov-ap.cod-estabel
+             and   che-emit.cod-esp     = mov-ap.cod-esp
+             and   che-emit.serie       = mov-ap.serie
+             and   che-emit.nr-docto    = mov-ap.nr-docto
+             and   che-emit.parcela     = mov-ap.parcela
+             and   che-emit.dt-emissao  = mov-ap.dt-transacao 
+             and   che-emit.emitiu      = yes no-error.
+        
+        if  avail che-emit then do:
+            run utp/ut-msgs.p ("help",
+                               16907, 
+                              string(che-emit.cod-estabel) + "~~" +
+                              string(che-emit.cod-fornec)  + "~~" +
+                              string(che-emit.cod-esp)     + "~~" +
+                              string(che-emit.serie)       + "~~" +
+                              string(che-emit.nr-docto)    + "~~" +
+                              string(che-emit.parcela)     + "~~" +
+                              string(che-emit.nr-cheque)   + "~~" +
+                              string(che-emit.referencia)).
+            run pi-cria-tt-retorno-erro (input 16907,
+                                         input trim(return-value)).
+        end.
+    end.        
+end.
+
+case tit-ap.tipo:
+
+    when 2 or when 10 then do: /* Antecipacao (2) / Provisao (10) */
+        find first l-ant-ap
+            where l-ant-ap.ep-codigo     = tit-ap.ep-codigo
+              and l-ant-ap.cod-est-ant   = tit-ap.cod-estab
+              and l-ant-ap.cod-esp-ant   = tit-ap.cod-esp
+              and l-ant-ap.serie-ant     = tit-ap.serie
+              and l-ant-ap.nr-docto-ant  = tit-ap.nr-docto
+              and l-ant-ap.parcela-ant   = tit-ap.parcela
+              and l-ant-ap.fornec-ant    = tit-ap.cod-fornec
+              no-lock no-error.
+
+        if  avail l-ant-ap then do:
+            if  tit-ap.tipo = 2 then
+                assign i-msg = 397.
+            else
+                assign i-msg = 19376.
+
+            run utp/ut-msgs.p ("help", i-msg, "").
+            run pi-cria-tt-retorno-erro (input i-msg,
+                                         input trim(return-value)).
+        end.
+
+        if  tit-ap.tipo = 2 and tit-ap.valor-saldo < tit-ap.vl-original then do:
+            find first mov-ap use-index ch-antecip
+                where mov-ap.ep-codigo   = tit-ap.ep-codigo
+                and   mov-ap.cod-estabel = tit-ap.cod-estabel
+                and   mov-ap.esp-ant     = tit-ap.cod-esp
+                and   mov-ap.serie-ant   = tit-ap.serie
+                and   mov-ap.docto-ant   = tit-ap.nr-docto
+                and   mov-ap.parc-ant    = tit-ap.parcela
+                and   mov-ap.fornec-ant  = tit-ap.cod-fornec
+                no-lock no-error.
+            if  avail mov-ap then do:
+                run utp/ut-msgs.p ("help", 400, "").
+                run pi-cria-tt-retorno-erro (input 400,
+                                             input trim(return-value)).
+            end.
+        end.
+    end.
+
+    when 1 or when 8 then do:
+        find first lin-b-ap
+            where lin-b-ap.ep-codigo   = tit-ap.ep-codigo
+              and lin-b-ap.cod-estabel = tit-ap.cod-estabel
+              and lin-b-ap.cod-esp     = tit-ap.cod-esp
+              and lin-b-ap.nr-docto    = tit-ap.nr-docto
+              and lin-b-ap.parcela     = tit-ap.parcela
+              and lin-b-ap.serie       = tit-ap.serie
+              and lin-b-ap.cod-fornec  = tit-ap.cod-fornec no-lock no-error.
+
+        if  avail lin-b-ap then do:
+            run utp/ut-msgs.p ("help", 398, lin-b-ap.referencia).
+            run pi-cria-tt-retorno-erro (input 398,
+                                         input trim(return-value)).
+        end.
+
+        for each bord-rec
+	    where bord-rec.ep-codigo = tit-ap.ep-codigo
+            no-lock: 
+
+            find first bord-tit
+                 where bord-tit.ep-codigo    = tit-ap.ep-codigo
+                 and   bord-tit.nr-bordero   = bord-rec.nr-bordero
+                 and   bord-tit.portador     = bord-rec.portador
+                 and   bord-tit.cod-estabel  = tit-ap.cod-estabel
+                 and   bord-tit.cod-esp      = tit-ap.cod-esp
+                 and   bord-tit.serie        = tit-ap.serie
+                 and   bord-tit.nr-docto     = tit-ap.nr-docto
+                 and   bord-tit.parcela      = tit-ap.parcela
+                 and   bord-tit.cod-fornec   = tit-ap.cod-fornec no-lock no-error.
+
+            if  avail bord-tit then do:
+                run utp/ut-msgs.p ("msg", 399, "").
+                run pi-cria-tt-retorno-erro (input 399,
+                                             input trim(return-value)).
+                leave.                                                 
+            end.  
+        end.
+    end.
+
+end case.
+
+find first mov-ap use-index codigo
+     where mov-ap.ep-codigo   = tit-ap.ep-codigo
+     and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+     and   mov-ap.cod-estabel = tit-ap.cod-estabel
+     and   mov-ap.cod-esp     = tit-ap.cod-esp
+     and   mov-ap.serie       = tit-ap.serie
+     and   mov-ap.nr-docto    = tit-ap.nr-docto
+     and   mov-ap.parcela     = tit-ap.parcela
+     and   mov-ap.transacao   = 6 /* SND */ no-lock no-error.
+if  avail mov-ap then do:
+    run utp/ut-msgs.p ("help", 401, "").
+    run pi-cria-tt-retorno-erro (input 401,
+                                 input trim(return-value)).
+end.    
+
+find first mov-ap use-index codigo
+    where mov-ap.ep-codigo    = tit-ap.ep-codigo
+    and   mov-ap.cod-fornec   = tit-ap.cod-fornec
+    and   mov-ap.cod-estabel  = tit-ap.cod-estabel
+    and   mov-ap.cod-esp      = tit-ap.cod-esp
+    and   mov-ap.serie        = tit-ap.serie
+    and   mov-ap.nr-docto     = tit-ap.nr-docto
+    and   mov-ap.parcela      = tit-ap.parcela
+    and   mov-ap.contabilizou = yes no-lock no-error.
+
+if  avail mov-ap then do:
+    if (mov-ap.tipo <> 4 and mov-ap.tipo <> 5) then do:
+        run utp/ut-msgs.p ("help", 402, "").
+        run pi-cria-tt-retorno-erro (input 402,
+                                     input trim(return-value)).
+    end.
+end.
+
+find espec-ap where espec-ap.cod-esp = tit-ap.cod-esp no-lock no-error.
+
+if  espec-ap.tipo = 3 then do:
+    run utp/ut-msgs.p ("msg", 425, "").
+    run pi-cria-tt-retorno-erro (input 425,
+                                 input trim(return-value)).
+end.
+
+/*--- NÆo pode Cancelar ND/NC ---*/
+if (espec-ap.tipo = 4 or
+    espec-ap.tipo = 5) then do:
+    {utp/ut-liter.i Documento}
+    run utp/ut-msgs.p ("help", 15904, trim(return-value)).
+    run pi-cria-tt-retorno-erro (input 15904,
+                                 input trim(return-value)).
+end.
+
+/*--- NÆo pode Cancelar Docto Originado por ND/NC ---*/
+find first mov-ap no-lock 
+     where mov-ap.ep-codigo   = tit-ap.ep-codigo
+     and   mov-ap.cod-estabel = tit-ap.cod-estabel
+     and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+     and   mov-ap.cod-esp     = tit-ap.cod-esp
+     and   mov-ap.serie       = tit-ap.serie
+     and   mov-ap.nr-docto    = tit-ap.nr-docto
+     and   mov-ap.parcela     = tit-ap.parcela
+     no-error.
+     
+if  avail mov-ap then do:
+    find first b-tit-ap no-lock
+         where b-tit-ap.ep-codigo   = mov-ap.ep-codigo
+         and   b-tit-ap.cod-estabel = mov-ap.cod-estabel
+         and   b-tit-ap.cod-esp     = mov-ap.esp-ant
+         and   b-tit-ap.serie       = mov-ap.serie-ant
+         and   b-tit-ap.nr-docto    = mov-ap.docto-ant
+         and   b-tit-ap.parcela     = mov-ap.parc-ant
+         and   b-tit-ap.cod-fornec  = mov-ap.fornec-ant 
+         no-error.
+
+    if  avail b-tit-ap then do:
+        find espec-ap where espec-ap.cod-esp = b-tit-ap.cod-esp no-lock no-error.
+        if  avail espec-ap then do:
+            if (espec-ap.tipo = 4 or
+                espec-ap.tipo = 5) then do:
+                {utp/ut-liter.i Documento}
+                run utp/ut-msgs.p ("help", 15904, trim(return-value)).
+                run pi-cria-tt-retorno-erro (input 15904,
+                                             input trim(return-value)).
+            end.
+        end.
+    end.
+end.      
+
+if  (tit-ap.dt-transacao < param-ap.dt-ult-fec) or
+    ((tit-ap.dt-transacao < da-ini-validac or tit-ap.dt-transacao > da-fim-validac) and espec-ap.contabiliza = yes) then do:
+    run utp/ut-msgs.p ("help", 404, "").
+    run pi-cria-tt-retorno-erro (input 404,
+                                 input trim(return-value)).
+end.
+
+if  param-ap.cont-baixa then do:
+    find first bordero-ap
+         where bordero-ap.ep-codigo   = tit-ap.ep-codigo
+         and   bordero-ap.cod-estabel = tit-ap.cod-estab
+         and   bordero-ap.cod-esp     = tit-ap.cod-esp
+         and   bordero-ap.serie       = tit-ap.serie
+         and   bordero-ap.nr-docto    = tit-ap.nr-docto
+         and   bordero-ap.parcela     = tit-ap.parcela
+         and   bordero-ap.cod-fornec  = tit-ap.cod-fornec
+         and   bordero-ap.tp-transacao = 2 /* Cheque */  no-lock no-error.
+    if  avail bordero-ap then do:
+        run utp/ut-msgs.p ("help", 405, "").
+        run pi-cria-tt-retorno-erro (input 405,
+                                     input trim(return-value)).
+    end.
+end.
+
+if  tit-ap.origem = 2 and tt-param.elimina-estoque = no then do:
+    run utp/ut-msgs.p ("msg", 5859, "").
+    run pi-cria-tt-retorno-erro (input 5859,
+                                 input trim(return-value)).    
+end.    
+
+if  i-pais-impto-usuario = 2 /*argentina*/ then do:
+    if  tit-ap.tipo = 1 then do:
+        find first mov-ap no-lock 
+             where mov-ap.ep-codigo   = tit-ap.ep-codigo
+             and   mov-ap.cod-estabel = tit-ap.cod-estabel
+             and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+             and   mov-ap.cod-esp     = tit-ap.cod-esp
+             and   mov-ap.serie       = tit-ap.serie
+             and   mov-ap.nr-docto    = tit-ap.nr-docto
+             and   mov-ap.parcela     = tit-ap.parcela
+             and   mov-ap.transacao   = 5
+             and   mov-ap.esp-ant     = param-ap.esp-ord-pagto
+             and   mov-ap.serie-ant   = param-ap.serie-ord-pagto
+             no-error.
+
+        if  avail mov-ap then do:
+            run utp/ut-msgs.p ("help", 18242, "").
+            run pi-cria-tt-retorno-erro (input 18242,
+                                         input trim(return-value)).
+        end.
+    end.
+end.
+
+/***********Valida‡Æo Movto conciliado***************/
+if  l-funcao-movto-cb = yes then do:
+    for each tt-erros:
+        delete tt-erros.
+    end.
+    if avail mov-ap then do:       
+      assign r-movto = rowid(mov-ap)
+             l-video = no.   
+      run cbp/cb0002.p (input mov-ap.ep-codigo, 
+                        input  2,
+                        input  r-movto,
+                        input  l-video,
+                        output l-erro,                   
+                        input-output table tt-erros).                          
+    end.                  
+ end.
+ for each tt-erros no-lock:
+     if  avail tt-erros then do:
+         if  tt-erros.cd-erro = 19451 then do:
+             run pi-cria-tt-retorno-erro (input 19451,
+                                          input tt-erros.mensagem).
+         end.                
+     end.                     
+end.   
+
+/* Fim de Include */
+

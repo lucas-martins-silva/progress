@@ -1,0 +1,22 @@
+PROCEDURE pi-cria-ttrefCTe:
+
+    DEFINE INPUT PARAMETER p-cod-chave-aces-nf-eletro AS CHARACTER NO-UNDO.
+
+    FIND FIRST ttrefCTe WHERE ttrefCTe.refCTe = TRIM(p-cod-chave-aces-nf-eletro) NO-ERROR.
+    IF NOT AVAIL ttrefCTe THEN DO:
+
+          CREATE ttrefCTe.
+          ASSIGN ttrefCTe.refCTe       = ""
+                 /* Chave EMS */
+                 ttrefCTe.CodEstabelNF = nota-fiscal.cod-estabel
+                 ttrefCTe.SerieNF      = IF nota-fiscal.serie = "" THEN "0" ELSE nota-fiscal.serie
+                 ttrefCTe.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                 ttrefCTe.ItCodigoNF   = it-nota-fisc.it-codigo
+                 ttrefCTe.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+    
+          /* CTe: enviar somente chave de acesso */
+          ASSIGN ttrefCTe.refCTe     = TRIM(p-cod-chave-aces-nf-eletro).
+    
+    END.
+
+END PROCEDURE.

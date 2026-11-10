@@ -1,0 +1,511 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (2003)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*------------------------------------------------------------------------
+File        : AXSMA003.i01
+Description : Include para adapter de envio de itens (Log¡stica)
+CREATEd     : 28/01/2004 10:00
+Notes       :
+----------------------------------------------------------------------*/
+
+/* **********************  Definitions  *********************** */
+
+/* Defini‡Æo identificadores Log¡stica */
+DEF VAR iIdMaterial                  AS INT NO-UNDO.
+DEF VAR iIdInvestmentAccount         AS INT NO-UNDO.
+DEF VAR iIdExpenseNature             AS INT NO-UNDO.
+DEF VAR iIdExpenseType               AS INT NO-UNDO.
+DEF VAR iIdInventoryInfo             AS INT NO-UNDO.
+DEF VAR iIdReplenishment             AS INT NO-UNDO.
+DEF VAR iIdSupplyFrequency           AS INT NO-UNDO.
+DEF VAR iIdWeightingFormulas         AS INT NO-UNDO.
+DEF VAR iIdSafety                    AS INT NO-UNDO.
+DEF VAR iIdInventoryCounting         AS INT NO-UNDO.
+DEF VAR iIdListWeightFactors         AS INT NO-UNDO.
+DEF VAR iIdWeightFactor              AS INT NO-UNDO.
+DEF VAR iIdQualityControlInfo        AS INT NO-UNDO.
+DEF VAR iIdPurchaseControlInfo       AS INT NO-UNDO.
+DEF VAR iIdBuyer                     AS INT NO-UNDO.
+DEF VAR iIdManagerSite               AS INT NO-UNDO.
+DEF VAR iIdPurchaseGroup             AS INT NO-UNDO.
+DEF VAR iIdReceivingControlInfo      AS INT NO-UNDO.
+DEF VAR iIdDistribution              AS INT NO-UNDO.
+DEF VAR iIdFiscalInfo                AS INT NO-UNDO.
+DEF VAR iIdFiscalClassification      AS INT NO-UNDO.
+DEF VAR iIdBrazilianTaxes            AS INT NO-UNDO.
+DEF VAR iIdServicesProductsTax       AS INT NO-UNDO.
+DEF VAR iIdServiceType               AS INT NO-UNDO.
+DEF VAR iIdServiceTax                AS INT NO-UNDO.
+DEF VAR iIdIndustrializedProductTax  AS INT NO-UNDO.
+DEF VAR iIdSocialIntegrProgramTax    AS INT NO-UNDO.
+DEF VAR iIdSocialSecurityContribTax  AS INT NO-UNDO.
+DEF VAR iIdTax                       AS INT NO-UNDO.
+DEF VAR iIdBeverageInvoicingInfo     AS INT NO-UNDO.
+DEF VAR iIdQuotaManagementInfo       AS INT NO-UNDO.
+def var iIdPrice                     as int no-undo.
+def var iIdAveragePrice              as int no-undo.
+def var iIdBasePrice                 as int no-undo.
+
+/* Vari veis locais */
+DEF VAR i-cont   AS INT         NO-UNDO.
+DEF VAR l-icm    AS LOG INIT NO NO-UNDO.
+DEF VAR l-iss    AS LOG INIT NO NO-UNDO.
+DEF VAR l-ipi    AS LOG INIT NO NO-UNDO.
+DEF VAR l-pis    AS LOG INIT NO NO-UNDO.
+DEF VAR l-cofins AS LOG INIT NO NO-UNDO.
+
+
+    /* Adiciona informacoes dos Aplicativos de Materiais */
+    RUN addNode IN hGenXml (iFirstId, "Material":U, "", OUTPUT iIdMaterial).
+    /* Tipo de controle do item  - Valores validos conforme include  ininc/i09in122.i  [Default 2] */
+    IF tt-item-eai.tipo-contr >= 1 AND tt-item-eai.tipo-contr <= 4 THEN
+        RUN addNodeDec IN hGenXml (iIdMaterial, "ControlType":U, tt-item-eai.tipo-contr, OUTPUT iId).
+    ELSE
+        RUN addNodeDec IN hGenXml (iIdMaterial, "ControlType":U, 2, OUTPUT iId).
+    /* Aplica‡Æo - Valores validos conforme include  ininc/i08in172.i  [Default 2] */    
+    IF tt-item-eai.ind-serv-mat = 1 OR tt-item-eai.ind-serv-mat = 2 THEN
+        RUN addNodeDec IN hGenXml (iIdMaterial, "Application":U, tt-item-eai.ind-serv-mat, OUTPUT iId).   
+    ELSE
+        RUN addNodeDec IN hGenXml (iIdMaterial, "Application":U, 2, OUTPUT iId).       
+    IF tt-item-eai.ct-codigo <> "" THEN DO:
+        RUN addNode IN hGenXml (iIdMaterial, "InvestmentAccount":U, "", OUTPUT iIdInvestmentAccount).
+        RUN addNode IN hGenXml (iIdInvestmentAccount, "Account":U, tt-item-eai.ct-codigo, OUTPUT iId).
+		
+		/* Retorna Dados da Conta. */
+		if not valid-handle(h_api_cta_ctbl) then run prgint/utb/utb743za.py persistent set h_api_cta_ctbl.    
+		run pi_busca_dados_cta_ctbl in h_api_cta_ctbl (input  "",          	/* EMPRESA EMS2 */
+														input  "",     					/* PLANO CONTAS */ 
+														input-output  tt-item-eai.ct-codigo,     					/* CONTA */
+														input  today,  					/* DATA TRANSACAO */
+														output v_des_cta_ctbl, 			/* Descrição da Contas. */
+														output v_num_tip_cta_ctbl, 		/* Tipo da Conta. 0 = Nenhum, 1 = Despesa, 2 = Receita, 3 = Vendas, 4 = Passivo, 5 = Ativo, 6 = Título. */
+														output v_num_sit_cta_ctbl, 		/* Situação da Conta. 1 = Ativada, 2 = Desativada, 3 = Sistema. */
+														output v_ind_finalid_cta, 	/* Finalidade da Conta. */
+														output table tt_log_erro).      /* ERROS */
+		if not can-find(first tt_log_erro) then do:
+			RUN addNode IN hGenXml (iIdInvestmentAccount, "AccountDescription":U, v_des_cta_ctbl, OUTPUT iId).      
+		end.		
+		
+	   if valid-handle(h_api_cta_ctbl) then
+	    	delete object h_api_cta_ctbl.
+		
+		RUN addNode IN hGenXml (iIdInvestmentAccount, "SubAccount":U, tt-item-eai.sc-codigo, OUTPUT iId).
+		
+    
+    END.
+    FIND FIRST item-mat WHERE item-mat.it-codigo = tt-item-eai.it-codigo NO-lOCK NO-ERROR.
+     IF AVAIL item-mat AND item-mat.prioridade-aprov >= 1 AND item-mat.prioridade-aprov <= 4 THEN
+        RUN addNodeDec IN hGenXml (iIdMaterial, "PurchaseOrderApprovalPriority":U, item-mat.prioridade-aprov, OUTPUT iId).   
+     ELSE
+        RUN addNodeDec IN hGenXml (iIdMaterial, "PurchaseOrderApprovalPriority":U, 4, OUTPUT iId).      
+    IF tt-item-eai.nat-despesa <> ? THEN DO:
+        RUN addNode IN hGenXml (iIdMaterial, "ExpenseNature":U, "", OUTPUT iIdExpenseNature).
+        RUN addNodeDec IN hGenXml (iIdExpenseNature, "ExpenseNatureID":U, tt-item-eai.nat-despesa, OUTPUT iId).          
+        FIND FIRST natureza-despesa WHERE natureza-despesa.nat-despesa = tt-item-eai.nat-despesa NO-LOCK NO-ERROR.
+          IF AVAIL natureza-despesa THEN
+           RUN addNode IN hGenXml (iIdExpenseNature, "ExpenseNatureDescription":U, natureza-despesa.descricao, OUTPUT iId).          
+    END.
+    IF tt-item-eai.tp-desp-padrao <> ? THEN DO:
+        RUN addNode IN hGenXml (iIdMaterial, "ExpenseType":U, "", OUTPUT iIdExpenseType).
+        RUN addNodeDec IN hGenXml (iIdExpenseType, "ExpenseID":U, tt-item-eai.tp-desp-padrao, OUTPUT iId).          
+        FIND FIRST tipo-rec-desp WHERE tipo-rec-desp.tp-codigo = tt-item-eai.tp-desp-padrao NO-LOCK NO-ERROR.
+          IF AVAIL tipo-rec-desp THEN
+           RUN addNode IN hGenXml (iIdExpenseType, "ExpenseDescription":U, tipo-rec-desp.descricao, OUTPUT iId).          
+    END.
+    RUN addNodeDec IN hGenXml (iIdMaterial, "QualityControlLeadTime":U, tt-item-eai.res-cq-comp, OUTPUT iId).   
+    RUN addNodeDec IN hGenXml (iIdMaterial, "ManufactureLeadTime":U, tt-item-eai.ressup-fabri, OUTPUT iId).   
+    RUN addNodeDec IN hGenXml (iIdMaterial, "ManufactureAndQualityControlLeadTime":U, tt-item-eai.res-cq-fabri, OUTPUT iId).   
+    RUN addNodeDec IN hGenXml (iIdMaterial, "VendorLeadTime":U, tt-item-eai.res-for-comp, OUTPUT iId).   
+    RUN addNodeDec IN hGenXml (iIdMaterial, "PurchasingLeadTime":U, tt-item-eai.res-int-comp, OUTPUT iId).   
+    IF AVAIL item-mat THEN
+     RUN addNodeDec IN hGenXml (iIdMaterial, "AllowedVariation":U, item-mat.variacao-perm, OUTPUT iId).   
+
+    RUN pi-info-estoque.
+    
+    /* Adiciona informacoes Controle de Qualidade */
+    RUN addNode IN hGenXml (iIdMaterial, "QualityControlInformation":U, " ", OUTPUT iIdQualityControlInfo).
+    RUN addNodeLog IN hGenXml (iIdQualityControlInfo, "IsItemQualityControlled":U, tt-item-eai.contr-qualid, OUTPUT iId).
+    
+    /* Criticidade do item em rela‡Æo ao comprometimento c/ processo de fabricacao - Valores validos conforme include  ininc/i23in172.i  [Default 1] */
+     IF tt-item-eai.criticidade >= 1 AND tt-item-eai.criticidade <= 3 THEN
+      RUN addNodeDec IN hGenXml (iIdQualityControlInfo, "CriticCode":U, tt-item-eai.criticidade, OUTPUT iId).
+     ELSE
+      RUN addNodeDec IN hGenXml (iIdQualityControlInfo, "CriticCode":U, 1, OUTPUT iId).
+    
+    RUN addNodeDec IN hGenXml (iIdQualityControlInfo, "QualityControlLevel":U, tt-item-eai.nivel, OUTPUT iId).
+    RUN addNodeDec IN hGenXml (iIdQualityControlInfo, "AcceptableQualityLevel":U, tt-item-eai.perc-nqa, OUTPUT iId).
+    
+     RUN pi-info-compras.
+    
+    /* Adiciona informacoes de Recebimento */
+    IF AVAIL item-mat THEN DO: 
+       RUN addNode IN hGenXml (iIdMaterial, "ReceivingControlInformation":U, "", OUTPUT iIdReceivingControlInfo).
+         RUN addNodeDec IN hGenXml (iIdReceivingControlInfo, "QuantityVarianceLimit":U, item-mat.lim-var-qtd, OUTPUT iId).
+         RUN addNodeDec IN hGenXml (iIdReceivingControlInfo, "ValueVarianceLimit":U, item-mat.lim-var-valor, OUTPUT iId).
+         RUN addNodeDec IN hGenXml (iIdReceivingControlInfo, "QuantityVariancePercentage":U, item-mat.var-qtd-re, OUTPUT iId).
+         RUN addNodeDec IN hGenXml (iIdReceivingControlInfo, "ValueVariancePercentage":U, item-mat.var-val-re-maior, OUTPUT iId).
+    END. 
+
+     RUN pi-info-distribuicao. 
+     
+    
+PROCEDURE pi-info-estoque:
+  
+   /* Adiciona informacoes do Estoque */
+    RUN addNode IN hGenXml (iIdMaterial, "InventoryInformation":U, " ", OUTPUT iIdInventoryInfo).
+    
+   /* Tipo de controle fisico  - Valores validos conforme include ininc/i01in122.i [Default 1] */
+    IF tt-item-eai.tipo-con-est >= 1 AND tt-item-eai.tipo-con-est <= 4 THEN
+     RUN addNodeDec IN hGenXml (iIdInventoryInfo, "InventoryControlType":U, tt-item-eai.tipo-con-est, OUTPUT iId).
+    ELSE
+     RUN addNodeDec IN hGenXml (iIdInventoryInfo, "InventoryControlType":U, 1, OUTPUT iId).
+     
+     RUN addNodeLog IN hGenXml (iIdInventoryInfo, "IsItemControlledByABCClassification":U, tt-item-eai.curva-abc, OUTPUT iId).
+     
+   IF AVAIL item-mat AND
+       (item-mat.tp-ressup <> 0       OR
+        item-mat.cd-freq <> 0         OR
+        item-mat.cod-fat-ponder <> 0  OR
+        item-mat.ponto-encomenda <> 0 OR
+        item-mat.crit-cc <> 0         OR
+        item-mat.crit-ce <> 0)        THEN DO:
+        
+      RUN addNode IN hGenXml (iIdInventoryInfo, "Replenishment":U, " ", OUTPUT iIdReplenishment).
+      
+      /* Tipo de ressuprimento  - Valores validos conforme include ininc/i01in598.i [Default 1] */
+      IF item-mat.tp-ressup >= 1 AND item-mat.tp-ressup <= 3 THEN
+       RUN addNodeDec IN hGenXml (iIdReplenishment, "InventoryReplenishmentType":U, item-mat.tp-ressup, OUTPUT iId).
+      ELSE
+       RUN addNodeDec IN hGenXml (iIdReplenishment, "InventoryReplenishmentType":U, 1, OUTPUT iId).
+       
+      IF item-mat.cd-freq <> 0 THEN DO:
+       RUN addNodeDec IN hGenXml (iIdReplenishment, "SupplyFrequency":U, " ", OUTPUT iIdSupplyFrequency).
+       RUN addNodeDec IN hGenXml (iIdSupplyFrequency, "FrequencyCode":U, item-mat.cd-freq, OUTPUT iId).
+       FIND FIRST frequencia WHERE frequencia.cd-freq = item-mat.cd-freq NO-LOCK NO-ERROR.
+         IF AVAIL frequencia THEN
+          RUN addNode IN hGenXml (iIdSupplyFrequency, "FrequencyDescription":U, frequencia.descricao, OUTPUT iId).
+      END. 
+      IF item-mat.cod-fat-ponder <> 0 THEN DO:
+       RUN addNode IN hGenXml (iIdReplenishment, "WeightingFormulas":U, " ", OUTPUT iIdWeightingFormulas).
+       RUN addNodeDec IN hGenXml (iIdWeightingFormulas, "WeightFactorCode":U, item-mat.cod-fat-ponder, OUTPUT iId).
+       FIND FIRST fat-ponder WHERE fat-ponder.cod-fat-ponder = item-mat.cod-fat-ponder NO-LOCK NO-ERROR.
+         IF AVAIL fat-ponder THEN
+          RUN addNode IN hGenXml (iIdWeightingFormulas, "WeightFactorDescription":U, fat-ponder.descricao, OUTPUT iId).
+      END. 
+      RUN addNodeDec IN hGenXml (iIdReplenishment, "InventoryReorderPoint":U, item-mat.ponto-encomenda, OUTPUT iId).
+      RUN addNodeDec IN hGenXml (iIdReplenishment, "PurchaseCriticality":U, item-mat.crit-cc, OUTPUT iId).
+      RUN addNodeDec IN hGenXml (iIdReplenishment, "StockageCriticality":U, item-mat.crit-ce, OUTPUT iId).
+      RUN addNodeLog IN hGenXml (iIdReplenishment, "IsAccountUpdateAllowedOnPurchaseRequest":U, item-mat.altera-conta, OUTPUT iId).
+      RUN addNodeDec IN hGenXml (iIdReplenishment, "ForecastConsumptionIndex":U, item-mat.ind-cons-prv, OUTPUT iId).
+   END. 
+   IF  tt-item-eai.tipo-est-seg <> 0   OR
+       tt-item-eai.perm-saldo-neg <> 0 OR
+       tt-item-eai.tempo-segur <> 0    OR
+       tt-item-eai.quant-segur <> 0    OR
+       tt-item-eai.quant-perda <> 0    THEN DO:
+     RUN addNode IN hGenXml (iIdInventoryInfo, "Safety":U, "", OUTPUT iIdSafety).
+     
+     /* Tipo de controle estoque de seguran‡a - Valores validos conforme include ininc/i05in122.i [Default 1] */
+     IF tt-item-eai.tipo-est-seg = 1 OR tt-item-eai.tipo-est-seg = 2 THEN
+      RUN addNodeDec IN hGenXml (iIdSafety, "SafetyStockControlType":U, tt-item-eai.tipo-est-seg, OUTPUT iId).
+     ELSE
+      RUN addNodeDec IN hGenXml (iIdSafety, "SafetyStockControlType":U, 1, OUTPUT iId).
+      
+     /* Movimentacao de estoque permite gerar saldo negativo? - Valores validos conforme include ininc/i11in122 [Default 1] */
+     IF tt-item-eai.perm-saldo-neg >= 1 AND tt-item-eai.perm-saldo-neg <= 3 THEN
+      RUN addNodeDec IN hGenXml (iIdSafety, "IsNegativeBalanceAllowed":U, tt-item-eai.perm-saldo-neg, OUTPUT iId).
+     ELSE
+      RUN addNodeDec IN hGenXml (iIdSafety, "IsNegativeBalanceAllowed":U, 1, OUTPUT iId).
+    
+     IF tt-item-eai.tempo-segur <> 0 THEN
+      RUN addNodeDec IN hGenXml (iIdSafety, "SafetyTime":U, tt-item-eai.tempo-segur, OUTPUT iId).
+     ELSE
+      RUN addNodeDec IN hGenXml (iIdSafety, "SafetyTime":U, 7, OUTPUT iId).
+     
+     RUN addNodeDec IN hGenXml (iIdSafety, "SafetyStock":U, tt-item-eai.quant-segur, OUTPUT iId).
+     RUN addNodeDec IN hGenXml (iIdSafety, "WasteQuantity":U, tt-item-eai.quant-perda, OUTPUT iId).
+     IF AVAIL item-mat THEN
+      RUN addNodeDec IN hGenXml (iIdSafety, "MaximumPeriodicalLot":U, item-mat.lote-per-max, OUTPUT iId).
+   END.
+  
+   IF tt-item-eai.ciclo-contag <> 0 OR
+      tt-item-eai.variac-acum <> 0  OR
+      tt-item-eai.data-ult-con <> ? THEN DO:
+     
+     RUN addNode IN hGenXml (iIdInventoryInfo, "InventoryCounting":U, "", OUTPUT iIdInventoryCounting).
+     RUN addNodeDec IN hGenXml (iIdInventoryCounting, "CountingCicle":U, tt-item-eai.ciclo-contag, OUTPUT iId).
+     RUN addNodeDec IN hGenXml (iIdInventoryCounting, "AccumulatedVariation":U, tt-item-eai.variac-acum, OUTPUT iId).
+     IF tt-item-eai.data-ult-con <> ? THEN
+      IF string(year(tt-item-eai.data-ult-con)) <> "1" THEN
+       RUN addNodeDate IN hGenXml (iIdInventoryCounting, "LastInventoryCountingDate":U, tt-item-eai.data-ult-con, OUTPUT iId).
+      
+     IF AVAIL item-mat THEN DO:
+       /* Fatores de ponderacao */
+       RUN addNode IN hGenXml (iIdInventoryCounting, "ListOfWeightFactors":U, "", OUTPUT iIdListWeightFactors). 
+       ASSIGN i-cont = 1.
+       DO WHILE i-cont <= 12:
+        RUN addNode IN hGenXml (iIdListWeightFactors, "WeightFactor":U, "", OUTPUT iIdWeightFactor). 
+        RUN addNodeDec IN hGenXml (iIdWeightFactor, "WeightFactorIndex":U, i-cont, OUTPUT iId). 
+        RUN addNodeDec IN hGenXml (iIdWeightFactor, "WeightFactorValue":U, item-mat.fator-ponder[i-cont], OUTPUT iId). 
+        ASSIGN i-cont = i-cont + 1.
+       END.  
+     END.
+     &if '{&BF_dis_VERSAO_EMS}' >= '2.062' &THEN
+        /*chama a procdure CalculaPrecoMedio da bo item*/
+        RUN inbo/boin172.p PERSISTENT SET h-boin172.
+        RUN CalculaPrecoMedio IN h-boin172(INPUT  tt-item-eai.it-codigo,    
+                                           OUTPUT de-preco-medio).
+        if valid-handle(h-boin172) then 
+           delete object h-boin172.                                        
+        
+        /* Adiciona informacoes do Pre‡o M‚dio*/
+        RUN addNode IN hGenXml (iIdInventoryInfo, "Price":U, "", OUTPUT iIdPrice).
+        RUN addNodeDec  IN hGenXml (iIdPrice, "AveragePrice":U, de-preco-medio, OUTPUT iId).
+        RUN addNode     IN hGenXml (iIdPrice, "BasePrice":U, "", OUTPUT iIdBasePrice).
+        RUN addNodeDate IN hGenXml (iIdBasePrice, "Date":U, tt-item-eai.data-base, OUTPUT iId).
+        RUN addNodeDec  IN hGenXml (iIdBasePrice, "Price":U, tt-item-eai.preco-base, OUTPUT iId).
+     &endif
+   END.
+ 
+END.
+
+
+PROCEDURE pi-info-compras:
+    
+    /* Adiciona informacoes de Compras */
+    RUN addNode IN hGenXml (iIdMaterial, "PurchaseControlInformation":U, "", OUTPUT iIdPurchaseControlInfo).
+    IF tt-item-eai.cod-comprado <> "" THEN DO:
+      RUN addNode IN hGenXml (iIdPurchaseControlInfo, "Buyer":U, "", OUTPUT iIdBuyer).
+      RUN addNode IN hGenXml (iIdBuyer, "BuyerID":U, tt-item-eai.cod-comprado, OUTPUT iId).
+      FIND FIRST comprador WHERE comprador.cod-comprado = tt-item-eai.cod-comprado NO-LOCK NO-ERROR.
+        IF AVAIL comprador THEN
+         RUN addNode IN hGenXml (iIdBuyer, "BuyerName":U,comprador.nome, OUTPUT iId).
+    END.
+    IF AVAIL item-mat THEN DO:
+     IF item-mat.cod-estab-gestor <> "" THEN DO:
+      RUN addNode IN hGenXml (iIdPurchaseControlInfo, "ManagerSite":U, "", OUTPUT iIdManagerSite).
+      RUN addNode IN hGenXml (iIdManagerSite, "SiteID":U, item-mat.cod-estab-gestor, OUTPUT iId).
+      FIND FIRST estabelec WHERE estabelec.cod-estabel = item-mat.cod-estab-gestor NO-LOCK NO-ERROR.
+        IF AVAIL estabelec THEN
+         RUN addNode IN hGenXml (iIdManagerSite, "SiteDescription":U,estabelec.nome, OUTPUT iId).
+     END.    
+     IF item-mat.cod-grp-compra <> "" THEN DO:
+      RUN addNode IN hGenXml (iIdPurchaseControlInfo, "PurchaseGroup":U, "", OUTPUT iIdPurchaseGroup).
+      RUN addNode IN hGenXml (iIdPurchaseGroup, "PurchaseGroupID":U, item-mat.cod-grp-compra, OUTPUT iId).
+      FIND FIRST grupo-compra WHERE grupo-compra.cod-grp-compra = item-mat.cod-grp-compra NO-LOCK NO-ERROR.
+        IF AVAIL grupo-compra THEN
+         RUN addNode IN hGenXml (iIdPurchaseGroup, "PurchaseGroupDescription":U, grupo-compra.des-grp-compra, OUTPUT iId).
+     END.
+    END.
+    
+    IF tt-item-eai.data-ult-rep <> ? THEN
+     RUN addNodeDate IN hGenXml (iIdPurchaseControlInfo, "LastRepositionDate":U, tt-item-eai.data-ult-rep, OUTPUT iId).
+    RUN addNodeDec IN hGenXml (iIdPurchaseControlInfo, "RepositionPrice":U, tt-item-eai.preco-repos, OUTPUT iId). 
+    
+    &IF '{&BF_DIS_VERSAO_EMS}' >= "2.05" &THEN
+      IF AVAIL item-mat AND item-mat.cod-ean <> "" THEN
+       RUN addNode IN hGenXml (iIdPurchaseControlInfo, "EANCode":U, item-mat.cod-ean, OUTPUT iId).  
+     &ELSE
+       IF substr(tt-item-eai.char-1,133,16) <> "" AND
+          substr(tt-item-eai.char-1,133,16) <> ?  THEN 
+          RUN addNode IN hGenXml (iIdPurchaseControlInfo, "EANCode":U, substr(tt-item-eai.char-1,133,16), OUTPUT iId).  
+        
+     &ENDIF
+
+END.
+
+
+PROCEDURE pi-info-distribuicao:
+
+    /* Adiciona informacoes fiscais p/ faturamento */
+    RUN addNode IN hGenXml (iFirstId, "Distribution":U, "", OUTPUT iIdDistribution).
+    FIND FIRST item-dist WHERE item-dist.it-codigo = tt-item-eai.it-codigo NO-LOCK NO-ERROR.
+      IF AVAIL item-dist THEN do:
+      
+       RUN addNodeLog IN hGenXml (iIdDistribution, "IsNegativeAllocationAllowed":U, item-dist.log-aloc-neg, OUTPUT iId).
+       end.
+     
+    /* Procedˆncia do item - Valores validos conforme include ininc/i18in122.i [Default 0] */
+    IF tt-item-eai.codigo-orig >= 0 AND tt-item-eai.codigo-orig <= 99 THEN
+      RUN addNodeDec IN hGenXml (iIdDistribution, "SourceID":U, tt-item-eai.codigo-orig, OUTPUT iId).
+    ELSE
+      RUN addNodeDec IN hGenXml (iIdDistribution, "SourceID":U, 0, OUTPUT iId).
+    
+    RUN addNodeLog IN hGenXml (iIdDistribution, "IsItemAllowedToBeInvoiced":U, tt-item-eai.ind-item-fat, OUTPUT iId).
+    RUN addNodeLog IN hGenXml (iIdDistribution, "IsItemInvoicedInFamilyUnitOfMeasure":U, tt-item-eai.ind-inf-qtf, OUTPUT iId).
+    RUN addNodeLog IN hGenXml (iIdDistribution, "IsItemIssuedInTheInventory":U, tt-item-eai.baixa-estoq, OUTPUT iId).
+
+    IF tt-item-eai.cd-trib-icm <> 0 OR tt-item-eai.fator-reaj-icms <> 0 THEN
+        ASSIGN l-icm = yes.
+    IF tt-item-eai.cd-trib-iss <> 0 OR tt-item-eai.aliquota-iss <> 0 THEN
+        ASSIGN l-iss = yes.
+    
+    IF tt-item-eai.cd-trib-ipi <> 0 OR tt-item-eai.aliquota-ipi <> 0 THEN
+        ASSIGN l-ipi = yes.
+    IF substr(tt-item-eai.char-2,31,5) <> "" OR substr(tt-item-eai.char-2,41,5) <> "" THEN
+        ASSIGN l-pis = yes.
+    IF substr(tt-item-eai.char-2,36,5) <> "" OR substr(tt-item-eai.char-2,46,5) <> "" THEN
+        ASSIGN l-cofins= yes.
+
+    IF  tt-item-eai.class-fiscal <> "" AND
+        (l-icm OR l-iss                OR
+         l-ipi OR l-pis                OR
+         l-cofins                      OR
+         tt-item-eai.cod-servico <> 0  OR
+         tt-item-eai.dec-1 <> 0        OR
+         &IF '{&BF_DIS_VERSAO_EMS}' < '2.071' &THEN
+         substr(tt-item-eai.char-2,217,12) <> ""  OR
+	 &ELSE
+         tt-item-eai.cod-dcr-item <> ""  OR
+	 &ENDIF
+         substr(tt-item-eai.char-2,20,2) <> "" OR
+         substr(tt-item-eai.char-2,22,6) <> "" OR
+         (AVAIL item-mat AND item-mat.cod-tax <> 0)) THEN DO:
+        
+        RUN addNode IN hGenXml (iIdDistribution, "FiscalInformation":U, "", OUTPUT iIdFiscalInfo).
+        IF  tt-item-eai.class-fiscal <> "" THEN DO:
+         RUN addNode IN hGenXml (iIdFiscalInfo, "FiscalClassification":U, "", OUTPUT iIdFiscalClassification).
+         RUN addNode IN hGenXml (iIdFiscalClassification, "FiscalClassificationID":U, tt-item-eai.class-fiscal, OUTPUT iId).
+          FIND FIRST classif-fisc WHERE classif-fisc.class-fiscal = tt-item-eai.class-fiscal NO-LOCK NO-ERROR.
+            IF AVAIL classif-fisc THEN
+             RUN addNode IN hGenXml (iIdFiscalClassification, "FiscalClassificationDescription":U, classif-fisc.descricao, OUTPUT iId).
+        END.
+             
+        RUN addNodeDec IN hGenXml (iIdFiscalClassification, "NCMExtension":U, tt-item-eai.dec-1, OUTPUT iId).
+        RUN addNode IN hGenXml (iIdFiscalInfo, "BrazilianTaxes":U, "", OUTPUT iIdBrazilianTaxes).
+        
+        IF l-icm THEN DO:
+         RUN addNode IN hGenXml (iIdBrazilianTaxes, "ServicesAndProductsCirculationTax":U, "", OUTPUT iIdServicesProductsTax).
+         
+         /* Tratamento do ICMS em rela‡Æo ao item - Valores validos conforme include ininc/i01in245.i [Default 1] */
+         IF tt-item-eai.cd-trib-icm >= 1 AND tt-item-eai.cd-trib-icm <= 5 THEN
+          RUN addNodeDec IN hGenXml (iIdServicesProductsTax, "TaxCode":U, tt-item-eai.cd-trib-icm, OUTPUT iId).
+         ELSE
+          RUN addNodeDec IN hGenXml (iIdServicesProductsTax, "TaxCode":U, 1, OUTPUT iId).
+         
+         IF tt-item-eai.fator-reaj-icms <> 0 THEN
+          RUN addNodeDec IN hGenXml (iIdServicesProductsTax, "TaxReadjustmentFactor":U,tt-item-eai.fator-reaj-icms , OUTPUT iId).
+        END.
+        
+        IF tt-item-eai.cod-servico <> 0 THEN DO:
+        RUN addNode IN hGenXml (iIdBrazilianTaxes, "ServiceType":U,"", OUTPUT iIdServiceType).
+         RUN addNodeDec IN hGenXml (iIdServiceType, "ServiceID":U, tt-item-eai.cod-servico, OUTPUT iId).
+         FIND FIRST tab-codser WHERE tab-codser.cod-servico = tt-item-eai.cod-servico NO-LOCK NO-ERROR.
+           IF AVAIL tab-codser THEN
+            RUN addNode IN hGenXml (iIdServiceType, "ServiceDescription":U, tab-codser.descricao, OUTPUT iId).
+        END.
+        
+        IF l-iss THEN DO:
+         RUN addNode IN hGenXml (iIdBrazilianTaxes, "ServiceTax":U, "", OUTPUT iIdServiceTax).
+         
+         /* Tratamento do ISS em rela‡Æo ao item - Valores validos conforme include ininc/i11in172.i [Default 1] */
+         IF tt-item-eai.cd-trib-iss >= 1 AND tt-item-eai.cd-trib-iss <= 4 THEN
+          RUN addNodeDec IN hGenXml (iIdServiceTax, "TaxCode":U, tt-item-eai.cd-trib-iss, OUTPUT iId).
+         ELSE
+          RUN addNodeDec IN hGenXml (iIdServiceTax, "TaxCode":U, 1, OUTPUT iId).
+          
+         RUN addNodeDec IN hGenXml (iIdServiceTax, "TaxPercentage":U, tt-item-eai.aliquota-iss, OUTPUT iId).
+        END.
+        
+        IF l-ipi THEN DO:
+         RUN addNode IN hGenXml (iIdBrazilianTaxes, "IndustrializedProductTax":U, "", OUTPUT iIdIndustrializedProductTax).
+         
+         /* Tratamento do IPI em rela‡Æo ao item - Valores validos conforme include ininc/i10in172.i [Default 1] */
+         IF tt-item-eai.cd-trib-ipi >= 1 AND tt-item-eai.cd-trib-ipi <= 4 THEN
+          RUN addNodeDec IN hGenXml (iIdIndustrializedProductTax,"TaxCode":U, tt-item-eai.cd-trib-ipi, OUTPUT iId).
+         ELSE
+          RUN addNodeDec IN hGenXml (iIdIndustrializedProductTax, "TaxCode":U, 1, OUTPUT iId).
+          
+         RUN addNodeDec IN hGenXml (iIdIndustrializedProductTax, "TaxPercentage":U,tt-item-eai.aliquota-ipi , OUTPUT iId).
+         IF substr(tt-item-eai.char-2,51,1) = "2" THEN
+          RUN addNodeLog IN hGenXml (iIdIndustrializedProductTax, "IsIndustrializedProductTaxSuspended":U, true, OUTPUT iId).
+         ELSE
+          RUN addNodeLog IN hGenXml (iIdIndustrializedProductTax, "IsIndustrializedProductTaxSuspended":U, false, OUTPUT iId).
+        END.
+        
+        IF l-pis THEN DO:
+         RUN addNode IN hGenXml (iIdBrazilianTaxes, "SocialIntegrationProgramTax":U, "", OUTPUT iIdSocialIntegrProgramTax).
+         IF substr(tt-item-eai.char-2,52,1) = "1" OR substr(tt-item-eai.char-2,52,1) = "2" THEN
+          RUN addNodeDec IN hGenXml (iIdSocialIntegrProgramTax, "TaxSource":U, dec(substr(tt-item-eai.char-2,52,1)), OUTPUT iId).
+         ELSE
+          RUN addNodeDec IN hGenXml (iIdSocialIntegrProgramTax, "TaxSource":U, 1, OUTPUT iId). 
+         RUN addNodeDec IN hGenXml (iIdSocialIntegrProgramTax, "TaxPercentage":U, dec(substr(tt-item-eai.char-2,31,5)), OUTPUT iId).
+         RUN addNodeDec IN hGenXml (iIdSocialIntegrProgramTax, "TaxReductionPercentage":U,dec(substr(tt-item-eai.char-2,41,5)), OUTPUT iId).
+        END. 
+        
+        IF l-cofins THEN DO:
+         RUN addNode IN hGenXml (iIdBrazilianTaxes, "SocialSecurityContributionTax":U, "", OUTPUT iIdSocialSecurityContribTax).
+         IF substr(tt-item-eai.char-2,53,1) = "1" OR substr(tt-item-eai.char-2,53,1) = "2" THEN
+          RUN addNodeDec IN hGenXml (iIdSocialSecurityContribTax, "TaxSource":U, dec(substr(tt-item-eai.char-2,53,1)), OUTPUT iId).
+         ELSE
+          RUN addNodeDec IN hGenXml (iIdSocialSecurityContribTax, "TaxSource":U, 1, OUTPUT iId). 
+         RUN addNodeDec IN hGenXml (iIdSocialSecurityContribTax, "TaxPercentage":U, dec(substr(tt-item-eai.char-2,36,5)), OUTPUT iId).
+         RUN addNodeDec IN hGenXml (iIdSocialSecurityContribTax, "TaxReductionPercentage":U,dec(substr(tt-item-eai.char-2,46,5)), OUTPUT iId).
+        END. 
+        
+        &IF '{&BF_DIS_VERSAO_EMS}' < '2.071' &THEN
+        RUN addNode IN hGenXml (iIdBrazilianTaxes, "DemonstrativeNumberOfRestitutionCoefficient":U,substr(tt-item-eai.char-2,217,12), OUTPUT iId). 
+        &ELSE
+        RUN addNode IN hGenXml (iIdBrazilianTaxes, "DemonstrativeNumberOfRestitutionCoefficient":U,tt-item-eai.cod-dcr-item, OUTPUT iId). 
+        &ENDIF
+        IF substr(tt-item-eai.char-1,50,5) = "Sim":U THEN
+           RUN addNodeLog IN hGenXml (iIdBrazilianTaxes, "IsSocialIntegrationProgramTaxAndSocialSecurityContributionTaxValueIncorporatedInInvoiceDocumentTotalValue":U,true, OUTPUT iId). 
+        ELSE
+           RUN addNodeLog IN hGenXml (iIdBrazilianTaxes, "IsSocialIntegrationProgramTaxAndSocialSecurityContributionTaxValueIncorporatedInInvoiceDocumentTotalValue":U,false, OUTPUT iId). 
+           
+        /* Tratamento II(Imposto de Importacao) em rela‡Æo ao item - Valores validos conforme include ininc/i10in172.i */
+        IF substr(tt-item-eai.char-2,20,2) >= "01" AND substr(tt-item-eai.char-2,20,2) <= "04" THEN
+          RUN addNodeDec IN hGenXml (iIdBrazilianTaxes, "ImportTaxTaxationCode":U, dec(substr(tt-item-eai.char-2,20,2)), OUTPUT iId).
+      
+        RUN addNodeDec IN hGenXml (iIdBrazilianTaxes, "ImportTaxPercentage":U, dec(substr(tt-item-eai.char-2,22,6)), OUTPUT iId).
+
+        IF AVAIL item-mat AND item-mat.cod-tax <> 0 THEN DO:
+         RUN addNode IN hGenXml (iIdFiscalInfo, "Tax", "", OUTPUT iIdTax).
+         RUN addNodeDec IN hGenXml (iIdTax, "TaxCode":U, item-mat.cod-tax, OUTPUT iId).
+         FIND FIRST tipo-tax WHERE tipo-tax.cod-tax = item-mat.cod-tax NO-LOCK NO-ERROR.
+           IF AVAIL tipo-tax THEN DO:
+            RUN addNode IN hGenXml (iIdTax, "TaxDescription":U, tipo-tax.descricao, OUTPUT iId).
+            
+            /* Tipo do imposto - Valores validos conforme include diinc/i01di217.i [Default 1] */
+            IF tipo-tax.tipo >= 1 AND tipo-tax.tipo <= 3 THEN
+             RUN addNodeDec IN hGenXml (iIdTax, "TaxType":U, tipo-tax.tipo, OUTPUT iId).
+            ELSE
+             RUN addNodeDec IN hGenXml (iIdTax, "TaxType":U, 1, OUTPUT iId).
+           END.
+        END.
+    END.
+    
+    IF tt-item-eai.valor-ipi-beb <> 0 OR
+       tt-item-eai.esp-beb <> 0 OR
+       tt-item-eai.enquad-beb <> 0 OR
+       tt-item-eai.tipo-recip-beb <> 0 THEN DO:
+     RUN addNode IN hGenXml (iIdDistribution, "BeverageInvoicingInformation":U, "", OUTPUT iIdBeverageInvoicingInfo).
+     RUN addNodeDec IN hGenXml (iIdBeverageInvoicingInfo, "BeverageIndustrializedProductTaxValue":U, tt-item-eai.valor-ipi-beb, OUTPUT iId).
+     RUN addNodeDec IN hGenXml (iIdBeverageInvoicingInfo, "BeverageType":U, tt-item-eai.esp-beb, OUTPUT iId).
+     RUN addNodeDec IN hGenXml (iIdBeverageInvoicingInfo, "BeverageClassification":U, tt-item-eai.enquad-beb, OUTPUT iId).
+     IF tt-item-eai.tipo-recip-beb <= 99 THEN
+        RUN addNodeDec IN hGenXml (iIdBeverageInvoicingInfo, "BeverageReceptacle":U, tt-item-eai.tipo-recip-beb, OUTPUT iId).
+    END.
+    
+    /* Adiciona informacoes de Cotas */
+    FIND FIRST item-cota WHERE item-cota.it-codigo = tt-item-eai.it-codigo NO-LOCK NO-ERROR.
+      IF AVAIL item-cota THEN 
+       IF item-cota.log-consid-cotas OR
+          item-cota.log-cota-limite  OR
+          item-cota.log-produto      OR
+          item-cota.nr-pontos   <> 0 OR
+          item-cota.quant-segur <> 0 THEN DO:
+          RUN addNode IN hGenXml (iIdDistribution, "QuotaManagementInformation":U, "", OUTPUT iIdQuotaManagementInfo).
+          RUN addNodeLog IN hGenXml (iIdQuotaManagementInfo, "IsItemConsideredToReceiveQuotasInTheDistribution":U, item-cota.log-consid-cotas, OUTPUT iId).
+          RUN addNodeLog IN hGenXml (iIdQuotaManagementInfo, "IsQuotaLimitControlAppliedToItem":U, item-cota.log-cota-limite, OUTPUT iId).
+          RUN addNodeLog IN hGenXml (iIdQuotaManagementInfo, "IsItemQuotaControlledByProduct":U, item-cota.log-produto, OUTPUT iId).
+          RUN addNodeDec IN hGenXml (iIdQuotaManagementInfo, "PointsNumber":U, item-cota.nr-pontos, OUTPUT iId).
+          RUN addNodeDec IN hGenXml (iIdQuotaManagementInfo, "QuotasSafetyStockPercentage":U, item-cota.quant-segur, OUTPUT iId).
+       END. 
+
+END.

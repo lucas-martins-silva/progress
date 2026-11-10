@@ -1,0 +1,135 @@
+/*********************************************************************************
+***
+*** app/ap0817rp.i - Relatorio Sint‚tico
+***
+*********************************************************************************/
+/* Relatorio Sint‚tico */
+
+conta-block:
+for each conta-ap no-lock
+    where conta-ap.ep-codigo   = i-ep-codigo-usuario
+    and   conta-ap.conta-saldo >= tt-param.c-ini-conta
+    and   conta-ap.conta-saldo <= tt-param.c-fim-conta
+    break by conta-ap.conta-saldo:
+
+    {utp/ut-liter.i Conta: * L}
+    run pi-acompanhar in h-acomp (input return-value + " " + conta-ap.conta-saldo).    
+
+    if  first-of(conta-ap.conta-saldo) then do:
+
+        /*Procura por valores na Contabilidade*/
+        for each movimento no-lock
+            where movimento.ep-codigo    = i-ep-codigo-usuario
+            and   movimento.ct-codigo    = conta-ap.ct-saldo
+            and   movimento.sc-codigo    = conta-ap.sc-saldo
+            and   movimento.data        >= tt-param.dt-ini-period
+            and   movimento.data        <= tt-param.dt-fim-period
+            break by movimento.data:
+
+            case tt-param.moeda:
+                when 1 then assign de-vl-moeda = movimento.valor.
+                when 2 then assign de-vl-moeda = movimento.valor-fasb.
+                when 3 then assign de-vl-moeda = movimento.valor-cmi.
+                when 4 then assign de-vl-moeda = movimento.valor-presente.
+            end.
+
+            if  movimento.tipo = 1
+            or  movimento.tipo = 3 then
+                assign de-vl-debito-contab  = de-vl-debito-contab  + de-vl-moeda.
+            else
+                assign de-vl-credito-contab = de-vl-credito-contab + de-vl-moeda.
+        end.
+
+        /*Procura por valores no M¢dulo AP*/
+        for each t-diario-ap no-lock
+            where t-diario-ap.ep-codigo     = i-ep-codigo-usuario
+            and   t-diario-ap.ct-conta      = trim(conta-ap.ct-saldo)
+            and   t-diario-ap.sc-conta      = trim(conta-ap.sc-saldo)
+            and   t-diario-ap.dt-transacao >= tt-param.dt-ini-period
+            and   t-diario-ap.dt-transacao <= tt-param.dt-fim-period:
+
+            case tt-param.moeda:
+                when 1 then assign de-vl-moeda = if t-diario-ap.lancamento = 1
+                                                 then t-diario-ap.vl-debito
+                                                 else t-diario-ap.vl-credito.
+                when 2 then assign de-vl-moeda = if t-diario-ap.lancamento = 1
+                                                 then t-diario-ap.vl-deb-fasb
+                                                 else t-diario-ap.vl-cred-fasb.
+                when 3 then assign de-vl-moeda = if t-diario-ap.lancamento = 1
+                                                 then t-diario-ap.vl-deb-cmi
+                                                 else t-diario-ap.vl-cred-cmi.
+                when 4 then assign de-vl-moeda = if t-diario-ap.lancamento = 1
+                                                 then t-diario-ap.vl-deb-presente
+                                                 else t-diario-ap.vl-cred-presente.
+            end.
+
+            if  t-diario-ap.lancamento = 1  then
+                assign de-vl-debito-modulo  = de-vl-debito-modulo  + de-vl-moeda.
+            else
+                assign de-vl-credito-modulo = de-vl-credito-modulo + de-vl-moeda.
+        end.
+
+        if  de-vl-debito-contab  = 0
+        and de-vl-debito-modulo  = 0
+        and de-vl-credito-contab = 0
+        and de-vl-credito-modulo = 0
+        then next conta-block.
+
+        if line-counter >= 56 then
+           page.
+              
+        display c-label-1
+                c-label-2
+                c-label-4
+                c-label-5
+                c-label-6
+                with frame f-cab-sin.
+
+        assign de-vl-debito-difer  = absolute(de-vl-debito-contab  - de-vl-debito-modulo)
+               de-vl-credito-difer = absolute(de-vl-credito-contab - de-vl-credito-modulo).
+
+        /*Verifica‡Æo para imprimir apenas quando a diferen‡a*/
+        if  tt-param.l-imp-dif  = yes
+        and de-vl-debito-difer  = 0 
+        and de-vl-credito-difer = 0 then do:
+     
+            assign de-vl-debito-contab  = 0
+                   de-vl-debito-modulo  = 0
+                   de-vl-credito-contab = 0
+                   de-vl-credito-modulo = 0.
+            next conta-block.
+        end.
+
+        find first conta-contab where 
+                   conta-contab.ep-codigo      = i-ep-codigo-usuario and
+                   conta-contab.conta-contabil = conta-ap.conta-saldo 
+                   no-lock no-error.
+            
+        if avail conta-contab then do:
+            assign c-conta = string(conta-contab.conta-contabil,param-global.formato-conta-contabil).
+            disp c-conta
+                 conta-contab.titulo
+                 c-debito
+                 de-vl-debito-contab
+                 de-vl-debito-modulo
+                 de-vl-debito-difer
+                 c-credito
+                 de-vl-credito-contab
+                 de-vl-credito-modulo
+                 de-vl-credito-difer
+                 skip
+                 with frame f-movto-sin.
+            down with frame f-movto-sin.
+        end.
+        
+        assign de-vl-debito-contab  = 0
+               de-vl-debito-modulo  = 0
+               de-vl-debito-difer   = 0
+               de-vl-credito-contab = 0
+               de-vl-credito-modulo = 0
+               de-vl-credito-difer  = 0.
+    end.
+end.
+hide frame f-cab-sin.
+    
+/* Fim de Include */

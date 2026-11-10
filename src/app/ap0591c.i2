@@ -1,0 +1,89 @@
+/********************************************************************************
+***
+*** app/ap0591c.i2 - Gera novo documento para o fornecedor em consequància do
+***                  documento original n∆o ter saldo ou a ND n∆o ter sido
+***                  vinculada.
+***
+********************************************************************************/
+
+/*--- Cria Documento ---*/
+if  l-vinculado = yes then do:
+    {app/ap0591c.i6 "tit-ap"
+                    "b-tit-ap-orig"}
+end.
+else do:
+    {app/ap0591c.i6 "tit-ap"
+                    "tit-ap"}
+end.
+
+/************ MULTIPLANTA ************/
+run pi-cria-tt-dados-b-tit-ap (input 1).
+/*************************************/
+
+/*--- Cria Movimento ---*/
+{app/ap0591c.i5 "b-tit-ap"
+                "b-tit-ap"
+                "1"
+                "b-tit-ap.conta-debito"
+                "b-tit-ap.ct-conta-db"
+                "b-tit-ap.sc-conta-db"
+                "b-tit-ap.vl-original"
+                "b-tit-ap.vl-orig-me"
+                "1"}
+
+/*********** MULTIPLANTA ************/
+run pi-cria-tt-dados-mov-ap (input 1).
+/************************************/       
+
+/*--- V†rias Contas de DÇbito ---*/
+for each  tt-conta-debito
+    where tt-conta-debito.ep-codigo   = tit-ap.ep-codigo
+    and   tt-conta-debito.cod-estabel = tit-ap.cod-estabel
+    and   tt-conta-debito.cod-fornec  = tit-ap.cod-fornec
+    and   tt-conta-debito.cod-esp     = tit-ap.cod-esp
+    and   tt-conta-debito.serie       = tit-ap.serie
+    and   tt-conta-debito.nr-docto    = tit-ap.nr-docto
+    and   tt-conta-debito.parcela     = tit-ap.parcela:
+
+    find first conta-contab no-lock 
+         where conta-contab.ep-codigo      = tit-ap.ep-codigo
+         and   conta-contab.conta-contabil = tt-conta-debito.conta-debito no-error.
+
+    if  avail conta-contab then do:
+        create tit-conta-ap.
+        assign tit-conta-ap.ep-codigo    = b-tit-ap.ep-codigo
+               tit-conta-ap.cod-estabel  = b-tit-ap.cod-estabel
+               tit-conta-ap.cod-esp      = b-tit-ap.cod-esp
+               tit-conta-ap.serie        = b-tit-ap.serie
+               tit-conta-ap.nr-docto     = b-tit-ap.nr-docto
+               tit-conta-ap.parcela      = b-tit-ap.parcela
+               tit-conta-ap.cod-fornec   = b-tit-ap.cod-fornec
+               tit-conta-ap.ct-codigo    = conta-contab.ct-codigo
+               tit-conta-ap.sc-codigo    = conta-contab.sc-codigo
+               tit-conta-ap.conta-debito = conta-contab.conta-contabil
+               tit-conta-ap.vl-movto-me  = tt-conta-debito.vl-movto.
+
+       assign  tit-conta-ap.vl-movto     = fn_ajust_dec(fn_conv_moedas(tt-conta-debito.vl-movto, 
+                                                        b-tit-ap.cotacao-dia,
+                                                        b-tit-ap.moeda,
+                                                        0),0).
+
+        /*************** MULTIPLANTA **************/
+        run pi-cria-tt-dados-tit-conta-ap (input 1).
+        /******************************************/                  
+
+    end.
+end.
+
+/*--- Integraá∆o Caixas e Bancos ---*/            
+{app/ap9100.i2}
+assign tt-integ-ap.tt-row-tit-ap  = rowid(b-tit-ap)
+       tt-integ-ap.tt-op-cb0110a  = 16
+       tt-integ-ap.tt-op-cb1202a  = 16
+       tt-integ-ap.tt-cb0110a     = yes
+       tt-integ-ap.tt-cb1202a     = yes.
+raw-transfer tt-integ-ap to raw-integracao.
+run app/ap9100.p (Input raw-integracao, input-output table tt-erro).
+
+/* Fim de Include */
+

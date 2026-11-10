@@ -1,0 +1,44 @@
+/******************************************************************************
+**
+**  Include: AP0703.i8 
+**  Objetivo: Calculo dos totais por grupo de fornecedor.
+**
+******************************************************************************/
+
+if  avail emitente then do:
+    find grupo-fornec
+        where grupo-fornec.cod-gr-forn = emitente.cod-gr-forn no-lock no-error.
+    find first w-grupo-for
+         where w-grupo-for.grupo = grupo-fornec.cod-gr-forn no-error.
+    if  not avail w-grupo-for then do:
+        create w-grupo-for.
+        assign w-grupo-for.grupo = grupo-fornec.cod-gr-forn.
+    end.
+end.
+
+if  tit-ap.tipo = 2 then do:
+    if avail w-grupo-for then
+       assign w-grupo-for.ant-gr  = w-grupo-for.ant-gr + de-tot-ant2
+              w-grupo-for.ant-gr1 = w-grupo-for.ant-gr1 + de-tot-ant3.
+end.
+else do:
+    if  (tit-ap.tipo = 1 or tit-ap.tipo = 8)
+    and avail w-grupo-for then
+           assign w-grupo-for.nor-gr = w-grupo-for.nor-gr + de-orig1
+                  w-grupo-for.nor-gr1 = w-grupo-for.nor-gr1 + de-saldo1.
+    else
+        if  tit-ap.tipo = 3
+        and avail w-grupo-for then
+            assign w-grupo-for.pre-gr  = w-grupo-for.pre-gr  + de-orig2
+                   w-grupo-for.pre-gr1 = w-grupo-for.pre-gr1 + de-saldo2.
+        else
+            /* Carlos - src12112 - Tratamento de Provisäes */
+            if tit-ap.tipo = 10 and avail w-grupo-for then
+                assign w-grupo-for.pro-gr  = w-grupo-for.pro-gr  + de-orig3
+                       w-grupo-for.pro-gr1 = w-grupo-for.pro-gr1 + de-saldo3.
+            /* ------------------------------------------- */
+
+    {app/ap0703.i7}
+end.
+
+/* AP0703.i8*/

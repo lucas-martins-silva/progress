@@ -1,0 +1,20 @@
+/******************************************************************************
+**
+** app/ap0501e.i10 - Exclui lote pendente (usado no programa ap0501f.p).
+**
+*******************************************************************************/
+    
+if  avail doc-i-ap then do:
+    find first lin-i-ap no-lock
+         where lin-i-ap.ep-codigo  = doc-i-ap.ep-codigo
+         and   lin-i-ap.referencia = doc-i-ap.referencia 
+         no-error.
+                    
+    if  not avail lin-i-ap then do:
+        find b-doc-i-ap where rowid(b-doc-i-ap) = rowid(doc-i-ap) exclusive-lock no-error.
+        if  avail b-doc-i-ap then
+            delete b-doc-i-ap.
+    end.
+end.
+        
+/* Fim Include */    

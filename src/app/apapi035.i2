@@ -1,0 +1,1450 @@
+/********************************************************************************
+***
+*** app/apapi035.i2 - Validacao das altera‡äes.
+***
+********************************************************************************/
+
+    if  tit-ap.tipo <> 1 
+    and tit-ap.tipo <> 2 
+    and tit-ap.tipo <> 8 
+    and tit-ap.tipo <> 10  then do:
+        run utp/ut-msgs.p (input "help":U,
+                           input 25521,
+                           input "" ).
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 25521
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                                
+    end. 
+
+    /* Quando o saldo do documento est ÿ zerado, a data de vencimento nÆo pode ser alterada.
+       Observa‡Æo: Caso nÆo seja modificado o saldo do t¡tulo. */
+    if  tit-ap.vl-saldo-me  = tt-titulo.tt-vl-saldo-me
+    and tit-ap.vl-saldo-me  = 0
+    and tit-ap.dt-vencimen <> tt-titulo.tt-dt-vencimen then do:
+        run utp/ut-msgs.p (input "help":U,
+                           input 35543,
+                           input "" ).
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 35543
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.
+    end.
+                                  
+    /*--- DOCUMENTO PENDENTE PARA PAGAMENTO. NÇO PODE SER ALTERADO ---*/
+    find first lin-b-ap
+         where lin-b-ap.ep-codigo   = tit-ap.ep-codigo
+         and   lin-b-ap.cod-estabel = tit-ap.cod-estabel
+         and   lin-b-ap.cod-esp     = tit-ap.cod-esp
+         and   lin-b-ap.serie       = tit-ap.serie
+         and   lin-b-ap.nr-docto    = tit-ap.nr-docto
+         and   lin-b-ap.parcela     = tit-ap.parcela
+         and   lin-b-ap.cod-fornec  = tit-ap.cod-fornec
+         no-lock no-error.
+
+    find first bord-tit
+         where bord-tit.ep-codigo   = tit-ap.ep-codigo
+         and   bord-tit.cod-estabel = tit-ap.cod-estabel
+         and   bord-tit.cod-esp     = tit-ap.cod-esp
+         and   bord-tit.serie       = tit-ap.serie
+         and   bord-tit.nr-docto    = tit-ap.nr-docto
+         and   bord-tit.parcela     = tit-ap.parcela
+         and   bord-tit.cod-fornec  = tit-ap.cod-fornec
+         no-lock no-error.
+
+    if  not avail lin-b-ap 
+    and not avail bord-tit then do:
+        if  tit-ap.vl-saldo-me <> tt-titulo.tt-vl-saldo-me then do:
+            {app/apapi035.i3}
+        end.                        
+    end.
+    else do:
+        /* TÖTULO POSSUI MOVIMENTO DE BAIXA PENDENTE */
+        if  avail lin-b-ap then do:
+            &IF "{&mgadm_version}" >= "2.07" &THEN
+                if  lin-b-ap.cod-prog-pagto <> "B"
+                and lin-b-ap.cod-prog-pagto <> "C" then do:
+                    run utp/ut-msgs.p (input "help":U,
+                                       input 8870,
+                                       input "").
+                    create tt-retorna-erro.
+                    assign tt-retorna-erro.cod-erro  = 8870
+                           tt-retorna-erro.desc-erro = trim(return-value)
+                           tt-retorna-erro.l-erro    = yes
+                           tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                       string(tt-titulo.tt-cod-fornec) + ";" +
+                                                       tt-titulo.tt-cod-estabel + ";" +
+                                                       tt-titulo.tt-cod-esp     + ";" +
+                                                       tt-titulo.tt-serie       + ";" +
+                                                       tt-titulo.tt-nr-docto    + ";" +
+                                                       tt-titulo.tt-parcela.
+                    assign l-houve-erro = yes.
+                end.            
+            &ELSE
+                if  substring(lin-b-ap.char-1,1,1) <> "B"
+                and substring(lin-b-ap.char-1,1,1) <> "C" then do:
+                    run utp/ut-msgs.p (input "help":U,
+                                       input 8870,
+                                       input "").
+                    create tt-retorna-erro.
+                    assign tt-retorna-erro.cod-erro  = 8870
+                           tt-retorna-erro.desc-erro = trim(return-value)
+                           tt-retorna-erro.l-erro    = yes
+                           tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                       string(tt-titulo.tt-cod-fornec) + ";" +
+                                                       tt-titulo.tt-cod-estabel + ";" +
+                                                       tt-titulo.tt-cod-esp     + ";" +
+                                                       tt-titulo.tt-serie       + ";" +
+                                                       tt-titulo.tt-nr-docto    + ";" +
+                                                       tt-titulo.tt-parcela.
+                    assign l-houve-erro = yes.
+                end.
+            &ENDIF 
+
+        end.
+        /* TÖTULO EM PREPARA€ÇO NO BORDERâ &1 */
+
+        if  avail bord-tit then do:
+            run utp/ut-msgs.p (input "help":U,
+                               input 1712,
+                               input string(bord-tit.nr-bordero)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 1712
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+
+        /* TÖTULO TOTALMENTE BAIXADO */
+        if  tit-ap.vl-saldo-me <> tt-titulo.tt-vl-saldo-me then do:
+            if  tit-ap.valor-saldo = 0 then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 1682,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 1682
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                                   
+            end.
+        end.    
+        else do:
+          if  tit-ap.vl-saldo-me > 0 then do:    
+              /* DOCTO ENVIADO PARA PAGTO ATRAVS DE BORDERâ */
+              if  tit-ap.nr-bordero > 0 then do:
+                  run utp/ut-msgs.p (input "help":U,
+                                     input 8874,
+                                     input string(tit-ap.nr-bordero)).
+                  create tt-retorna-erro.
+                  assign tt-retorna-erro.cod-erro  = 8874
+                         tt-retorna-erro.desc-erro = trim(return-value)
+                         tt-retorna-erro.l-erro    = yes
+                         tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                     string(tt-titulo.tt-cod-fornec) + ";" +
+                                                     tt-titulo.tt-cod-estabel + ";" +
+                                                     tt-titulo.tt-cod-esp     + ";" +
+                                                     tt-titulo.tt-serie       + ";" +
+                                                     tt-titulo.tt-nr-docto    + ";" +
+                                                     tt-titulo.tt-parcela.
+                  assign l-houve-erro = yes.                                   
+              end.
+          end.    
+        end.
+    end.
+
+    find first mov-ap
+         where mov-ap.ep-codigo   = tit-ap.ep-codigo
+         and   mov-ap.cod-estabel = tit-ap.cod-estabel
+         and   mov-ap.cod-esp     = tit-ap.cod-esp
+         and   mov-ap.serie       = tit-ap.serie
+         and   mov-ap.nr-docto    = tit-ap.nr-docto
+         and   mov-ap.parcela     = tit-ap.parcela
+         and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+         and  (mov-ap.transacao   = 1
+         or    mov-ap.transacao   = 6
+         and   mov-ap.lancamento  = 2) no-lock no-error.
+
+    if  avail mov-ap then do:
+        /* TÖTULO ENVIADO AO BANCO SEM A CONFIRMA€ÇO DE ENTRADA. NÇO PODERµ SER ALTERADO */
+        if  mov-ap.emit-fita = yes and tit-ap.titulo-banco = " " then do:
+            if  tit-ap.vl-saldo-me <> tt-titulo.tt-vl-saldo-me then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 8871,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8871
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.
+            if  tit-ap.dt-emissao <> tt-titulo.tt-dt-emissao then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 8871,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8871
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.
+            if  tit-ap.dt-vencimen <> tt-titulo.tt-dt-vencimen then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 8871,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8871
+                       tt-retorna-erro.desc-erro = trim(return-value)                       
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.
+            if  tit-ap.dt-desconto <> tt-titulo.tt-dt-desconto then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 8871,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8871
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.
+            end.
+            if  tit-ap.vl-desconto-me <> tt-titulo.tt-vl-desconto-me then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 8871,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8871
+                       tt-retorna-erro.desc-erro = trim(return-value)                       
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.
+        end.
+
+        /* MOVIMENTO Jµ CONTABILIZADO, DADOS NÇO PODERÇO SER ALTERADOS */
+        if  mov-ap.contabilizou = yes then do:
+            if  tit-ap.dt-emissao <> tt-titulo.tt-dt-emissao then do:
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 3863,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 3863
+                       tt-retorna-erro.desc-erro = trim(return-value)                       
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.
+
+            if  tit-ap.dt-transacao <> tt-titulo.tt-dt-transacao then do:
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 3863,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 3863
+                       tt-retorna-erro.desc-erro = trim(return-value)                       
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.
+
+            if  tit-ap.conta-debito <> tt-titulo.tt-conta-debito then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 8889,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8889
+                       tt-retorna-erro.desc-erro = trim(return-value)                       
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.            
+        end.
+    end.
+    /* DATA VENCIMENTO DEVE SER MAIOR OU IGUAL A DATA DE EMISSÇO */
+    if  tt-titulo.tt-dt-vencimen < tt-titulo.tt-dt-emissao then do:
+        run utp/ut-msgs.p (input "help":U,
+                           input 1031,
+                           input "").
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 1031
+               tt-retorna-erro.desc-erro = trim(return-value)                       
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                   
+    end.
+
+    if  tit-ap.tipo = 2 and tt-titulo.tt-modalidade = 2 then do:
+        run utp/ut-msgs.p (input "help",
+                           input 18765,
+                           input "").
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 18765
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                   
+    end.
+    /* TIPO DE DESPESA NÇO CADASTRADO */
+    if  tt-titulo.tt-tp-codigo = 0 then do:
+        find first tipo-rec-desp
+             where tipo-rec-desp.tp-codigo = tt-titulo.tt-tp-codigo no-lock no-error.
+    end.
+    else do:
+        find first tipo-rec-desp 
+            where  tipo-rec-desp.tp-codigo = tt-titulo.tt-tp-codigo
+            and    tipo-rec-desp.tipo      = 2 no-lock no-error.
+    end.
+    if  not avail tipo-rec-desp then do:
+        run utp/ut-msgs.p (input "help":U,
+                           input 146,
+                           input "").
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 146
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                   
+    end.
+
+    if  tit-ap.transacao <> 6 then do: /* SND */
+        find first tit-conta-ap
+             where tit-conta-ap.ep-codigo   = tit-ap.ep-codigo
+             and   tit-conta-ap.cod-estabel = tit-ap.cod-estabel
+             and   tit-conta-ap.cod-esp     = tit-ap.cod-esp
+             and   tit-conta-ap.serie       = tit-ap.serie
+             and   tit-conta-ap.nr-docto    = tit-ap.nr-docto
+             and   tit-conta-ap.parcela     = tit-ap.parcela
+             and   tit-conta-ap.cod-fornec  = tit-ap.cod-fornec
+             no-lock no-error.
+
+        if  not avail tit-conta-ap then do:
+            find first conta-contab
+                 where conta-contab.ep-codigo      = tit-ap.ep-codigo
+                 and   conta-contab.conta-contabil = tt-titulo.tt-conta-debito
+                 no-lock no-error.
+
+            if  not avail conta-contab then do:
+                /* Conta Contabil nao cadastrada */
+                run utp/ut-msgs.p (input "help",
+                                   input 177,
+                                   input tt-titulo.tt-conta-debito).
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 177
+                       tt-retorna-erro.desc-erro = trim(return-value)                       
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                    
+            end.
+            if avail conta-contab then do:        
+                    if  conta-contab.tipo = 6 then do:
+                        /* Conta de Titulo nao pode receber lancamento */
+                        run utp/ut-msgs.p (input "help",
+                                           input 444,
+                                           input " ").
+                        create tt-retorna-erro.
+                        assign tt-retorna-erro.cod-erro  = 444
+                               tt-retorna-erro.desc-erro = trim(return-value)
+                               tt-retorna-erro.l-erro    = yes
+                               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                                           tt-titulo.tt-cod-estabel + ";" +
+                                                           tt-titulo.tt-cod-esp     + ";" +
+                                                           tt-titulo.tt-serie       + ";" +
+                                                           tt-titulo.tt-nr-docto    + ";" +
+                                                           tt-titulo.tt-parcela.
+                        assign l-houve-erro = yes.                                   
+                    end.        
+                    if  conta-contab.estado <> 3 then do:
+                        /* Conta deve ser de sistema */
+                        run utp/ut-msgs.p (input "help",
+                                           input 638,
+                                           input tt-titulo.tt-conta-debito, param-global.formato-conta-contabil)).
+                        create tt-retorna-erro.
+                        assign tt-retorna-erro.cod-erro  = 638
+                               tt-retorna-erro.desc-erro = trim(return-value)
+                               tt-retorna-erro.l-erro    = yes
+                               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                                           tt-titulo.tt-cod-estabel + ";" +
+                                                           tt-titulo.tt-cod-esp     + ";" +
+                                                           tt-titulo.tt-serie       + ";" +
+                                                           tt-titulo.tt-nr-docto    + ";" +
+                                                           tt-titulo.tt-parcela.
+                        assign l-houve-erro = yes.                                   
+                    end.        
+                    if  conta-contab.contas-pagar = 1 then do:
+                        /* Conta nao pode receber lancamento no contas a pagar */
+                        run utp/ut-msgs.p (input "help",
+                                           input 460,
+                                           input " ").
+                        create tt-retorna-erro.
+                        assign tt-retorna-erro.cod-erro  = 460
+                               tt-retorna-erro.desc-erro = trim(return-value)
+                               tt-retorna-erro.l-erro    = yes
+                               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                                           tt-titulo.tt-cod-estabel + ";" +
+                                                           tt-titulo.tt-cod-esp     + ";" +
+                                                           tt-titulo.tt-serie       + ";" +
+                                                           tt-titulo.tt-nr-docto    + ";" +
+                                                           tt-titulo.tt-parcela.
+                        assign l-houve-erro = yes.                                   
+                    end.        
+                    if  conta-contab.caixa-bancos = 3 and tit-ap.tipo <> 2 then do:
+                        /* Nao pode-se utilizar conta do portador */
+                        run utp/ut-msgs.p (input "msg",
+                                           input 4012,
+                                           input " ").
+                        create tt-retorna-erro.
+                        assign tt-retorna-erro.cod-erro  = 4012
+                               tt-retorna-erro.desc-erro = trim(return-value)                       
+                               tt-retorna-erro.l-erro    = yes
+                               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                                           tt-titulo.tt-cod-estabel + ";" +
+                                                           tt-titulo.tt-cod-esp     + ";" +
+                                                           tt-titulo.tt-serie       + ";" +
+                                                           tt-titulo.tt-nr-docto    + ";" +
+                                                           tt-titulo.tt-parcela.
+                        assign l-houve-erro = yes.                                   
+                    end.
+            end.        
+        end. 
+    end.
+    if  tit-ap.tipo = 1 then do:
+        if  tt-titulo.tt-dt-desconto <> ? then do:
+            if  (tt-titulo.tt-dt-desconto < tt-titulo.tt-dt-emissao) or
+                (tt-titulo.tt-dt-desconto > tt-titulo.tt-dt-vencimen) then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 311,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 311
+                       tt-retorna-erro.desc-erro = trim(return-value)                       
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                    
+            end.
+        end.
+    end.
+
+    /*CONSISTE SE A DATA DE VENCIMENTO E O VALOR DO DESCONTO ESTÇO 
+      SIMULTANEAMENTE INFORMADOS */
+    if  tt-titulo.tt-dt-desconto <> ? and tt-titulo.tt-vl-desconto-me = 0 then do:           
+        run utp/ut-msgs.p (input "help",
+                           input 4026,
+                           input " ").
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 4026
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                   
+    end.
+    if  tt-titulo.tt-dt-desconto = ? and tt-titulo.tt-vl-desconto-me > 0 then do:
+        run utp/ut-msgs.p (input "help",
+                           input 4026,
+                           input " ").
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 4026
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                           
+    end.
+
+    /* TÖTULO ENVIADO AO BANCO SEM A CONFIRMA€ÇO DE ENTRADA. NÇO PODERµ
+       SER ALTERADO OS CAMPOS: SALDO, PORTADOR, EMISSÇO, VENCIMENTO,
+       DESCONTO E VALOR DO DESCONTO */
+
+    if (tit-ap.portador   <> tt-titulo.tt-portador) 
+    or (tit-ap.modalidade <> tt-titulo.tt-modalidade) then do:
+
+        /*--- Pagamento Centralizado ---*/
+        run cdp/cd0006.p (input "AP",
+                          input tit-ap.ep-codigo,
+                          input tit-ap.portador,
+                          input tit-ap.modalidade,
+                          input 3,
+                          input no,
+                          output i-num-erro,
+                          output c-erro).
+
+        if  return-value = 'NOK' then do:
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = i-num-erro
+                   tt-retorna-erro.desc-erro = trim(c-erro)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+        find first mov-ap
+             where mov-ap.ep-codigo   = tit-ap.ep-codigo
+             and   mov-ap.cod-estabel = tit-ap.cod-estabel
+             and   mov-ap.cod-esp     = tit-ap.cod-esp
+             and   mov-ap.serie       = tit-ap.serie
+             and   mov-ap.nr-docto    = tit-ap.nr-docto
+             and   mov-ap.parcela     = tit-ap.parcela
+             and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+             and  (mov-ap.transacao   = 1
+             or    mov-ap.transacao   = 6
+             and   mov-ap.lancamento  = 2) no-lock no-error.
+
+        if  avail mov-ap then do:
+            if  mov-ap.emit-fita = yes and tit-ap.titulo-banco = " " then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 8871,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8871
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                   
+            end.
+        end.
+    end.
+
+    /* IMPLANTA€ÇO DA ANTECIPA€ÇO Jµ CONTABILIZADA */
+    if  tit-ap.tipo = 2 then do:
+        find first mov-ap of tit-ap where mov-ap.transacao = 1 no-lock no-error.
+        if  avail mov-ap  and  mov-ap.contabilizou = yes 
+        and (mov-ap.portador <> tt-titulo.tt-portador) then do:
+            run utp/ut-msgs.p (input "help":U,
+                               input 8873,
+                               input "").
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 8873
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+
+    if  tit-ap.portador > 0  
+    and tit-ap.portador <> tt-titulo.tt-portador then do:
+        /* PORTADOR NÇO CADASTRADO */
+        find first portador
+             where portador.ep-codigo    = tit-ap.ep-codigo
+             and   portador.cod-portador = tt-titulo.tt-portador
+             and   portador.modalidade   = tt-titulo.tt-modalidade no-lock no-error.
+
+        if  not avail portador then do:
+            run utp/ut-msgs.p (input "help":U,
+                               input 798,
+                               input string(tt-titulo.tt-portador) + "~~" +
+                                     {adinc/i03ad209.i 4 tt-titulo.tt-modalidade}).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 798
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.    
+        if tit-ap.tipo <> 1 then do: /* Continua fazendo a consistˆncia */
+            if  tit-ap.moeda <> portador.mo-codigo then do:
+                run utp/ut-msgs.p (input "help":U,
+                                   input 7700,
+                                   input string(tt-titulo.tt-portador) + "~~" +
+                                         {adinc/i03ad209.i 4 tt-titulo.tt-modalidade}).
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 7700
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                                   
+            end.        
+        end.
+
+        if  portador.modalidade <> 1 and
+            portador.modalidade <> 6 and
+            portador.modalidade <> 8 then do:
+            run utp/ut-msgs.p (input "help":U,
+                               input 15398,
+                               input "").
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 15398
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+
+    if  tit-ap.tipo = 2 then do:
+        find first portador
+             where portador.ep-codigo    = tit-ap.ep-codigo
+             and   portador.cod-portador = tt-titulo.tt-portador
+             and   portador.modalidade   = tt-titulo.tt-modalidade
+             no-lock no-error.
+
+        if  avail portador then do:
+            if (tit-ap.portador   <> tt-titulo.tt-portador) 
+            or (tit-ap.modalidade <> tt-titulo.tt-modalidade) then do:
+                find first b-portador
+                     where b-portador.ep-codigo    = tit-ap.ep-codigo
+                     and   b-portador.cod-portador = tit-ap.portador
+                     and   b-portador.modalidade   = tit-ap.modalidade no-lock no-error.
+                
+                if  avail b-portador 
+                and b-portador.bancario <> portador.bancario then do:
+                    if  b-portador.bancario = yes then
+                        {utp/ut-liter.i Banc rio}
+                    else
+                        {utp/ut-liter.i NÆo_Banc rio}
+
+                    run utp/ut-msgs.p (input "show":U,
+                                       input 18793,
+                                       input return-value).                
+                    
+                    create tt-retorna-erro.
+                    assign tt-retorna-erro.cod-erro  = 18793
+                           tt-retorna-erro.desc-erro = trim(return-value)
+                           tt-retorna-erro.l-erro    = yes
+                           tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                       string(tt-titulo.tt-cod-fornec) + ";" +
+                                                       tt-titulo.tt-cod-estabel + ";" +
+                                                       tt-titulo.tt-cod-esp     + ";" +
+                                                       tt-titulo.tt-serie       + ";" +
+                                                       tt-titulo.tt-nr-docto    + ";" +
+                                                       tt-titulo.tt-parcela.
+                    assign l-houve-erro = yes.                                               
+                end.
+            end.
+        
+            if  portador.bancario = yes then do:
+                find first cta-corrente
+                     where cta-corrente.cod-banco    = portador.cod-banco
+                     and   cta-corrente.agencia      = portador.agencia
+                     and   cta-corrente.conta-corren = portador.conta-corren
+                     no-lock no-error.
+                if  not avail cta-corrente then do:
+                    /* Conta corrente do portador nao cadastrada */
+                    run utp/ut-msgs.p (input "help":U,
+                                       input 1057,
+                                       input string(portador.cod-banco) + "~~" +
+                                                    portador.agencia + "~~" +
+                                                    portador.conta-corren).                
+                    create tt-retorna-erro.
+                    assign tt-retorna-erro.cod-erro  = 1057
+                           tt-retorna-erro.desc-erro = trim(return-value)
+                           tt-retorna-erro.l-erro    = yes
+                           tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                       string(tt-titulo.tt-cod-fornec) + ";" +
+                                                       tt-titulo.tt-cod-estabel + ";" +
+                                                       tt-titulo.tt-cod-esp     + ";" +
+                                                       tt-titulo.tt-serie       + ";" +
+                                                       tt-titulo.tt-nr-docto    + ";" +
+                                                       tt-titulo.tt-parcela.
+                    assign l-houve-erro = yes.                                                       
+                end.
+                find first conta-contab
+                     where conta-contab.ep-codigo      = tit-ap.ep-codigo
+                     and   conta-contab.conta-contabil = cta-corren.conta-saldo
+                     no-lock no-error.
+
+                if  not avail conta-contab then do:
+                    /* Conta Cont bil NÆo Cadastrada */
+                    run utp/ut-msgs.p (input "help":U,
+                                       input 8884,
+                                       input string(cta-corren.conta-saldo, param-global.formato-conta-contabil) + "~~" +
+                                             string(tt-titulo.tt-portador)).
+                    create tt-retorna-erro.
+                    assign tt-retorna-erro.cod-erro  = 8884
+                           tt-retorna-erro.desc-erro = trim(return-value)
+                           tt-retorna-erro.l-erro    = yes
+                           tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                       string(tt-titulo.tt-cod-fornec) + ";" +
+                                                       tt-titulo.tt-cod-estabel + ";" +
+                                                       tt-titulo.tt-cod-esp     + ";" +
+                                                       tt-titulo.tt-serie       + ";" +
+                                                       tt-titulo.tt-nr-docto    + ";" +
+                                                       tt-titulo.tt-parcela.
+                    assign l-houve-erro = yes.                                                       
+                end.
+            end.
+            else do:
+                find first conta-contab
+                     where conta-contab.ep-codigo      = tit-ap.ep-codigo
+                     and   conta-contab.conta-contabil = portador.conta-contabil
+                     no-lock no-error.
+
+                if  not avail conta-contab then do:
+                    /* Conta Cont bil NÆo Cadastrada */
+                    run utp/ut-msgs.p (input "help":U,
+                                       input 8885,
+                                       input string(portador.cod-portador)).
+                    create tt-retorna-erro.
+                    assign tt-retorna-erro.cod-erro  = 8885
+                           tt-retorna-erro.desc-erro = trim(return-value)
+                           tt-retorna-erro.l-erro    = yes
+                           tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                       string(tt-titulo.tt-cod-fornec) + ";" +
+                                                       tt-titulo.tt-cod-estabel + ";" +
+                                                       tt-titulo.tt-cod-esp     + ";" +
+                                                       tt-titulo.tt-serie       + ";" +
+                                                       tt-titulo.tt-nr-docto    + ";" +
+                                                       tt-titulo.tt-parcela.
+                    assign l-houve-erro = yes.                                                       
+                end.
+            end.
+        end.
+    end.
+
+    /* DOCTO ENVIADO AO BANCO SEM A CONFIRMA€ÇO DE ENTRADA */
+    if  tt-titulo.tt-portador <> tit-ap.portador then do:
+        find first mov-ap of tit-ap no-lock no-error.
+        if  mov-ap.emit-fita = yes and tit-ap.titulo-banco = " " then do:
+            run utp/ut-msgs.p (input "help":U,
+                               input 3865,
+                               input "").
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 3865
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+
+    if  tt-titulo.tt-hist-padrao <> 0 then do:
+        find first hist-padrao
+             where hist-padrao.hp-codigo = tt-titulo.tt-hist-padrao no-lock no-error.
+
+        if  not avail hist-padrao then do:
+            run utp/ut-msgs.p (input "help":U,
+                               input 319,
+                               input string(tt-titulo.tt-hist-padrao)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 319
+                   tt-retorna-erro.desc-erro = trim(return-value)                       
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+
+        if  hist-padrao.complemento = 1 then do:
+            if  not (tt-titulo.tt-historico begins hist-padrao.descricao) then do:
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 8880,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 8880
+                       tt-retorna-erro.desc-erro = trim(return-value)           
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                                   
+            end.        
+        end.                
+    end.      
+    if  tt-titulo.tt-cod-retencao <> 0 then do:
+        find first tt-cod-ir no-lock
+            where tt-cod-ir.c-cod = string(tt-titulo.tt-cod-retencao,"9999") no-error.
+        if not avail tt-cod-ir then do:
+            /* Tipo de Rendimento invalido. Deseja Continuar ? */
+            run utp/ut-msgs.p (input "help":U,
+                               input 843,
+                               input string(tt-titulo.tt-cod-retencao)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 843
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.                              
+        else do:
+            find first emitente no-lock
+                 where emitente.cod-emitente = tt-titulo.tt-cod-fornec
+                 no-error.    
+            if  avail emitente then do:                
+                {cdp/cd8889.i2 help tt-cod-ir.i-pessoa emitente.natureza c-mensagem " " emitente.cod-emitente tt-cod-ir.c-cod }                
+                if c-mensagem <> " " then do:
+                   create tt-retorna-erro.
+                   assign tt-retorna-erro.cod-erro  = 25843
+                          tt-retorna-erro.desc-erro = trim(c-mensagem)
+                          tt-retorna-erro.l-erro    = yes
+                          tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                      string(tt-titulo.tt-cod-fornec) + ";" +
+                                                      tt-titulo.tt-cod-estabel + ";" +
+                                                      tt-titulo.tt-cod-esp     + ";" +
+                                                      tt-titulo.tt-serie       + ";" +
+                                                      tt-titulo.tt-nr-docto    + ";" +
+                                                      tt-titulo.tt-parcela.
+                  assign l-houve-erro = yes.                                               
+               end.   
+            end. 
+        end.
+    end.
+
+    /** Validacao p/impedir que sejam alterados a data e o saldo de titulo vinvulados ao cambio **/
+    &if defined(BF_FIN_MODUL_CAMBIO) &then
+        find first param-global no-lock no-error.
+        if param-global.modulo-mec = yes then do:
+            find emitente where emitente.cod-emitente = tit-ap.cod-fornec no-lock no-error.
+            if avail emitente and emitente.natureza = 3 then do:
+                if tit-ap.moeda <> 0 then do:
+                    run adbo/boad342.p persistent set h-boad342.
+                    run pi-vld-alt-titulo-ap in h-boad342 (input  tit-ap.ep-codigo,
+                                                           input  tit-ap.cod-fornec,
+                                                           input  tit-ap.cod-estabel,
+                                                           input  tit-ap.cod-esp,
+                                                           input  tit-ap.serie,
+                                                           input  tit-ap.nr-docto,
+                                                           input  tit-ap.parcela,
+                                                           input  tt-titulo.tt-dt-vencimen,
+                                                           output p-sl-liquidar,
+                                                           output p-nr-contrato,
+                                                           output p-dt-contrato).
+                    if p-sl-liquidar > tt-titulo.tt-vl-saldo-me then do:
+                        run utp/ut-msgs.p(input "help",
+                                          input 25290,
+                                          input "").
+                        create tt-retorna-erro.
+                        assign tt-retorna-erro.cod-erro  = 25920
+                               tt-retorna-erro.desc-erro = trim(return-value)
+                               tt-retorna-erro.l-erro    = yes
+                               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                                           tt-titulo.tt-cod-estabel + ";" +
+                                                           tt-titulo.tt-cod-esp     + ";" +
+                                                           tt-titulo.tt-serie       + ";" +
+                                                           tt-titulo.tt-nr-docto    + ";" +
+                                                           tt-titulo.tt-parcela.
+                        assign l-houve-erro = yes.                                    
+                    end.
+                    if  tit-ap.dt-vencimen <> tt-titulo.tt-dt-vencimen and  p-l-vencimento = yes then do:
+                        run pi-alt-dt-venc-titulo in h-boad342 (input  tit-ap.ep-codigo,
+                                                                input  tit-ap.cod-fornec,
+                                                                input  tit-ap.cod-estabel,
+                                                                input  tit-ap.cod-esp,
+                                                                input  tit-ap.serie,
+                                                                input  tit-ap.nr-docto,
+                                                                input  tit-ap.parcela,
+                                                                input  tt-titulo.tt-dt-vencimen).
+                    end.
+                end.
+                if  tit-ap.tipo = 2 then do:
+                    if  tit-ap.vl-saldo-me <> tt-titulo.tt-vl-saldo-me then do:
+                        run utp/ut-msgs.p(input "help",
+                                          input 25313,
+                                          input "").
+                        create tt-retorna-erro.
+                        assign tt-retorna-erro.cod-erro  = 25313
+                               tt-retorna-erro.desc-erro = trim(return-value)
+                               tt-retorna-erro.l-erro    = yes
+                               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                                           tt-titulo.tt-cod-estabel + ";" +
+                                                           tt-titulo.tt-cod-esp     + ";" +
+                                                           tt-titulo.tt-serie       + ";" +
+                                                           tt-titulo.tt-nr-docto    + ";" +
+                                                           tt-titulo.tt-parcela.
+                        assign l-houve-erro = yes.                                   
+                    end.                        
+                end.
+                if  valid-handle (h-boad342) then
+                    delete procedure h-boad342.
+            end.
+        end.
+    &endif
+    find first mov-ap
+         where mov-ap.ep-codigo   = tit-ap.ep-codigo
+         and   mov-ap.cod-estabel = tit-ap.cod-estabel
+         and   mov-ap.serie       = tit-ap.serie
+         and   mov-ap.cod-esp     = tit-ap.cod-esp
+         and   mov-ap.nr-docto    = tit-ap.nr-docto
+         and   mov-ap.parcela     = tit-ap.parcela
+         and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+         and   mov-ap.transacao   = 1 no-lock no-error.
+    /* Valida‡Æo da conta de d‚bito */
+    if  tit-ap.tipo <> 2 
+    or (tit-ap.tipo  = 2 and mov-ap.contabilizou = no and tit-ap.portador = 0) then do:
+        if  tt-titulo.tt-conta-debito <> "" then do:
+            find conta-contab where conta-contab.ep-codigo      = tt-titulo.tt-ep-codigo
+                              and   conta-contab.conta-contabil = tt-titulo.tt-conta-debito
+                              no-lock no-error.
+            if not avail conta-contab then do:
+               run utp/ut-msgs.p(input "help",
+                                 input 19,
+                                 input tt-titulo.tt-conta-debito).
+               create tt-retorna-erro.
+               assign tt-retorna-erro.cod-erro  = 19
+                      tt-retorna-erro.desc-erro = trim(return-value)
+                      tt-retorna-erro.l-erro    = yes
+                      tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                  string(tt-titulo.tt-cod-fornec) + ";" +
+                                                  tt-titulo.tt-cod-estabel + ";" +
+                                                  tt-titulo.tt-cod-esp     + ";" +
+                                                  tt-titulo.tt-serie       + ";" +
+                                                  tt-titulo.tt-nr-docto    + ";" +
+                                                  tt-titulo.tt-parcela.
+               assign l-houve-erro = yes.                                   
+            end.
+              if avail conta-contab then do:
+                    if  avail mov-ap then do:
+                        if mov-ap.contabilizou = no then do:
+                           if conta-contab.tipo = 6 then do:
+                              run utp/ut-msgs.p(input "msg",
+                                                input 20,
+                                                input "").
+                              create tt-retorna-erro.
+                              assign tt-retorna-erro.cod-erro  = 20
+                                     tt-retorna-erro.desc-erro = trim(return-value)
+                                     tt-retorna-erro.l-erro    = yes
+                                     tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                                 string(tt-titulo.tt-cod-fornec) + ";" +
+                                                                 tt-titulo.tt-cod-estabel + ";" +
+                                                                 tt-titulo.tt-cod-esp     + ";" +
+                                                                 tt-titulo.tt-serie       + ";" +
+                                                                 tt-titulo.tt-nr-docto    + ";" +
+                                                                 tt-titulo.tt-parcela.
+                              assign l-houve-erro = yes.                                                     
+                           end.     
+                           if conta-contab.estado <> 3 then do:
+                              run utp/ut-msgs.p(input "help",
+                                                input 912,
+                                                input "").
+                              create tt-retorna-erro.
+                              assign tt-retorna-erro.cod-erro  = 912
+                                     tt-retorna-erro.desc-erro = trim(return-value)
+                                     tt-retorna-erro.l-erro    = yes
+                                     tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                                 string(tt-titulo.tt-cod-fornec) + ";" +
+                                                                 tt-titulo.tt-cod-estabel + ";" +
+                                                                 tt-titulo.tt-cod-esp     + ";" +
+                                                                 tt-titulo.tt-serie       + ";" +
+                                                                 tt-titulo.tt-nr-docto    + ";" +
+                                                                 tt-titulo.tt-parcela.
+                              assign l-houve-erro = yes.                                                     
+                           end.
+                           if conta-contab.contas-pagar = 1 then do:
+                              run utp/ut-msgs.p(input "help",
+                                                input 905,
+                                                input "").
+                              create tt-retorna-erro.
+                              assign tt-retorna-erro.cod-erro  = 905
+                                     tt-retorna-erro.desc-erro = trim(return-value)
+                                     tt-retorna-erro.l-erro    = yes
+                                     tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                                 string(tt-titulo.tt-cod-fornec) + ";" +
+                                                                 tt-titulo.tt-cod-estabel + ";" +
+                                                                 tt-titulo.tt-cod-esp     + ";" +
+                                                                 tt-titulo.tt-serie       + ";" +
+                                                                 tt-titulo.tt-nr-docto    + ";" +
+                                                                 tt-titulo.tt-parcela.
+                              assign l-houve-erro = yes.                                                     
+                           end.     
+                           if conta-contab.caixa-bancos = 3 then do:
+                              run utp/ut-msgs.p(input "help",
+                                                input  914,
+                                                input "").
+                              create tt-retorna-erro.
+                              assign tt-retorna-erro.cod-erro  = 914
+                                     tt-retorna-erro.desc-erro = trim(return-value)
+                                     tt-retorna-erro.l-erro    = yes
+                                     tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                                 string(tt-titulo.tt-cod-fornec) + ";" +
+                                                                 tt-titulo.tt-cod-estabel + ";" +
+                                                                 tt-titulo.tt-cod-esp     + ";" +
+                                                                 tt-titulo.tt-serie       + ";" +
+                                                                 tt-titulo.tt-nr-docto    + ";" +
+                                                                 tt-titulo.tt-parcela.
+                              assign l-houve-erro = yes.                                                     
+                           end.
+                           if conta-contab.contas-pagar = 3 then do:
+                              run utp/ut-msgs.p(input "help",
+                                                input 289,
+                                                input "").
+                              create tt-retorna-erro.
+                              assign tt-retorna-erro.cod-erro  = 289
+                                     tt-retorna-erro.desc-erro = trim(return-value)
+                                     tt-retorna-erro.l-erro    = yes
+                                     tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                                 string(tt-titulo.tt-cod-fornec) + ";" +
+                                                                 tt-titulo.tt-cod-estabel + ";" +
+                                                                 tt-titulo.tt-cod-esp     + ";" +
+                                                                 tt-titulo.tt-serie       + ";" +
+                                                                 tt-titulo.tt-nr-docto    + ";" +
+                                                                 tt-titulo.tt-parcela.
+                              assign l-houve-erro = yes.                                                     
+                           end.
+                        end.
+                    end.
+              end.
+        end.    
+    end.
+    /*--- Verifica casas decimais (Chile) ---*/
+    assign l-rejeita-dec  = no
+           tt-titulo.tt-vl-saldo-me = fn_vld_ajust_dec(tt-titulo.tt-vl-saldo-me,tit-ap.moeda).
+    if  l-rejeita-dec then do:
+        {utp/ut-field.i mgadm tit-ap vl-saldo-me 1}
+        run utp/ut-msgs.p(input "help", 
+                          input 18130, 
+                          input trim(return-value)).
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 18130
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                           
+    end.
+    if  tt-titulo.tt-vl-desconto-me > 0 then do:
+        assign l-rejeita-dec  = no
+               tt-titulo.tt-vl-desconto-me = fn_vld_ajust_dec(tt-titulo.tt-vl-desconto-me,tit-ap.moeda).
+        if  l-rejeita-dec then do:
+            {utp/ut-field.i mgadm tit-ap vl-desconto-me 1}
+            run utp/ut-msgs.p(input "help", 
+                              input 18130, 
+                              input trim(return-value)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 18130
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+
+    /*--- Verifica se o usu rio est  cadastrado ---*/
+    find first usuar-permissao-ap no-lock
+         where usuar-permissao-ap.usuario   = v_cod_usuar_corren
+         and   usuar-permissao-ap.ep-codigo = tt-titulo.tt-ep-codigo no-error.
+
+    if  not avail usuar-permissao-ap then do:
+        run utp/ut-msgs.p (input "help",
+                           input 15461,
+                           input caps(v_cod_usuar_corren)).
+        create tt-retorna-erro.
+        assign tt-retorna-erro.cod-erro  = 15461
+               tt-retorna-erro.desc-erro = trim(return-value)
+               tt-retorna-erro.l-erro    = yes
+               tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                           string(tt-titulo.tt-cod-fornec) + ";" +
+                                           tt-titulo.tt-cod-estabel + ";" +
+                                           tt-titulo.tt-cod-esp     + ";" +
+                                           tt-titulo.tt-serie       + ";" +
+                                           tt-titulo.tt-nr-docto    + ";" +
+                                           tt-titulo.tt-parcela.
+        assign l-houve-erro = yes.                                           
+    end.
+
+    /*--- Verifica se o usu rio pode alterar o saldo do documento ---*/
+    if  tt-titulo.tt-vl-saldo-me <> tit-ap.vl-saldo-me then do:
+        if  avail usuar-permissao-ap and substring(usuar-permissao-ap.char-1, 01,01) = "N" then do:
+            {utp/ut-liter.i alterar_valor_saldo}
+            run utp/ut-msgs.p (input "help",
+                               input 6660,
+                               input caps(v_cod_usuar_corren) + "~~" + trim(return-value)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 6660
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+
+        /*--- Pagamento Centralizado ---*/
+        run cdp/cd0006.p (input "AP",
+                          input tt-titulo.tt-ep-codigo,
+                          input if tit-ap.tipo = 2 
+                                then tt-titulo.tt-portador-acerto
+                                else tit-ap.portador,
+                          input if tit-ap.tipo = 2 
+                                then tt-titulo.tt-modalidade-acerto
+                                else tit-ap.modalidade,
+                          input 3,
+                          input no,
+                          output i-num-erro,
+                          output c-erro).
+
+        if  i-num-erro <> 0 then do:
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = i-num-erro
+                   tt-retorna-erro.desc-erro = trim(c-erro)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+
+    /*--- Verifica se o usu rio pode alterar o valor do desconto do documento ---*/
+    if  tt-titulo.tt-vl-desconto-me <> tit-ap.vl-desconto-me then do:
+        if  avail usuar-permissao-ap and substring(usuar-permissao-ap.char-1, 02,01) = "N" then do:
+            {utp/ut-liter.i alterar_valor_desconto}
+            run utp/ut-msgs.p (input "help",
+                               input 6660,
+                               input caps(v_cod_usuar_corren) + "~~" + trim(return-value)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 6660
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+    /*--- Verifica se o usu rio pode alterar a data de vencimento do documento ---*/
+    if  tt-titulo.tt-dt-vencimen <> tit-ap.dt-vencimen then do:
+        if  avail usuar-permissao-ap and substring(usuar-permissao-ap.char-1, 03,01) = "N" then do:
+            {utp/ut-liter.i alterar_data_vencimento}
+            run utp/ut-msgs.p (input "help",
+                               input 6660,
+                               input caps(v_cod_usuar_corren) + "~~" + trim(return-value)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 6660
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+
+    /*--- Verifica se o usu rio pode alterar a data de desconto do documento ---*/
+    if  tt-titulo.tt-dt-desconto <> tit-ap.dt-desconto then do:
+        if  avail usuar-permissao-ap and substring(usuar-permissao-ap.char-1, 04,01) = "N" then do:
+            {utp/ut-liter.i alterar_data_desconto}
+            run utp/ut-msgs.p (input "help",
+                               input 6660,
+                               input caps(v_cod_usuar_corren) + "~~" + trim(return-value)).
+            create tt-retorna-erro.
+            assign tt-retorna-erro.cod-erro  = 6660
+                   tt-retorna-erro.desc-erro = trim(return-value)
+                   tt-retorna-erro.l-erro    = yes
+                   tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                               string(tt-titulo.tt-cod-fornec) + ";" +
+                                               tt-titulo.tt-cod-estabel + ";" +
+                                               tt-titulo.tt-cod-esp     + ";" +
+                                               tt-titulo.tt-serie       + ";" +
+                                               tt-titulo.tt-nr-docto    + ";" +
+                                               tt-titulo.tt-parcela.
+            assign l-houve-erro = yes.                                               
+        end.
+    end.
+
+    find first usuar-autoriza-tit no-lock
+         where usuar-autoriza-tit.ep-codigo    = tit-ap.ep-codigo
+         and   usuar-autoriza-tit.cod-portador = 0
+         and   usuar-autoriza-tit.nr-bordero   = 0
+         and   usuar-autoriza-tit.cod-estabel  = tit-ap.cod-estabel
+         and   usuar-autoriza-tit.cod-esp      = tit-ap.cod-esp
+         and   usuar-autoriza-tit.cod-fornec   = tit-ap.cod-fornec
+         and   usuar-autoriza-tit.nr-docto     = tit-ap.nr-docto
+         and   usuar-autoriza-tit.parcela      = tit-ap.parcela
+         and   usuar-autoriza-tit.serie        = tit-ap.serie no-error.
+
+    if  avail usuar-autoriza-tit then do:
+        if  tit-ap.tp-pagto <> tt-titulo.tt-tp-pagto then do:   
+            if tt-parametros.tt-altera-autorizados = no then do:
+                run utp/ut-msgs.p (input "help",
+                                   input 15867,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 15867
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                                   
+            end.    
+        end.   
+        if  tt-titulo.tt-vl-saldo-me <> tit-ap.vl-saldo-me then do:
+            if tt-parametros.tt-altera-autorizados = no then do:
+                run utp/ut-msgs.p (input "help",
+                                   input 25191,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 25191
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                                   
+            end.    
+        end.
+        if  tt-titulo.tt-dt-vencimen <> tit-ap.dt-vencimen then do:
+            if tt-parametros.tt-altera-autorizados = no then do:
+                run utp/ut-msgs.p (input "help",
+                                   input 25192,
+                                   input "").
+                create tt-retorna-erro.
+                assign tt-retorna-erro.cod-erro  = 25192
+                       tt-retorna-erro.desc-erro = trim(return-value)
+                       tt-retorna-erro.l-erro    = yes
+                       tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                   string(tt-titulo.tt-cod-fornec) + ";" +
+                                                   tt-titulo.tt-cod-estabel + ";" +
+                                                   tt-titulo.tt-cod-esp     + ";" +
+                                                   tt-titulo.tt-serie       + ";" +
+                                                   tt-titulo.tt-nr-docto    + ";" +
+                                                   tt-titulo.tt-parcela.
+                assign l-houve-erro = yes.                                                   
+            end.    
+        end.
+    end.
+
+    run pi-miniflexibiliza.
+
+    if  tit-ap.tipo = 1 then do:
+        if  tt-titulo.tt-cod-retencao = 0 then do:
+            find first dirf-ap
+                 where dirf-ap.ep-codigo = tit-ap.ep-codigo
+                 and   dirf-ap.cod-estab = tit-ap.cod-estab
+                 and   dirf-ap.cod-esp   = tit-ap.cod-esp
+                 and   dirf-ap.serie     = tit-ap.serie
+                 and   dirf-ap.cod-forn  = tit-ap.cod-fornec
+                 and   dirf-ap.nr-docto  = tit-ap.nr-docto
+                 and   dirf-ap.parcela   = tit-ap.parcela
+                 no-lock no-error.     
+            if  avail dirf-ap then do:
+                if  tt-parametros.tt-elimina-dirf = no then do:
+                    /* Registro da Dirf sera eliminado! Confirma ? */
+                    run utp/ut-msgs.p (input "help":U,
+                                       input 8883,
+                                       input "").
+                    create tt-retorna-erro.
+                    assign tt-retorna-erro.cod-erro  = 8883
+                           tt-retorna-erro.desc-erro = trim(return-value)
+                           tt-retorna-erro.l-erro    = yes
+                           tt-retorna-erro.cod-chave = string(tt-titulo.tt-ep-codigo)  + ";" +
+                                                       string(tt-titulo.tt-cod-fornec) + ";" +
+                                                       tt-titulo.tt-cod-estabel + ";" +
+                                                       tt-titulo.tt-cod-esp     + ";" +
+                                                       tt-titulo.tt-serie       + ";" +
+                                                       tt-titulo.tt-nr-docto    + ";" +
+                                                       tt-titulo.tt-parcela.
+                    assign l-houve-erro = yes.                                                       
+                end.                       
+            end.
+        end.     
+    end.
+
+/*** Fim Include APAPI035.I2 ***/

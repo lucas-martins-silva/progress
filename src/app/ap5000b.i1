@@ -1,0 +1,30 @@
+if search(tt-param.diretorio-entrada + "{1}" + ".d") <> ? then do:
+
+    disable triggers for load of {1}.
+
+    assign i-reg = 0.
+
+    for each {1} exclusive-lock:
+        assign i-reg = i-reg + 1.
+        if  i-reg mod 10 = 0 then Do:
+            {utp/ut-liter.i Limpando_ *}
+            run pi-acompanhar in h-acomp ( Return-value   + caps("{1}") + " -> " + string(i-reg)). 
+        End.
+        delete {1}.
+    end.
+
+    assign i-reg = 0.
+
+    input from value(tt-param.diretorio-entrada + "{1}" + ".d").
+
+    repeat:
+        create {1}.
+        import {1}.
+        assign i-reg = i-reg + 1.
+        if  i-reg mod 10 = 0 then Do:
+            {utp/ut-liter.i Importando_ *}
+            run pi-acompanhar in h-acomp ( Return-value   + caps("{1}") + " -> " + string(i-reg)).
+        End.
+    end.
+    input close.   
+end.

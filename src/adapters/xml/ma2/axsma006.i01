@@ -1,0 +1,122 @@
+/*****************************************************************************
+**
+**   adapters/xml/ma2/axsma006.i01 - pi-processa-xml-reservas.
+**
+******************************************************************************/
+
+PROCEDURE pi-processa-xml-reservas:
+
+        DEF INPUT  PARAMETER hGenXml   AS HANDLE NO-UNDO.
+        DEF INPUT  PARAMETER p_iId     AS INTEGER NO-UNDO.
+        DEF INPUT  PARAMETER p_iIdSon  AS INTEGER NO-UNDO.
+        DEF INPUT  PARAMETER r_reserva AS ROWID   NO-UNDO.
+
+        DEF VAR iIdReserves            AS INT NO-UNDO. 
+        DEF VAR iIdReference           AS INT NO-UNDO.         
+        DEF VAR iIdOper                AS INT NO-UNDO.        
+        DEF VAR iIdWareHouse           AS INT NO-UNDO.
+        DEF VAR iIdUnitOfMeasure       AS INT NO-UNDO.
+        DEF VAR iIdQtdReserve          AS INT NO-UNDO.         
+
+        FOR FIRST reservas WHERE ROWID(reservas) = r_reserva NO-LOCK: END.
+
+        IF AVAIL reservas THEN DO:
+
+            RUN addNode IN hGenXml (p_iId, "ReservesInformations":U, "", OUTPUT p_iIdSon). 
+            RUN addNode IN hGenXml (p_iIdSon, "ReserveItemCode":U, reservas.it-codigo, OUTPUT iIdReserves). 
+            FOR FIRST item WHERE item.it-codigo = reservas.it-codigo NO-LOCK: END.
+            IF AVAIL item THEN
+               RUN addNode IN hGenXml (p_iIdSon, "ReserveItemDescription":U, item.desc-item, OUTPUT iIdReserves). 
+            RUN addNodeDate IN hGenXml (p_iIdSon, "ReserveDate":U, reservas.dt-reserva, OUTPUT iIdReserves). 
+
+            /* Adiciona valores do Tipo de atualizacao */ 
+            IF reservas.tp-atualiza <= 0 OR reservas.tp-atualiza > NUM-ENTRIES({ininc/i10in271.i 03}) THEN            
+               RUN addNodeDec IN hGenXml (p_iIdSon, "UpdateType":U, 1, OUTPUT iIdReserves). 
+            ELSE   
+               RUN addNodeDec IN hGenXml (p_iIdSon, "UpdateType":U, reservas.tp-atualiza, OUTPUT iIdReserves). 
+
+            RUN addNode IN hGenXml (p_iIdSon, "LotOrSerialNumber":U, reservas.lote-serie, OUTPUT iIdReserves). 
+            RUN addNodeLog IN hGenXml (p_iIdSon, "IsPrintRequisition":U, reservas.emite-requis, OUTPUT iIdReserves). 
+
+            /* Adiciona valores Status da Reserva */ 
+            IF reservas.estado <= 0 OR reservas.estado > NUM-ENTRIES({ininc/i01in390.i 03}) THEN
+               RUN addNodeDec IN hGenXml (p_iIdSon, "ReserveStatus":U, 1, OUTPUT iIdReserves). 
+            ELSE RUN addNodeDec IN hGenXml (p_iIdSon, "ReserveStatus":U, reservas.estado, OUTPUT iIdReserves). 
+
+            /* Adiciona valores da Origem da Reserva */ 
+            IF reservas.origem <= 0 OR reservas.origem > NUM-ENTRIES({ininc/i03in390.i 03}) THEN
+               RUN addNodeDec IN hGenXml (p_iIdSon, "ReserveSource":U, 1, OUTPUT iIdReserves). 
+            ELSE RUN addNodeDec IN hGenXml (p_iIdSon, "ReserveSource":U, reservas.origem, OUTPUT iIdReserves). 
+
+            RUN addNode IN hGenXml (p_iIdSon, "RoutingCode":U, reservas.cod-roteiro, OUTPUT iIdReserves). 
+
+            /* Adiciona valores do Tipo de Sobra */ 
+            IF reservas.tipo-sobra <= 0 OR reservas.tipo-sobra > NUM-ENTRIES({ininc/i01in068.i 03}) THEN
+               RUN addNodeDec IN hGenXml (p_iIdSon, "SurplusType":U, 1, OUTPUT iIdReserves). 
+            ELSE RUN addNodeDec IN hGenXml (p_iIdSon, "SurplusType":U, reservas.tipo-sobra, OUTPUT iIdReserves). 
+
+            /* Adiciona informa‡oes de Referencia caso item da reserva seja de Controle por Referencia */
+            IF AVAIL item AND item.tipo-con-est = 4 THEN DO:
+                RUN addNode IN hGenXml (p_iIdSon, "Reference":U, "", OUTPUT iIdReserves). 
+                RUN addNode IN hGenXml (iIdReserves, "ReferenceCode":U, reservas.cod-refer, OUTPUT iIdReference).
+                FOR FIRST referencia WHERE referencia.cod-refer = reservas.cod-refer NO-LOCK: END.
+                IF AVAIL referencia THEN 
+                   RUN addNode IN hGenXml (iIdReserves, "ReferenceDescription":U, SUBSTRING(referencia.descricao, 1,32), OUTPUT iIdReference).
+            END.
+
+            RUN addNode IN hGenXml (p_iIdSon, "LubrificationType":U, reservas.cd-lubr, OUTPUT iIdReserves).
+            RUN addNodeDec IN hGenXml (p_iIdSon, "ReferenceOrder":U, reservas.nr-ord-refer, OUTPUT iIdReserves).
+            RUN addNodeDec IN hGenXml (p_iIdSon, "SummarizedRequisition":U, reservas.nr-req-sum, OUTPUT iIdReserves).
+            RUN addNode IN hGenXml (p_iIdSon, "LocationCode":U, reservas.cod-localiz, OUTPUT iIdReserves).
+
+            RUN addNode IN hGenXml (p_iIdSon, "ComponentsList":U, reservas.cod-lista-compon, OUTPUT iIdReserves).
+
+            &IF DEFINED (bf_man_205) &THEN
+                RUN addNodeDec IN hGenXml (p_iIdSon, "PartsForMilion", reservas.per-ppm, OUTPUT iIdReserves).  
+                RUN addNodeLog IN hGenXml (p_iIdSon, "IsVehicle", reservas.veiculo, OUTPUT iIdReserves).  
+
+                /* Adiciona valores do Tipo de Formula */ 
+                IF reservas.tipo-formula <= 0 OR reservas.tipo-formula > NUM-ENTRIES({ininc/i25in172.i 03}) THEN
+                   RUN addNodeDec IN hGenXml (p_iIdSon, "CompositionFormula":U, 1, OUTPUT iIdReserves). 
+                ELSE RUN addNodeDec IN hGenXml (p_iIdSon, "CompositionFormula":U, reservas.tipo-formula, OUTPUT iIdReserves). 
+            &ENDIF
+
+            /* Adiciona Operacao */ 
+            RUN addNode IN hGenXml (p_iIdSon, "OperationInformations":U, "", OUTPUT iIdReserves). 
+            RUN addNode IN hGenXml (iIdReserves, "OperationCode":U, reservas.op-codigo, OUTPUT iIdOper).
+            FOR FIRST oper-ord WHERE oper-ord.nr-ord-produ = reservas.nr-ord-produ
+                                 AND oper-ord.it-codigo = reservas.it-codigo
+                                 AND oper-ord.cod-roteiro = reservas.cod-roteiro
+                                 AND oper-ord.op-codigo = reservas.op-codigo NO-LOCK: END.
+            IF AVAIL oper-ord THEN 
+               RUN addNode IN hGenXml (iIdReserves, "OperationDescription":U, SUBSTRING(oper-ord.descricao, 1,32), OUTPUT iIdOper).
+
+            /* Adiciona informacoes do Deposito */
+            RUN addNode IN hGenXml (p_iIdSon, "WareHouse", "", OUTPUT iIdReserves).
+            RUN addNode IN hGenXml (iIdReserves, "WareHouseCode", reservas.cod-depos, OUTPUT iIdWareHouse).
+            FIND FIRST deposito WHERE deposito.cod-depos = reservas.cod-depos  NO-LOCK NO-ERROR. 
+            IF AVAIL deposito THEN
+               RUN addNode IN hGenXml (iIdReserves, "WareHouseDescription", SUBSTRING(deposito.nome,1,40), OUTPUT iIdWareHouse).
+
+            /* Adiciona informacoes da Unidade de Medida */
+            RUN addNode IN hGenXml (p_iIdSon, "UnitOfMeasure", "", OUTPUT iIdReserves).
+            RUN addNode IN hGenXml (iIdReserves, "UnitOfMeasureCode", reservas.un, OUTPUT iIdUnitOfMeasure).
+            FIND FIRST tab-unidade WHERE tab-unidade.un = reservas.un  NO-LOCK NO-ERROR. 
+            IF AVAIL tab-unidade THEN
+               RUN addNode IN hGenXml (iIdReserves, "UnitOfMeasureDescription", SUBSTRING(tab-unidade.descricao,1,15), OUTPUT iIdUnitOfMeasure).
+
+            RUN addNode IN hGenXml (p_iIdSon, "QuantityOfReservesInformation", "", OUTPUT iIdReserves).
+            RUN addNodeDec IN hGenXml (iIdReserves, "QuantityOfReserve", reservas.quant-orig, OUTPUT iIdQtdReserve).
+            RUN addNodeDec IN hGenXml (iIdReserves, "ProcessedQuantity", reservas.quant-atend, OUTPUT iIdQtdReserve).
+            RUN addNodeDec IN hGenXml (iIdReserves, "RequisitedQuantity", reservas.quant-requis, OUTPUT iIdQtdReserve).
+            RUN addNodeDec IN hGenXml (iIdReserves, "AllocationQuantity", reservas.quant-aloc, OUTPUT iIdQtdReserve).
+            RUN addNodeDec IN hGenXml (iIdReserves, "ThirdQuantity", reservas.quant-terc, OUTPUT iIdQtdReserve).
+            RUN addNodeDec IN hGenXml (iIdReserves, "InvestedQuantity", reservas.quant-aplic, OUTPUT iIdQtdReserve).
+            &IF DEFINED (bf_man_205) &THEN
+              RUN addNodeDec IN hGenXml (iIdReserves, "PhysicalAllocationQuantity", reservas.qt-aloc-lote, OUTPUT iIdQtdReserve).
+              RUN addNodeDec IN hGenXml (iIdReserves, "PhysicalProcessedQuantity", reservas.qt-atend-lote, OUTPUT iIdQtdReserve).
+            &ENDIF
+
+        END.
+
+END PROCEDURE.

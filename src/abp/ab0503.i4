@@ -1,0 +1,87 @@
+/********************************************************************************
+**
+**  Include: abp/ab0503.i4
+**
+**  Imprime Relat¢rio por Posto de Origem
+**
+********************************************************************************/
+procedure pi-posto:
+
+for each mab-control-bomba
+   WHERE mab-control-bomba.num-docto             >=  tt-param.i-docto-ini
+    and  mab-control-bomba.num-docto             <=  tt-param.i-docto-fim
+    and  mab-control-bomba.dat-apont             >=  tt-param.d-data-ini
+    and  mab-control-bomba.dat-apont             <=  tt-param.d-data-fim
+    and  mab-control-bomba.hra-apont             >=  tt-param.c-hora-ini
+    and  mab-control-bomba.hra-apont             <=  tt-param.c-hora-fim
+    and  mab-control-bomba.cod-posto-orig        >=   tt-param.c-posto-ini
+    and  mab-control-bomba.cod-posto-orig        <=   tt-param.c-posto-fim
+    and  (( mab-control-bomba.idi-tip-movto       = 1 and l-afericoes) 
+     or  ( mab-control-bomba.idi-tip-movto        = 2 and l-transf   )
+     or  ( mab-control-bomba.idi-tip-movto        = 3 and l-leitura  ))no-lock
+                             break by mab-control-bomba.cod-posto-orig
+                                   by mab-control-bomba.idi-tip-movto
+                                   by mab-control-bomba.dat-apont
+                                   by mab-control-bomba.hra-apont:
+                             
+    for first mab-bomba
+        where mab-bomba.cod-posto = mab-control-bomba.cod-posto-orig
+        and   mab-bomba.cod-bomba = mab-control-bomba.cod-bomba,
+        first mab-tip-mater
+        where mab-tip-mater.cod-tip-mater = mab-bomba.cod-tip-mater no-lock:
+    end.
+    
+     if not avail mab-tip-mater then next.
+         assign   cApont     = {frinc/i00fr056.i 4  mab-control-bomba.idi-tip-movto}.
+               
+          
+
+    if  first-of(mab-control-bomba.cod-posto-orig) then do:
+           disp  cPstOrig        
+                 cTpApont        
+                 cDocto          
+                 cData           
+                 cHora           
+                 cBomba          
+                 cMaterial       
+                 cValIni-1       
+                 cValFim-1       
+                 cQtde-1         
+                 cPstDest        
+                with frame f-cabecalho-3.
+                                       
+    end. 
+    disp   mab-control-bomba.cod-posto-orig        NO-LABEL    when first-of(mab-control-bomba.cod-posto-orig)                                  
+           cApont                                  NO-LABEL    when first-of(mab-control-bomba.idi-tip-movt)    
+           mab-control-bomba.num-docto             NO-LABEL    
+           mab-control-bomba.dat-apont             NO-LABEL    
+           mab-control-bomba.hra-apont             NO-LABEL    
+           mab-control-bomba.cod-bomba             NO-LABEL    
+           mab-tip-mater.des-tip-mater             NO-LABEL    
+           mab-control-bomba.val-leitura-inicial   NO-LABEL            
+           mab-control-bomba.val-leitura-final     NO-LABEL            
+           mab-control-bomba.val-quant             NO-LABEL    
+           mab-control-bomba.cod-posto-dest        NO-LABEL    
+         with frame f-dados-3.              
+             down with frame f-dados-3. 
+            
+    if  last-of(mab-control-bomba.cod-posto-orig) then do:
+         if tt-param.l-insere = yes then do:
+            page.
+         end. 
+         else do:   
+              put skip(1).          
+         end.
+    end.         
+   
+
+   
+           
+           
+                   
+end.     
+
+return 'OK'.
+
+end procedure.
+/* FIM */    

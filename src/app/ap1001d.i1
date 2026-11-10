@@ -1,0 +1,72 @@
+/**************************************************************************
+**
+** AP1001D.I1
+** Objetivo : Registros header do banco BRADESCO
+**
+**************************************************************************/
+
+find first empresa  
+    where empresa.ep-codigo = i-empresa no-lock no-error.
+
+find first portador 
+    where portador.ep-codigo    = i-empresa and
+          portador.cod-portador = i-portador no-lock no-error.
+          
+find banco 
+    where banco.cod-banco = portador.cod-banco no-lock no-error.
+    
+assign c-empr-cgc = empresa.cgc
+       c-empr-nom = empresa.razao-social
+       c-cgc-emp  = "".
+
+for each tt-epc:
+    delete tt-epc.
+end.
+    
+create tt-epc.
+assign tt-epc.cod-event     = "update-cgc-empresa"
+       tt-epc.cod-parameter = "rowid-portador"
+       tt-epc.val-parameter = string(rowid(portador)).
+                     
+{include/i-epc201.i "update-cgc-empresa"}
+    
+find first tt-epc no-error.
+if  avail tt-epc then do:
+    if  entry(1, tt-epc.val-parameter, ";") = "UPDATE-CGC":U then
+        assign c-empr-cgc = entry(2, tt-epc.val-parameter, ";")
+               c-empr-nom = entry(3, tt-epc.val-parameter, ";").
+end.
+    
+do i-cont = 1 to 19:
+   if  substr(c-empr-cgc,i-cont,1) >= "0" 
+   and substr(c-empr-cgc,i-cont,1) <= "9" then
+       assign c-cgc-emp = c-cgc-emp + substr(c-empr-cgc,i-cont,1).
+end.
+
+/*---- Zeros a esquerda no campo CGC ----*/
+do  i-cont = 1 to 15:
+    IF  LENGTH(c-cgc-emp, "CHARACTER") < 15 THEN do:
+        assign c-cgc-emp = "0" + c-cgc-emp.
+    end.
+end.
+    
+put stream relat                       
+    "0"                                                           at 001
+    tt-param.identific-emp                format "99999999"       at 002
+    "2"                                                           at 010
+    c-cgc-emp                           format "999999999999999"  at 011
+    fn-free-accent(caps(c-empr-nom))              format "x(40)"  at 026
+    "20"                                                          at 066
+    "1"                                                           at 068
+    substring(string(tt-param.i-sequencia,"999999"),2,5)   
+                                                  format "99999"  at 069
+    "00000"                                                       at 074                                              
+    string(year(today),"9999")                    format "9999"   at 079
+    month(today)                                  format "99"     at 083  
+    day(today)                                    format "99"     at 085
+    replace(string(time,"HH:MM:SS"),":","")                       at 087
+    "0"                                                           at 106
+    "000001"                                      format "999999" at 495
+    skip.
+
+/* ap1001d.i1 */

@@ -1,0 +1,30 @@
+PROCEDURE pi-cria-ttISSQNTot:
+
+    /*
+    === ttISSQNTot ===
+    vBC            AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Base de C†lculo do ISS*/                                                    
+    vCOFINS        AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do COFINS sobre serviáos*/                                            
+    vISS           AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor Total do ISS*/                                                        
+    vPIS           AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do PIS sobre serviáos*/                                               
+    vServ          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor Total dos Serviáos sob n∆o-incidància ou n∆o tributados pelo ICMS */  
+    */
+
+    CREATE ttISSQNTot.
+    ASSIGN ttISSQNTot.vBC     = d-total-base-iss
+           ttISSQNTot.vISS    = d-total-iss
+           ttISSQNTot.vServ   = d-total-serv
+           ttISSQNTot.vPIS    = d-total-pis-serv
+           ttISSQNTot.vCOFINS = d-total-cofins-serv
+           .
+
+    IF lLayoutTXT AND ttISSQNTot.vPIS = 0 THEN
+       ASSIGN ttISSQNTot.vPIS = ?.
+    IF lLayoutTXT AND ttISSQNTot.vCOFINS = 0 THEN
+       ASSIGN ttISSQNTot.vCOFINS = ?.
+
+    /* Chave EMS */
+    ASSIGN ttISSQNTot.CodEstabelNF = nota-fiscal.cod-estabel
+           ttISSQNTot.SerieNF      = nota-fiscal.serie
+           ttISSQNTot.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+END PROCEDURE.

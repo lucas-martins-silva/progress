@@ -1,0 +1,34 @@
+/**********************************************************************************
+***
+***   app/ap0512a.i6 - Cria a tabela HIS-CHEQUE
+***
+**********************************************************************************/
+
+&IF DEFINED(BF_FIN_BANCO_HIST_ADM) &THEN
+    &IF "{1}" = "MOVADM" &THEN
+        if  not can-find(first his-cheque 
+                         where his-cheque.cod-banco    = {1}.{2}cheque.cod-banco
+                           and his-cheque.agencia      = {1}.{2}cheque.agencia
+                           and his-cheque.conta-corren = {1}.{2}cheque.conta-corren
+                           and his-cheque.nr-cheque    = {1}.{2}cheque.nr-cheque) then do:
+             create his-cheque.
+             assign his-cheque.cod-banco    = {1}.{2}cheque.cod-banco
+                    his-cheque.agencia      = {1}.{2}cheque.agencia
+                    his-cheque.conta-corren = {1}.{2}cheque.conta-corren
+                    his-cheque.nr-cheque    = {1}.{2}cheque.nr-cheque.
+        end.
+    &ELSE
+       find his-cheque 
+            where his-cheque.cod-banco    = {1}.{2}cheque.cod-banco
+              and his-cheque.agencia      = {1}.{2}cheque.agencia
+              and his-cheque.conta-corren = {1}.{2}cheque.conta-corren
+              and his-cheque.nr-cheque    = {1}.{2}cheque.nr-cheque
+            exclusive-lock no-error.
+       if avail his-cheque then 
+          delete his-cheque.
+   &ENDIF       
+    
+&ENDIF
+
+
+/*--- Fim de ap0512a.i6 ---*/

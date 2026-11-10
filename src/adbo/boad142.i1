@@ -1,0 +1,34 @@
+/*
+**  BOAD142.i1
+**
+**  Procedure findCodigo: esta procedure foi transformada
+**  em include pois este codigo e comum aos produtos EMS e
+**  Magnus.
+**
+**  Ultima altera‡Æo : 08/03/2000 - brv13084
+*/
+
+procedure findCodigo:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter i-hp-codigo as inte no-undo.
+    def output parameter c-return as char no-undo.
+ 
+    find hist-padrao where
+        hist-padrao.hp-codigo = i-hp-codigo
+        no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        {utp/ut-table.i mgadm {&TABLE-NAME} 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+end procedure.

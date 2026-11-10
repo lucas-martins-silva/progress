@@ -1,0 +1,158 @@
+PROCEDURE pi-grava-temp-tables:
+      
+    RUN pi-cria-ttNFCom.   
+    
+    RUN pi-cria-ttIdeNFCom.
+    
+    RUN pi-cria-ttEmitNFCom.
+    
+    RUN pi-cria-ttDestNFCom.
+    
+    RUN pi-cria-ttAssinante.
+    
+    /* Substiuti‡Æo */
+    IF ttIdeNFCom.finNFCom = "3" THEN
+        RUN pi-cria-ttgSubNFCom.
+    
+    RUN pi-cria-ttgFatNFCom.
+    
+    IF NOT AVAIL ttEmitNFCom THEN
+        FIND FIRST ttEmitNFCom NO-ERROR.
+    
+    IF ttEmitNFCom.CRT = "1":U THEN
+        RUN pi-cria-ttICMSSN.
+
+    FOR EACH it-nota-fisc OF nota-fiscal NO-LOCK:
+            
+        FOR FIRST ITEM NO-LOCK
+            WHERE ITEM.it-codigo = it-nota-fisc.it-codigo: 
+        END.
+
+        RUN pi-cria-ttDetNFCom.       
+        RUN pi-cria-ttFUST.        
+        RUN pi-cria-ttFUNTTEL.        
+	    RUN pi-cria-ttRetTrib.
+	
+        RUN ftp/ftapi510.p (INPUT  ROWID(nota-fiscal),
+                            INPUT  ROWID(it-nota-fisc),
+                            OUTPUT d-aliq-pis,
+                            OUTPUT d-base-pis,
+                            OUTPUT d-valor-pis,
+                            OUTPUT d-aliq-cofins,
+                            OUTPUT d-base-cofins,
+                            OUTPUT d-valor-cofins).
+
+        RUN pi-cria-ttPIS-NFCom.
+        RUN pi-cria-ttCOFINS-NFCom.        
+        
+        IF ttEmitNFCom.CRT <> "1":U THEN DO:
+            RUN pi-cria-icms.
+            RUN pi-cria-ttICMSUFDest-NFCom.
+        END.        
+	
+        // Inicio Impostos da Reforma Tribut ria
+        IF l-NT2024002 THEN DO:
+
+           FOR FIRST ttDet WHERE
+               ttDet.CodEstabelNFCom  = nota-fiscal.cod-estabel AND
+               ttDet.SerieNFCom       = nota-fiscal.serie       AND
+               ttDet.NrNotaFisNFCom   = nota-fiscal.nr-nota-fis AND
+               ttDet.ItCodigoNFCom    = it-nota-fisc.it-codigo  AND
+               ttDet.NrSeqFatNFCom    = it-nota-fisc.nr-seq-fat:
+           END.
+
+           FOR EACH it-nota-fisc-trib WHERE
+               it-nota-fisc-trib.cod-estabel   = it-nota-fisc.cod-estabel AND
+               it-nota-fisc-trib.serie         = it-nota-fisc.serie       AND
+               it-nota-fisc-trib.nr-nota-fis   = it-nota-fisc.nr-nota-fis AND
+               it-nota-fisc-trib.nr-seq-fat    = it-nota-fisc.nr-seq-fat  AND
+               it-nota-fisc-trib.it-codigo     = it-nota-fisc.it-codigo   NO-LOCK
+               BREAK BY it-nota-fisc-trib.nr-seq-fat:         
+     
+               RUN pi-cria-ttIBSCBS.
+
+               IF it-nota-fisc-trib.tip-tributo = 1       AND /* CBS */
+                  it-nota-fisc-trib.valor-efet-alczfm > 0 THEN DO: 
+                  run pi-cria-ttgALCZFMCBS.
+               END. 
+               
+               // Compra Governamental
+               IF it-nota-fisc-trib.log-compra-gov = YES THEN DO:
+                  RUN pi-cria-ttgCompraGov.
+                  RUN pi-cria-ttgTribCompraGov.
+               END.
+               
+               RUN pi-cria-ttTribRT.
+
+               CASE it-nota-fisc-trib.tip-tributo:
+                  WHEN 1 THEN DO:
+                     ASSIGN d-total-nf-deb-cred-vCBS = it-nota-fisc-trib.valor-tributo.
+                  end.
+                  WHEN 2 THEN DO:
+                     ASSIGN d-total-nf-deb-cred-vIBS = d-total-nf-deb-cred-vIBS + it-nota-fisc-trib.valor-tributo.
+                  END.
+                  WHEN 3 THEN DO:
+                     ASSIGN d-total-nf-deb-cred-vIBS = d-total-nf-deb-cred-vIBS + it-nota-fisc-trib.valor-tributo.
+                  END.
+               END CASE.
+
+               IF NOT it-nota-fisc-trib.log-compra-gov 
+               AND it-nota-fisc-trib.cod-cst-regul        <> ""
+               AND it-nota-fisc-trib.cod-class-trib-regul <> "" THEN DO:
+
+                   ASSIGN c-cst-reg        = it-nota-fisc-trib.cod-cst-regul
+                          c-class-trib-reg = it-nota-fisc-trib.cod-class-trib-regul.
+
+                   CASE it-nota-fisc-trib.tip-tributo:
+                      WHEN 1 THEN DO:
+                         ASSIGN d-aliq-efet-reg-cbs      = it-nota-fisc-trib.aliq-regul
+                                d-trib-reg-cbs           = it-nota-fisc-trib.valor-regul.
+                      END.
+                      WHEN 2 THEN DO:
+                         ASSIGN d-aliq-efet-reg-ibs-uf   = it-nota-fisc-trib.aliq-regul
+                                d-trib-reg-ibs-uf        = it-nota-fisc-trib.valor-regul.
+                      END.
+                      WHEN 3 THEN DO:
+                         ASSIGN d-aliq-efet-reg-ibs-mun  = it-nota-fisc-trib.aliq-regul
+                                d-trib-reg-ibs-mun       = it-nota-fisc-trib.valor-regul.
+                      END.
+                   END CASE.
+
+               END.
+
+               IF LAST-OF(it-nota-fisc-trib.nr-seq-fat) THEN DO:
+                  IF  it-nota-fisc-trib.cod-cst-regul        <> ""
+                  AND it-nota-fisc-trib.cod-class-trib-regul <> "" THEN
+                     RUN pi-cria-ttgTribRegular.
+			   
+                  IF it-nota-fisc-trib.estorno-cred = YES THEN 
+                    RUN pi-cria-ttgEstornoCred.
+
+                   ASSIGN c-cst-reg                = ""
+                          c-class-trib-reg         = ""
+                          d-aliq-efet-reg-cbs      = 0
+                          d-trib-reg-cbs           = 0
+                          d-aliq-efet-reg-ibs-uf   = 0
+                          d-trib-reg-ibs-uf        = 0
+                          d-aliq-efet-reg-ibs-mun  = 0
+                          d-trib-reg-ibs-mun       = 0
+                          d-total-nf-deb-cred-vCBS = 0
+                          d-total-nf-deb-cred-vIBS = 0.
+               END.
+           END.
+
+        END. // Fim Impostos da Reforma Tribut ria
+    END.   
+    
+    RUN pi-cria-ttInfAdicNFCom.
+    
+    RUN pi-cria-ttTotal-NFCom. 
+    
+    RUN pi-cria-ttICMSTot-NFCom.
+
+    RUN pi-cria-ttRetTribTot-NFCom.
+
+    IF l-NT2024002 THEN
+       RUN pi-cria-ttTotIBSCBSIS.
+
+END PROCEDURE.

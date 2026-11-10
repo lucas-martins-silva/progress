@@ -1,0 +1,62 @@
+PROCEDURE pi-cria-ttgTransfCred:
+  
+   /*
+   FIELD vIBS AS DECIMAL INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor do IBS a ser transferido*/
+   FIELD vCBS AS DECIMAL INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor da CBS a ser transferida*/
+   */
+
+   CREATE ttgTransfCred.              
+   ASSIGN ttgTransfCred.vIBS = d-total-nf-deb-cred-vIBS 
+          ttgTransfCred.vCBS = d-total-nf-deb-cred-vCBS 
+          /* Chave EMS */
+          ttgTransfCred.CodEstabelNF  = it-nota-fisc.cod-estabel
+          ttgTransfCred.SerieNF       = it-nota-fisc.serie     
+          ttgTransfCred.NrNotaFisNF   = it-nota-fisc.nr-nota-fis
+          ttgTransfCred.ItCodigoNF    = it-nota-fisc.it-codigo
+          ttgTransfCred.NrSeqFatNF    = it-nota-fisc.nr-seq-fat.
+          
+END PROCEDURE.
+
+PROCEDURE pi-cria-ttgAjusteCompet:
+  
+   /*
+   FIELD competApur          AS CHARACTER INITIAL ?                                         /*Ano e mˆs referˆncia do per¡odo de apura‡Æo (AAAA-MM)*/
+   FIELD vIBS                AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do IBS*/
+   FIELD vCBS                AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor da CBS*/  
+   */
+ 
+   CREATE ttgAjusteCompet.              
+   ASSIGN ttgAjusteCompet.competApur    = substring(it-nota-fisc-trib.cod-livre-1,90,7)
+          ttgAjusteCompet.vIBS          = d-total-nf-deb-cred-vIBS 
+          ttgAjusteCompet.vCBS          = d-total-nf-deb-cred-vCBS 
+          /* Chave EMS */
+          ttgAjusteCompet.CodEstabelNF  = it-nota-fisc.cod-estabel
+          ttgAjusteCompet.SerieNF       = it-nota-fisc.serie     
+          ttgAjusteCompet.NrNotaFisNF   = it-nota-fisc.nr-nota-fis
+          ttgAjusteCompet.ItCodigoNF    = it-nota-fisc.it-codigo
+          ttgAjusteCompet.NrSeqFatNF    = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.
+
+PROCEDURE pi-cria-ttgEstornoCred:
+  
+   /*
+   FIELD vIBSEstCred         AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do IBS a ser estornado*/
+   FIELD vCBSEstCred         AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor da CBS a ser estornado*/
+   */
+ 
+   CREATE ttgEstornoCred.              
+   ASSIGN ttgEstornoCred.vIBSEstCred   = d-total-nf-deb-cred-vIBS 
+          ttgEstornoCred.vCBSEstCred   = d-total-nf-deb-cred-vCBS
+          d-total-vIBSEstCred          = d-total-vIBSEstCred + d-total-nf-deb-cred-vIBS
+          d-total-vCBSEstCred          = d-total-vCBSEstCred + d-total-nf-deb-cred-vCBS
+          /* Chave EMS */
+          ttgEstornoCred.CodEstabelNF  = it-nota-fisc.cod-estabel
+          ttgEstornoCred.SerieNF       = it-nota-fisc.serie     
+          ttgEstornoCred.NrNotaFisNF   = it-nota-fisc.nr-nota-fis
+          ttgEstornoCred.ItCodigoNF    = it-nota-fisc.it-codigo
+          ttgEstornoCred.NrSeqFatNF    = it-nota-fisc.nr-seq-fat.
+          
+   
+
+END PROCEDURE.

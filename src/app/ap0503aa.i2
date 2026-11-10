@@ -1,0 +1,18 @@
+/*********************************************************************************
+***
+*** app/ap0503aa.i2 - Gera Documento Imposto de Renda Antecipa‡Æo.
+***
+*********************************************************************************/
+
+if  l-informa-ir = yes then do:
+
+    run app/ap0503ac.p (input rowid(tit-ap),
+                        input table tt-ant-ir).
+
+    for each tt-ant-ir:
+        delete tt-ant-ir.
+    end.
+
+end.
+
+/*---- Fim de Include  AP0503aa.i2 ---*/

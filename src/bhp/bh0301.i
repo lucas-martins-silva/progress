@@ -1,0 +1,6 @@
+DEFINE TEMP-TABLE ttErrosConexao NO-UNDO
+	FIELD i-sequen	AS INTEGER
+	FIELD cd-erro	AS INTEGER
+	FIELD mensagem	AS CHARACTER FORMAT "X(255)".
+	
+

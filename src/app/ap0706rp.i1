@@ -1,0 +1,109 @@
+/****************************************************************************
+***
+*** app/ap0706rp.i1 - Defini‡Æo Variaveis.
+***
+****************************************************************************/
+
+def var c-text-1      as char format "x(22)":U no-undo.
+def var c-text-2      as char format "x(21)":U no-undo.
+def var c-text-3      as char format "x(06)":U no-undo.
+def var c-text-4      as char format "x(18)":U no-undo.
+def var c-text-5      as char format "x(06)":U no-undo.
+def var c-text-6      as char format "x(10)":U no-undo.
+def var c-text-7      as char format "x(17)":U no-undo.
+def var c-text-8      as char format "x(11)":U no-undo.
+def var c-text-9      as char format "x(12)":U no-undo.
+def var c-texto       as char format "x(16)":U no-undo.
+
+def var c-trans       as char format "x(03)":U no-undo.
+def var c-tipo        as char format "x(02)":U no-undo.
+def var c-lancto      as char format "x(02)":U no-undo.
+def var c-db-cr       as char format "x(02)":U no-undo.
+def var c-tp-forn     as char format "x(02)":U no-undo.
+def var c-atraso      as char format "x(12)":U no-undo.
+def var c-destino     as char format "x(12)":U no-undo.
+def var c-moeda       as char format "x(09)":U no-undo.
+def var c-tipo-rel    as char format "x(12)":U no-undo.
+def var c-docto       as char format "x(16)":U no-undo.
+def var c-docto-ant   as char format "x(16)":U no-undo.
+def var c-vencto      as char format "x(22)":U no-undo.
+
+def var i-tipo-esp      like espec-ap.tipo            no-undo.
+def var i-cod-forn      like mov-ap.cod-fornec        no-undo.
+def var i-emitente      like emitente.cod-emitente    no-undo.
+def var i-data          as integer format ">>>9":U    no-undo.
+def var i-cont          as integer format "99":U      no-undo.
+def var i-atraso        as integer format "->>>>>9":U no-undo.
+def var i-prazo         as integer format "->>>>>9":U no-undo.
+def var i-tot-gr-prazo  as integer format "zzzz9":U   no-undo.
+def var i-tot-gr-atraso as integer format "-zzz9":U   no-undo.
+
+def var l-entrou        as logical init yes no-undo.
+def var l-nao-entrou    as logical init no  no-undo.
+def var l-existe        as logical init no  no-undo.
+def var l-existe-movto  as logical init no  no-undo.
+def var l-movto         as logical init no  no-undo.
+def var l-fornec        as logical init no  no-undo.
+def var l-primeira-vez  as logical init yes no-undo.
+def var l-primeiro      as logical          no-undo.
+def var l-prim-esp      as logical          no-undo.
+def var l-prim-forn     as logical          no-undo.
+def var l-prim          as logical          no-undo.
+def var l-valido        as logical          no-undo.
+
+def var de-perc-acum       as decimal format ">>9.99":U init 0 extent 13 no-undo.
+def var de-percent         as decimal format ">>9.99":U init 0 extent 14 no-undo.
+def var de-vencimen        as decimal format ">>>>>,>>>,>>9.99" init 0 extent 14 no-undo.
+def var de-venc-acum       as decimal format ">>>>>,>>>,>>9.99" init 0 extent 13 no-undo.
+def var de-tot-pef         like mov-ap.vl-mov-fasb init 0 no-undo.
+def var de-vl-saldo        like tit-ap.valor-saldo init 0 no-undo.
+def var de-vl-movto        like mov-ap.valor-mov   init 0 no-undo.
+def var de-tot-cr          like mov-ap.valor-mov   init 0 no-undo.
+def var de-tot-db          like mov-ap.valor-mov   init 0 no-undo.
+def var de-total-cr        like mov-ap.valor-mov   init 0 no-undo.
+def var de-total-db        like mov-ap.valor-mov   init 0 no-undo.
+def var de-tot-saldo       like mov-ap.valor-mov   init 0 no-undo.
+def var de-tot-atual       like mov-ap.valor-mov   init 0 no-undo.
+def var de-ger-atual       like mov-ap.valor-mov   init 0 no-undo.
+def var de-ger-saldo       like mov-ap.valor-mov   init 0 no-undo.
+def var de-ger-atual-db    as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-ger-atual-cr    as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-ger-saldo-db    as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-ger-saldo-cr    as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-total-geral-cr  as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-total-geral-db  as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-gr-saldo    as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-gr-atual    as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-gr-saldo-cr as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-gr-saldo-db as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-gr-atual-cr as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-gr-atual-db as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+
+def var de-tot-saldo-forn as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-atual-forn as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-fornec-cr  as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+def var de-tot-fornec-db  as decimal format ">>>,>>>,>>>,>>9.99" init 0 no-undo.
+
+def var de-fornec-cr       like mov-ap.valor-mov   init 0 no-undo.
+def var de-fornec-db       like mov-ap.valor-mov   init 0 no-undo.
+def var de-tot-fornec      like mov-ap.valor-mov   init 0 no-undo.
+def var de-sal-esp         like mov-ap.valor-mov   init 0 no-undo.
+def var de-tot-esp         like mov-ap.valor-mov   init 0 no-undo.
+def var de-diferenca       like mov-ap.valor-mov   init 0 no-undo.
+def var de-atraso          like mov-ap.valor-mov no-undo.
+def var de-prazo           like mov-ap.valor-mov no-undo.
+def var de-at-total        like mov-ap.valor-mov no-undo.
+def var de-at-geral        like mov-ap.valor-mov no-undo.
+def var de-at-data         like mov-ap.valor-mov no-undo.
+def var de-converte        like mov-ap.valor-mov no-undo.
+def var de-pr-total        like mov-ap.valor-mov no-undo.
+def var de-pr-geral        like mov-ap.valor-mov no-undo.
+def var de-pr-data         like mov-ap.valor-mov no-undo.
+def var de-dolar           as decimal init 0     no-undo.
+def var de-fator           as decimal init 0     no-undo.
+
+def var da-transac   like mov-ap.dt-transacao no-undo.
+def var c-text-acomp as char                  no-undo.
+def var h-acomp      as handle                no-undo.
+
+/* Fim de Include */

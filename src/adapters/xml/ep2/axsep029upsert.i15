@@ -1,0 +1,40 @@
+PROCEDURE pi-cria-ttInfDec: 
+
+    /*
+    === ttInfDec===
+    xObs1             AS CHARACTER INITIAL ? //Observaá∆o 1 ao usu†rio emitente
+    xObs2             AS CHARACTER INITIAL ? //Observaá∆o 2 ao usu†rio emitente
+    */
+    
+    CREATE ttInfDec.       
+    ASSIGN /* Chave EMS */ 
+           ttInfDec.CodEstabelDCe = dce-documento.cod-estabel
+           ttInfDec.SerieDCe      = dce-documento.serie
+           ttInfDec.NrDCe         = dce-documento.nr-dce
+           /* Chave EMS */ 
+           
+           ttInfDec.xObs1         = (IF dce-documento.observ-dce-1 <> ""
+                                     THEN dce-documento.observ-dce-1
+                                     ELSE "ê contribuinte de ICMS qualquer pessoa f°sica ou jur°dica, que realize, com habitualidade ou em volume que caracterize intuito comercial, 
+                                     operaá‰es de circulaá∆o de mercadoria ou prestaá‰es de serviáos de transportes interestadual e intermunicipal e de comunicaá∆o, ainda que as operaá‰es 
+                                     e prestaá‰es de iniciem no exterior - Lei Complementar nß 87/96, Art. 4ß")
+           ttInfDec.xObs2         = (IF dce-documento.observ-dce-2 <> ""
+                                     THEN dce-documento.observ-dce-2
+                                     ELSE "Constitui crime contra a ordem tribut†ria suprimir ou reduzir tributo, ou contribuiá∆o social e qualquer acess¢rio: quando negar ou deixar de fornecer, 
+                                     quando obrigat¢rio, nota fiscal ou documento equivalente, relativa a venda de mercadoria ou prestaá∆o de serviáo, efetivamente realizada ou fornece-la em desacordo 
+                                     com a legislaá∆o. Sob pena de reclus∆o de 2 (dois) e 5 (cinco) anos, e multa - Lei 8.137/90, Art 1¶, V)").
+           
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttInfDec THEN DO:
+        ASSIGN ttInfDec.xObs1  = REPLACE(ttInfDec.xObs1, CHR(10), " ")
+               ttInfDec.xObs1  = REPLACE(ttInfDec.xObs1, CHR(13), " ")
+               ttInfDec.xObs1  = REPLACE(ttInfDec.xObs1, CHR(9),  " ")
+               ttInfDec.xObs1  = fn-ajusta-espacos-branco(ttInfDec.xObs1)
+               ttInfDec.xObs1  = fn-ajusta-tamanho-campo(ttInfDec.xObs1 ,5000)
+               ttInfDec.xObs2  = REPLACE(ttInfDec.xObs2, CHR(10), " ")
+               ttInfDec.xObs2  = REPLACE(ttInfDec.xObs2, CHR(13), " ")
+               ttInfDec.xObs2  = REPLACE(ttInfDec.xObs2, CHR(9),  " ")
+               ttInfDec.xObs2  = fn-ajusta-espacos-branco(ttInfDec.xObs2)
+               ttInfDec.xObs2  = fn-ajusta-tamanho-campo(ttInfDec.xObs2 ,5000).
+    END.
+END PROCEDURE.

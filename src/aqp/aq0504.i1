@@ -1,0 +1,216 @@
+DEFINE VARIABLE h-acomp                 AS HANDLE              NO-UNDO.
+DEFINE VARIABLE i                       AS INTEGER             NO-UNDO.
+
+DEFINE VARIABLE c-titulo-coluna-default AS CHARACTER EXTENT 6  NO-UNDO.
+DEFINE VARIABLE c-campo-default         AS CHARACTER EXTENT 6  NO-UNDO.
+DEFINE VARIABLE c-titulo-coluna-dif     AS CHARACTER EXTENT 16 NO-UNDO.
+DEFINE VARIABLE c-campo-dif             AS CHARACTER EXTENT 16 NO-UNDO.
+DEFINE VARIABLE c-titulo-coluna-rej     AS CHARACTER EXTENT 14 NO-UNDO.
+DEFINE VARIABLE c-campo-rej             AS CHARACTER EXTENT 14 NO-UNDO.
+
+DEFINE VARIABLE d-largura-coluna        AS DECIMAL   EXTENT 16 NO-UNDO. 
+DEFINE VARIABLE c-label-param           AS CHARACTER EXTENT 17 NO-UNDO.
+
+
+{aqp/aq0504.i}
+
+   
+DEFINE TEMP-TABLE tt-carga NO-UNDO
+    FIELD it-codigo      LIKE carg-rural.it-codigo  
+    FIELD cod-transp     LIKE carg-rural.cod-transp    
+    FIELD cod-estabel    LIKE carg-rural.cod-estabel  
+    FIELD cod-rota       LIKE carg-rural.cod-rota     
+    FIELD dat-trans      LIKE carg-rural.dat-trans    
+    FIELD num-carg       LIKE carg-rural.num-carg     
+    FIELD cod-placa      LIKE carg-rural.cod-placa        
+    FIELD qtd-coleta     LIKE carg-rural.qtd-coleta   
+    FIELD qtd-aferid     LIKE carg-rural.qtd-aferid
+    FIELD nome           LIKE transporte.nome
+    FIELD cdn-tip-veic   LIKE preco-frete-coleta.cdn-tip-veic  
+    FIELD km-rodados     LIKE carg-rural.val-hodom-inicial
+    FIELD dif-qtde       LIKE carg-rural.qtd-coleta
+    FIELD qtd-rej        LIKE liber-carg.val-quant
+    FIELD valor-frete    LIKE carg-rural.val-frete
+    FIELD vl-frete-qtde  LIKE preco-frete-coleta.val-unit-frete-km
+    FIELD cdn-compart    LIKE liber-carg.cdn-compart
+    FIELD codigo-rejei   LIKE cod-rejeicao.codigo-rejei
+    FIELD desc-rejei     LIKE cod-rejeicao.descricao
+    FIELD motivo-rejei   AS CHARACTER FORMAT "X(50)":U.
+
+DEFINE TEMP-TABLE tt-param-planilha NO-UNDO
+    FIELD descricao AS CHARACTER
+    FIELD valor     AS CHARACTER.
+
+/** Titulo Colunas Comum para diferen‡a e rejeicao  Planilha **/           
+{utp/ut-liter.i Transp * r}               
+ASSIGN c-titulo-coluna-default[1]  = RETURN-VALUE.
+{utp/ut-liter.i Nome_transp * r}          
+ASSIGN c-titulo-coluna-default[2]  = RETURN-VALUE.
+{utp/ut-liter.i Estab * r}                
+ASSIGN c-titulo-coluna-default[3]  = RETURN-VALUE.
+{utp/ut-liter.i Rota * r}                 
+ASSIGN c-titulo-coluna-default[4]  = RETURN-VALUE.
+{utp/ut-liter.i Data_Trans * r}           
+ASSIGN c-titulo-coluna-default[5]  = RETURN-VALUE.
+{utp/ut-liter.i Carga * r}                
+ASSIGN c-titulo-coluna-default[6]  = RETURN-VALUE.
+ 
+DO i = 1 TO EXTENT(c-titulo-coluna-default):
+    ASSIGN c-titulo-coluna-dif[i] = c-titulo-coluna-default[i]
+           c-titulo-coluna-rej[i] = c-titulo-coluna-default[i].
+END.
+
+/** Titulo Colunas para diferen‡a Planilha **/ 
+{utp/ut-liter.i Tipo_Ve¡culo * r}         
+ASSIGN c-titulo-coluna-dif[7]  = RETURN-VALUE.
+{utp/ut-liter.i Item * r}         
+ASSIGN c-titulo-coluna-dif[8]  = RETURN-VALUE.
+{utp/ut-liter.i Placa * r}                
+ASSIGN c-titulo-coluna-dif[9]  = RETURN-VALUE.
+{utp/ut-liter.i KM_Rodados * r}           
+ASSIGN c-titulo-coluna-dif[10] = RETURN-VALUE.
+{utp/ut-liter.i Qtde_Coletada * r}        
+ASSIGN c-titulo-coluna-dif[11] = RETURN-VALUE.
+{utp/ut-liter.i Qtde_Aferida * r}        
+ASSIGN c-titulo-coluna-dif[12] = RETURN-VALUE.
+{utp/ut-liter.i Diferen‡a_Qtde * r}        
+ASSIGN c-titulo-coluna-dif[13] = RETURN-VALUE.
+{utp/ut-liter.i Qtde_Rejeitada * r}        
+ASSIGN c-titulo-coluna-dif[14] = RETURN-VALUE.
+{utp/ut-liter.i Valor_frete * r}        
+ASSIGN c-titulo-coluna-dif[15] = RETURN-VALUE.
+{utp/ut-liter.i Vl_Frete/Qtde * r}        
+ASSIGN c-titulo-coluna-dif[16] = RETURN-VALUE.
+
+/** Titulo Colunas para rejeicao Planilha **/ 
+{utp/ut-liter.i Compartimento * r}         
+ASSIGN c-titulo-coluna-rej[7]  = RETURN-VALUE.
+{utp/ut-liter.i Tipo_Ve¡culo * r}         
+ASSIGN c-titulo-coluna-rej[8]  = RETURN-VALUE.
+{utp/ut-liter.i Item * r}         
+ASSIGN c-titulo-coluna-rej[9]  = RETURN-VALUE.
+{utp/ut-liter.i Placa * r}                
+ASSIGN c-titulo-coluna-rej[10]  = RETURN-VALUE.
+{utp/ut-liter.i Qtde_Rejeitada * r}        
+ASSIGN c-titulo-coluna-rej[11] = RETURN-VALUE.
+{utp/ut-liter.i Cod_Rej * r}        
+ASSIGN c-titulo-coluna-rej[12] = RETURN-VALUE.
+{utp/ut-liter.i Rejei‡Æo * r}        
+ASSIGN c-titulo-coluna-rej[13] = RETURN-VALUE.
+{utp/ut-liter.i Motivo * r}        
+ASSIGN c-titulo-coluna-rej[14] = RETURN-VALUE.
+
+
+/** Nome dos campos comum para diferença e rejeicao **/ 
+{utp/ut-liter.i cod-transp * r}
+ASSIGN c-campo-default[1]  = RETURN-VALUE.
+{utp/ut-liter.i nome * r}
+ASSIGN c-campo-default[2]  = RETURN-VALUE.
+{utp/ut-liter.i cod-estabel * r}   
+ASSIGN c-campo-default[3]  = RETURN-VALUE.
+{utp/ut-liter.i cod-rota * r}
+ASSIGN c-campo-default[4]  = RETURN-VALUE.
+{utp/ut-liter.i dat-trans * r}
+ASSIGN c-campo-default[5]  = RETURN-VALUE.
+{utp/ut-liter.i num-carg * r}
+ASSIGN c-campo-default[6]  = RETURN-VALUE.
+
+DO i = 1 TO EXTENT(c-campo-default):
+    ASSIGN c-campo-dif[i] = c-campo-default[i]
+           c-campo-rej[i] = c-campo-default[i].
+END.
+
+/** Nome dos campos diferen‡a **/ 
+{utp/ut-liter.i cdn-tip-veic * r}
+ASSIGN c-campo-dif[7]  = RETURN-VALUE.
+{utp/ut-liter.i it-codigo * r}
+ASSIGN c-campo-dif[8]  = RETURN-VALUE.
+{utp/ut-liter.i cod-placa * r}
+ASSIGN c-campo-dif[9]  = RETURN-VALUE.
+{utp/ut-liter.i km-rodados  * r}
+ASSIGN c-campo-dif[10] = RETURN-VALUE.
+{utp/ut-liter.i qtd-coleta  * r}           
+ASSIGN c-campo-dif[11] = RETURN-VALUE.
+{utp/ut-liter.i qtd-aferid  * r}           
+ASSIGN c-campo-dif[12] = RETURN-VALUE.
+{utp/ut-liter.i dif-qtde  * r}
+ASSIGN c-campo-dif[13] = RETURN-VALUE.
+{utp/ut-liter.i qtd-rej  * r}
+ASSIGN c-campo-dif[14] = RETURN-VALUE.
+{utp/ut-liter.i valor-frete  * r}
+ASSIGN c-campo-dif[15] = RETURN-VALUE.
+{utp/ut-liter.i vl-frete-qtde  * r}
+ASSIGN c-campo-dif[16] = RETURN-VALUE.
+
+/** Nome dos campos rejeicao **/
+{utp/ut-liter.i cdn-compart * r}
+ASSIGN c-campo-rej[7]  = RETURN-VALUE.
+{utp/ut-liter.i cdn-tip-veic * r}
+ASSIGN c-campo-rej[8]  = RETURN-VALUE.
+{utp/ut-liter.i it-codigo * r}
+ASSIGN c-campo-rej[9]  = RETURN-VALUE.
+{utp/ut-liter.i cod-placa * r}
+ASSIGN c-campo-rej[10]  = RETURN-VALUE.
+{utp/ut-liter.i qtd-rej  * r}
+ASSIGN c-campo-rej[11] = RETURN-VALUE.
+{utp/ut-liter.i codigo-rejei * r}
+ASSIGN c-campo-rej[12] = RETURN-VALUE.
+{utp/ut-liter.i desc-rejei  * r}
+ASSIGN c-campo-rej[13] = RETURN-VALUE.
+{utp/ut-liter.i motivo-rejei  * r}
+ASSIGN c-campo-rej[14] = RETURN-VALUE.
+    
+ASSIGN d-largura-coluna[1]  = 10.14
+       d-largura-coluna[2]  = 17.30
+       d-largura-coluna[3]  = 7.7  
+       d-largura-coluna[4]  = 12
+       d-largura-coluna[5]  = 10.15
+       d-largura-coluna[6]  = 10.15
+       d-largura-coluna[7]  = 15 
+       d-largura-coluna[8]  = 15
+       d-largura-coluna[9]  = 12   
+       d-largura-coluna[10] = 18
+       d-largura-coluna[11] = 18
+       d-largura-coluna[12] = 18
+       d-largura-coluna[13] = 18
+       d-largura-coluna[14] = 18
+       d-largura-coluna[15] = 18
+       d-largura-coluna[16] = 18.
+
+{utp/ut-liter.i Relat¢rio_de_diferen‡as_e_rejei‡äes_das_cargas *}       
+ASSIGN c-titulo-relat = RETURN-VALUE.
+
+{utp/ut-liter.i SELE€ÇO                     * r}
+ASSIGN c-label-param[1] = RETURN-VALUE.
+{utp/ut-liter.i Transportador               * r}
+ASSIGN c-label-param[2] = RETURN-VALUE.
+{utp/ut-liter.i Data_Trans                  * r}
+ASSIGN c-label-param[3] = RETURN-VALUE.
+{utp/ut-liter.i Estab                       * r}
+ASSIGN c-label-param[4] = RETURN-VALUE.
+{utp/ut-liter.i Rota                        * r}
+ASSIGN c-label-param[5] = RETURN-VALUE.
+{utp/ut-liter.i Item                        * r}
+ASSIGN c-label-param[6] = RETURN-VALUE.
+{utp/ut-liter.i Rejei‡Æo                    * r}
+ASSIGN c-label-param[7] = RETURN-VALUE.
+{utp/ut-liter.i Carga                       * r}
+ASSIGN c-label-param[8] = RETURN-VALUE.
+{utp/ut-liter.i PAR¶METROS                  * r}
+ASSIGN c-label-param[9] = RETURN-VALUE.
+{utp/ut-liter.i EmissÆo                     * r}
+ASSIGN c-label-param[10] = RETURN-VALUE.
+{utp/ut-liter.i Diferen‡a_Quantidade        * r}
+ASSIGN c-label-param[11] = RETURN-VALUE.
+{utp/ut-liter.i Rejei‡äes                   * r}
+ASSIGN c-label-param[12] = RETURN-VALUE.
+{utp/ut-liter.i Considera_Tolerƒncia        * r}
+ASSIGN c-label-param[13] = RETURN-VALUE.
+{utp/ut-liter.i Relat¢rio_de_diferen‡as_e_rejei‡äes_das_cargas_gerado_no_diret¢rio * }
+ASSIGN c-label-param[14] = RETURN-VALUE.
+{utp/ut-liter.i Arquivo_de_sa¡da            * r}
+ASSIGN c-label-param[15] = RETURN-VALUE.
+{utp/ut-liter.i ImpressÆo                   * r}
+ASSIGN c-label-param[16] = RETURN-VALUE.
+{utp/ut-liter.i Destino                     * r}
+ASSIGN c-label-param[17] = RETURN-VALUE.    

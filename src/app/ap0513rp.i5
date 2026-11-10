@@ -1,0 +1,27 @@
+/******************************************************************************
+***
+***  pi-cria-tt-dados-traducao.
+***
+******************************************************************************/
+
+def input parameter i-tipo-movto as integer.
+
+if  param-global.modulo-mp and
+    tt-replica-msg.log-replica-msg  = yes then do:
+    create tt-traducao-aux.
+    buffer-copy traducao to tt-traducao-aux. 
+    create tt-dados-env.                  
+    assign tt-dados-env.num-sequencia  = i-seq 
+           tt-dados-env.cod-tipo-reg   = 78
+           tt-dados-env.ind-tipo-movto = i-tipo-movto
+           tt-dados-env.identif-msg    = string(traducao.ep-codigo)              + " , " +            
+                                         traducao.ct-codigo                      + " , " +
+                                         traducao.sc-codigo                      + " , " +
+                                         string(traducao.dt-trans, "99/99/9999") + " , " +
+                                         traducao.ct-cp-trad                     + " , " + 
+                                         traducao.sc-cp-trad.
+    raw-transfer tt-traducao-aux to tt-dados-env.conteudo-msg.                                     
+    assign i-seq = i-seq + 1.                                     
+end.
+
+/* Fim de Include */

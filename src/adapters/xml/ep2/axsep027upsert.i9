@@ -1,0 +1,25 @@
+PROCEDURE pi-cria-ttNFe:
+
+    /*
+    === ttNFe ===
+    CodEstabelNF   AS CHARACTER INITIAL ?
+    SerieNF        AS CHARACTER INITIAL ?
+    NrNotaFisNF    AS CHARACTER INITIAL ?
+    ChaveAcessoNFe AS CHARACTER INITIAL ?
+    VersaoLayout   AS CHARACTER INITIAL ?
+    */
+
+    CREATE ttNFe.
+    ASSIGN ttNFe.CodEstabelNF   = nota-fiscal.cod-estabel
+           ttNFe.SerieNF        = nota-fiscal.serie
+           ttNFe.NrNotaFisNF    = nota-fiscal.nr-nota-fis
+           ttNFe.ChaveAcessoNFe = TRIM(&if '{&bf_dis_versao_ems}' >= '2.07':U
+                                       &then STRING   (nota-fiscal.cod-chave-aces-nf-eletro)
+                                       &else SUBSTRING(nota-fiscal.char-2,3,60) &endif)
+           ttNFe.VersaoLayout   = TRIM(&if "{&bf_dis_versao_ems}" >= "2.071"
+                                       &then TRIM(estabelec.des-vers-layout)
+                                       &else TRIM(SUBSTRING(estabelec.char-1,173,10)) &endif).
+                                       
+    ASSIGN iContNota = iContNota + 1.
+
+END PROCEDURE.

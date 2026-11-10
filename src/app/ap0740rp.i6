@@ -1,0 +1,48 @@
+/*******************************************************************************
+***
+*** app/ap0740rp.i6 - last-of(tt-tit-ap.cod-fornec).
+***
+*******************************************************************************/
+
+if  last-of(tt-tit-ap.cod-fornec) then do:
+
+    if  not last-of(tt-tit-ap.mes-vencto) then do:
+        disp "-----------------" @ tt-tit-ap.vl-original     
+             "-----------------" @ tt-tit-ap.valor-saldo with frame f-detalhe.
+
+        down with frame f-detalhe.
+    end.
+    else
+        put skip(1).
+
+    if  de-tot-forn-orig > 0 then
+        assign c-lancto-1 = c-credito.
+    else
+        assign c-lancto-1 = c-debito.
+
+    if  de-tot-forn-saldo > 0 then
+        assign c-lancto-2 = c-credito.
+    else
+        assign c-lancto-2 = c-debito.
+
+    if  de-tot-forn-orig < 0 then
+        assign de-tot-forn-orig = de-tot-forn-orig * (-1).
+
+    if  de-tot-forn-saldo < 0 then
+        assign de-tot-forn-saldo = de-tot-forn-saldo * (-1).
+
+    if line-counter = page-size then
+        page.
+
+    put c-total-fornec    at 46
+        de-tot-forn-orig  to 103
+        c-lancto-1        to 106
+        de-tot-forn-saldo to 129 
+        c-lancto-2        to 132
+        skip(1).
+
+    assign de-tot-forn-orig  = 0
+           de-tot-forn-saldo = 0.
+end.
+
+/* Fim de Include */

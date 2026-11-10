@@ -1,0 +1,35 @@
+/****************************************************************************
+**
+** ap0505d.i14 - Grava temp-table da API de integra‡Æo
+**
+** Criada para manter num mesmo programa a chamada da consistˆncia e a 
+** include da atualiza‡Æo
+**
+****************************************************************************/
+    
+/*---- Verifica se houve erros para mostrar no relat¢tio ----*/
+find first tt-lin-b-ap no-lock no-error.
+if  avail tt-lin-b-ap then do:
+    view frame f-cabec. 
+    view frame f-rodape.
+       
+    for each tt-lin-b-ap no-lock: 
+      
+        create tt-retorno-lin-b-ap.
+        assign tt-retorno-lin-b-ap.desc-erro  = tt-lin-b-ap.ttv-des-mensagem
+               tt-retorno-lin-b-ap.cod-erro   = string(tt-lin-b-ap.tta-cod-erro)
+               tt-retorno-lin-b-ap.situacao   = tt-lin-b-ap.tta-situacao
+               tt-retorno-lin-b-ap.cod-chave  = tt-lin-b-ap.tta-referencia  + "," +
+                                         string(tt-lin-b-ap.tta-sequencia)  + "," +
+                                         string(i-ep-codigo-usuario)        + "," +
+                                                tt-lin-b-ap.tta-cod-estabel + "," +                       
+                                                tt-lin-b-ap.tta-cod-esp     + "," +
+                                                tt-lin-b-ap.tta-serie       + "," +
+                                                tt-lin-b-ap.tta-nr-docto    + "," +
+                                                tt-lin-b-ap.tta-parcela     + "," +
+                                         string(tt-lin-b-ap.tta-cod-fornec).
+
+    end.
+end.
+
+/* Fim da include */

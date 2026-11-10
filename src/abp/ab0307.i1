@@ -1,0 +1,99 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*****************************************************************************
+**
+**       PROGRAMA: AB0307.i1
+**
+**       DATA....: Mar‡o de 2007
+**
+*****************************************************************************/
+                                                /** Defini‡Æo de Vari veis **/
+DEFINE VARIABLE c-liter-imp  AS CHARACTER FORMAT "x(14)" NO-UNDO.
+DEFINE VARIABLE c-liter-par  AS CHARACTER FORMAT "x(14)" NO-UNDO.
+DEFINE VARIABLE c-destino    AS CHARACTER FORMAT "x(09)" NO-UNDO.
+DEFINE VARIABLE c-fora       AS CHARACTER FORMAT "x(01)" NO-UNDO.
+DEFINE VARIABLE cErro        AS CHARACTER FORMAT "x(30)" NO-UNDO.
+/*****************************************************************************/
+                                                     /** Form de Parƒmetros **/
+
+form   /*PAR¶METROS*/
+       skip(1)
+       c-liter-par              at 09    no-label
+       skip(1)
+       tt-param.iTipo           COLON 30 " - " tt-param.cTipo  format "x(28)" no-label
+
+       /*IMPRESSÇO*/
+       skip(1)
+       c-liter-imp              AT 09    no-label
+       skip(1)
+       c-destino                COLON 30 " - " tt-param.arquivo NO-LABEL
+       tt-param.usuario         COLON 30
+       skip(1)
+       with width 132 side-labels frame f-param-definidos stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-param-definidos:HANDLE).
+
+/*****************************************************************************/
+                                                              /** ImpressÆo **/
+form tt-digita.cod-oficial format "x(25)" at 10 " - " 
+     tt-digita.desc-dimensao no-label format "x(75)"  at 56
+     with width 132 no-attr-space no-box side-labels frame f-visoes stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-visoes:HANDLE).
+
+     
+form bfDigita.ep-codigo    at 01   
+     bfDigita.cod-eqpto    at 09   
+     bfDigita.dat-movto    at 26   
+     bfDigita.hra-inicial  at 37  
+     bfDigita.num-docto    at 51   
+     cErro                 at 64
+     with width 132 no-attr-space no-box down frame f-dados stream-io. 
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-dados:HANDLE).
+   
+
+/*****************************************************************************/
+                                               /** Literais Form Parƒmetros **/
+{utp/ut-liter.i Usu rio * l}
+assign tt-param.usuario:label in frame f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i Destino * l}
+assign c-destino:label in frame f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i Tipo_de_Relat¢rio * l}
+assign tt-param.iTipo:label in frame f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i PAR¶METROS * R}
+assign c-liter-par = trim(return-value).
+
+{utp/ut-liter.i IMPRESSÇO * R}
+assign c-liter-imp = trim(return-value).
+
+/*****************************************************************************/
+                                                    /** Literais Form Dados **/
+{utp/ut-liter.i "Empresa"}
+assign bfDigita.ep-codigo:label in frame f-dados = trim(return-value).
+
+{utp/ut-liter.i "Equipamento"}
+assign bfDigita.cod-eqpto:label in frame f-dados = trim(return-value).
+
+{utp/ut-liter.i "Data"}
+assign bfDigita.dat-movto:label in frame f-dados = trim(return-value).
+
+{utp/ut-liter.i "Hora"}
+assign bfDigita.hra-inicial:label in frame f-dados = trim(return-value).
+
+{utp/ut-liter.i "Documento"}
+assign bfDigita.num-docto:label in frame f-dados = trim(return-value).
+
+{utp/ut-liter.i "Descri‡Æo Erro"}
+assign cErro:label in frame f-dados = trim(return-value).
+
+/*****************************************************************************/
+                                                         /** Fim da Include **/

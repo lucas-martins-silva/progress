@@ -1,0 +1,46 @@
+/*******************************************************************************
+**
+**  AP0501C.i3 - Rateio do valor do IR e AIRE quando usa mais de uma conta.
+**
+*******************************************************************************/
+
+assign de-total-docto = b-tit-ap.valor-saldo.     
+
+for each tit-conta-ap
+   where tit-conta-ap.ep-codigo   = tit-ap.ep-codigo
+     and tit-conta-ap.cod-estabel = tit-ap.cod-estabel
+     and tit-conta-ap.cod-esp     = tit-ap.cod-esp
+     and tit-conta-ap.serie       = tit-ap.serie
+     and tit-conta-ap.nr-docto    = tit-ap.nr-docto
+     and tit-conta-ap.parcela     = tit-ap.parcela
+     and tit-conta-ap.cod-fornec  = tit-ap.cod-fornec
+    break by tit-conta-ap.ep-codigo:
+    create b-tit-conta-ap.
+    assign b-tit-conta-ap.ep-codigo    = b-tit-ap.ep-codigo
+           b-tit-conta-ap.cod-estabel  = b-tit-ap.cod-estabel
+           b-tit-conta-ap.cod-esp      = b-tit-ap.cod-esp
+           b-tit-conta-ap.serie        = b-tit-ap.serie
+           b-tit-conta-ap.nr-docto     = b-tit-ap.nr-docto
+           b-tit-conta-ap.parcela      = b-tit-ap.parcela
+           b-tit-conta-ap.cod-fornec   = b-tit-ap.cod-fornec
+           b-tit-conta-ap.conta-debito = tit-conta-ap.conta-debito            
+           b-tit-conta-ap.ct-codigo    = tit-conta-ap.ct-codigo
+           b-tit-conta-ap.sc-codigo    = tit-conta-ap.sc-codigo
+           b-tit-conta-ap.conta-debito = tit-conta-ap.conta-debito.
+           
+    assign b-tit-conta-ap.vl-movto     = fn_ajust_dec((tit-conta-ap.vl-movto
+                                       / tit-ap.valor-saldo 
+                                       * b-tit-ap.valor-saldo),b-tit-conta-ap.mo-codigo).
+
+    assign de-total-docto             = de-total-docto - b-tit-conta-ap.vl-movto.
+    
+    if  last-of(tit-conta-ap.ep-codigo)
+    and de-total-docto <> 0 then
+        assign b-tit-conta-ap.vl-movto = b-tit-conta-ap.vl-movto
+                                       + de-total-docto.
+    
+    assign tit-conta-ap.vl-movto  = tit-conta-ap.vl-movto
+                                  - b-tit-conta-ap.vl-movto.
+end.
+
+/* fim da include */

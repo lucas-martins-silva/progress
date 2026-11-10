@@ -1,0 +1,25 @@
+PROCEDURE pi-cria-ttNFCom:
+
+    /*
+    === ttNFCom ===
+    CodEstabelNF   AS CHARACTER INITIAL ?
+    SerieNF        AS CHARACTER INITIAL ?
+    NrNotaFisNF    AS CHARACTER INITIAL ?
+    ChaveAcessoNFe AS CHARACTER INITIAL ?
+    VersaoLayout   AS CHARACTER INITIAL ?
+    */
+    
+    IF NOT AVAIL param-nf-estab THEN
+       FOR FIRST param-nf-estab WHERE
+                 param-nf-estab.cod-estabel = nota-fiscal.cod-estabel: END.    
+
+    CREATE ttNFCom.
+    ASSIGN ttNFCom.CodEstabel       = nota-fiscal.cod-estabel
+           ttNFCom.SerieNFCom       = nota-fiscal.serie
+           ttNFCom.NrNotaFis        = nota-fiscal.nr-nota-fis
+           ttNFCom.ChaveAcessoNFCom = SUBSTRING(nota-fiscal.char-2,292,60)
+           ttNFCom.VersaoLayout     = TRIM(SUBSTRING(param-nf-estab.cod-livre-1,848,10)).
+                                       
+    //ASSIGN iContNota = iContNota + 1.
+
+END PROCEDURE.

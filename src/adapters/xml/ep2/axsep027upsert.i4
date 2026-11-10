@@ -1,0 +1,33 @@
+PROCEDURE pi-localiza-tabelas-ttEmit: /*Procedimento para cria‡Æo das informa‡äes do Emissor da Nota (chamado no ft0910b.p)*/
+
+    IF  NOT VALID-HANDLE(h-cdapi704) THEN
+        RUN cdp/cdapi704.p PERSISTENT SET h-cdapi704.
+
+    IF  NOT AVAIL estabelec THEN
+        FOR FIRST estabelec NO-LOCK
+            WHERE estabelec.cod-estabel = cCodEstabel:
+        END.
+
+    IF  NOT AVAIL bf-emitente-est THEN
+        FOR FIRST bf-emitente-est FIELDS (telefone cgc natureza pais nome-abrev) NO-LOCK
+            WHERE bf-emitente-est.cod-emitente = estabelec.cod-emitente:
+        END.
+
+    IF  NOT AVAIL bf-cidade-est THEN
+        FOR FIRST bf-cidade-est FIELDS(pais cidade &IF '{&BF_DIS_VERSAO_EMS}' >= "2.07":U &THEN cdn-munpio-ibge &ELSE int-2 &ENDIF)
+            WHERE bf-cidade-est.cidade = estabelec.cidade
+              AND bf-cidade-est.estado = estabelec.estado
+              AND bf-cidade-est.pais   = estabelec.pais   NO-LOCK:
+        END.
+
+    FOR FIRST pais NO-LOCK
+        WHERE pais.nome-pais = estabelec.pais:
+    END.
+
+    IF  NOT AVAIL bf-unid-feder-est THEN
+        FOR FIRST bf-unid-feder-est FIELDS (&if '{&bf_dis_versao_ems}' >= '2.07':U &then cod-uf-ibge &else char-1 &endif) NO-LOCK
+            WHERE bf-unid-feder-est.pais   = estabelec.pais
+              AND bf-unid-feder-est.estado = estabelec.estado:
+        END.
+
+END PROCEDURE.

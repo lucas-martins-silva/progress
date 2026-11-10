@@ -1,0 +1,71 @@
+/**************************************************************************
+***
+*** app/ap0586.i8 - Cria AVA.
+***
+**************************************************************************/
+  
+create mov-ap.
+assign mov-ap.ep-codigo      = tit-ap.ep-codigo
+       mov-ap.cod-estabel    = tit-ap.cod-estabel
+       mov-ap.cod-esp        = tit-ap.cod-esp
+       mov-ap.serie          = tit-ap.serie
+       mov-ap.nr-docto       = tit-ap.nr-docto
+       mov-ap.parcela        = tit-ap.parcela
+       mov-ap.cod-fornec     = tit-ap.cod-fornec
+       mov-ap.transacao      = 5
+       mov-ap.dt-today       = today
+       mov-ap.dt-transacao   = tt-param.dt-ref
+       mov-ap.dt-emissao     = tit-ap.dt-emissao
+       mov-ap.dt-vencimen    = tit-ap.dt-vencimen
+       mov-ap.dt-pagamento   = tt-param.dt-ref
+       mov-ap.nome-abrev     = tit-ap.nome-abrev
+       mov-ap.portador       = tit-ap.portador
+       mov-ap.referencia     = tit-ap.referencia
+       mov-ap.contabilizou   = no
+       mov-ap.tipo           = tit-ap.tipo
+       mov-ap.usuario        = c-seg-usuario
+       mov-ap.c-time         = string(time, "HH:MM")
+       mov-ap.lancamento     = 2
+       mov-ap.conta-contabil = {1}
+       mov-ap.ct-conta       = {2}
+       mov-ap.sc-conta       = {3}
+       mov-ap.vl-original    = tit-ap.vl-original
+       mov-ap.valor-mov      = {4}
+       mov-ap.tp-codigo      = tit-ap.tp-codigo.
+
+{utp/ut-liter.i Reten‡äes * R}
+assign mov-ap.historico = trim(return-value).
+                    
+/*-------------- Multi-Moeda ---------------*/
+assign mov-ap.moeda          = tit-ap.moeda
+       mov-ap.cotacao-dia    = tit-ap.cotacao-dia
+       mov-ap.vl-orig-me     = tit-ap.vl-orig-me
+       mov-ap.valor-mov-me   = {4} / tit-ap.cotacao-dia.
+       
+/********************Multiplanta***********************/  
+  assign i-tipo-movto = 1.                           
+  run pi-cria-tt-dados-mov(input i-tipo-movto).     
+/*******************Fim-Multiplanta********************/        
+                                               
+/*assign de-soma-ava    = de-soma-ava    + mov-ap.valor-mov
+ *        de-soma-ava-me = de-soma-ava-me + mov-ap.valor-mov-me.    */
+
+/*-------- INTEGRA€åES ---------*/
+{app/ap9100.i2}
+assign tt-integ-ap.tt-row-tit-ap  = rowid(tit-ap)
+       tt-integ-ap.tt-row-mov-ap  = rowid(mov-ap)
+       tt-integ-ap.tt-fc1014a     = yes
+       tt-integ-ap.tt-fc1114a     = yes
+       tt-integ-ap.tt-cb0201a     = yes
+       tt-integ-ap.tt-ge0102b     = yes
+       tt-integ-ap.tt-ge0102g     = yes
+       tt-integ-ap.tt-cb1202a     = yes       
+       tt-integ-ap.tt-op-cb0201a  = 16
+       tt-integ-ap.tt-op-ge0102b  = 16
+       tt-integ-ap.tt-op-ge0102g  = 16
+       tt-integ-ap.tt-op-cb1202a  = 16.
+raw-transfer tt-integ-ap to raw-integracao.
+run app/ap9100.p (Input raw-integracao,
+                  input-output table tt-erro).                    
+
+/* Fim de Include */

@@ -1,0 +1,99 @@
+/**************************************************************************
+***
+*** app/ap0586.i7 - Cria Voucher para as reten‡äes
+***
+***
+**************************************************************************/
+
+for each impto-tit-ap use-index codigo
+   where impto-tit-ap.ep-codigo    = tit-ap.ep-codigo
+     and impto-tit-ap.cod-estabel  = tit-ap.cod-estabel
+     and impto-tit-ap.cod-esp      = tit-ap.cod-esp
+     and impto-tit-ap.serie        = tit-ap.serie
+     and impto-tit-ap.nr-docto     = tit-ap.nr-docto
+     and impto-tit-ap.parcela      = tit-ap.parcela
+     and impto-tit-ap.cod-fornec   = tit-ap.cod-fornec
+     and impto-tit-ap.origem-impto = 1   /*Implanta‡Æo*/
+     and impto-tit-ap.tipo         = 2    /*IVA*/
+    exclusive-lock:
+
+    find first tipo-tax no-lock
+       where tipo-tax.cod-tax = impto-tit-ap.cod-imposto no-error.       
+                 
+    if  impto-tit-ap.vl-retencao > 0 and tipo-tax.ind-data-base-ret = 1 then do:                   
+        if  tit-ap.vl-original <> tit-ap.valor-saldo then do:
+            assign impto-tit-ap.vl-retencao     = 0
+                   impto-tit-ap.vl-retencao-me  = 0
+                   impto-tit-ap.perc-retencao   = 0
+                   impto-tit-ap.conta-retencao  = ""
+                   impto-tit-ap.ct-retencao     = ""
+                   impto-tit-ap.sc-retencao     = "". 
+           /********************Multiplanta***********************/  
+            assign i-tipo-movto = 2.                           
+            run pi-cria-tt-dados-impto(input i-tipo-movto).      
+           /*******************Fim-Multiplanta********************/                           
+        end.
+        else do:
+        
+            for each impto-tit-pend-ap use-index codigo
+               where impto-tit-pend-ap.ep-codigo    = impto-tit-ap.ep-codigo
+                 and impto-tit-pend-ap.cod-estabel  = impto-tit-ap.cod-estabel
+                 and impto-tit-pend-ap.cod-esp      = impto-tit-ap.cod-esp
+                 and impto-tit-pend-ap.serie        = impto-tit-ap.serie
+                 and impto-tit-pend-ap.nr-docto     = impto-tit-ap.nr-docto
+                 and impto-tit-pend-ap.parcela      = impto-tit-ap.parcela
+                 and impto-tit-pend-ap.cod-fornec   = impto-tit-ap.cod-fornec
+                 and impto-tit-pend-ap.cod-imposto  = impto-tit-ap.cod-imposto
+                 and impto-tit-pend-ap.tipo         = 2:                       
+               
+               if  impto-tit-pend-ap.lancamento = 2 then do:                          
+               
+                   assign impto-tit-ap.vl-retencao    =  impto-tit-ap.vl-retencao - impto-tit-pend-ap.vl-retencao
+                          impto-tit-ap.vl-retencao-me =  impto-tit-ap.vl-retencao / impto-tit-pend-ap.cotacao-dia
+                          impto-tit-ap.perc-retencao  = (impto-tit-ap.vl-retencao-me * 100 / (impto-tit-ap.vl-imposto-me)).
+                  /********************Multiplanta***********************/  
+                    assign i-tipo-movto = 2.                           
+                    run pi-cria-tt-dados-impto(input i-tipo-movto).      
+                 /*******************Fim-Multiplanta********************/ 
+               end.
+               else do:               
+    
+                   assign impto-tit-ap.vl-retencao    = impto-tit-ap.vl-retencao + impto-tit-pend-ap.vl-retencao
+                          impto-tit-ap.vl-retencao-me = impto-tit-ap.vl-retencao / impto-tit-pend-ap.cotacao-dia
+                          impto-tit-ap.perc-retencao  = (impto-tit-ap.vl-retencao-me * 100 / (impto-tit-ap.vl-imposto-me)).
+                   /********************Multiplanta***********************/  
+                    assign i-tipo-movto = 2.                           
+                    run pi-cria-tt-dados-impto(input i-tipo-movto).      
+                   /*******************Fim-Multiplanta********************/         
+               end.
+            end.
+        end.
+    
+        if  impto-tit-ap.vl-retencao > 0 then do:        
+            if  avail tipo-tax then do:                       
+                if  tipo-tax.serie <> " " then do:                       
+                    /* --- Cria Voucher ---*/
+                    {app/ap0586.i9 "impto-tit-ap.vl-retencao"
+                                   "impto-tit-ap.obs"
+                                   "impto-tit-ap.conta-retencao"
+                                   "impto-tit-ap.ct-retencao"
+                                   "impto-tit-ap.sc-retencao"
+                                   "impto-tit-ap.dt-emissao"
+                                   "impto-tit-ap.cod-imposto"
+                                   "impto-tit-ap.dt-vencimen"
+                                   "impto-tit-ap.cod-retencao"
+                                   "impto-tit-ap.tp-codigo"}
+    
+                end.
+            end.
+                        
+            {app/ap0586.i8 "impto-tit-ap.conta-retencao"
+                           "impto-tit-ap.ct-retencao"
+                           "impto-tit-ap.sc-retencao"
+                           "impto-tit-ap.vl-retencao"}
+    
+        end.                        
+    end.
+end.
+
+/* Fim de Include */

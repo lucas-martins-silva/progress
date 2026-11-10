@@ -1,0 +1,48 @@
+/**************************************************************************
+***
+*** app/ap0501e.i12 - Cria Voucher para as reten‡äes
+***
+***
+**************************************************************************/
+            
+for each impto-tit-pend-ap 
+   where impto-tit-pend-ap.ep-codigo   = tit-ap.ep-codigo
+     and impto-tit-pend-ap.cod-estabel = tit-ap.cod-estabel
+     and impto-tit-pend-ap.cod-esp     = tit-ap.cod-esp
+     and impto-tit-pend-ap.serie       = tit-ap.serie
+     and impto-tit-pend-ap.nr-docto    = tit-ap.nr-docto
+     and impto-tit-pend-ap.parcela     = tit-ap.parcela
+     and impto-tit-pend-ap.cod-fornec  = tit-ap.cod-fornec
+     and impto-tit-pend-ap.tipo        = 2
+    exclusive-lock:        
+        
+    find first tipo-tax no-lock
+       where tipo-tax.cod-tax = impto-tit-pend-ap.cod-imposto no-error.
+                       
+    if  impto-tit-pend-ap.vl-retencao > 0 and tipo-tax.ind-data-base-ret = 2 then do:
+                                                                  
+        if  avail tipo-tax then do:
+            if  tipo-tax.serie <> " " then do:
+                /* --- Cria Voucher ---*/
+                {app/ap0501e.i9 "impto-tit-pend-ap.vl-retencao"
+                                "impto-tit-pend-ap.obs"
+                                "impto-tit-pend-ap.conta-retencao"
+                                "impto-tit-pend-ap.ct-retencao"
+                                "impto-tit-pend-ap.sc-retencao"
+                                "impto-tit-pend-ap.dt-emissao"
+                                "impto-tit-pend-ap.cod-imposto"
+                                "impto-tit-pend-ap.dt-vencimen"
+                                "impto-tit-pend-ap.cod-retencao"
+                                "impto-tit-pend-ap.tp-codigo"}               
+            end.
+        end.
+        /*pend-ap*/
+        {app/ap0501e.i8 "impto-tit-pend-ap.conta-retencao"
+                        "impto-tit-pend-ap.ct-retencao"
+                        "impto-tit-pend-ap.sc-retencao"
+                        "impto-tit-pend-ap.vl-retencao"}
+                    
+    end.
+end.
+
+/* Fim de Include */

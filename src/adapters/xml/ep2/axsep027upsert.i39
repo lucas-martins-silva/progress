@@ -1,0 +1,88 @@
+PROCEDURE pi-grava-ttICMS90:
+
+    /*
+    === ttICMS90 ===
+    CST            AS CHARACTER INITIAL ?  /*Tributá∆o pelo ICMS 90 - Outras*/
+    modBC          AS CHARACTER INITIAL ?  /*Modalidade de determinaá∆o da BC do ICMS:  0 - Margem Valor Agregado (%); 1 - Pauta (valor); 2 - Preáo Tabelado M†ximo (valor); 3 - Valor da Operaá∆o.*/
+    modBCST        AS CHARACTER INITIAL ?  /*Modalidade de determinaá∆o da BC do ICMS ST: 0 - Preáo tabelado ou m†ximo  sugerido;  1 - Lista Negativa (valor); 2 - Lista Positiva (valor); 3 - Lista Neutra (valor); 4 - Margem Valor Agregado (%);  5 - Pauta (valor).*/
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importaá∆o direta 2 - Estrangeira - Adquirida no mercado interno */
+    pICMS          AS DECIMAL   INITIAL ?  /*Al°quota do ICMS*/
+    pICMSST        AS DECIMAL   INITIAL ?  /*Al°quota do ICMS ST*/
+    pMVAST         AS DECIMAL   INITIAL ?  /*Percentual da Margem de Valor Adicionado ICMS ST*/
+    pRedBC         AS DECIMAL   INITIAL ?  /*Percentual de reduá∆o da BC*/
+    pRedBCST       AS DECIMAL   INITIAL ?  /*Percentual de reduá∆o da BC ICMS ST */
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS*/
+    vBCST          AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS ST*/
+    vICMS          AS DECIMAL   INITIAL ?  /*Valor do ICMS*/
+    vICMSST        AS DECIMAL   INITIAL ?  /*Valor do ICMS ST*/
+    vICMSDeson     AS DECIMAL   INITIAL ?  /*Valor do ICMS de desoneraá∆o*/ 
+    motDesICMS     AS CHARACTER INITIAL ?  /*Motivo da desoneraá∆o do ICMS:3-Uso na agropecu†ria;9-Outros;12-Fomento agropecu†rio*/
+    */
+
+    FOR FIRST item-nf-adc NO-LOCK
+        WHERE item-nf-adc.cod-estab             = it-nota-fisc.cod-estabel
+        AND   item-nf-adc.cod-serie             = it-nota-fisc.serie
+        AND   item-nf-adc.cod-nota-fisc         = it-nota-fisc.nr-nota-fis
+        AND   item-nf-adc.cdn-emitente          = nota-fiscal.cod-emitente
+        AND   item-nf-adc.cod-natur-operac      = it-nota-fisc.nat-operacao
+        AND   item-nf-adc.idi-tip-dado          = 1
+        AND   item-nf-adc.num-seq               = 1
+        AND   item-nf-adc.num-seq-item-nf       = it-nota-fisc.nr-seq-fat
+        AND   item-nf-adc.cod-item              = it-nota-fisc.it-codigo:
+    END.  
+
+    CREATE ttICMS90.
+    ASSIGN ttICMS90.CST        = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS90.modBC      = (IF c-mod-base-icms = "2"
+                                  THEN "1"
+                                  ELSE IF c-mod-base-icms = "3"
+                                       THEN "2"
+                                       ELSE IF c-mod-base-icms = "4"
+                                            THEN "3"
+                                            ELSE "0")
+           ttICMS90.modBCST    = (IF c-mod-base-icms-st = "2"
+                                  THEN "1"
+                                  ELSE IF c-mod-base-icms-st = "3"
+                                       THEN "2"
+                                       ELSE IF c-mod-base-icms-st = "4"
+                                            THEN "3"
+                                            ELSE IF c-mod-base-icms-st = "5"
+                                                 THEN "4"
+                                                 ELSE IF c-mod-base-icms-st = "6"
+                                                      THEN "5"
+                                                      ELSE "0")
+           ttICMS90.orig       = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS90.pICMS      = (IF  it-nota-fisc.cd-trib-icm <> 3
+                                  OR (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                  THEN d-aliquota-icms
+                                  ELSE 0)
+           ttICMS90.pICMSST    = IF  AVAIL item-nf-adc THEN item-nf-adc.val-aliq-icms-st ELSE 0
+           ttICMS90.pMVAST     = IF  AVAIL item-nf-adc AND item-nf-adc.val-livre-1 > 0 THEN item-nf-adc.val-livre-1 ELSE DEC(SUBSTR(it-nota-fisc.char-2,338,8))
+           ttICMS90.pRedBC     = IF d-perc-redimp > 0 THEN d-perc-redimp  ELSE ? /*ELSE IF lLayoutXML THEN ? ELSE IF lLayoutTXT THEN 0 ELSE ?)*/
+           ttICMS90.pRedBCST   = IF  AVAIL item-nf-adc AND item-nf-adc.val-livre-2 > 0 THEN item-nf-adc.val-livre-2 ELSE DEC(SUBSTR(it-nota-fisc.char-2,346,8))
+           ttICMS90.vBC        = (IF (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                  THEN d-vl-imp-icmsou
+                                  ELSE d-vl-bicms-it)
+           ttICMS90.vBCST      = it-nota-fisc.vl-bsubs-it
+           ttICMS90.vICMS      = (IF  it-nota-fisc.cd-trib-icm <> 3
+                                  OR (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                  THEN d-vl-imp-icms
+                                  ELSE 0)
+           ttICMS90.vICMSST    = it-nota-fisc.vl-icmsub-it
+           ttICMS90.vICMSDeson = d-vl-desc-icms
+           ttICMS90.motDesICMS = TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2)).
+           /*OBS.:
+           O CST 90 aceita os motivos de desoneraá∆o
+           3=Uso na agropecu†ria;
+           9=Outros;
+           12=‡rg∆o de fomento e desenvolvimento agropecu†rio.
+           */
+       
+    /* Chave EMS */
+    ASSIGN ttICMS90.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS90.SerieNF      = nota-fiscal.serie
+           ttICMS90.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS90.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS90.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.

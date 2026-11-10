@@ -1,0 +1,130 @@
+/**************************************************************************
+***
+*** app/ap0586.i9 - Cria T¡tulo Voucher.
+***
+**************************************************************************/
+
+find first serie exclusive-lock
+   where serie.serie = tipo-tax.serie no-error.
+
+find first espec-ap no-lock
+   where espec-ap.cod-esp = tipo-tax.cod-esp no-error.
+            
+assign i-nr-docto-ret = serie.nr-ult-fat + 1.            
+            
+repeat:
+     find first b-tit-ap use-index codigo
+        where b-tit-ap.ep-codigo   = tit-ap.ep-codigo
+          and b-tit-ap.cod-estabel = tit-ap.cod-estabel
+          and b-tit-ap.serie       = tipo-tax.serie
+          and b-tit-ap.cod-esp     = tipo-tax.cod-esp
+          and b-tit-ap.nr-docto    = string(i-nr-docto-ret)
+          and b-tit-ap.parcela     = "1"
+          and b-tit-ap.cod-fornec  = tit-ap.cod-fornec 
+        no-error.
+     if  not avail b-tit-ap then do:
+         assign serie.nr-ult-fat = i-nr-docto-ret
+                serie.dt-ult-fat = today.
+         leave.
+     end.
+     assign i-nr-docto-ret = i-nr-docto-ret + 1.
+end.
+
+create b-tit-ap.
+assign b-tit-ap.ep-codigo       = tit-ap.ep-codigo
+       b-tit-ap.cod-estabel     = tit-ap.cod-estabel
+       b-tit-ap.cod-esp         = tipo-tax.cod-esp
+       b-tit-ap.serie           = tipo-tax.serie
+       b-tit-ap.nr-docto        = string(i-nr-docto-ret)
+       b-tit-ap.parcela         = "1"
+       b-tit-ap.serie-ant       = tit-ap.serie
+       b-tit-ap.esp-ant         = tit-ap.cod-esp
+       b-tit-ap.docto-ant       = tit-ap.nr-docto
+       b-tit-ap.parc-ant        = tit-ap.parcela
+       b-tit-ap.cod-fornec      = tit-ap.cod-fornec
+       b-tit-ap.transacao       = 1 /*IMD*/
+       b-tit-ap.portador        = tit-ap.portador
+       b-tit-ap.cod-impto-ret   = {7}
+       b-tit-ap.dt-emissao      = tt-param.dt-ref      
+       b-tit-ap.dt-prev-pag     = {8}
+       b-tit-ap.referencia      = tit-ap.referencia 
+       b-tit-ap.conta-debito    = {3}
+       b-tit-ap.ct-conta-db     = {4}
+       b-tit-ap.sc-conta-db     = {5}      
+       b-tit-ap.tipo            = espec-ap.tipo
+       b-tit-ap.nome-abrev      = emitente.nome-abrev
+       b-tit-ap.cgc             = emitente.cgc
+       b-tit-ap.calcula-cmi     = espec-ap.calc-var-cmi
+       b-tit-ap.moeda           = 0
+       b-tit-ap.cotacao-dia     = 1
+       b-tit-ap.observacao      = {2}
+       b-tit-ap.vl-original     = {1}
+       b-tit-ap.vl-liquido      = {1}
+       b-tit-ap.valor-saldo     = {1}
+       b-tit-ap.vl-orig-me      = {1}
+       b-tit-ap.vl-liquido-me   = {1}
+       b-tit-ap.vl-saldo-me     = {1}.
+
+/*** Campos referente IR ***/       
+assign b-tit-ap.dt-vencimen     = {8}
+       b-tit-ap.cod-retencao    = {9}
+       b-tit-ap.tp-codigo       = {10}.
+
+/********************Multiplanta***********************/  
+  assign i-tipo-movto = 1.                           
+  run pi-cria-tt-dados-b-tit(input i-tipo-movto).     
+/*******************Fim-Multiplanta********************/ 
+             
+assign c-matriz = emitente.nome-matriz.
+find first emitente 
+     where emitente.nome-abrev = c-matriz
+       and emitente.identific <> 1 no-lock no-error.
+if  avail emitente then do:
+    assign b-tit-ap.matriz = emitente.cod-emitente.
+end.
+
+create mov-ap.
+assign mov-ap.ep-codigo      = b-tit-ap.ep-codigo
+       mov-ap.cod-estabel    = b-tit-ap.cod-estabel
+       mov-ap.nr-docto       = b-tit-ap.nr-docto
+       mov-ap.parcela        = b-tit-ap.parcela
+       mov-ap.serie          = b-tit-ap.serie
+       mov-ap.cod-esp        = b-tit-ap.cod-esp
+       mov-ap.transacao      = 1  /*IMD*/
+       mov-ap.tipo           = b-tit-ap.tipo
+       mov-ap.esp-ant        = tit-ap.cod-esp
+       mov-ap.serie-ant      = tit-ap.serie
+       mov-ap.docto-ant      = tit-ap.nr-docto
+       mov-ap.parc-ant       = tit-ap.parcela
+       mov-ap.conta-contabil = b-tit-ap.conta-debito
+       mov-ap.ct-conta       = b-tit-ap.ct-conta-db
+       mov-ap.sc-conta       = b-tit-ap.sc-conta-db
+       mov-ap.cod-fornec     = b-tit-ap.cod-fornec
+       mov-ap.portador       = b-tit-ap.portador
+       mov-ap.dt-emissao     = b-tit-ap.dt-emissao
+       mov-ap.dt-transacao   = b-tit-ap.dt-emissao
+       mov-ap.dt-vencimen    = b-tit-ap.dt-vencimen
+       mov-ap.tp-codigo      = b-tit-ap.tp-codigo
+       mov-ap.dt-transacao   = tt-param.dt-ref
+       mov-ap.dt-today       = today
+       mov-ap.referencia     = b-tit-ap.referencia
+       mov-ap.contabilizou   = no
+       mov-ap.usuario        = c-seg-usuario
+       mov-ap.c-time         = string(time, "HH:MM")
+       mov-ap.emit-fita      = no
+       mov-ap.lancamento     = 2
+       mov-ap.historico      = b-tit-ap.observacao
+       mov-ap.vl-original    = b-tit-ap.vl-original
+       mov-ap.valor-mov      = b-tit-ap.vl-original
+      /* mov-ap.vl-liquido     = b-tit-ap.vl-liquido*/
+       mov-ap.moeda          = b-tit-ap.moeda
+       mov-ap.cotacao-dia    = b-tit-ap.cotacao-dia
+       mov-ap.vl-orig-me     = b-tit-ap.vl-orig-me
+      /* mov-ap.vl-liquido-me  = b-tit-ap.vl-liquido-me*/.
+
+/********************Multiplanta***********************/  
+ assign i-tipo-movto = 1.                           
+ run pi-cria-tt-dados-mov(input i-tipo-movto).     
+/*******************Fim-Multiplanta********************/       
+       
+/* Fim de Include */

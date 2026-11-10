@@ -1,0 +1,156 @@
+/******************************************************************************
+***
+***  pi-gera-movimento.
+***
+******************************************************************************/
+
+if  de-diferenca    <> 0 
+or  de-dif-fasb     <> 0
+or  de-dif-cmi      <> 0 
+or  de-dif-presente <> 0 then do:
+        
+    create tt-contabiliza.
+    assign tt-contabiliza.log-contabiliza = no.
+        
+    if  l-possui = yes then do transaction:    
+                
+        Descontab_Block:    
+        for each tt-diario-ap:
+                        
+            find first diario-ap no-lock
+                 where rowid(diario-ap) = tt-diario-ap.row-diario-ap no-error.                
+                        
+            if  not avail diario-ap then
+                next.
+                        
+            for each mov-ap exclusive-lock
+                where mov-ap.ep-codigo    = tt-param.i-ep-codigo
+                and   mov-ap.cod-estabel  = diario-ap.cod-estabel
+                and   mov-ap.cod-esp      = diario-ap.cod-esp
+                and   mov-ap.serie        = diario-ap.serie
+                and   mov-ap.nr-docto     = diario-ap.nr-docto
+                and   mov-ap.parcela      = diario-ap.parcela
+                and   mov-ap.cod-fornec   = diario-ap.cod-fornec
+                and   mov-ap.dt-transacao = diario-ap.dt-transacao:
+                assign mov-ap.contabilizou = no.
+            end.
+                
+            for each impto-tit-ap exclusive-lock
+                where impto-tit-ap.ep-codigo    = tt-param.i-ep-codigo
+                and   impto-tit-ap.cod-estabel  = diario-ap.cod-estabel
+                and   impto-tit-ap.cod-esp      = diario-ap.cod-esp
+                and   impto-tit-ap.serie        = diario-ap.serie
+                and   impto-tit-ap.nr-docto     = diario-ap.nr-docto
+                and   impto-tit-ap.parcela      = diario-ap.parcela
+                and   impto-tit-ap.cod-fornec   = diario-ap.cod-fornec
+                and   impto-tit-ap.dt-transacao = diario-ap.dt-transacao:
+                assign impto-tit-ap.contabilizou = no.
+            end.
+    
+            for each traducao exclusive-lock
+                where traducao.ep-codigo    = tt-param.i-ep-codigo
+                and   traducao.ct-codigo    = diario-ap.ct-conta
+                and   traducao.sc-codigo    = diario-ap.sc-conta
+                and   traducao.dt-trans     = diario-ap.dt-transacao
+                and   traducao.cod-estabel  = diario-ap.cod-est
+                and   traducao.cod-esp      = diario-ap.cod-esp
+                and   traducao.serie        = diario-ap.serie
+                and   traducao.nr-docto     = diario-ap.nr-docto
+                and   traducao.parcela      = diario-ap.parcela
+                and   traducao.cod-emitente = diario-ap.cod-fornec
+                and  (traducao.observacao   = "CMI"
+                or    traducao.observacao   = "CMCAC"):
+                delete traducao.
+            end.
+        end.
+
+        if avail param-fasb then do:
+           assign i-mo-corrente = param-fasb.moeda-monetaria
+                  i-mo-fasb     = param-fasb.moeda-fasb
+                  i-mo-cmi      = param-fasb.moeda-cmi
+                  i-mo-anbid    = param-fasb.moeda-anbid.
+        end.
+        
+        assign c-erro = "".
+        if  de-diferenca <> 0 then do:
+            find first moeda where moeda.mo-codigo = i-mo-corrente no-lock no-error.
+            If avail moeda then 
+               assign c-erro = c-erro + "Moeda " + trim(moeda.descricao) + " " + trim(String(de-diferenca,"(ZZZ,ZZZ,ZZ9.99)")).
+        end.
+        if  de-dif-fasb <> 0 then do:
+            find first moeda where moeda.mo-codigo = i-mo-fasb no-lock no-error.
+            If avail moeda then 
+               assign c-erro = c-erro + " Moeda " + trim(moeda.descricao) + " " + trim(String(de-dif-fasb,"(ZZZ,ZZZ,ZZ9.99)")).
+        end.
+        if  de-dif-cmi <> 0 then do:
+            find first moeda where moeda.mo-codigo = i-mo-cmi no-lock no-error.
+            If avail moeda then 
+                   assign c-erro = c-erro + " Moeda " + trim(moeda.descricao) + " " + trim(String(de-dif-cmi,"(ZZZ,ZZZ,ZZ9.99)")).
+            end.
+        if  de-dif-presente <> 0 then do:
+            find first moeda where moeda.mo-codigo = i-mo-anbid no-lock no-error.
+            If avail moeda then 
+               assign c-erro = c-erro + " Moeda " + trim(moeda.descricao) + " " + trim(String(de-dif-presente,"(ZZZ,ZZZ,ZZ9.99)")).
+        end.
+
+        run utp/ut-msgs.p (input "help", 
+                           input 32294, 
+                           input c-erro).
+                           
+        disp trim(return-value) @ tt-editor.conteudo
+             with frame f-msg-editor.
+        down (2) with frame f-msg-editor.
+        
+        for each tt-diario-ap no-lock
+            break by tt-diario-ap.row-registro:        
+            
+            if  first-of(tt-diario-ap.row-registro) then do:
+                
+                assign de-vl-dif-debito  = 0            
+                       de-vl-dif-credito = 0.
+        
+                for each  b-tt-diario-ap no-lock                        
+                    where b-tt-diario-ap.row-registro = tt-diario-ap.row-registro:
+                    if  b-tt-diario-ap.lancamento = 1 then
+                        assign de-vl-dif-debito = de-vl-dif-debito + b-tt-diario-ap.vl-debito.
+                    else
+                        assign de-vl-dif-credito = de-vl-dif-credito + b-tt-diario-ap.vl-credito.
+                end.
+                    
+                if  (de-vl-dif-debito <> de-vl-dif-credito) or
+                     de-vl-dif-debito  < 0 or
+                     de-vl-dif-credito < 0 then do:
+                                                
+                     assign de-calc-difer = de-vl-dif-debito - de-vl-dif-credito.
+        
+                     disp tt-diario-ap.ep-codigo   
+                          tt-diario-ap.cod-estabel 
+                          tt-diario-ap.cod-fornec  
+                          tt-diario-ap.cod-esp     
+                          tt-diario-ap.serie       
+                          tt-diario-ap.nr-docto    
+                          tt-diario-ap.parcela
+                          tt-diario-ap.dt-transacao
+                          tt-diario-ap.c-trans
+                          tt-diario-ap.referencia  
+                          de-vl-dif-debito  @ tt-diario-ap.vl-debito    
+                          de-vl-dif-credito @ tt-diario-ap.vl-credito   
+                          de-calc-difer
+                          with frame f-erro-diario-ap.
+                     down with frame f-erro-diario-ap.
+                end.      
+            end.
+        end.
+        
+        put skip(1).
+
+        assign l-erro = yes.
+        
+    end.
+end.
+else do:    
+    create tt-contabiliza.
+    assign tt-contabiliza.log-contabiliza = yes.
+end.
+
+/* Fim de Include */

@@ -1,0 +1,31 @@
+/**********************************************************************************
+***
+*** app/ap0535c.i6 - Integra‡äes.
+***
+**********************************************************************************/
+
+/*--- INTEGRA€åES (ELIMINA€ÇO) ---*/
+{app/ap9100.i2}
+assign tt-integ-ap.tt-row-tit-ap = rowid(b-tit-ap-dup)        
+       tt-integ-ap.tt-ge0102d    = yes
+       tt-integ-ap.tt-op-ge0102d = 6.
+raw-transfer tt-integ-ap to raw-integracao.
+run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+
+/*--- INTEGRA€åES (INCLUSÇO) ---*/
+{app/ap9100.i2}
+assign tt-integ-ap.tt-row-tit-ap = rowid(b-tit-ap-dup)
+       tt-integ-ap.tt-row-mov-ap = rowid(mov-ap)
+       tt-integ-ap.tt-fc1014a    = yes
+       tt-integ-ap.tt-fc1114a    = yes
+       tt-integ-ap.tt-ge0102b    = yes
+       tt-integ-ap.tt-ge0102d    = yes
+       tt-integ-ap.tt-cb0110a    = yes
+       tt-integ-ap.tt-op-ge0102b = 2
+       tt-integ-ap.tt-op-ge0102d = 16
+       tt-integ-ap.tt-op-cb0110a = 21.
+raw-transfer tt-integ-ap to raw-integracao.
+run app/ap9100.p (input raw-integracao, input-output table tt-erro).
+    
+/* Fim de Include */
+

@@ -1,0 +1,42 @@
+/************************************************************************
+***
+***  app/ap1002x.i4 - Atualiza Informa‡äes documentos do Magnus.
+***
+************************************************************************/
+        
+if  l-magnus = yes then do:
+        
+    if  right-trim(substr(c-linha1,08,1)) = "3" 
+    and right-trim(substr(c-linha1,14,1)) = "A" then  do:
+                    
+        assign id-lote        =            substr(c-linha1,133,15)
+               de-valor       =        dec(substr(c-linha1,120,15)) / 100
+               i-dia-doc      =        int(substr(c-linha1,155,2))
+               i-mes-doc      =        int(substr(c-linha1,157,2))
+               i-dia-lin      =        int(substr(c-linha1,155,2))
+               i-mes-lin      =        int(substr(c-linha1,157,2))
+               i-ano-doc      =        int(substr(c-linha1,159,4)) 
+               i-ano-lin      =        int(substr(c-linha1,159,4)) 
+               c-numero       = right-trim(substr(c-linha1,133,20)).
+    end.
+            
+    if  right-trim(substr(c-linha1,08,1)) = "3" 
+    and right-trim(substr(c-linha1,14,1)) = "K" then do:
+                    
+        assign id-lote        =            substr(c-linha1,069,15)
+               i-dia-doc      =        int(substr(c-linha1,199,2))
+               i-mes-doc      =        int(substr(c-linha2,001,2))
+               i-dia-lin      =        int(substr(c-linha1,199,2))
+               i-mes-lin      =        int(substr(c-linha2,001,2))
+               c-numero       = right-trim(substr(c-linha1,179,20)).
+               
+        if  int(substr(c-linha2,003,2)) > 50 then
+            assign i-ano-doc = int(substr(c-linha2,003,2)) + 1900
+                   i-ano-lin = int(substr(c-linha2,003,2)) + 1900.
+        else
+            assign i-ano-doc = int(substr(c-linha2,003,2)) + 2000
+                   i-ano-lin = int(substr(c-linha2,003,2)) + 2000.
+    end.
+end.
+    
+/* Fim de Include */

@@ -1,0 +1,590 @@
+PROCEDURE pi-cria-ttTransp:
+    
+    /*
+    === ttTransp ===
+    CFOP           AS CHARACTER INITIAL ?  /*C¢digo Fiscal de Operaá‰es e Prestaá‰es*/
+    cMunFG         AS INT       INITIAL ?  /*C¢digo do Munic°pio de Ocorrància do Fato Gerador (utilizar a tabela do IBGE)*/
+    CNPJ           AS CHARACTER INITIAL ?  /*CNPJ do transportador*/
+    CPF            AS CHARACTER INITIAL ?  /*CPF do transportador*/
+    IE             AS CHARACTER INITIAL ?  /*Inscriá∆o Estadual*/
+    modFrete       AS CHARACTER INITIAL ?  /*Modalidade do frete (0 - por conta do emitente; 1 - por conta do destinat†rio)*/
+    pICMSRet       AS DECIMAL   INITIAL ?  /*Al°quota da Retená∆o*/
+    placa          AS CHARACTER INITIAL ?  /*Placa do ve°culo*/
+    RNTC           AS CHARACTER INITIAL ?  /*Registro Nacional de Transportador de Carga (ANTT)*/
+    UF             AS CHARACTER INITIAL ?  /*Sigla da UF*/
+    UFplaca        AS CHARACTER INITIAL ?  /*Sigla da UF do Ve°culo*/
+    vBCRet         AS DECIMAL   INITIAL ?  /*BC da Retená∆o do ICMS*/
+    vICMSRet       AS DECIMAL   INITIAL ?  /*Valor do ICMS Retido*/
+    vServ          AS DECIMAL   INITIAL ?  /*Valor do Serviáo*/
+    xEnder         AS CHARACTER INITIAL ?  /*Endereáo completo*/
+    xMun           AS CHARACTER INITIAL ?  /*Nome do mun°cipio*/
+    xNome          AS CHARACTER INITIAL ?  /*Raz∆o Social ou nome*/
+    
+    === ttReboque ===
+    placa          AS CHARACTER INITIAL ?  /*Placa do ve°culo*/
+    RNTC           AS CHARACTER INITIAL ?  /*Registro Nacional de Transportador de Carga (ANTT)*/
+    UF             AS CHARACTER INITIAL ?  /*Sigla da UF*/
+    
+    === ttVol ===
+    esp            AS CHARACTER INITIAL ?  /*EspÇcie dos volumes transportados*/
+    marca          AS CHARACTER INITIAL ?  /*Marca dos volumes transportados*/
+    nVol           AS CHARACTER INITIAL ?  /*Numeraá∆o dos volumes transportados*/
+    pesoB          AS DECIMAL   INITIAL ?  /*Peso bruto (em kg)*/
+    pesoL          AS DECIMAL   INITIAL ?  /*Peso l°quido (em kg)*/
+    qVol           AS CHARACTER INITIAL ?  /*Quantidade de volumes transportados*/
+    */
+
+    /* VARIAVEIS PARA CALCULO DO PESO DOS VOLUMES */
+    DEF VAR i-tot-qt-volumes            LIKE nota-embal.qt-volumes          NO-UNDO.
+    DEF VAR de-tot-peso-liq             LIKE nota-fiscal.peso-liq-tot       NO-UNDO.
+    DEF VAR de-tot-peso-bru             LIKE nota-fiscal.peso-bru-tot       NO-UNDO.
+    DEF VAR de-dif-peso-liq             LIKE nota-fiscal.peso-liq-tot       NO-UNDO.
+    DEF VAR de-dif-peso-bru             LIKE nota-fiscal.peso-bru-tot       NO-UNDO.
+    DEF VAR de-dif-peso-liq-aux         LIKE nota-fiscal.peso-liq-tot       NO-UNDO.
+    DEF VAR de-dif-peso-bru-aux         LIKE nota-fiscal.peso-bru-tot       NO-UNDO.
+    DEF VAR de-peso-liq-rateado         LIKE nota-fiscal.peso-liq-tot       NO-UNDO.
+    DEF VAR de-peso-bru-rateado         LIKE nota-fiscal.peso-bru-tot       NO-UNDO.
+    
+    /*Vari†veis para modal de transporte - m¢dulo de gr∆os*/
+    DEF VAR c-placa-vagao  AS CHAR FORMAT "x(20)" INITIAL "" NO-UNDO.
+    DEF VAR i-modal-transp AS INTEGER             INITIAL 1  NO-UNDO. 
+
+    CREATE ttTransp.
+    ASSIGN ttTransp.modFrete   = ( IF TRIM(&IF '{&BF_DIS_VERSAO_EMS}' >= '2.09'
+                                           &THEN nota-fiscal.cod-modalid-frete
+                                           &ELSE SUBSTRING(nota-fiscal.char-2,201,8) &ENDIF)
+                                   <> "":U
+                                   THEN TRIM(&IF '{&BF_DIS_VERSAO_EMS}' >= '2.09'
+                                             &THEN nota-fiscal.cod-modalid-frete
+                                             &ELSE SUBSTRING(nota-fiscal.char-2,201,8) &ENDIF)
+                                   ELSE (IF nota-fiscal.cidade-cif <> "":U
+                                         THEN "0"     /*CIF*/
+                                         ELSE "1") ). /*FOB*/
+
+    FOR FIRST transporte FIELDS (cod-transp cgc ins-estadual nome-abrev via-transp contato telefone e-mail endereco bairro cidade estado pais cep nome natureza) NO-LOCK
+        WHERE transporte.nome-abrev = nota-fiscal.nome-transp:
+
+        ASSIGN ttTransp.i-natureza = transporte.natureza /* 1 - Pessoa F°sica | 2 - Pessoa Jur°dica | 3 - Estrangeiro | 4 - Trading */
+               ttTransp.xNome      = transporte.nome.
+               
+        ASSIGN c-endereco = transporte.endereco
+               c-rua      = ""
+               c-nro      = ""
+               c-comp     = "".
+    
+        IF  INDEX(c-endereco,CHR(ASC("ß"))) > 0 THEN /* Retirar caracter especial */
+            ASSIGN c-endereco = REPLACE(c-endereco,CHR(ASC("ß")),"").
+    
+        RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco,
+                                             OUTPUT c-rua, 
+                                             OUTPUT c-nro, 
+                                             OUTPUT c-comp).
+    
+        IF  nota-fiscal.nome-transp = ""
+        AND c-endereco              = ""
+        AND c-nro                   = "" THEN DO:
+            IF  AVAIL ttTransp THEN
+                DELETE ttTransp.
+            RETURN.
+        END.
+
+        IF  c-nro = "" THEN
+            ASSIGN c-nro = "S/N".
+
+        /* IF ttTransp.modFrete = "1" THEN DO:
+            ASSIGN ttTransp.i-natureza = i-natureza. /* 1 - Pessoa F°sica | 2 - Pessoa Jur°dica | 3 - Estrangeiro | 4 - Trading */
+        
+            /* <Transporta> */
+            IF  emitente.cgc <> "" THEN
+                ASSIGN ttTransp.CNPJ     = (IF i-natureza > 2 THEN "" /* Estrangeiro ou Trading */
+                                             ELSE IF i-natureza = 2 THEN emitente.cgc /* Pessoa Juridica */
+                                                 ELSE "")
+                       ttTransp.CPF      = (IF i-natureza = 1 /* Pessoa Fisica */
+                                             THEN emitente.cgc
+                                            ELSE "")
+                       ttTransp.CPF        = (IF ttTransp.CPF <> ?
+                                              THEN ttTransp.CPF
+                                              ELSE "")
+                       ttTransp.xNome    = emitente.nome-abrev
+                       ttTransp.IE       = emitente.ins-estadual
+                       ttTransp.IE       = IF emitente.contrib-icms AND 
+                                              i-natureza = 1 AND 
+                                              lLayoutTXT THEN ""  /* Pessoa F°sica, contribuinte ICMS -> Isento (no layout TXT, enviar branco) */
+                                           ELSE ttTransp.IE 
+                       ttTransp.IE       = fn-ajusta-campo-IE(ttTransp.IE)
+                       ttTransp.xEnder   = (c-rua + " " + c-nro + " " + c-comp)
+                       ttTransp.xMun     = emitente.cidade
+                       ttTransp.UF       = emitente.estado
+                       ttTransp.UF       = (IF ttTransp.UF <> ?
+                                            THEN ttTransp.UF
+                                            ELSE "").
+
+        END.
+        ELSE DO:*/
+            
+            /* <Transporta> */
+            IF (transporte.nome-abrev <> "Remetente"    AND 
+                transporte.nome-abrev <> "Destinat†rio" AND 
+                transporte.nome-abrev <> "Destinatario") OR l-impressao-danfe THEN
+
+              ASSIGN ttTransp.CNPJ     = (IF  transporte.pais <> "Brasil" OR transporte.natureza = 1 /* Estrangeiro ou Trading  ou Pessoa F°sica*/
+                                              THEN ""
+                                              ELSE transporte.cgc ) /* Pessoa Juridica */
+                     ttTransp.CPF      = (IF transporte.natureza = 1 /* Pessoa Fisica */
+                                           THEN transporte.cgc
+                                          ELSE "")
+                     ttTransp.CPF        = (IF ttTransp.CPF <> ?
+                                            THEN ttTransp.CPF
+                                            ELSE "")
+                     ttTransp.xNome    = transporte.nome
+                     ttTransp.IE       = IF transporte.ins-estadual = "isento":U AND lLayoutTXT 
+                                         THEN ""
+                                         ELSE transporte.ins-estadual
+                     ttTransp.IE       = fn-ajusta-campo-IE(ttTransp.IE)
+                     ttTransp.xEnder   = (c-rua + " " + c-nro + " " + c-comp)
+                     ttTransp.xMun     = (IF transporte.pais <> "Brasil":U
+                                            THEN "Exterior"
+                                            ELSE transporte.cidade)
+                     ttTransp.UF       = (IF transporte.pais <> "Brasil":U
+                                          THEN "EX"
+                                          ELSE transporte.estado)
+                     ttTransp.UF       = (IF ttTransp.UF <> ?
+                                          THEN ttTransp.UF
+                                          ELSE "").
+            ELSE 
+                ASSIGN ttTransp.xNome    = ""
+                       ttTransp.CNPJ     = ""
+                       ttTransp.CPF      = ""
+                       ttTransp.IE       = ""
+                       ttTransp.xEnder   = ""
+                       ttTransp.xMun     = ""
+                       ttTransp.UF       = ""
+                       .
+        /*END.*/
+
+        
+    END.
+
+    /*-------------------------- Grupo de Retená∆o do ICMS do Transporte --------------------------*/
+    /* <retTransp> */
+
+    /*--- DECRETO MATO GROSSO DO SUL [13.275 / 13.643 / 13.787 -> este decreto informa sobre as informaá‰es complementares]  ---*/
+    /*
+    "Art. 37. Na hip¢tese do disposto no inciso I do art. 33 deste Anexo:
+    I - o remetente da mercadoria deve:
+    a) indicar no campo "Informaá‰es Complementares" da Nota Fiscal, a seguinte observaá∆o:
+    "ICMS S/TRANSPORTE RETIDO PELO REMETENTE
+    BASE DE CµLCULO R$ __________________________
+    VALOR DO IMPOSTO RETIDO R$ ________________";
+    b) no caso de Nota Fiscal Eletrìnica (NF-e), informar tambÇm os dados relativos Ö prestaá∆o de serviáos de transporte, conforme "Manual de Orientaá∆o do Contribuinte" da NF-e, nos seguintes campos do "Grupo de Retená∆o do ICMS do transporte":
+    1. vServ (Valor do Serviáo);
+    2. vBCRet (BC da Retená∆o do ICMS);
+    3. pICMSRet (Al°quota da Retená∆o);
+    4. vICMSRet (Valor do ICMS Retido);
+    5. CFOP (C¢digo Fiscal de Operaá‰es e Prestaá‰es);
+    6. cMunFG (C¢digo do munic°pio de ocorrància do fato gerador do ICMS do transporte);
+    ....." (NR)
+    */
+
+    /* Informaá‰es gravadas por nota fiscal - CD4035 - opá∆o Grupo Retená∆o ICMS de Transporte */
+
+    FOR FIRST nota-fisc-adc NO-LOCK
+        WHERE nota-fisc-adc.cod-estab        = nota-fiscal.cod-estabel
+          AND nota-fisc-adc.cod-serie        = nota-fiscal.serie      
+          AND nota-fisc-adc.cod-nota-fisc    = nota-fiscal.nr-nota-fis
+          AND nota-fisc-adc.cdn-emitente     = nota-fiscal.cod-emitente
+          AND nota-fisc-adc.cod-natur-operac = nota-fiscal.nat-operacao
+          AND nota-fisc-adc.idi-tip-dado     = 17:  /*identificador para as informaá‰es inseridas no CD4035 se s∆o de Retená∆o de ICMS do Transporte*/
+
+        ASSIGN ttTransp.vServ    = nota-fisc-adc.val-docto
+               ttTransp.vBCRet   = nota-fisc-adc.val-base-calc-icms
+               ttTransp.pICMSRet = nota-fisc-adc.val-aliq-icms
+               ttTransp.vICMSRet = nota-fisc-adc.val-icms
+               ttTransp.CFOP     = TRIM(nota-fisc-adc.cod-livre-1).
+
+        /*Busca C¢digo IBGE para cMunFG - Munic°pio de ocorrància do fato gerador do ICMS do transporte (local de in°cio da prestaá∆o do serviáo)*/
+        DEFINE BUFFER bf-cidade-nt FOR cidade.
+
+        FOR FIRST bf-cidade-nt FIELDS(&if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U &then cdn-munpio-ibge &else int-2 &endif)
+            WHERE bf-cidade-nt.cidade = TRIM(nota-fisc-adc.cod-munpio-coleta)
+              AND bf-cidade-nt.estado = TRIM(nota-fisc-adc.cod-uf)
+              AND bf-cidade-nt.pais   = "Brasil"   NO-LOCK:
+    
+            ASSIGN ttTransp.cMunFG = TRIM(STRING(&if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U 
+                                                 &then bf-cidade-nt.cdn-munpio-ibge
+                                                 &else bf-cidade-nt.int-2 &endif)).
+        END.
+        IF  NOT AVAIL bf-cidade-nt THEN
+            ASSIGN ttTransp.cMunFG = "0".
+    END.
+    /*---------------------------------------------------------------------------------------------*/
+
+    /* <veicTransp> */
+    ASSIGN ttTransp.UFPlaca  = nota-fiscal.uf-placa
+           /*ttTransp.RNTC     =*/
+           ttTransp.placa    = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(nota-fiscal.placa,"-",""),".",""),"/",""),"~\",""),",",""),"*","")," ","")
+           ttTransp.placa    = fn-ajusta-espacos-branco(ttTransp.placa) /*Tratamento para caso haja na placa mais de 1 espaáo em branco*/ .
+           
+    IF CONNECTED ("emsgra") THEN DO:
+            
+        ASSIGN i-modal-transp = 1 /*1-rodoviario, 2-ferroviario, 3-hidroviario */
+               c-placa-vagao = "".
+        /*verifica se a nota foi gerada de um romaneio do m¢dulo de Gr∆os*/
+        /*e se o modal Ç ferrovi†rio, se for vai alimentar a tag vagao*/
+        RUN ggp/ggapi822a.p (INPUT  nota-fiscal.nr-nota-fis, 
+                             INPUT  nota-fiscal.cod-estabel, 
+                             INPUT  nota-fiscal.serie,       
+                             OUTPUT c-placa-vagao,
+                             OUTPUT i-modal-transp).
+                             
+        IF i-modal-transp = 2 /*ferroviario*/ THEN DO:
+            ASSIGN ttTransp.placa = ""
+                   ttTransp.vagao = c-placa-vagao
+                   ttTransp.vagao = fn-ajusta-espacos-branco(ttTransp.vagao) /*Tratamento para caso haja na placa do vagao mais de 1 espaáo em branco*/ .
+        END.
+        ELSE IF i-modal-transp = 3 /*hidroviario*/ THEN DO:
+            ASSIGN ttTransp.placa = ""
+                   ttTransp.balsa = c-placa-vagao
+                   ttTransp.balsa = fn-ajusta-espacos-branco(ttTransp.balsa) /*Tratamento para caso haja na placa balsa mais de 1 espaáo em branco*/ .
+        END.
+    END.
+    
+    /* NF-e 4.00 Rejeiá∆o 868 */
+    DEFINE VARIABLE l-imprime-placa-oper-interna AS LOGICAL INITIAL NO NO-UNDO.
+ 
+   /* DMANFAT1-8731 - Alterado para sempre imprimir a placa quando for operaá∆o com exterior idDest = 3 */ 
+                                                       
+    ASSIGN l-imprime-placa-oper-interna = (CAN-FIND (FIRST ttIde NO-LOCK
+                                                     WHERE ttIde.idDest = "3"))/* Operaá∆o Exterior */ OR 
+                                          (CAN-FIND (FIRST ttIde NO-LOCK
+                                                     WHERE ttIde.idDest = "1") /* Operaªío Interna */ AND
+                                           CAN-FIND (FIRST funcao NO-LOCK
+                                                     WHERE funcao.cd-funcao = ("spp-nfe-placa-" + estabelec.estado)
+                                                       AND funcao.ativo = YES)).
+    
+    IF  NOT l-imprime-placa-oper-interna THEN
+        ASSIGN ttTransp.placa   = ?
+               ttTransp.UFPlaca = ?.
+
+
+    /*--- BUSCA RNTC - CADASTRO DE VE÷CULOS DO TRANSPORTADOR - CD0402B ---*/
+    IF  AVAIL transporte
+    AND (ttTransp.placa <> "":U AND ttTransp.placa <> ?) THEN
+        FOR FIRST transpdor-veic NO-LOCK
+            WHERE transpdor-veic.cod-transp = transporte.cod-transp
+              AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(transpdor-veic.cod-placa,"-",""),".",""),"/",""),"~\",""),",",""),"*","")," ","") = ttTransp.placa:
+
+            ASSIGN ttTransp.RNTC = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(transpdor-veic.cod-antt,"-",""),".",""),"/",""),"~\",""),",",""),"*","")," ","").
+
+            /*REBOQUES DO VEICULO*/
+            FOR EACH transpdor-veic-reboque NO-LOCK
+               WHERE transpdor-veic-reboque.cod-transp   = transpdor-veic.cod-transp
+                 AND transpdor-veic-reboque.cdn-seq-veic = transpdor-veic.cdn-seq-veic:
+
+                IF   NOT CAN-FIND (FIRST ttReboque NO-LOCK
+                                   WHERE ttReboque.placa = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(transpdor-veic-reboque.cod-placa,"-",""),".",""),"/",""),"~\",""),",",""),"*","")," ","")
+                                     AND ttReboque.UF    = transpdor-veic-reboque.cod-uf                                                                                                                    
+                                     AND ttReboque.RNTC  = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(transpdor-veic-reboque.cod-antt,"-",""),".",""),"/",""),"~\",""),",",""),"*","")," ","")) THEN DO:
+                
+                    CREATE ttReboque.
+                    ASSIGN ttReboque.placa = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(transpdor-veic-reboque.cod-placa,"-",""),".",""),"/",""),"~\",""),",",""),"*","")," ","")
+                           ttReboque.UF    = transpdor-veic-reboque.cod-uf   
+                           ttReboque.RNTC  = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(transpdor-veic-reboque.cod-antt,"-",""),".",""),"/",""),"~\",""),",",""),"*","")," ","").
+    
+                    /* Chave EMS */
+                    ASSIGN ttReboque.CodEstabelNF = nota-fiscal.cod-estabel
+                           ttReboque.SerieNF      = nota-fiscal.serie
+                           ttReboque.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+                END.
+            END.
+        END.
+    /*---*/
+
+           
+    /* Chave EMS */
+    ASSIGN ttTransp.CodEstabelNF = nota-fiscal.cod-estabel
+           ttTransp.SerieNF      = nota-fiscal.serie
+           ttTransp.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttTransp THEN DO:
+        ASSIGN ttTransp.CNPJ       = REPLACE(ttTransp.CNPJ,"-","")
+               ttTransp.CNPJ       = REPLACE(ttTransp.CNPJ,".","")
+               ttTransp.CNPJ       = REPLACE(ttTransp.CNPJ,"/","")
+               ttTransp.CNPJ       = REPLACE(ttTransp.CNPJ,"~\","")
+               ttTransp.CNPJ       = REPLACE(ttTransp.CNPJ,",","").
+        ASSIGN ttTransp.CNPJ     = fn-ajusta-tamanho-campo(ttTransp.CNPJ   ,14)
+               ttTransp.CPF      = fn-ajusta-tamanho-campo(ttTransp.CPF    ,14)
+               ttTransp.IE       = fn-ajusta-tamanho-campo(ttTransp.IE     ,14)
+               ttTransp.UF       = fn-ajusta-tamanho-campo(ttTransp.UF     , 2)
+               ttTransp.xNome    = fn-ajusta-tamanho-campo(ttTransp.xNome  ,60)
+               ttTransp.xEnder   = fn-ajusta-tamanho-campo(ttTransp.xEnder ,60)
+               ttTransp.xMun     = fn-ajusta-tamanho-campo(ttTransp.xMun   ,60)
+               ttTransp.placa    = fn-ajusta-tamanho-campo(ttTransp.placa  , 8)
+               ttTransp.UFPlaca  = fn-ajusta-tamanho-campo(ttTransp.UFPlaca, 2).
+
+    END.   
+    /*--------------------------
+    /* ttReboque of ttTransp */
+    CREATE ttReboque.
+    ASSIGN ttReboque.placa =
+           ttReboque.RNTC  =
+           ttReboque.UF    = .
+    --------------------------*/
+
+    /* ttVol     of ttTransp */
+
+    EMPTY TEMP-TABLE tt-nota-embal.
+        
+    ASSIGN i-tot-qt-volumes = 0  /* quantidade de volumes para rateio */
+           de-tot-peso-liq  = 0  /* peso total calculado pelos itens */
+           de-tot-peso-bru  = 0  /* peso total calculado pelos itens */
+		   de-dif-peso-bru-aux = 0
+		   de-dif-peso-liq-aux = 0. 
+
+    FOR EACH nota-embal NO-LOCK
+        WHERE nota-embal.cod-estabel = nota-fiscal.cod-estabel 
+        AND   nota-embal.serie       = nota-fiscal.serie       
+        AND   nota-embal.nr-nota-fis = nota-fiscal.nr-nota-fis:
+        
+        CREATE tt-nota-embal.
+        ASSIGN tt-nota-embal.rw-nota-embal = ROWID(nota-embal)
+               tt-nota-embal.peso-liq-tot  = 0
+               tt-nota-embal.peso-bru-tot  = 0
+               tt-nota-embal.calculado     = NO. 
+
+        /* calcular o peso pelos itens vinculados na embalagem */
+        FOR EACH item-embal NO-LOCK
+            WHERE item-embal.cod-estabel = nota-embal.cod-estabel
+            AND   item-embal.serie       = nota-embal.serie
+            AND   item-embal.nr-nota-fis = nota-embal.nr-nota-fis
+            AND   item-embal.sigla-emb   = nota-embal.sigla-emb,
+
+            EACH it-nota-fisc 
+            FIELDS (peso-liq-fat peso-bruto qt-faturada[1]) NO-LOCK
+            WHERE it-nota-fisc.cod-estabel = item-embal.cod-estabel
+            AND   it-nota-fisc.serie       = item-embal.serie
+            AND   it-nota-fisc.nr-nota-fis = item-embal.nr-nota-fis
+            AND   it-nota-fisc.nr-seq-fat  = item-embal.nr-seq-fat
+            AND   it-nota-fisc.it-codigo   = item-embal.it-codigo:
+
+            ASSIGN tt-nota-embal.peso-liq-tot = tt-nota-embal.peso-liq-tot + (it-nota-fisc.peso-liq-fat / it-nota-fisc.qt-faturada[1] * item-embal.dec-1)
+                   tt-nota-embal.peso-bru-tot = tt-nota-embal.peso-bru-tot + (it-nota-fisc.peso-bruto / it-nota-fisc.qt-faturada[1] * item-embal.dec-1)
+                   tt-nota-embal.calculado    = YES.
+        END.
+            
+        /* se a embalagem nao tem itens, entao acumula qt-volumes para o rateio */
+        IF  tt-nota-embal.calculado = NO then
+            ASSIGN i-tot-qt-volumes = i-tot-qt-volumes + nota-embal.qt-volumes.
+
+        /* acumula o peso total calculado com base nos itens embalados */
+        ASSIGN de-tot-peso-liq  = de-tot-peso-liq + tt-nota-embal.peso-liq-tot
+               de-tot-peso-bru  = de-tot-peso-bru + tt-nota-embal.peso-bru-tot.
+    END.
+
+    /* s¢ existir† diferenáa se a nota possuir itens n∆o vinculados a embalagens */
+    ASSIGN de-dif-peso-liq = nota-fiscal.peso-liq-tot - de-tot-peso-liq
+           de-dif-peso-bru = nota-fiscal.peso-bru-tot - de-tot-peso-bru.
+    
+    IF  de-dif-peso-liq <> 0
+    OR  de-dif-peso-bru <> 0 THEN DO:
+
+        ASSIGN de-peso-liq-rateado = 0
+               de-peso-bru-rateado = 0.
+
+        /* considerar somente os registros nao vinculados a itens */
+        FOR EACH tt-nota-embal
+            WHERE tt-nota-embal.calculado = NO,
+            
+            EACH nota-embal NO-LOCK
+            WHERE ROWID(nota-embal) = tt-nota-embal.rw-nota-embal
+
+            BREAK BY nota-embal.qt-volumes:
+
+            /* rateia a diferenáa do peso proporcionalmente † quantidade de volumes */
+            ASSIGN tt-nota-embal.peso-liq-tot = nota-embal.qt-volumes / i-tot-qt-volumes * de-dif-peso-liq
+                   tt-nota-embal.peso-bru-tot = nota-embal.qt-volumes / i-tot-qt-volumes * de-dif-peso-bru.
+                   
+            IF  tt-nota-embal.peso-liq-tot = ? THEN
+                ASSIGN tt-nota-embal.peso-liq-tot = 0.
+
+            IF  tt-nota-embal.peso-bru-tot = ? THEN
+                ASSIGN tt-nota-embal.peso-bru-tot = 0.
+
+            ASSIGN de-peso-liq-rateado = de-peso-liq-rateado + tt-nota-embal.peso-liq-tot
+                   de-peso-bru-rateado = de-peso-bru-rateado + tt-nota-embal.peso-bru-tot.
+
+            /* acerta a diferenáa do rateio no registro com maior quantidade de volumes */
+            IF  LAST(nota-embal.qt-volumes) THEN
+                ASSIGN tt-nota-embal.peso-liq-tot = tt-nota-embal.peso-liq-tot + (de-dif-peso-liq - de-peso-liq-rateado)
+                       tt-nota-embal.peso-bru-tot = tt-nota-embal.peso-bru-tot + (de-dif-peso-bru - de-peso-bru-rateado).
+        END.
+    END.    
+    
+    FOR EACH tt-nota-embal,
+
+        EACH nota-embal NO-LOCK
+        WHERE ROWID(nota-embal) = tt-nota-embal.rw-nota-embal:
+
+        FOR FIRST embalag FIELDS (embalagem descricao) NO-LOCK 
+            WHERE embalag.sigla-emb = nota-embal.sigla-emb:
+        END.
+        
+        CREATE ttVol.
+        ASSIGN ttVol.esp   = embalag.descricao WHEN AVAIL embalag
+               ttVol.esp   = fn-ajusta-tamanho-campo(ttVol.esp, 60)
+               ttVol.marca = nota-fiscal.marca-volume
+               ttVol.nVol  = nota-fiscal.nr-volumes
+               ttVol.pesoB = tt-nota-embal.peso-bru-tot /* considerar o peso calc por volume */
+               ttVol.pesoL = tt-nota-embal.peso-liq-tot /* considerar o peso calc por volume */
+               ttVol.qVol  = string(nota-embal.qt-volumes)
+               ttVol.qVol  = (IF (ttVol.qVol <> ? AND ttVol.qVol <> "" AND ttVol.qVol <> "0")
+                              THEN ttVol.qVol
+                              ELSE IF nota-fiscal.ind-tip-nota = 8 /*Recebimento*/ THEN "0" ELSE "1") /*NT2012.003 - tag obrigatoria - tipo numerico - aceita de 1-15*/
+               .
+        /* Chave EMS */
+        ASSIGN ttVol.CodEstabelNF = nota-fiscal.cod-estabel
+               ttVol.SerieNF      = nota-fiscal.serie
+               ttVol.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+               ttVol.siglaEmb     = nota-embal.sigla-emb
+               .
+    END.
+	
+	/* Corrigi as diferenÁas entre o peso da ttVol e o peso da nota-fiscal */
+	IF CAN-FIND (FIRST nota-embal
+                 WHERE nota-embal.cod-estabel = nota-fiscal.cod-estabel 
+                   AND nota-embal.serie       = nota-fiscal.serie       
+                   AND nota-embal.nr-nota-fis = nota-fiscal.nr-nota-fis) THEN DO:	
+	
+		FOR EACH ttVol:
+			ASSIGN de-dif-peso-bru-aux = de-dif-peso-bru-aux + ttVol.pesoB
+				   de-dif-peso-liq-aux = de-dif-peso-liq-aux + ttVol.pesoL.
+		END.
+
+		ASSIGN de-dif-peso-bru-aux = nota-fiscal.peso-bru-tot - de-dif-peso-bru-aux
+			   de-dif-peso-liq-aux = nota-fiscal.peso-liq-tot - de-dif-peso-liq-aux.
+		
+		IF de-dif-peso-liq-aux <> 0 OR 
+		   de-dif-peso-bru-aux <> 0 THEN DO:
+
+            IF  de-dif-peso-liq-aux >= -0.01
+            AND de-dif-peso-liq-aux <=  0.01
+            AND de-dif-peso-bru-aux >= -0.01
+            AND de-dif-peso-bru-aux <=  0.01 THEN
+                FOR EACH ttVol
+                    BY ttVol.pesoB DESC:
+    				ASSIGN ttVol.pesoB         = ttVol.pesoB + de-dif-peso-bru-aux
+    					   ttVol.pesoL         = ttVol.pesoL + de-dif-peso-liq-aux
+                           de-dif-peso-liq-aux = 0
+                           de-dif-peso-bru-aux = 0.
+                    LEAVE.
+        		END.
+
+            IF  de-dif-peso-liq-aux > 0
+            OR  de-dif-peso-bru-aux > 0 THEN
+                FIND FIRST ttVol
+                     WHERE ttVol.CodEstabelNF = nota-fiscal.cod-estabel
+                       AND ttVol.SerieNF      = nota-fiscal.serie
+                       AND ttVol.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                       AND (ttVol.siglaEmb    = "" OR 
+                            ttVol.siglaEmb    = ?) NO-ERROR.
+					   
+			IF AVAIL ttVol THEN DO:		   
+				ASSIGN ttVol.pesoB = ttVol.pesoB + de-dif-peso-bru-aux
+					   ttVol.pesoL = ttVol.pesoL + de-dif-peso-liq-aux.
+			END. 
+			ELSE DO:
+				CREATE ttVol.
+				ASSIGN ttVol.pesoB = de-dif-peso-bru-aux
+					   ttVol.pesoL = de-dif-peso-liq-aux
+					   ttVol.marca = nota-fiscal.marca-volume
+					   ttVol.nVol  = nota-fiscal.nr-volumes
+					   ttVol.qVol  = (IF (ttVol.qVol <> ? AND ttVol.qVol <> "" AND ttVol.qVol <> "0")
+                                      THEN ttVol.qVol
+                                      ELSE IF nota-fiscal.ind-tip-nota = 8 /*Recebimento*/ THEN "0" ELSE "1"). /*NT2012.003 - tag obrigatoria - tipo numerico - aceita de 1-15*/
+				
+				ASSIGN ttVol.CodEstabelNF = nota-fiscal.cod-estabel
+					   ttVol.SerieNF      = nota-fiscal.serie
+					   ttVol.NrNotaFisNF  = nota-fiscal.nr-nota-fis.	   
+			END.		
+		END.			
+	END.
+	/* Corrigi as diferenÁas entre o peso da ttVol e o peso da nota-fiscal */
+	
+    IF  NOT CAN-FIND (FIRST nota-embal
+                      WHERE nota-embal.cod-estabel = nota-fiscal.cod-estabel 
+                        AND nota-embal.serie       = nota-fiscal.serie       
+                        AND nota-embal.nr-nota-fis = nota-fiscal.nr-nota-fis)
+    AND (   nota-fiscal.peso-bru-tot > 0 
+         OR nota-fiscal.peso-liq-tot > 0) THEN DO:
+
+        CREATE ttVol.
+        ASSIGN ttVol.pesoB = nota-fiscal.peso-bru-tot
+               ttVol.pesoL = nota-fiscal.peso-liq-tot
+               ttVol.marca = nota-fiscal.marca-volume
+               ttVol.nVol  = nota-fiscal.nr-volumes
+               ttVol.qVol  = (IF (ttVol.qVol <> ? AND ttVol.qVol <> "" AND ttVol.qVol <> "0")
+                              THEN ttVol.qVol
+                              ELSE IF nota-fiscal.ind-tip-nota = 8 /*Recebimento*/ THEN "0" ELSE "1"). /*NT2012.003 - tag obrigatoria - tipo numerico - aceita de 1-15*/
+               
+        /* Chave EMS */
+        ASSIGN ttVol.CodEstabelNF = nota-fiscal.cod-estabel
+               ttVol.SerieNF      = nota-fiscal.serie
+               ttVol.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+    END.
+   
+    /*--- Integraá∆o com SGT -------------------------------------------------------------------*/
+    if  l-funcao-sgt then do:
+         
+        /*--- Somente segue essa l¢gica se existir o relacionamento entre romaneio e nota-fiscal, 
+              caso contr†rio permanece a informaá∆o das notas normais ---*/
+        
+        IF can-find(first roman-item-nf
+                    where roman-item-nf.cod-estab   = nota-fiscal.cod-estabel
+                    and   roman-item-nf.cod-serie   = nota-fiscal.serie
+                    and   roman-item-nf.nr-nota-fis = nota-fiscal.nr-nota-fis) THEN DO:
+        
+            /* Elimina a temp-table para recarregar com as informaá‰es originadas do SGT */
+            for each ttVol: delete ttVol. end.
+            assign dpesoB-sgt = 0
+                   dpesoL-sgt = 0
+                   iqVol-sgt  = 0
+                   cesp-sgt   = ''.
+            /*---------------------------------------------------------------------------*/
+    
+            for first roman-item-nf no-lock
+                where roman-item-nf.cod-estab   = nota-fiscal.cod-estabel
+                and   roman-item-nf.cod-serie   = nota-fiscal.serie
+                and   roman-item-nf.nr-nota-fis = nota-fiscal.nr-nota-fis:
+
+                for first roman-faturam no-lock
+                    where roman-faturam.num-romaneio = roman-item-nf.nr-romaneio:
+                    for each  item-roman-faturam OF roman-faturam no-lock:
+                        assign dpesoB-sgt = dpesoB-sgt + item-roman-faturam.val-livre-2
+                               dpesoL-sgt = dpesoL-sgt + item-roman-faturam.val-livre-1
+                               iqVol-sgt  = roman-faturam.num-livre-1
+                               cesp-sgt   = roman-faturam.cod-livre-1.
+                    end. /* for first item-roman-faturam */
+                end. /* for each roman-faturam no-lock */
+            end. /* for first roman-item-nf */
+            
+            /* Chave EMS */
+            CREATE ttVol.
+            ASSIGN ttVol.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttVol.SerieNF      = nota-fiscal.serie
+                   ttVol.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttVol.siglaEmb     = ""
+                   ttVol.marca        = nota-fiscal.marca-volume
+                   ttVol.nVol         = nota-fiscal.nr-volumes
+                   ttVol.pesoB        = dpesoB-sgt 
+                   ttVol.pesoL        = dpesoL-sgt 
+                   ttVol.qVol         = string(iqVol-sgt)
+                   ttVol.qVol         = (IF (ttVol.qVol <> ? AND ttVol.qVol <> "" AND ttVol.qVol <> "0")
+                                         THEN ttVol.qVol
+                                         ELSE IF nota-fiscal.ind-tip-nota = 8 /*Recebimento*/ THEN "0" ELSE "1") /*NT2012.003 - tag obrigatoria - tipo numerico - aceita de 1-15*/
+                   ttVol.esp          = cesp-sgt.
+        END. /* END do IF can-find(first roman-item-nf ou do IF can-find(first tab-ocor */
+    end. /* if  l-funcao-sgt then do: */
+    /*------------------------------------------------------------------- Integraá∆o com SGT ---*/
+
+END PROCEDURE.

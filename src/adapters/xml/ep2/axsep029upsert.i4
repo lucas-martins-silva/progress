@@ -1,0 +1,29 @@
+PROCEDURE pi-grava-temp-tables:
+      
+    RUN pi-cria-ttDCe.   
+    
+    RUN pi-cria-ttIdeDCe.
+    
+    RUN pi-cria-ttEmitDCe.
+    
+    RUN pi-cria-ttIDEmitDCe.
+    
+    RUN pi-cria-ttDestDCe.
+    
+    FOR EACH dce-item OF dce-documento NO-LOCK:
+            
+        RUN pi-cria-ttDetDCe.
+        
+    END.   
+    
+    RUN pi-cria-ttTotal-DCe. 
+    
+    RUN pi-cria-ttTransp. 
+    
+    RUN pi-cria-ttInfAdic. 
+    
+    RUN pi-cria-ttInfDec. 
+    
+    RUN pi-cria-ttInfDCeSupl. 
+    
+END PROCEDURE.

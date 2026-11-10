@@ -1,0 +1,28 @@
+/*******************************************************************************
+***
+*** app/ap0512a.i2 - MULTIPLANTA.
+***
+*******************************************************************************/
+
+if  tt-param.l-multiplanta = yes then do:
+
+    {cdp/cd7300.i1}
+    
+    assign c-transacao = "ADM082".
+    
+    {cdp/cd7300.i5 "001" c-transacao}
+    
+    if  param-global.modulo-mp and tt-replica-msg.log-replica-msg  = yes then do: 
+        create tt-dados-env.                  
+        assign tt-dados-env.num-sequencia  = 1 
+               tt-dados-env.cod-tipo-reg   = 186
+               tt-dados-env.ind-tipo-movto = 3
+               tt-dados-env.identif-msg    = string(tt-param.da-limite).
+        raw-transfer tt-param to tt-dados-env.conteudo-msg.
+    end.
+        
+    {cdp/cd7300.i6 "001" c-transacao}
+
+end.
+    
+/* Fim de Include */

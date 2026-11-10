@@ -1,0 +1,86 @@
+PROCEDURE pi-cria-ttImpostoDevol:
+
+    /*
+    === ttImpostoDevol ===
+    pDevol         AS DECIMAL   INITIAL ?  FORMAT ">>9.99"            DECIMALS 2  /*Percentual de mercadoria devolvida*/ 
+    vIPIDevol      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99"  DECIMALS 2  /*Valor do IPI devolvido*/
+    */
+
+    DEFINE VARIABLE de-perc-devol AS DECIMAL     NO-UNDO.
+
+    /* DEVOL FORNEC */
+    IF  nota-fiscal.esp-docto     = 20
+    AND nota-fiscal.ind-tip-nota <> 8
+    AND it-nota-fisc.vl-ipi-it    > 0
+    AND (it-nota-fisc.cd-trib-ipi = 1 OR it-nota-fisc.cd-trib-ipi = 4) THEN DO:
+
+        ASSIGN de-perc-devol = 100.
+
+        /*Verificar a quantidade original da nota origem para obter o percentual de mercadoria devolvida*/
+        FOR FIRST item-doc-est NO-LOCK
+            WHERE item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+              AND item-doc-est.serie-docto  = it-nota-fisc.serie-docum
+              AND item-doc-est.nro-docto    = it-nota-fisc.nr-docum
+              AND item-doc-est.nat-operacao = it-nota-fisc.nat-docum
+              AND item-doc-est.sequencia    = it-nota-fisc.int-1
+              AND item-doc-est.it-codigo    = it-nota-fisc.it-codigo:
+
+            ASSIGN de-perc-devol = (it-nota-fisc.qt-faturada[1] * 100) / item-doc-est.quantidade. 
+        END.
+        
+        CREATE ttImpostoDevol.
+        ASSIGN ttImpostoDevol.pDevol    = de-perc-devol
+               ttImpostoDevol.vIPIDevol = it-nota-fisc.vl-ipi-it.
+    
+        /* Chave EMS */
+        ASSIGN ttImpostoDevol.CodEstabelNF = nota-fiscal.cod-estabel
+               ttImpostoDevol.SerieNF      = nota-fiscal.serie
+               ttImpostoDevol.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+               ttImpostoDevol.ItCodigoNF   = it-nota-fisc.it-codigo
+               ttImpostoDevol.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+    END.
+
+    /* DEVOL CLIENTE */
+    IF  nota-fiscal.esp-docto     = 20
+    AND it-nota-fisc.vl-ipi-it    > 0
+    AND nota-fiscal.ind-tip-nota  = 8
+    AND CAN-FIND (FIRST docum-est NO-LOCK
+                  WHERE docum-est.serie-docto  = it-nota-fisc.serie
+                    AND docum-est.nro-docto    = nota-fiscal.nr-nota-ant 
+                    AND docum-est.cod-emitente = nota-fiscal.cod-emitente
+                    AND docum-est.nat-operacao = it-nota-fisc.nat-operacao
+                    AND docum-est.cod-observa  = 3) THEN DO:
+
+        ASSIGN de-perc-devol = 100.
+
+        /* Leitura item-doc-est partindo do item da nota no FT */
+        FOR FIRST item-doc-est NO-LOCK
+            WHERE item-doc-est.serie-docto  = it-nota-fisc.serie
+              AND item-doc-est.nro-docto    = nota-fiscal.nr-nota-ant 
+              AND item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+              AND item-doc-est.nat-operacao = it-nota-fisc.nat-operacao
+              AND item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped,
+
+            FIRST bf-it-nota-fisc-dev NO-LOCK /*Verificar a quantidade original da nota origem para obter o percentual de mercadoria devolvida*/
+            WHERE bf-it-nota-fisc-dev.cod-estabel = nota-fiscal.cod-estabel
+              AND bf-it-nota-fisc-dev.serie       = item-doc-est.serie-comp
+              AND bf-it-nota-fisc-dev.nr-nota-fis = item-doc-est.nro-comp
+              AND bf-it-nota-fisc-dev.nr-seq-fat  = item-doc-est.seq-comp
+              AND bf-it-nota-fisc-dev.it-codigo   = item-doc-est.it-codigo:
+
+            ASSIGN de-perc-devol = (it-nota-fisc.qt-faturada[1] * 100) / bf-it-nota-fisc-dev.qt-faturada[1] NO-ERROR.
+
+            CREATE ttImpostoDevol.
+            ASSIGN ttImpostoDevol.pDevol    = de-perc-devol
+                   ttImpostoDevol.vIPIDevol = it-nota-fisc.vl-ipi-it.
+    
+            /* Chave EMS */
+            ASSIGN ttImpostoDevol.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttImpostoDevol.SerieNF      = nota-fiscal.serie
+                   ttImpostoDevol.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttImpostoDevol.ItCodigoNF   = it-nota-fisc.it-codigo
+                   ttImpostoDevol.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+        END.
+    END.
+        
+END PROCEDURE.

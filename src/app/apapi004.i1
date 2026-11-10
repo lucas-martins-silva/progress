@@ -1,0 +1,325 @@
+/********************************************************************************
+***
+*** app/apapi004.i1 - Rotina Consistància API Previs‰es Contas a Pagar.
+***
+********************************************************************************/
+
+/*--- Vefifica se n∆o h† mais de um documento com os mesmos dados ---*/
+assign i-sequencia = 0.
+
+for each  b-tt-tit-ap 
+    where b-tt-tit-ap.ep-codigo   = tt-tit-ap.ep-codigo
+    and   b-tt-tit-ap.cod-estabel = tt-tit-ap.cod-estabel
+    and   b-tt-tit-ap.cod-fornec  = tt-tit-ap.cod-fornec
+    and   b-tt-tit-ap.cod-esp     = tt-tit-ap.cod-esp
+    and   b-tt-tit-ap.serie       = tt-tit-ap.serie
+    and   b-tt-tit-ap.nr-docto    = tt-tit-ap.nr-docto
+    and   b-tt-tit-ap.parcela     = tt-tit-ap.parcela:
+    assign i-sequencia = i-sequencia + 1.
+end.    
+
+if  i-sequencia > 1 then do:
+    {utp/ut-liter.i Existem}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(i-sequencia, "99").
+
+    {utp/ut-liter.i documentos_sendo_implantado_com_os_mesmos_dados.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica se n∆o existe documento no AP com mesma chave ----*/
+find first tit-ap no-lock
+     where tit-ap.ep-codigo   = tt-tit-ap.ep-codigo
+     and   tit-ap.cod-estabel = tt-tit-ap.cod-estabel
+     and   tit-ap.cod-fornec  = tt-tit-ap.cod-fornec
+     and   tit-ap.cod-esp     = tt-tit-ap.cod-esp
+     and   tit-ap.serie       = tt-tit-ap.serie
+     and   tit-ap.nr-docto    = tt-tit-ap.nr-docto
+     and   tit-ap.parcela     = tt-tit-ap.parcela
+     no-error.
+
+if  avail tit-ap then do:
+    {utp/ut-liter.i Documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i j†_cadastrado_no_Contas_a_Pagar.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica se a empresa est† cadastrada ---*/
+find first empresa no-lock
+     where empresa.ep-codigo = tt-tit-ap.ep-codigo no-error.
+
+if  not avail empresa then do:
+    {utp/ut-liter.i Empresa}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.ep-codigo).
+
+    {utp/ut-liter.i n∆o_cadastrada.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica se o estabelecimento est† cadastrado ---*/
+find first estabelec
+     where estabelec.cod-estabel = tt-tit-ap.cod-estabel no-lock no-error.
+
+if  not avail estabelec then do:
+    {utp/ut-liter.i Estabelecimento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.cod-estabel).
+
+    {utp/ut-liter.i n∆o_cadastrado.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica se a espÇcie de documento est† cadastrada ---*/
+find first espec-ap
+     where espec-ap.cod-esp = tt-tit-ap.cod-esp no-lock no-error.
+
+if  not avail espec-ap then do:
+    {utp/ut-liter.i EspÇcie_de_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.cod-esp).
+
+    {utp/ut-liter.i n∆o_cadastrada.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+else do:
+    if  espec-ap.tipo <> 3 then do:
+        {utp/ut-liter.i EspÇcie_de_documento}
+        assign c-mensagem = trim(return-value) + " "
+               c-mensagem = c-mensagem + string(tt-tit-ap.cod-esp).
+
+        {utp/ut-liter.i deve_ser_do_tipo_PREVIS«O.}
+        assign c-mensagem = c-mensagem + " "
+               c-mensagem = c-mensagem + trim(return-value).
+
+        {app/apapi004.i3 "c-mensagem"}
+
+    end.
+end.
+
+/*--- Verifica se o fornecedor est† cadastrado ---*/
+find first emitente no-lock
+     where emitente.cod-emitente = tt-tit-ap.cod-fornec
+     and   emitente.identific   <> 1 no-error.
+
+if  not avail emitente then do:
+    {utp/ut-liter.i Fornecedor}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.cod-fornec).
+
+    {utp/ut-liter.i n∆o_est†_cadastrado_ou_o_mesmo_est†_como_Cliente.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica se o tipo de despesa est† cadastrado ---*/
+if  tt-tit-ap.tp-codigo = 0 and avail emitente then do:
+    assign tt-tit-ap.tp-codigo = emitente.tp-desp-padrao.
+end.         
+
+find first tipo-rec-desp
+     where tipo-rec-desp.tp-codigo = tt-tit-ap.tp-codigo
+       and   tipo-rec-desp.tipo      = 2 no-lock no-error.
+
+if  not avail tipo-rec-desp then do:
+    {utp/ut-liter.i Tipo_despesa}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.tp-codigo).
+
+    {utp/ut-liter.i n∆o_cadastrada_ou_a_mesma_est†_como_Receita.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica data de emiss∆o da previs∆o ---*/
+if  tt-tit-ap.dt-emissao = ? then do:
+    {utp/ut-liter.i Data_emiss∆o_do_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i n∆o_pode_ser_nula.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica data de vencimento da previs∆o ---*/
+if  tt-tit-ap.dt-vencimen = ? then do:
+    {utp/ut-liter.i Data_vencimento_do_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i n∆o_pode_ser_nula.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica se a data de vencimento n∆o Ç menor que a emiss∆o ---*/
+if  tt-tit-ap.dt-vencimen < tt-tit-ap.dt-emissao then do:
+    {utp/ut-liter.i Data_vencimento_do_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i n∆o_pode_ser_menor_que_a_data_de_emiss∆o.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Verifica se a moeda est† cadastrada ---*/
+if  tt-tit-ap.moeda <> 0 then do:
+    find first moeda no-lock
+         where moeda.mo-codigo = tt-tit-ap.moeda no-error.
+
+    if  not avail moeda then do:
+        {utp/ut-liter.i Moeda}
+        assign c-mensagem = trim(return-value) + " "
+               c-mensagem = c-mensagem + string(tt-tit-ap.moeda).
+
+        {utp/ut-liter.i n∆o_cadastrada.}
+        assign c-mensagem = c-mensagem + " "
+               c-mensagem = c-mensagem + trim(return-value).
+
+        {app/apapi004.i3 "c-mensagem"}
+    end.
+end.
+
+/*--- Verifica se a modalidade Ç Cobranáa Simples ---*/
+if  tt-tit-ap.modalidade <> 1 then do:
+    {utp/ut-liter.i Modalidade_do_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i deve_ser_Cobranáa_Simples.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+if  tt-tit-ap.portador = 0 and avail emitente then do:
+  if l-funcao-portador-ap = no then
+    assign tt-tit-ap.portador = emitente.portador.
+  else do:
+    &if "{&mgadm_version}" >= "2.06b" &then
+      assign tt-tit-ap.portador = emitente.portador-ap.
+    &else
+      assign tt-tit-ap.portador = int(substr(emitente.char-1,31,5)).
+    &endif
+  end.
+end.
+
+/*--- Verifica se o portador est† cadastrado ---*/
+find first portador no-lock
+     where portador.ep-codigo    = tt-tit-ap.ep-codigo
+     and   portador.cod-portador = tt-tit-ap.portador
+     and   portador.modalidade   = tt-tit-ap.modalidade no-error.
+
+if  not avail portador then do:
+    {utp/ut-liter.i Portador}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.portador).
+
+    {utp/ut-liter.i modalidade_Cobranáa_Simples_n∆o_cadastrado.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/*--- Valor do Saldo deve ser maior que zero. ---*/
+if  (tt-tit-ap.valor-saldo <= 0) or (tt-tit-ap.vl-saldo-me <= 0) then do:
+    {utp/ut-liter.i Valor_saldo_do_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i deve_ser_maior_que_zero.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}        
+end.
+
+/*--- Valor Original deve ser maior que zero. ---*/
+if  (tt-tit-ap.vl-original <= 0) or (tt-tit-ap.vl-orig-me <= 0) then do:
+    {utp/ut-liter.i Valor_original_do_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i deve_ser_maior_que_zero.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}       
+end.
+
+
+/*--- Valor Original deve ser maior ou igual ao valor do saldo ---*/
+if  tt-tit-ap.vl-original < tt-tit-ap.valor-saldo then do:
+    {utp/ut-liter.i Valor_original_do_documento}
+    assign c-mensagem = trim(return-value) + " "
+           c-mensagem = c-mensagem + string(tt-tit-ap.nr-docto)
+           c-mensagem = c-mensagem + "/"
+           c-mensagem = c-mensagem + string(tt-tit-ap.parcela).
+
+    {utp/ut-liter.i deve_ser_maior_que_o_valor_do_saldo.}
+    assign c-mensagem = c-mensagem + " "
+           c-mensagem = c-mensagem + trim(return-value).
+
+    {app/apapi004.i3 "c-mensagem"}
+
+end.
+
+/* Fim de Include */

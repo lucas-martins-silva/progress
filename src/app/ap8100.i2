@@ -1,0 +1,29 @@
+/****************************************************************************
+**
+** Include: ap8100.i2 - Vari veis comuns ao programa ap8100.p e ao ap8100a.p
+**
+****************************************************************************/
+    
+def {1} shared var c-campo-1   like conta-contab.ct-codigo no-undo.
+def {1} shared var c-campo-2   like conta-contab.sc-codigo no-undo.
+def {1} shared var i-campo-3   as integer format ">9"      no-undo.
+def {1} shared var de-campo-4  like mov-ap.valor-mov       no-undo.
+def {1} shared var de-campo-5  like mov-ap.vl-mov-fasb     no-undo.
+def {1} shared var c-campo-6   like conta-contab.titulo    no-undo.
+def {1} shared var de-campo-7  like mov-ap.vl-mov-cmi      no-undo.
+def {1} shared var de-campo-8  like mov-ap.valor-presente  no-undo.
+def {1} shared var c-campo-9   as char format "x(03)"      no-undo.
+def {1} shared var da-campo-10 like mov-ap.dt-transacao    no-undo.
+    
+def {1} shared var i-seq-acum      as integer            no-undo.
+def {1} shared var c-historico     like mov-ap.historico no-undo.
+def {1} shared var de-dif          as decimal format "->>>,>>>,>>>,>>9.9999" no-undo.
+def {1} shared var de-dif-fasb     like de-dif           no-undo.
+def {1} shared var de-dif-cmi      like de-dif           no-undo.
+def {1} shared var de-dif-presente like de-dif           no-undo.
+        
+def {1} shared var rw-emitente     as rowid              no-undo.
+def {1} shared var rw-mov-ap       as rowid              no-undo.
+def {1} shared var rw-impto-tit-ap as rowid              no-undo.
+        
+/* Fim de Include */

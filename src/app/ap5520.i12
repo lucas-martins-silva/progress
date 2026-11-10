@@ -1,0 +1,77 @@
+/******************************************************************************
+**
+**     Programa: AP5520.I12 - FORMATO DO CPF/CGC 
+**
+*******************************************************************************/
+case emitente.natureza :
+    when 1 then do:
+               &IF "{&mgadm_version}" < "2.02" &THEN                   
+                   if bord-rec.hist-prev then
+                        assign c-cgc-fornec:format in frame f-bordero                 = param-global.formato-id-pessoal.
+                   else
+                        assign c-cgc-fornec:format in frame f-bordero-sem-historico   = param-global.formato-id-pessoal.
+               &ELSE    
+                   if bord-rec.hist-prev then                   
+                        assign c-cgc-fornec:format in frame f-versao2                 = param-global.formato-id-pessoal.
+                   else                        
+                        assign c-cgc-fornec:format in frame f-versao2-sem-historico   = param-global.formato-id-pessoal.
+               &ENDIF   
+                               
+               if bord-rec.hist-prev then
+                       assign c-cgc-fornec:format in frame f-bordero2                = param-global.formato-id-pessoal
+                              c-cgc-fornec:format in frame f-bordero3                = param-global.formato-id-pessoal
+                              c-cgc-fornec:format in frame f-bordero4                = param-global.formato-id-pessoal.
+               else
+                       assign c-cgc-fornec:format in frame f-bordero2-sem-historico  = param-global.formato-id-pessoal
+                              c-cgc-fornec:format in frame f-bordero3-sem-historico  = param-global.formato-id-pessoal
+                              c-cgc-fornec:format in frame f-bordero4-sem-historico  = param-global.formato-id-pessoal.                        
+    end.        
+    when 2 then do:
+               &IF "{&mgadm_version}" < "2.02" &THEN                   
+                   if bord-rec.hist-prev then
+                        assign c-cgc-fornec:format in frame f-bordero                 = param-global.formato-id-federal.
+                   else
+                        assign c-cgc-fornec:format in frame f-bordero-sem-historico   = param-global.formato-id-federal.
+               &ELSE    
+                   if bord-rec.hist-prev then                   
+                        assign c-cgc-fornec:format in frame f-versao2                 = param-global.formato-id-federal.
+                   else                        
+                        assign c-cgc-fornec:format in frame f-versao2-sem-historico   = param-global.formato-id-federal.
+               &ENDIF   
+                   
+               if bord-rec.hist-prev then                        
+                       assign c-cgc-fornec:format in frame f-bordero2                = param-global.formato-id-federal
+                              c-cgc-fornec:format in frame f-bordero3                = param-global.formato-id-federal
+                              c-cgc-fornec:format in frame f-bordero4                = param-global.formato-id-federal.
+               else                               
+                       assign c-cgc-fornec:format in frame f-bordero2-sem-historico  = param-global.formato-id-federal
+                              c-cgc-fornec:format in frame f-bordero3-sem-historico  = param-global.formato-id-federal
+                              c-cgc-fornec:format in frame f-bordero4-sem-historico  = param-global.formato-id-federal.
+    end.                        
+    otherwise do:
+               &IF "{&mgadm_version}" < "2.02" &THEN                   
+                   if bord-rec.hist-prev then
+                        assign c-cgc-fornec:format in frame f-bordero                 = "x(19)".
+                   else
+                        assign c-cgc-fornec:format in frame f-bordero-sem-historico   = "x(19)".
+               &ELSE    
+                   if bord-rec.hist-prev then                   
+                        assign c-cgc-fornec:format in frame f-versao2                 = "x(19)".
+                   else                        
+                        assign c-cgc-fornec:format in frame f-versao2-sem-historico   = "x(19)".
+               &ENDIF   
+               
+               if bord-rec.hist-prev then
+                       assign c-cgc-fornec:format in frame f-bordero2                = "x(19)"
+                              c-cgc-fornec:format in frame f-bordero3                = "x(19)"
+                              c-cgc-fornec:format in frame f-bordero4                = "x(19)".
+                else                              
+                       assign c-cgc-fornec:format in frame f-bordero2-sem-historico  = "x(19)"
+                              c-cgc-fornec:format in frame f-bordero3-sem-historico  = "x(19)"
+                              c-cgc-fornec:format in frame f-bordero4-sem-historico  = "x(19)".                
+    end.                                      
+end case.
+
+assign c-cgc-fornec = emitente.cgc.
+
+/*** FIM INCLUDE AP5520.I12 ***/

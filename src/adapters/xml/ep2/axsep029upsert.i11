@@ -1,0 +1,48 @@
+PROCEDURE pi-cria-ttDetDCe:
+
+    /*
+    === ttDetDCe ===
+    nItem          AS CHARACTER INITIAL ?  //N£mero do item
+    
+    === <prod> ===
+    xProd          AS CHARACTER INITIAL ?  //Descri‡Æo do produto, bem ou mercadoria
+    NCM            AS CHARACTER INITIAL ?  //Cap¡tulo do C¢digo NCM com 2 d¡gitos ou NCM completo
+    qCom           AS DECIMAL   INITIAL ?  //Quantidade
+    vUnCom         AS DECIMAL   INITIAL ?  //Valor Unit rio
+    vProd          AS DECIMAL   INITIAL ?  //Valor Total Bruto do Produto
+    infAdProd      AS CHARACTER INITIAL ?  //Informa‡äes Adicionais do Produto
+    */
+    
+    CREATE ttDetDCe.
+    ASSIGN /* Chave EMS */ 
+           ttDetDCe.CodEstabelDCe = dce-documento.cod-estabel
+           ttDetDCe.SerieDCe      = dce-documento.serie
+           ttDetDCe.NrDCe         = dce-documento.nr-dce
+           ttDetDCe.NrSeqFatDCe   = dce-item.nr-seq-fat
+           /* Chave EMS */
+           
+           ttDetDCe.xProd         = dce-item.desc-item
+           ttDetDCe.NCM           = TRIM(dce-item.ncm)
+           ttDetDCe.qCom          = dce-item.quantidade[1]
+           ttDetDCe.vUnCom        = dce-item.vl-unitario
+           ttDetDCe.vProd         = dce-item.vl-tot-item
+           ttDetDCe.infAdProd     = dce-item.inf-ad-prod.
+           
+    ASSIGN d-total-vProd = d-total-vProd + ttDetDCe.vprod.           
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttDetDCe THEN DO:
+        ASSIGN ttDetDCe.xProd     = REPLACE(ttDetDCe.xProd, CHR(10)            , " ")
+               ttDetDCe.xProd     = REPLACE(ttDetDCe.xProd, CHR(13)            , " ")
+               ttDetDCe.xProd     = REPLACE(ttDetDCe.xProd, CHR(9)             , " ")
+               ttDetDCe.NCM       = fn-ajusta-tamanho-campo(ttDetDCe.NCM       , 8)
+               ttDetDCe.xProd     = fn-ajusta-tamanho-campo(ttDetDCe.xProd     ,120)
+               ttDetDCe.xProd     = fn-ajusta-espacos-branco(ttDetDCe.xProd)
+               ttDetDCe.infAdProd = REPLACE(ttDetDCe.infAdProd, CHR(10)        , " ")
+               ttDetDCe.infAdProd = REPLACE(ttDetDCe.infAdProd, CHR(13)        , " ")
+               ttDetDCe.infAdProd = REPLACE(ttDetDCe.infAdProd, CHR(9)         , " ")
+               ttDetDCe.infAdProd = fn-ajusta-tamanho-campo(ttDetDCe.infAdProd ,500)
+               ttDetDCe.infAdProd = fn-ajusta-espacos-branco(ttDetDCe.infAdProd).
+    END.
+
+END PROCEDURE.

@@ -1,0 +1,63 @@
+PROCEDURE pi-cria-NVE:
+
+    DEFINE VARIABLE i-numero-ordem LIKE rat-ordem.numero-ordem NO-UNDO.
+    DEFINE VARIABLE i-parcela      LIKE rat-ordem.parcela      NO-UNDO.
+
+    EMPTY TEMP-TABLE tt-nve.
+
+    /* Leitura item-doc-est partindo do item da nota no FT */
+    FOR FIRST item-doc-est NO-LOCK
+        WHERE item-doc-est.serie-docto  = it-nota-fisc.serie
+          AND item-doc-est.nro-docto    = nota-fiscal.nr-nota-ant 
+          AND item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+          AND item-doc-est.nat-operacao = it-nota-fisc.nat-operacao
+          AND item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped:
+
+        /* Ordem e parcela do item do documento */
+        ASSIGN i-numero-ordem = item-doc-est.numero-ordem
+               i-parcela      = item-doc-est.parcela.
+
+        /* Se h  rat-ordem para o item do documento, os campos item-doc-est.numero-ordem e item-doc-est.parcela podem estar em branco, entÆo lˆ-se da rat-ordem */
+        IF  CAN-FIND (FIRST rat-ordem NO-LOCK
+                      WHERE rat-ordem.serie-docto  = item-doc-est.serie-docto 
+                        AND rat-ordem.nro-docto    = item-doc-est.nro-docto   
+                        AND rat-ordem.cod-emitente = item-doc-est.cod-emitente
+                        AND rat-ordem.nat-operacao = item-doc-est.nat-operacao
+                        AND rat-ordem.sequencia    = item-doc-est.sequencia) THEN
+            FOR FIRST rat-ordem NO-LOCK
+                WHERE rat-ordem.serie-docto  = item-doc-est.serie-docto 
+                  AND rat-ordem.nro-docto    = item-doc-est.nro-docto   
+                  AND rat-ordem.cod-emitente = item-doc-est.cod-emitente
+                  AND rat-ordem.nat-operacao = item-doc-est.nat-operacao
+                  AND rat-ordem.sequencia    = item-doc-est.sequencia:
+
+                ASSIGN i-numero-ordem = rat-ordem.numero-ordem
+                       i-parcela      = rat-ordem.parcela.
+            END.
+
+        /* Leitura para obter o nro da DI EMS, atrav‚s da ordem */        
+        FOR FIRST decla-import-ord NO-LOCK
+            WHERE decla-import-ord.num-ordem   = i-numero-ordem
+              AND decla-import-ord.num-parcela = i-parcela,
+    
+             EACH decla-import-adic-nve NO-LOCK /*NVE's da DI*/
+            WHERE decla-import-adic-nve.num-di-ems = decla-import-ord.num-di-ems
+              AND decla-import-adic-nve.num-adic   = item-docto-estoq-nfe-imp.num-adic:
+    
+            CREATE tt-nve.
+            ASSIGN tt-nve.cod-nve = TRIM( STRING(UPPER(decla-import-adic-nve.cod-atributo),"XX") + STRING(decla-import-adic-nve.cdn-especif,"9999") ).
+        END.
+    END.
+
+    ASSIGN i-cont = 1.
+
+    FOR EACH tt-nve NO-LOCK:
+
+        IF  i-cont > 8 THEN LEAVE. /*Layout 3.10 preve apenas 8 ocorrencias*/
+
+        ASSIGN ttDet.NVE[i-cont] = tt-nve.cod-nve.
+
+        ASSIGN i-cont = i-cont + 1.
+    END.
+
+END PROCEDURE.

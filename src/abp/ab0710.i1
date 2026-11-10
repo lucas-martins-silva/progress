@@ -1,0 +1,105 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*****************************************************************************
+**
+**       PROGRAMA: AB0710.i
+**
+**       DATA....: Julho de 2007
+**
+**       AUTOR...: Daniel Marquini - Manufatura - DATASUL S.A.
+**
+**       OBJETIVO: Include de Defini‡Æo de FORMs AB0710
+**
+*****************************************************************************/
+                                                /** Defini‡Æo de Vari veis **/
+DEFINE VARIABLE c-liter-par  AS CHARACTER FORMAT "x(14)" NO-UNDO.
+DEFINE VARIABLE c-liter-imp  AS CHARACTER FORMAT "x(14)" NO-UNDO.
+DEFINE VARIABLE c-destino    AS CHARACTER FORMAT "x(09)" NO-UNDO.
+
+DEFINE VARIABLE c-liter-arq  AS CHARACTER FORMAT "x(15)" NO-UNDO.
+DEFINE VARIABLE c-liter-des  AS CHARACTER FORMAT "x(15)" NO-UNDO.
+DEFINE VARIABLE c-liter-hel  AS CHARACTER FORMAT "x(15)" NO-UNDO.
+DEFINE VARIABLE c-descricao  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE c-ajuda      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE c-todos      AS CHARACTER FORMAT "x(20)" NO-UNDO.
+
+/*****************************************************************************/
+                                                     /** Form de Parƒmetros **/
+form   /*PAR¶METRO*/
+       skip(1)
+       c-liter-par              AT 09    NO-LABEL
+       skip(1)
+       tt-param.InputFolder     colon 30
+       /*IMPRESSÇO*/
+       skip(1)
+       c-liter-imp              AT 09    NO-LABEL
+       skip(1)
+       c-todos                  COLON 30 
+       c-destino                COLON 30 " - " tt-param.arquivo NO-LABEL
+       tt-param.usuario         COLON 30
+       skip(1)
+       with width 132 side-labels frame f-param-definidos stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-param-definidos:HANDLE).
+
+     
+/*****************************************************************************/
+                                               /** Literais Form Parƒmetros **/
+{utp/ut-liter.i Usu rio * l}
+assign tt-param.usuario:label in frame f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i Destino * l}
+assign c-destino:label in frame f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i PAR¶METROS * R}         
+assign c-liter-par = trim(return-value).
+                                        
+{utp/ut-liter.i IMPRESSÇO * R}          
+assign c-liter-imp = trim(return-value).
+
+{utp/ut-liter.i Registros * R}          
+assign c-todos:LABEL IN FRAME f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i Pasta_Origem * R}          
+assign tt-param.InputFolder:LABEL IN FRAME f-param-definidos = trim(return-value).
+                                        
+/*****************************************************************************/
+                                                       /** Forms do Usu rio **/
+FORM SKIP(1)
+     c-liter-arq AT 01 NO-LABEL
+     c-liter-des AT 31 NO-LABEL
+     skip
+     c-liter-hel AT 31 NO-LABEL 
+    WITH WIDTH 132 NO-LABELS PAGE-TOP TOP-ONLY NO-BOX FRAME f-cabec-log STREAM-IO.
+
+FORM HEADER
+     FILL("-",29) FORMAT "x(29)" AT 01
+     FILL("-",102) FORMAT "x(102)" AT 31
+    WITH STREAM-IO WIDTH 132 NO-LABELS PAGE-TOP TOP-ONLY NO-BOX FRAME f-traco-log.
+
+FORM SKIP
+     c-arquivo   FORMAT "x(29)" AT 01
+     c-descricao FORMAT "x(102)" AT 31
+     c-ajuda     FORMAT "x(102)" AT 31
+    WITH WIDTH 132 NO-LABELS NO-BOX FRAME f-det-log STREAM-IO.
+
+{utp/ut-liter.i ARQUIVO * R}
+assign c-liter-arq = trim(return-value).
+
+{utp/ut-liter.i DESCRI€ÇO * R}
+assign c-liter-des = trim(return-value).
+
+{utp/ut-liter.i AJUDA * R}
+assign c-liter-hel = trim(return-value).
+
+
+
+
+/*****************************************************************************/
+                                                         /** Fim da Include **/
+

@@ -1,0 +1,84 @@
+PROCEDURE pi-cria-ttDest:
+
+    /*
+    === ttDest ===
+    CEP            AS CHARACTER INITIAL ?  /*CEP*/
+    cMun           AS INT       INITIAL ?  /*C¢digo do munic¡pio (utilizar a tabela do IBGE), informar 9999999 para opera‡äes com o exterior.*/
+    CNPJ           AS CHARACTER INITIAL ?  /*N£mero do CNPJ*/
+    cPais          AS INT       INITIAL ?  /*C¢digo do pa¡s*/
+    CPF            AS CHARACTER INITIAL ?  /*N£mero do CPF*/
+    fone           AS CHARACTER INITIAL ?  /*Telefone*/
+    IE             AS CHARACTER INITIAL ?  /*Inscri‡Æo Estadual (obrigat¢rio nas opera‡äes com contribuintes do ICMS)*/
+    ISUF           AS CHARACTER INITIAL ?  /*Inscri‡Æo na SUFRAMA (Obrigat¢rio nas opera‡äes com as  reas com benef¡cios de incentivos fiscais sob controle da SUFRAMA)*/
+    nro            AS CHARACTER INITIAL ?  /*N£mero*/
+    UF             AS CHARACTER INITIAL ?  /*Sigla da UF, , informar EX para opera‡äes com o exterior.*/
+    xBairro        AS CHARACTER INITIAL ?  /*Bairro*/
+    xCpl           AS CHARACTER INITIAL ?  /*Complemento*/
+    xLgr           AS CHARACTER INITIAL ?  /*Logradouro*/
+    xMun           AS CHARACTER INITIAL ?  /*Nome do munic¡pio, , informar EXTERIOR para opera‡äes com o exterior.*/
+    xNome          AS CHARACTER INITIAL ?  /*RazÆo Social ou nome do destinat rio*/
+    xPais          AS CHARACTER INITIAL ?  /*Nome do pa¡s*/
+    email          AS CHARACTER INITIAL ?  /*E-mail Destinatario*/
+    */
+
+    IF  i-natureza > 1 THEN DO:
+        IF emitente.natureza = i-natureza THEN
+            run pi-cria-ttDest-tp-pessoa(INPUT emitente.cep,
+                                         INPUT emitente.pais,
+                                         INPUT emitente.cgc,
+                                         INPUT emitente.ins-estadual,
+                                         INPUT emitente.estado,
+                                         INPUT emitente.bairro,
+                                         INPUT emitente.cidade,
+                                         INPUT emitente.endereco,
+                                         INPUT emitente.nome-emit).
+        ELSE 
+            run pi-cria-ttDest-tp-pessoa(INPUT nota-fiscal.cep,         
+                                         INPUT nota-fiscal.pais,        
+                                         INPUT nota-fiscal.cgc,         
+                                         INPUT nota-fiscal.ins-estadual,
+                                         INPUT nota-fiscal.estado,      
+                                         INPUT nota-fiscal.bairro,      
+                                         INPUT nota-fiscal.cidade,      
+                                         INPUT nota-fiscal.endereco,
+                                         INPUT emitente.nome-emit).
+    END.
+    ELSE
+        run pi-cria-ttDest-tp-pessoa(INPUT nota-fiscal.cep,         
+                                     INPUT nota-fiscal.pais,        
+                                     INPUT nota-fiscal.cgc,         
+                                     INPUT nota-fiscal.ins-estadual,
+                                     INPUT nota-fiscal.estado,      
+                                     INPUT nota-fiscal.bairro,      
+                                     INPUT nota-fiscal.cidade,      
+                                     INPUT nota-fiscal.endereco,
+                                     INPUT emitente.nome-emit).
+
+    RUN pi-Trata-NT-002-2011.
+
+
+    /* Chave EMS */
+    ASSIGN ttDest.CodEstabelNF = nota-fiscal.cod-estabel
+           ttDest.SerieNF      = nota-fiscal.serie
+           ttDest.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttDest THEN
+        ASSIGN ttDest.CEP        = fn-ajusta-tamanho-campo(ttDest.CEP    , 8)
+               ttDest.cMun       = fn-ajusta-tamanho-campo(ttDest.cMun   , 7)
+               ttDest.CNPJ       = fn-ajusta-tamanho-campo(ttDest.CNPJ   ,14)
+               ttDest.cPais      = fn-ajusta-tamanho-campo(ttDest.cPais  , 4)
+               ttDest.CPF        = fn-ajusta-tamanho-campo(ttDest.CPF    ,14)
+               ttDest.fone       = fn-ajusta-tamanho-campo(ttDest.fone   ,14)
+               ttDest.IE         = fn-ajusta-tamanho-campo(ttDest.IE     ,14)
+               ttDest.ISUF       = fn-ajusta-tamanho-campo(ttDest.ISUF   ,14)
+               ttDest.nro        = fn-ajusta-tamanho-campo(ttDest.nro    ,60)
+               ttDest.UF         = fn-ajusta-tamanho-campo(ttDest.UF     , 2)
+               ttDest.xBairro    = fn-ajusta-tamanho-campo(ttDest.xBairro,60)
+               ttDest.xCpl       = fn-ajusta-tamanho-campo(ttDest.xCpl   ,60)
+               ttDest.xLgr       = fn-ajusta-tamanho-campo(ttDest.xLgr   ,60)
+               ttDest.xMun       = fn-ajusta-tamanho-campo(ttDest.xMun   ,60)
+               ttDest.xNome      = fn-ajusta-tamanho-campo(ttDest.xNome  ,60)
+               ttDest.xPais      = fn-ajusta-tamanho-campo(ttDest.xPais  ,60).
+
+END PROCEDURE.

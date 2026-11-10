@@ -1,0 +1,9 @@
+IF lTOTVSRFID THEN DO:
+   IF NOT CAN-FIND(FIRST ttProdutoPendente WHERE ttProdutoPendente.codProduto  = {1}.it-codigo
+                                             AND ttProdutoPendente.codEstabel  = {1}.cod-estabel) THEN DO:
+        CREATE ttProdutoPendente.
+        ASSIGN ttProdutoPendente.codProduto = {1}.it-codigo
+               ttProdutoPendente.codEstabel = {1}.cod-estabel.
+               
+   END.
+END.

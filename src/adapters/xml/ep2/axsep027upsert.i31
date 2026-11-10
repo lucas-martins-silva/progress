@@ -1,0 +1,52 @@
+PROCEDURE pi-cria-ICMS:
+
+    ASSIGN i-niv-trib-icms = 0
+           c-niv-trib-icms = "".
+
+    IF TRIM(SUBSTRING(it-nota-fisc.char-1,466,2)) <> "" THEN
+        ASSIGN i-niv-trib-icms = INT(TRIM(SUBSTRING(it-nota-fisc.char-1,466,2))).
+    ELSE
+        RUN ftp/ft0515a.p (INPUT  ROWID(it-nota-fisc), 
+                           OUTPUT i-niv-trib-icms,      
+                           OUTPUT l-sub).
+
+    
+    &ENDIF    
+    /* CST -> Codigo da Situacao Tributaria (conforme DANFE): Codigo Origem + Nivel Tributacao ICMS */
+    ASSIGN i-niv-trib-icms = INT(STRING(i-codigo-orig) + STRING(i-niv-trib-icms, "99")) WHEN AVAIL item
+           c-niv-trib-icms = string(i-niv-trib-icms,"999").
+
+    
+    CASE SUBSTRING(c-niv-trib-icms,2,2):
+
+        WHEN "10" THEN
+            RUN pi-grava-ttICMS10.
+
+        WHEN "20" THEN
+            RUN pi-grava-ttICMS20.
+
+        WHEN "30" THEN
+            RUN pi-grava-ttICMS30.
+
+        WHEN "40" OR 
+        WHEN "41" OR
+        WHEN "50" THEN
+            RUN pi-grava-ttICMS40.
+
+        WHEN "51" THEN
+            RUN pi-grava-ttICMS51.
+
+        WHEN "60" THEN
+            RUN pi-grava-ttICMS60.
+
+        WHEN "70" THEN
+            RUN pi-grava-ttICMS70.
+
+        WHEN "90" THEN
+            RUN pi-grava-ttICMS90.
+
+        OTHERWISE
+            RUN pi-grava-ttICMS00.
+    END CASE.
+
+END PROCEDURE.

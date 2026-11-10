@@ -1,0 +1,11 @@
+/*******************************************************************************
+**
+** ac0509.i2  : Include para somar quantidades.
+** Parƒmetros : {1} e {2} Qtde/Valor Cotas prevista, original
+********************************************************************************/
+ de-qtde-tot = de-qtde-tot +
+               if par-cota.tipo-controle = 2 then {2}
+                                                else {1}.  
+                                                                                        
+ 
+/*acp/ac0509.i2*/ 

@@ -1,0 +1,365 @@
+/**************************************************************************
+**
+**  Include.: AP0704.I4
+**  Objetivo: Display dos titulos
+**
+************************************************************************/
+
+     if  tit-ap.tipo <> 2 then do:   /*AN*/
+            mov-block:
+            for each mov-ap use-index codigo
+                where mov-ap.ep-codigo   = tit-ap.ep-codigo
+                and   mov-ap.cod-estabel = tit-ap.cod-estabel
+                and   mov-ap.cod-esp     = tit-ap.cod-esp
+                 and   mov-ap.serie       = tit-ap.serie
+                and   mov-ap.nr-docto    = tit-ap.nr-docto
+                and   mov-ap.parcela     = tit-ap.parcela
+                and   mov-ap.cod-fornec  = tit-ap.cod-fornec no-lock:
+
+                if  tt-param.normal-fasb = 1
+                and (tt-param.moeda <> 0 and tt-param.moeda <> mov-ap.moeda) then
+                    next mov-block.   
+
+                if  mov-ap.transacao   <> 2 /*BND*/
+                and mov-ap.transacao   <> 3 /*PEF*/
+                and mov-ap.transacao   <> 5 /*AVA*/
+                and mov-ap.transacao   <> 6 /*SND*/
+                and mov-ap.transacao   <> 8 /*GPF*/ then
+                    next.
+
+                if  mov-ap.transacao = 6 and mov-ap.lancamento <> 1 /*D*/ then
+                    next.
+
+                assign de-vl-mov-fasb = mov-ap.vl-mov-fasb.
+
+                if  mov-ap.dt-transacao > tt-param.da-data then
+                    if  mov-ap.transacao = 5 and mov-ap.lancamento = 1 then
+                        if  tt-param.normal-fasb = 1 then
+                            assign de-saldo = de-saldo + (if tt-param.moeda = 0 
+                                              then mov-ap.valor-mov else mov-ap.valor-mov-me).
+                        else 
+                            assign de-saldo = de-saldo + mov-ap.vl-mov-fasb.
+                
+                    else
+                        if  mov-ap.transacao = 5 and mov-ap.lancamento = 2 then     /*C*/
+                            if  tt-param.normal-fasb = 1 then
+                                assign de-saldo = de-saldo + (if tt-param.moeda = 0 
+                                                  then mov-ap.valor-mov else mov-ap.valor-mov-me).
+                            else 
+                                assign de-saldo = de-saldo + mov-ap.vl-mov-fasb. 
+                        else
+                            if  mov-ap.transacao = 8 then  
+                                if  tt-param.normal-fasb = 2 then
+                                    assign de-saldo = de-saldo + (mov-ap.valor-mov + mov-ap.valor-juros).
+                                else 
+                                    assign de-saldo = de-saldo + (if tt-param.moeda = 0 
+                                                      then mov-ap.valor-mov else mov-ap.valor-mov-me).
+                            else
+                                if  tt-param.normal-fasb = 1 then
+                                    assign de-saldo = de-saldo + (if tt-param.moeda = 0 
+                                                      then mov-ap.valor-mov else mov-ap.valor-mov-me).                                              
+                                else 
+                                    assign de-saldo = de-saldo + de-vl-mov-fasb.
+            end.
+
+        if  de-saldo > 0 then do:
+            if  tit-ap.tipo = 1  /*NO*/
+            or  tit-ap.tipo = 8 then    /*IR*/
+                assign de-tot-nor  = de-tot-nor + de-original
+                       de-tot-nor1 = de-tot-nor1 + de-saldo
+                       c-tip       = c-credito    /*C*/
+                       c-tip1      = c-credito    /*C*/.
+            if  tit-ap.tipo = 3 then  /*PR*/
+                assign de-tot-pre  = de-tot-pre + de-original
+                       de-tot-pre1 = de-tot-pre1 + de-saldo
+                       c-tpo       = c-credito    /*C*/
+                       c-tpo1      = c-credito    /*C*/.
+            assign c-dbcr         = c-credito     /*C*/
+                   c-dbcr1        = c-credito     /*C*/
+                   de-normal      = de-normal  + de-original
+                   de-normal1     = de-normal1 + de-saldo
+                   de-orig-grupo  = de-orig-grupo + de-original
+                   de-saldo-grupo = de-saldo-grupo + de-saldo.
+
+            if  tit-ap.dt-vencimen <= tt-param.da-calc-venc then do:
+                assign nr-dias = tt-param.da-calc-venc - tit-ap.dt-vencimen.
+                if  nr-dias <= 30 then
+                    assign de-ven-30 = de-ven-30 + de-saldo
+                           de-total  = de-total  + de-saldo.
+                else
+                if  nr-dias > 30 and nr-dias <= 60 then
+                    assign de-ven-60 = de-ven-60 + de-saldo
+                           de-total  = de-total  + de-saldo.
+                else
+                if  nr-dias > 60 and nr-dias <= 90 then
+                    assign de-ven-90 = de-ven-90 + de-saldo
+                           de-total  = de-total  + de-saldo.
+                else
+                if  nr-dias > 90 and nr-dias <= 120 then
+                    assign de-ven-120 = de-ven-120 + de-saldo
+                           de-total   = de-total   + de-saldo.
+                else
+                if  nr-dias > 120 then
+                    assign de-ven-999 = de-ven-999 + de-saldo
+                           de-total   = de-total   + de-saldo.
+            end.
+            else do:
+                assign nr-dias = tit-ap.dt-vencimen - tt-param.da-calc-venc.
+                if  nr-dias <= 30 then
+                    assign de-ven1-30 = de-ven1-30 + de-saldo
+                           de-total1  = de-total1  + de-saldo.
+                else
+                if  nr-dias > 30 and nr-dias <= 60 then
+                    assign de-ven1-60 = de-ven1-60 + de-saldo
+                           de-total1  = de-total1  + de-saldo.
+                else
+                if  nr-dias > 60 and nr-dias <= 90 then
+                    assign de-ven1-90 = de-ven1-90 + de-saldo
+                           de-total1  = de-total1  + de-saldo.
+                else
+                if  nr-dias > 90 and nr-dias <= 120 then
+                    assign de-ven1-120 = de-ven1-120 + de-saldo
+                           de-total1   = de-total1   + de-saldo.
+                else
+                if  nr-dias > 120 then
+                    assign de-ven1-999 = de-ven1-999 + de-saldo
+                           de-total1   = de-total1   + de-saldo.
+            end.
+        end.
+    end.
+    else do:                   
+        mov-block:
+        for each mov-ap use-index ch-antecip
+            where mov-ap.ep-codigo   = tit-ap.ep-codigo
+            and   mov-ap.cod-estabel = tit-ap.cod-estabel
+            and   mov-ap.esp-ant     = tit-ap.cod-esp
+            and   mov-ap.serie-ant   = tit-ap.serie
+            and   mov-ap.docto-ant   = tit-ap.nr-docto
+            and   mov-ap.parc-ant    = tit-ap.parcela
+            and   mov-ap.fornec-ant  = tit-ap.cod-fornec
+            and ((mov-ap.vl-antecip  <> 0 and tt-param.normal-fasb = 1)
+            or   (mov-ap.vl-ant-fasb <> 0 and tt-param.normal-fasb = 2)):
+
+            if  tt-param.normal-fasb = 1
+            and (tt-param.moeda <> 0 and tt-param.moeda <> mov-ap.moeda) then
+                 next mov-block.   
+  
+            if   mov-ap.transacao <> 2    /*BND*/
+            and  mov-ap.transacao <> 3    /*PEF*/
+            and  mov-ap.transacao <> 8 then next.   /*GPF*/
+
+            if  (mov-ap.transacao = 2 /*BND*/ or mov-ap.transacao = 3)/*PEF*/
+            and mov-ap.dt-trans > tt-param.da-data then do:
+                assign de-vl-ant-fasb = mov-ap.vl-mov-fasb.
+                if tt-param.normal-fasb = 1 then
+                   assign de-saldo = de-saldo + (if tt-param.moeda = 0 
+                                     then mov-ap.vl-antecip else mov-ap.vl-antecip-me).
+                else 
+                   assign de-saldo = de-saldo + de-vl-ant-fasb.
+            end.
+            if   mov-ap.transacao = 8  /*GPF*/
+            and  mov-ap.dt-trans > tt-param.da-data and  tt-param.normal-fasb = 2 then
+                 assign de-saldo = de-saldo + (mov-ap.valor-mov + mov-ap.valor-juros).
+        end. 
+        mov-block:
+        for each mov-ap use-index codigo
+            where mov-ap.ep-codigo  = tit-ap.ep-codigo
+            and   mov-ap.cod-est    = tit-ap.cod-est
+            and   mov-ap.cod-esp    = tit-ap.cod-esp
+            and   mov-ap.serie      = tit-ap.serie
+            and   mov-ap.nr-docto   = tit-ap.nr-docto
+            and   mov-ap.parcela    = tit-ap.parcela
+            and   mov-ap.cod-fornec = tit-ap.cod-fornec
+            and  (mov-ap.transacao  = 5    /*AVA*/
+            or    mov-ap.transacao  = 3    /*PEF*/
+            or    mov-ap.transacao  = 8) no-lock:      /*GPF*/
+
+            assign de-vl-ant-fasb = mov-ap.vl-mov-fasb.
+            if  mov-ap.transacao = 5 and /*AVA*/ mov-ap.dt-trans > tt-param.da-data then
+                if  mov-ap.lancamento = 1 then  /*D*/
+                    if  tt-param.normal-fasb = 1 then
+                        assign de-saldo = de-saldo + (if tt-param.moeda = 0 
+                                          then mov-ap.valor-mov else mov-ap.valor-mov-me).
+                    else 
+                        assign de-saldo = de-saldo + de-vl-ant-fasb.
+                else 
+                    if  tt-param.normal-fasb = 1 then
+                        assign de-saldo = de-saldo + (if tt-param.moeda = 0 
+                                          then mov-ap.valor-mov else mov-ap.valor-mov-me).
+                    else 
+                        assign de-saldo = de-saldo + de-vl-ant-fasb. 
+                        
+   
+   
+            if  mov-ap.transacao = 3     /*PEF*/
+            and mov-ap.dt-trans > tt-param.da-data and tt-param.normal-fasb = 2 then do:
+                assign de-vl-ant-fasb = mov-ap.vl-mov-fasb.
+                assign de-saldo = de-saldo + de-vl-ant-fasb.
+            end.
+            if   mov-ap.transacao = 8    /*GPF*/
+            and  mov-ap.dt-trans > tt-param.da-data and  tt-param.normal-fasb = 2 then
+                 assign de-saldo = de-saldo - (mov-ap.valor-mov + mov-ap.valor-juros).
+        end.
+     /* end.*/
+      
+        if  de-saldo > 0 then
+            if  tit-ap.tipo = 2 then    /*AN*/
+                assign c-dbcr         = c-debito   /*D*/
+                       c-dbcr1        = c-debito   
+                       c-tp1          = c-debito   
+                       c-tp           = c-debito   
+                       de-antec       = de-antec    + de-original
+                       de-antec1      = de-antec1   + de-saldo
+                       de-tot-ant     = de-tot-ant  + de-original
+                       de-tot-ant1    = de-tot-ant1 + de-saldo
+                       de-gerant      = de-gerant   + de-original
+                       de-gerant1     = de-gerant1  + de-saldo
+                       de-ante-grupo  = de-ante-grupo + de-original
+                       de-ante1-grupo = de-ante1-grupo + de-saldo.
+                       
+    end.
+    
+    if  de-saldo > 0 then do:
+        assign l-emitiu = yes.
+        if  tt-param.detal-resum = 1 then
+            disp tit-ap.cod-fornec
+                 tit-ap.nome-abrev
+                 tit-ap.referencia
+                 tit-ap.cod-estabel
+                 tit-ap.cod-esp
+                 tit-ap.serie
+                 tit-ap.nr-docto
+                 tit-ap.parcela
+                 tit-ap.portador
+                 tit-ap.dt-emissao
+                 tit-ap.dt-vencimen
+                 de-original
+                 c-dbcr
+                 de-saldo
+                 c-dbcr1
+                 tit-ap.estado when tit-ap.estado > 0
+                 with frame f-item.
+        down with frame f-item.
+        if  (tt-param.lista-hist-prev and tit-ap.tipo = 3)
+        or  (tt-param.lista-hist-doctos and tit-ap.tipo <> 3)    /*PR*/
+        or  (tt-param.lista-hist-prev and tt-param.lista-hist-doctos)
+            then do:
+            find first mov-ap  use-index codigo
+                 where mov-ap.ep-codigo    = tit-ap.ep-codigo
+                 and   mov-ap.cod-estabel  = tit-ap.cod-estabel
+                 and   mov-ap.cod-esp      = tit-ap.cod-esp
+                 and   mov-ap.serie        = tit-ap.serie
+                 and   mov-ap.nr-docto     = tit-ap.nr-docto
+                 and   mov-ap.parcela      = tit-ap.parcela
+                 and   mov-ap.cod-fornec   = tit-ap.cod-fornec
+                 and   mov-ap.transacao    = 1   /*IMD*/
+                 no-lock no-error.
+            if  avail mov-ap then
+                if  mov-ap.historico <> "" then do:
+                    if  tt-param.detal-resum = 1 then
+                        disp mov-ap.historico
+                             with frame f-historico.
+                end.
+        end.
+    end.
+    if  last-of(day(tit-ap.dt-vencimen))
+    and l-emitiu = yes then do:
+        assign l-emitiu = no.
+        if  de-normal > de-antec then do:
+            assign de-tot-mes  = de-normal - de-antec.
+
+            assign c-tipo      = c-credito   /*C*/
+                   c-tipo1     = c-credito.  /*C*/
+        end.
+        else
+            if  de-normal < de-antec then do:
+                assign de-tot-mes  = de-antec - de-normal.
+                assign c-tipo      = c-debito  /*D*/
+                       c-tipo1     = c-debito. /*D*/
+            end.
+            else
+                if  de-normal = de-antec then
+                    assign de-tot-mes = 0
+                           c-tipo     = ""
+                           c-tipo1    = "".
+
+        if  de-tot-mes < 0 then
+            assign de-tot-mes = de-tot-mes * -1.
+
+        if  de-normal1 > de-antec1 then do:
+            assign de-tot-mes1 = de-normal1 - de-antec1.
+            
+            if c-tipo1 = c-credito then
+               de-tot-mes3 = de-tot-mes3 + de-tot-mes1.
+            if c-tipo1 = c-debito then
+               de-tot-mes3 = de-tot-mes3 - de-tot-mes1.
+            assign c-tipo      = c-credito
+                   c-tipo1     = c-credito.
+        end.
+        else
+            if  de-normal1 < de-antec1 then do:
+                assign de-tot-mes1 = de-antec1 - de-normal1.
+                if c-tipo1 = c-debito then
+                   de-tot-mes3 = de-tot-mes3 + de-tot-mes1.
+                if c-tipo1 = c-credito then
+                   de-tot-mes3 = de-tot-mes3 - de-tot-mes1.
+                assign c-tipo      = c-debito
+                       c-tipo1     = c-debito.
+            end.
+            else
+                if  de-normal1 = de-antec1 then
+                    assign de-tot-mes1 = 0
+                           c-tipo      = ""
+                           c-tipo1     = "".
+
+         if de-tot-mes1 < 0 then
+            assign de-tot-mes1 = de-tot-mes1 * -1.
+         if de-tot-mes3 < 0 then
+            assign de-tot-mes3 = de-tot-mes3 * -1.
+
+        if  tt-param.detal-resum = 1 then
+            disp c-mes-01   
+                 de-tot-mes  
+                 c-tipo      
+                 de-tot-mes1 
+                 c-tipo1
+                 with frame f-mes.        
+        assign de-tot-mes  = 0
+               de-tot-mes1 = 0
+               de-normal   = 0
+               de-normal1  = 0
+               de-antec    = 0
+               de-antec1   = 0.
+    end.
+
+    if  avail espec-ap
+    and espec-ap.tipo = 2 then       /*AN*/
+        if  de-saldo > 0 then 
+            assign de-tot-mes2 = de-tot-mes2 - de-original.
+    
+    if   avail espec-ap
+    and (espec-ap.tipo = 1   /*NO*/ /*PR*/
+    or   espec-ap.tipo = 3 or espec-ap.tipo = 8) then    /*IR*/
+         if  de-saldo > 0 then 
+             assign de-tot-mes2 = de-tot-mes2 + de-original.
+
+    if  last-of (month(tit-ap.dt-vencimen)) then do:
+        if  de-tot-mes2 < 0 then
+            assign de-tot-mes2 = de-tot-mes2 * -1.
+        
+        if  de-tot-mes2 > 0
+        or  de-tot-mes3 > 0 then do:
+            if  tt-param.detal-resum = 1 then do:
+                disp c-mes1-01   
+                     de-tot-mes2 
+                     c-tipo      
+                     de-tot-mes3 
+                     c-tipo1
+                     with frame f-mes1.
+                assign de-tot-mes2 = 0
+                       de-tot-mes3 = 0.
+            end.
+        end.
+    end.
+
+/* AP0704.I4 */

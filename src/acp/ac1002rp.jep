@@ -1,0 +1,26 @@
+{include/i_dbvers.i}
+ac1002rp#0#dt-implant-ini#Integer#99/99/9999#Implantação Inicial#0#Data de Implantação Inicial#yes#no#0
+ac1002rp#5#dt-implant-fim#Date#99/99/9999#Implantação Final#/  /#Data de Implantação Final#yes#no#0
+ac1002rp#10#destino#Integer#9#Destino#2#1 - Impressora \ 2 - Arquivo \ 3 - Terminal#yes#no#0
+ac1002rp#20#arquivo#Character#x(20)#Arquivo#ac1002.lst#Destino 1 (Impressora) - Nome e Layout da Impressora \ Destino 2 (Arquivo) - Nome do Arquivo \ Destino 3 (Terminal) - Não Informar#yes#no#0
+ac1002rp#30#usuario#Character#x(20)#Usuário##Código do Usuário Corrente#yes#no#0
+ac1002rp#40#data-exec#Date#99/99/9999#Data Execução#/  /#Data do Início da Execução#yes#no#0
+ac1002rp#50#hora-exec#Integer#999999#Hora Execução#000000#Hora do Início da Execução#yes#no#0
+ac1002rp#80#cod-sit-com#Integer#9#cod-sit-com#1#Não Informar#yes#no#0
+&IF "{&mguni_version}" >= "2.071" &THEN
+ac1002rp#100#cod-estabel-ini#Character#x(05)#Estabelecimento Inicial#0#Código do Estabelecimento Inicial#yes#no#0
+&ELSE
+ac1002rp#100#cod-estabel-ini#Character#x(3)#Estabelecimento Inicial#0#Código do Estabelecimento Inicial#yes#no#0
+&ENDIF
+&IF "{&mguni_version}" >= "2.071" &THEN
+ac1002rp#110#cod-estabel-fim#Character#x(05)#Estabelecimento Final#ZZZZZ#Código do Estabelecimento Final#yes#no#0
+&ELSE
+ac1002rp#110#cod-estabel-fim#Character#x(3)#Estabelecimento Final#ZZZ#Código do Estabelecimento Final#yes#no#0
+&ENDIF
+ac1002rp#120#nr-pedido-ini#Character#x(12)#Número Pedido Inicial#0#Número do Pedido Inicial#yes#no#0
+ac1002rp#130#nr-pedido-fim#Character#x(12)#Número Pedido Final#ZZZZZZZZZ#Número do Pedido Final#yes#no#0
+ac1002rp#140#nome-abrev-ini#Character#x(12)#Cliente Inicial#0#Nome Abreviado do Cliente Inicial#yes#no#0
+ac1002rp#150#nome-abrev-fim#Character#x(12)#Cliente Fim#ZZZZZZZZZZZZ#Nome Abreviado do Cliente Final#yes#no#0
+ac1002rp#160#dt-ini#Date#99/99/9999#Entrega Inicial#01/01/1900#Data de Entrega Inicial#yes#no#0
+ac1002rp#170#dt-fim#Date#99/99/9999#Entrega Final#31/12/2999#Data de Entrega Final#yes#no#0
+ac1002rp#180#cotas-nao-aval#Logical#yes/no#Cotas Não Avaliadas#yes#Somente Cotas não Avaliadas#yes#no#0

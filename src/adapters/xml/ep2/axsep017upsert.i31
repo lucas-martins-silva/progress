@@ -1,0 +1,25 @@
+PROCEDURE pi-grava-ttICMS60:
+
+    /*
+    === ttICMS60 ===
+    CST            AS CHARACTER INITIAL ?  /*Tributa‡Æo pelo ICMS 60 - ICMS cobrado anteriormente por substitui‡Æo tribut ria */
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importa‡Æo direta 2 - Estrangeira - Adquirida no mercado interno */
+    vBCSTRet       AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS ST retido anteriormente*/
+    vICMSSTRet     AS DECIMAL   INITIAL ?  /*Valor do ICMS ST retido anteriormente*/
+    */
+
+    CREATE ttICMS60.
+    ASSIGN ttICMS60.CST        = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS60.orig       = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS60.vBCSTRet   = it-nota-fisc.vl-bsubs-it
+           ttICMS60.vICMSSTRet = it-nota-fisc.vl-icmsub-it
+           .
+
+    /* Chave EMS */
+    ASSIGN ttICMS60.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS60.SerieNF      = nota-fiscal.serie
+           ttICMS60.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS60.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS60.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.

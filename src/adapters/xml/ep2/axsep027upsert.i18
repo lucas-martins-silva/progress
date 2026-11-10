@@ -1,0 +1,138 @@
+PROCEDURE pi-cria-ttEntrega:
+
+    /*
+    === ttEntrega ===
+    cMun           AS INT       INITIAL ?  /*C¢digo do munic¡pio (utilizar a tabela do IBGE)*/
+    CNPJ           AS CHARACTER INITIAL ?  /*CNPJ*/
+    CPF            AS CHARACTER INITIAL ?  /*CPF*/
+    nro            AS CHARACTER INITIAL ?  /*N£mero*/
+    UF             AS CHARACTER INITIAL ?  /*Sigla da UF*/
+    xBairro        AS CHARACTER INITIAL ?  /*Bairro*/
+    xCpl           AS CHARACTER INITIAL ?  /*Complemento*/
+    xLgr           AS CHARACTER INITIAL ?  /*Logradouro*/
+    xMun           AS CHARACTER INITIAL ?  /*Nome do munic¡pio*/
+    */
+
+    IF nota-fiscal.endereco <> "" THEN DO:
+        ASSIGN c-endereco = nota-fiscal.endereco.
+    END.
+    ELSE DO:
+        IF CAN-FIND(FIRST funcao WHERE funcao.cd-funcao = "spp-nfe-end-completo" AND funcao.ativo = YES) 
+        AND emitente.endereco_text > "" THEN
+            ASSIGN c-endereco = TRIM(emitente.endereco_text).
+        ELSE
+            ASSIGN c-endereco = TRIM(emitente.endereco).
+    END.
+    
+    ASSIGN c-rua      = ""
+           c-nro      = ""
+           c-comp     = "".
+
+    IF  INDEX(c-endereco,CHR(ASC("§"))) > 0 THEN /* Retirar caracter especial */
+        ASSIGN c-endereco = REPLACE(c-endereco,CHR(ASC("§")),"").
+
+    RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco,
+                                         OUTPUT c-rua, 
+                                         OUTPUT c-nro, 
+                                         OUTPUT c-comp).
+
+    IF  c-nro = "" THEN
+        ASSIGN c-nro = "S/N".
+
+    CREATE ttEntrega.
+
+    IF  nota-fiscal.endereco <> "" THEN
+        ASSIGN ttEntrega.CNPJ    = (IF ( nota-fiscal.pais <> "Brasil":U OR i-natureza = 1) AND lLayoutXML  /* Pessoa F­sica */
+                                    THEN ""
+                                    ELSE IF ( nota-fiscal.pais <> "Brasil":U OR i-natureza = 1) AND lLayoutTXT
+                                    THEN ""
+                                    ELSE  nota-fiscal.cgc)
+               ttEntrega.CPF     = (IF i-natureza = 1 /* Pessoa Fisica */
+                                    THEN nota-fiscal.cgc
+                                    ELSE "")
+               ttEntrega.CPF     = (IF ttEntrega.CPF <> ?
+                                    THEN ttEntrega.CPF
+                                    ELSE "")
+               ttEntrega.nro     = c-nro
+               ttEntrega.UF      = (IF nota-fiscal.pais <> "Brasil":U
+                                    THEN "EX"
+                                    ELSE nota-fiscal.estado)
+               ttEntrega.UF      = (IF ttEntrega.UF <> ?
+                                    THEN ttEntrega.UF
+                                    ELSE "")
+               ttEntrega.xBairro = (IF nota-fiscal.bairro <> ""
+                                    THEN nota-fiscal.bairro
+                                    ELSE "Nao Informado")
+               ttEntrega.xCpl    = c-comp
+               ttEntrega.xLgr    = c-rua
+               ttEntrega.xMun    = (IF nota-fiscal.pais <> "Brasil":U
+                                    THEN "Exterior"
+                                    ELSE nota-fiscal.cidade).
+    ELSE
+        ASSIGN ttEntrega.CNPJ    = (IF (emitente.pais <> "Brasil":U OR i-natureza = 1) AND lLayoutXML /* Pessoa F¡sica */
+                                    THEN ""
+                                    ELSE IF (emitente.pais <> "Brasil":U OR i-natureza = 1) AND lLayoutTXT
+                                    THEN ""
+                                    ELSE  emitente.cgc)
+               ttEntrega.CPF     = (IF i-natureza = 1 /* Pessoa Fisica */
+                                    THEN emitente.cgc
+                                    ELSE "")
+               ttEntrega.CPF     = (IF ttEntrega.CPF <> ?
+                                    THEN ttEntrega.CPF
+                                    ELSE "")
+               ttEntrega.nro     = c-nro
+               ttEntrega.UF      = (IF emitente.pais <> "Brasil":U
+                                    THEN "EX"
+                                    ELSE emitente.estado)
+               ttEntrega.UF      = (IF ttEntrega.UF <> ?
+                                    THEN ttEntrega.UF
+                                    ELSE "")
+               ttEntrega.xBairro = (IF emitente.bairro <> ""
+                                    THEN emitente.bairro
+                                    ELSE "Nao Informado")
+               ttEntrega.xCpl    = c-comp
+               ttEntrega.xLgr    = c-rua
+               ttEntrega.xMun    = (IF emitente.pais <> "Brasil":U
+                                    THEN "Exterior"
+                                    ELSE emitente.cidade).
+
+    ASSIGN     ttEntrega.CNPJ       =  REPLACE(ttEntrega.CNPJ,"-","")
+               ttEntrega.CNPJ       =  REPLACE(ttEntrega.CNPJ,".","")
+               ttEntrega.CNPJ       =  REPLACE(ttEntrega.CNPJ,"/","").
+
+    IF (ttEntrega.xMun <> "Exterior"
+    AND ttEntrega.xMun <> ""
+    AND ttEntrega.xMun <> ?) THEN DO:
+        FOR FIRST bf-cidade-nf FIELDS(&if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U &then cdn-munpio-ibge &else int-2 &endif)
+            WHERE bf-cidade-nf.cidade = ttEntrega.xMun
+              AND bf-cidade-nf.estado = ttEntrega.UF
+              AND bf-cidade-nf.pais   = "Brasil"   NO-LOCK:
+    
+            ASSIGN ttEntrega.cMun = STRING(&if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U 
+                                           &then bf-cidade-nf.cdn-munpio-ibge
+                                           &else bf-cidade-nf.int-2 &endif).
+        END.
+        IF  NOT AVAIL bf-cidade-nf THEN
+            ASSIGN ttEntrega.cMun = "0".
+    END.
+    ELSE
+        ASSIGN ttEntrega.cMun = "9999999".
+
+    /* Chave EMS */
+    ASSIGN ttEntrega.CodEstabelNF = nota-fiscal.cod-estabel
+           ttEntrega.SerieNF      = nota-fiscal.serie
+           ttEntrega.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttEntrega THEN
+        ASSIGN ttEntrega.cMun    = fn-ajusta-tamanho-campo(ttEntrega.cMun   , 7)
+               ttEntrega.CNPJ    = fn-ajusta-tamanho-campo(ttEntrega.CNPJ   ,14)
+               ttEntrega.CPF     = fn-ajusta-tamanho-campo(ttEntrega.CPF    ,11)
+               ttEntrega.nro     = fn-ajusta-tamanho-campo(ttEntrega.nro    ,60)
+               ttEntrega.UF      = fn-ajusta-tamanho-campo(ttEntrega.UF     , 2)
+               ttEntrega.xBairro = fn-ajusta-tamanho-campo(ttEntrega.xBairro,60)
+               ttEntrega.xCpl    = fn-ajusta-tamanho-campo(ttEntrega.xCpl   ,60)
+               ttEntrega.xLgr    = fn-ajusta-tamanho-campo(ttEntrega.xLgr   ,60)
+               ttEntrega.xMun    = fn-ajusta-tamanho-campo(ttEntrega.xMun   ,60).
+ 
+END PROCEDURE.

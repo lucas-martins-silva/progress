@@ -1,0 +1,296 @@
+/*******************************************************************************
+***
+***  app/ap0511rp.i4 - PI-EMISSAO-MANUAL
+***
+*******************************************************************************/
+
+    if  tt-param.gerar = yes then
+        output stream s-copia to value(tt-param.copia) paged page-size 64 append.
+
+    /* TESTE DE FORMULARIO */
+    repeat:
+        if  tt-param.formulario = yes then do:
+            create w-cheque.
+            assign w-valor   = 999999999999.99
+                   w-ext9100 = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                             + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                   w-nominal = "XXXXXXXXXXXXXXXXXXXX"
+                   w-cidade  = "XXXXXXXXXXXXXXXXXXXXXXXXX"
+                   w-dia     = 99
+                   w-mes     = "XXXXXXXXXX"
+                   w-ano1    = "9999".
+
+            run pi-impres-cheque.
+
+        end.
+        else
+            leave.
+
+        assign l-imp-form   = yes
+               i-formulario = i-formulario + 1.
+
+        if  i-formulario = 2 then
+            leave. 
+    end.
+
+    assign i-cont   = 0
+           de-valor = 0
+           i-ind-e1 = 0.
+ 
+
+    code-block:
+    for each  che-emit use-index codigo exclusive-lock
+        where che-emit.ep-codigo   = tt-param.i-ep-codigo
+        and   che-emit.portador    = tt-param.portador
+        and   che-emit.nr-cheque  <> 0
+        and   che-emit.nr-cheque  >= tt-param.cheque-ini
+        and   che-emit.nr-cheque  <= tt-param.cheque-fim
+        and   che-emit.cod-fornec >= tt-param.for-ini
+        and   che-emit.cod-fornec <= tt-param.for-fim
+        and   che-emit.nr-docto   >= tt-param.num-ini
+        and   che-emit.nr-docto   <= tt-param.num-fim
+        and   che-emit.dt-emissao >= tt-param.dat-ini
+        and   che-emit.dt-emissao <= tt-param.dat-fim
+        and   che-emit.emitiu      = no
+        and   che-emit.cancelado   = no
+        and   che-emit.valor-docto > 0 
+        break by che-emit.portador
+              by che-emit.nr-cheque:
+
+
+        run pi-versao. /*-- Cria registro tit-ap (AN) --*/
+        
+
+        IF l-conf-favorec = YES 
+            AND tt-param.conf-favorec = YES
+            AND i-flag-last-doc = 0
+            THEN DO:
+        
+            for each  b-che-emit use-index codigo exclusive-lock
+                where b-che-emit.ep-codigo   = tt-param.i-ep-codigo
+                and   b-che-emit.portador    = tt-param.portador
+                and   b-che-emit.nr-cheque  <> 0
+                and   b-che-emit.nr-cheque  >= tt-param.cheque-ini
+                and   b-che-emit.nr-cheque  <= tt-param.cheque-fim
+                and   b-che-emit.cod-fornec >= tt-param.for-ini
+                and   b-che-emit.cod-fornec <= tt-param.for-fim
+                and   b-che-emit.nr-docto   >= tt-param.num-ini
+                and   b-che-emit.nr-docto   <= tt-param.num-fim
+                and   b-che-emit.dt-emissao >= tt-param.dat-ini
+                and   b-che-emit.dt-emissao <= tt-param.dat-fim
+                and   b-che-emit.emitiu      = no
+                and   b-che-emit.cancelado   = no
+                and   b-che-emit.valor-docto > 0 
+                break by b-che-emit.portador
+                      by b-che-emit.nr-cheque:
+              
+                ASSIGN i-val-cheque = i-val-cheque + b-che-emit.valor-docto.
+
+                IF LAST-OF(b-che-emit.nr-cheque) THEN do:
+
+                    ASSIGN p-literal = b-che-emit.literal
+                           p-nominal = b-che-emit.nominal.
+
+                    SESSION:SET-WAIT-STATE("":U).
+
+                    run app/ap0511g.w(input b-che-emit.nr-cheque,
+                                      input i-val-cheque,
+                                      input b-che-emit.dt-emissao,
+                                      input-output p-literal,
+                                      input-output p-nominal).
+
+                    SESSION:SET-WAIT-STATE("GENERAL":U).
+
+                    ASSIGN i-val-cheque = 0.
+                    LEAVE.
+                END.                        
+            END.
+            
+            for each b-mov-ap EXCLUSIVE-LOCK                           
+                where       b-mov-ap.nr-cheque   = b-che-emit.nr-cheque   
+                and         b-mov-ap.ep-codigo   = b-che-emit.ep-codigo
+                AND         b-mov-ap.portador    = b-che-emit.portador
+                AND         b-mov-ap.cod-fornec  = b-che-emit.cod-fornec
+                AND         b-mov-ap.cod-estabel = b-che-emit.cod-estabel: 
+
+        
+                assign      b-mov-ap.literal = p-literal               
+                            b-mov-ap.nominal = p-nominal.              
+            end.
+        END.
+        
+        IF LAST-OF(che-emit.nr-cheque) THEN
+             ASSIGN i-flag-last-doc = 0.  
+        ELSE
+             ASSIGN i-flag-last-doc = 1.  
+
+
+        IF l-conf-favorec = YES 
+            AND tt-param.conf-favorec = YES
+            THEN
+                assign      che-emit.literal = p-literal
+                            che-emit.nominal = p-nominal.
+                            
+        /*end conf-favorec*/
+        
+
+        if  first-of(che-emit.nr-cheque) then do:
+            assign i-dia    = day(che-emit.dt-emissao)
+                   c-mes    = c-tab-mes[month(che-emit.dt-emissao)]
+                   c-ano1   = substring(string(che-emit.dt-emissao,"99/99/9999"),07,4).
+        end.
+
+        if  tt-param.list-tipo = 2 then do:
+            find tt-estabelec
+                where tt-estabelec.cod-estabel = che-emit.cod-estabel
+                no-lock no-error.
+            if  not avail tt-estabelec then do:
+                find estabelec 
+                    where estabelec.cod-estabel = che-emit.cod-estabel 
+                    no-lock no-error.
+                if  avail estabelec then do:
+                    create tt-estabelec.
+                    buffer-copy estabelec to tt-estabelec.
+                end.
+            end. 
+            assign c-cidade = fill(" ",(25 - length(tt-estabelec.cidade))) + tt-estabelec.cidade.
+        end.
+        else
+            assign c-cidade = fill(" ",(25 - length(empresa.cidade))) + empresa.cidade.
+
+        if  first-of(che-emit.nr-cheque) or last-of(che-emit.nr-cheque) then do:
+            assign i-num9100  = 2
+                   i-tam9100  = (if  tt-param.imp = 2 then 55
+                                 else if  tt-param.banco = 1
+                                      or  tt-param.banco = 3
+                                      or  tt-param.banco = 6 then 59
+                                      else if  tt-param.banco = 2 then 55
+                                          else if  tt-param.banco = 4
+                                                or  tt-param.banco = 5
+                                                or  tt-param.banco = 7
+                                                or  tt-param.banco = 10 then 57
+                                                else 53)
+                   i-aux1 = i-tam9100
+                   i-aux2 = (if  tt-param.imp = 2 then 64
+                                 else if  tt-param.banco = 1
+                                      or  tt-param.banco = 2
+                                      or  tt-param.banco = 3
+                                      or  tt-param.banco = 8
+                                      or  tt-param.banco = 9 then 66
+                                      else if  tt-param.banco = 6
+                                           or  tt-param.banco = 7 then 67
+                                           else 68).
+        end.
+
+        assign de-valor = if  che-emit.transacao = 4 then
+                              de-valor - che-emit.valor-docto
+                          else
+                              de-valor + che-emit.valor-docto.
+
+        if  first-of(che-emit.nr-cheque) and last-of(che-emit.nr-cheque) then do:
+            assign de-valor   = if l-tot-pgt-pef and che-emit.transacao = 4 then
+                                (che-emit.valor-docto * -1) else che-emit.valor-docto
+                   de-val9100 = de-valor.
+            run cdp/cd9100.p.
+        end.
+        else
+            if  last-of(che-emit.nr-cheque) then do:
+                assign de-val9100 = de-valor.
+                run cdp/cd9100.p.
+            end.
+
+        if  last-of(che-emit.nr-cheque) then do:
+            assign i-ind-e1 = i-ind-e1 + 1.
+
+            find first tit-ap
+                 where tit-ap.ep-codigo   = che-emit.ep-codigo
+                 and   tit-ap.cod-estabel = che-emit.cod-estabel
+                 and   tit-ap.cod-esp     = che-emit.cod-esp
+                 and   tit-ap.serie       = che-emit.serie
+                 and   tit-ap.nr-docto    = che-emit.nr-docto
+                 and   tit-ap.parcela     = che-emit.parcela
+                 and   tit-ap.cod-fornec  = che-emit.cod-fornec no-lock no-error.
+
+            if  avail tit-ap then
+                assign c-hist1 = substring(tit-ap.observacao,1,40)
+                       c-hist2 = substring(tit-ap.observacao,41,80).
+            else
+                assign c-hist1 = substring(che-emit.historico,1,40)
+                       c-hist2 = substring(che-emit.historico,41,80).
+
+            if  i-ind-e1 = 1 then
+                create w-cheque.
+            else
+                find first w-cheque exclusive-lock no-error.
+
+            if  avail w-cheque then do:
+                assign w-valor[i-ind-e1]             = de-valor
+                       w-ext9100[(i-ind-e1 * 2) - 1] = c-ext9100[1]
+                       w-ext9100[i-ind-e1 * 2]       = c-ext9100[2]
+                       w-nominal[i-ind-e1]           = che-emit.literal
+                       w-dia[i-ind-e1]               = i-dia
+                       w-mes[i-ind-e1]               = c-mes
+                       w-ano1[i-ind-e1]              = c-ano1
+                       w-cidade[i-ind-e1]            = c-cidade
+                       w-hist1[i-ind-e1]             = c-hist1
+                       w-hist2[i-ind-e1]             = c-hist2
+                       w-data[i-ind-e1]              = che-emit.dt-emissao.
+            end.        
+
+            if  tt-param.imp = 1 then
+                assign i-ind-e1 = 2.
+
+            if  i-ind-e1 = 2 then do:
+                run pi-impres-cheque.
+                assign i-ind-e1 = 0.
+            end.
+
+
+            if  tt-param.gerar = yes then do:
+                find first talonario exclusive-lock
+                     where talonario.ep-codigo      = che-emit.ep-codigo
+                     and   talonario.cod-port       = che-emit.portador
+                     and   talonario.automatico     = no
+                     and   talonario.situacao       = 1
+                     and   talonario.nr-cheque-ini <= che-emit.nr-cheque
+                     and   talonario.nr-cheque-fin >= che-emit.nr-cheque no-error.
+                     {app/ap0511.i}
+            end.
+
+            assign de-valor = 0.
+
+        end.
+
+        /************ MULTIPLANTA ************/
+        {cdp/cd0006.i3 "che-emit.cod-estabel"}
+        /*************************************/
+
+        assign che-emit.emitiu = yes
+               i-cont          = i-cont + 1.
+
+        validate che-emit.
+
+        /************ MULTIPLANTA ************/
+        run pi-cria-tt-dados-che-emit (input 2).
+        /*************************************/
+
+        /************ MULTIPLANTA ************/
+        run pi-encerramento.
+        /*************************************/
+{utp/ut-liter.i Emiss∆o:_ *}
+
+        IF l-conf-favorec = NO OR tt-param.conf-favorec = no THEN
+            run pi-acompanhar in h-acomp(input  Return-value  + string(i-cont)).
+
+    end.
+
+    find first w-cheque no-lock no-error.
+    if  avail w-cheque then do:
+        run pi-impres-cheque.
+        assign i-ind-e1 = 0.
+    end.
+
+    if  tt-param.gerar = yes then
+        output stream s-copia close.
+
+/* Fim de Include */

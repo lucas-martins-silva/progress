@@ -1,0 +1,23 @@
+PROCEDURE pi-cria-ttgSubNFCom:
+
+    FIND FIRST nota-fisc-adc 
+        where nota-fisc-adc.cod-estab                = nota-fiscal.cod-estabel 
+        and   nota-fisc-adc.cod-serie                = nota-fiscal.serie      
+        and   nota-fisc-adc.cod-nota-fisc            = nota-fiscal.nr-nota-fis
+        and   nota-fisc-adc.cdn-emitente             = nota-fiscal.cod-emitente
+        and   nota-fisc-adc.cod-natur-operac         = nota-fiscal.nat-operacao 
+        and   nota-fisc-adc.idi-tip-dado             = 3 no-lock no-error.
+        
+        IF AVAIL nota-fisc-adc THEN DO:
+            CREATE ttgSub.
+            ASSIGN ttgSub.chNFCom  = SUBSTRING(nota-fisc-adc.cod-livre-2,1,60)
+                   ttgSub.motSub   = STRING(INT(SUBSTRING(nota-fisc-adc.cod-livre-2,61,2)),"99").                     
+                                     
+            /* Chave EMS */
+            ASSIGN ttgSub.CodEstabelNFCom = nota-fiscal.cod-estabel
+                   ttgSub.SerieNFCom      = nota-fiscal.serie
+                   ttgSub.NrNotaFisNFCom  = nota-fiscal.nr-nota-fis.      
+        END.
+      
+END PROCEDURE.
+

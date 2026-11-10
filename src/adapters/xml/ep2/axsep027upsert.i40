@@ -1,0 +1,41 @@
+PROCEDURE pi-grava-ttICMS00:
+
+    /*
+    === ttICMS00 ===
+    CST            AS CHARACTER INITIAL ?  /*Tribut‡Æo pelo ICMS 00 - Tributada integralmente*/
+    modBC          AS CHARACTER INITIAL ?  /*Modalidade de determina‡Æo da BC do ICMS: 0 - Margem Valor Agregado (%); 1 - Pauta (valor); 2 - Pre‡o Tabelado M ximo (valor); 3 - Valor da Opera‡Æo.*/
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importa‡Æo direta 2 - Estrangeira - Adquirida no mercado interno */
+    pICMS          AS DECIMAL   INITIAL ?  /*Al¡quota do ICMS*/
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS*/
+    vICMS          AS DECIMAL   INITIAL ?  /*Valor do ICMS*/
+    */
+
+    CREATE ttICMS00.
+    ASSIGN ttICMS00.CST   = (IF LENGTH(c-niv-trib-icms) = 3
+                             THEN SUBSTRING(c-niv-trib-icms,2,2)
+                             ELSE "00")
+           ttICMS00.modBC = (IF c-mod-base-icms = "2"
+                             THEN "1"
+                             ELSE IF c-mod-base-icms = "3"
+                                  THEN "2"
+                                  ELSE IF c-mod-base-icms = "4"
+                                       THEN "3"
+                                       ELSE "0")
+           ttICMS00.orig  = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS00.pICMS = (IF it-nota-fisc.cd-trib-icm <> 3
+                             THEN d-aliquota-icms
+                             ELSE 0)
+           ttICMS00.vBC   = d-vl-bicms-it
+           ttICMS00.vICMS = (IF it-nota-fisc.cd-trib-icm <> 3
+                             THEN d-vl-imp-icms
+                             ELSE 0)
+           .
+
+    /* Chave EMS */
+    ASSIGN ttICMS00.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS00.SerieNF      = nota-fiscal.serie
+           ttICMS00.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS00.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS00.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.

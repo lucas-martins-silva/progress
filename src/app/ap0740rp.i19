@@ -1,0 +1,110 @@
+/*******************************************************************************
+***
+*** app/ap0740rp.i19 - pi-imprimir-resumo.
+***
+*******************************************************************************/
+
+if  tt-resumo.tot <> 0 then
+    assign de-per-30   = (tt-resumo.ven-30  / tt-resumo.tot)  * 100
+           de-per-60   = (tt-resumo.ven-60  / tt-resumo.tot)  * 100
+           de-per-90   = (tt-resumo.ven-90  / tt-resumo.tot)  * 100
+           de-per-120  = (tt-resumo.ven-120 / tt-resumo.tot)  * 100
+           de-per-999  = (tt-resumo.ven-999 / tt-resumo.tot)  * 100
+           de-per-tot  = (tt-resumo.tot     / tt-resumo.tot)  * 100.
+            
+if  tt-resumo.tot1 <> 0 then
+    assign de-per1-30  = (tt-resumo.ven1-30  / tt-resumo.tot1) * 100
+           de-per1-60  = (tt-resumo.ven1-60  / tt-resumo.tot1) * 100
+           de-per1-90  = (tt-resumo.ven1-90  / tt-resumo.tot1) * 100
+           de-per1-120 = (tt-resumo.ven1-120 / tt-resumo.tot1) * 100
+           de-per1-999 = (tt-resumo.ven1-999 / tt-resumo.tot1) * 100
+           de-per-tot1 = (tt-resumo.tot1     / tt-resumo.tot1) * 100.
+    
+disp c-resumo1
+     c-30-ven
+     tt-resumo.ven-30
+     de-per-30 
+     c-60-ven
+     tt-resumo.ven-60
+     de-per-60
+     c-90-ven
+     tt-resumo.ven-90
+     de-per-90
+     c-91-ven
+     tt-resumo.ven-999
+     de-per-999 
+     c-total
+     tt-resumo.tot
+     de-per-tot
+     with frame f-vencidos.
+
+put skip(3).
+
+disp c-resumo2
+     c-30-aven
+     tt-resumo.ven1-30
+     de-per1-30 
+     c-60-aven
+     tt-resumo.ven1-60
+     de-per1-60 
+     c-90-aven
+     tt-resumo.ven1-90
+     de-per1-90 
+     c-120-aven
+     tt-resumo.ven1-120
+     de-per1-120 
+     c-121-aven
+     tt-resumo.ven1-999
+     de-per1-999
+     c-total
+     tt-resumo.tot1
+     de-per-tot1
+     with frame f-vencer.
+    
+put skip(4)
+    space(55)
+    c-original format "x(20)"
+    space(10)
+    c-saldo    format "x(20)" 
+    skip(1)
+    space(30)
+    c-normal format "x(20)"
+    tt-resumo.nor-gr
+    space(10)
+    tt-resumo.nor-gr1
+    skip(1)
+    space(30)
+    c-previsao format "x(20)"
+    tt-resumo.pre-gr
+    space(10)
+    tt-resumo.pre-gr1
+    skip(1)
+    space(30).
+
+if l-provisao then
+    put c-provisao format "x(20)"
+        tt-resumo.pro-gr
+        space(10)
+        tt-resumo.pro-gr1
+        skip(1)
+        space(30).
+    
+put c-antecipacao format "x(20)"
+    tt-resumo.ant-gr
+    space(10)
+    tt-resumo.ant-gr1.
+        
+assign de-per-30   = 0
+       de-per-60   = 0
+       de-per-90   = 0
+       de-per-120  = 0
+       de-per-999  = 0
+       de-per-tot  = 0
+       de-per1-30  = 0
+       de-per1-60  = 0
+       de-per1-90  = 0
+       de-per1-120 = 0
+       de-per1-999 = 0
+       de-per-tot1 = 0.
+
+/* Fim de Include */

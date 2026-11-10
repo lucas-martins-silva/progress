@@ -1,0 +1,28 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i5 - pi-ultima-quebra.
+***
+*******************************************************************************/
+            
+def input param p-class     as integer no-undo.
+def input param p-cod-chave as char    no-undo.
+def input param p-moeda     as integer no-undo.
+def input param p-log-tt    as logical no-undo.
+        
+assign de-tot-saldo = 0
+       de-tot-atual = 0.
+            
+if  p-class = 1 or
+    p-class = 5 then do:
+    {app/ap0741rp.i14}
+end.
+        
+if  p-class = 2 or
+    p-class = 3 or
+    p-class = 4 then do:
+    {app/ap0741rp.i15}
+end.
+
+run pi-quebra-classificacao (input p-log-tt).
+
+/* Fim de Include */

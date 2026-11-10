@@ -1,0 +1,82 @@
+/*******************************************************************************
+***
+*** app/ap0740b.i2 - Inicializa‡Æo FASB.
+***
+*******************************************************************************/
+if  tit-ap.moeda <> param-fasb.moeda-fasb then do:
+
+    assign tt-tit-ap.valor-saldo = tit-ap.valor-saldo
+           tt-tit-ap.vl-original = tit-ap.vl-original.
+        
+    if  tit-ap.tipo = 2 then do :
+        assign de-dolar = tit-ap.vl-sal-fasb / 100.
+    end.
+    else do:
+        if  param-fasb.tipo-calculo = 0 then do:
+            if  param-fasb.moeda-fasb <> 0 then do:
+                        
+                find first cotacao
+                     where cotacao.mo-codigo   = param-fasb.moeda-fasb
+                     and   cotacao.ano-periodo = string(year(tit-ap.dt-emissao)) + string(month(tit-ap.dt-emissao),"99")
+                     and   cotacao.cotacao[int(day(tit-ap.dt-emissao))] <> 0 no-lock no-error.
+                     
+                if  avail cotacao then do:
+                    assign de-dolar = cotacao.cotacao[int(day(tit-ap.dt-emissao))].
+                end.
+                else do:
+                    run utp/ut-msgs.p (input "help",
+                                       input 1175,
+                                       input string(param-fasb.moeda-fasb) + "~~" + string(tit-ap.dt-emissao, "99/99/9999")).
+                    assign tt-tit-ap.des-erro = trim(return-value)
+                           de-dolar           = 1.
+                end.
+            end.
+            assign de-dolar = de-dolar * (tit-ap.vl-sal-fasb / tit-ap.vl-orig-fasb).
+        end.
+        else
+            assign de-dolar = tit-ap.vl-sal-fasb / 100.
+    end.
+    
+    &if "{&mgadm_version}" <= "2.02" &then
+        if  tit-ap.tipo = 2 then do:
+            find first cotacao
+                where cotacao.mo-codigo   = param-fasb.moeda-fasb
+                and   cotacao.ano-periodo = string(year(tit-ap.dt-emissao)) + string(month(tit-ap.dt-emissao),"99")
+                and   cotacao.cotacao[int(day(tit-ap.dt-emissao))] <> 0 no-lock no-error.
+                
+            if  avail cotacao then do:
+                assign de-dolar = cotacao.cotacao[int(day(tit-ap.dt-emissao))].
+            end.
+            else do:
+                run utp/ut-msgs.p (input "help",
+                                   input 1175,
+                                   input string(param-fasb.moeda-fasb) + "~~" + string(tit-ap.dt-emissao, "99/99/9999")).
+                assign tt-tit-ap.des-erro = trim(return-value)
+                       de-dolar           = 1.
+            end.       
+            
+        end.
+    &endif    
+            
+    assign tt-tit-ap.valor-saldo = round(tt-tit-ap.valor-saldo / de-dolar,2).
+    
+    find first mov-ap 
+         where mov-ap.ep-codigo  = tit-ap.ep-codigo
+         and   mov-ap.cod-est    = tit-ap.cod-est
+         and   mov-ap.cod-esp    = tit-ap.cod-esp
+         and   mov-ap.serie      = tit-ap.serie
+         and   mov-ap.nr-docto   = tit-ap.nr-docto
+         and   mov-ap.parcela    = tit-ap.parcela
+         and   mov-ap.cod-fornec = tit-ap.cod-fornec
+         and   mov-ap.transacao  = 1
+         no-lock no-error.
+     if  avail mov-ap then
+       tt-tit-ap.vl-original = mov-ap.vl-mov-fasb.
+     else  
+       tt-tit-ap.vl-original = round(tt-tit-ap.vl-original / de-dolar,2).
+       
+end.
+else
+    assign tt-tit-ap.valor-saldo = tit-ap.vl-saldo-me
+           tt-tit-ap.vl-original = tit-ap.vl-orig-me.
+/* Fim de Include */

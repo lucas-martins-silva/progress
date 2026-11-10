@@ -1,0 +1,328 @@
+/*******************************************************************************
+***
+***  app/ap0511rp.i6 - PI-IMPRES-CHEQUE
+***
+*******************************************************************************/
+                    
+    find first w-cheque exclusive-lock no-error.
+    if  not avail w-cheque then do:
+        return.
+    end.
+    else do:   
+        do  i-ind-e2 = 1 to 80:
+            if  substring(w-ext9100[1],i-ind-e2,1) = "-" then do:
+                substring(w-ext9100[1],i-ind-e2,1) = " ".
+                leave.
+            end.
+            if  substring(w-ext9100[2],i-ind-e2,1) = "-" then do:
+                substring(w-ext9100[2],i-ind-e2,1) = " ".
+                leave.
+            end.
+        end.
+                            
+        if  tt-param.banco = 1 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-brasil80.
+                down with frame f-brasil80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-brasil.
+                down with frame f-brasil.
+            end.
+        end.
+                        
+        if  tt-param.banco = 2 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-banespa80.
+                down with frame f-banespa80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-banespa.
+                down with frame f-banespa.
+            end.
+        end.
+                    
+        if  tt-param.banco = 3 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-bradesco80.
+                down with frame f-bradesco80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-bradesco.
+                down with frame f-bradesco.
+            end.
+        end.
+                        
+        if  tt-param.banco = 4 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-itau80.
+                down with frame f-itau80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-itau.
+                down with frame f-itau.
+            end.
+        end.
+                            
+        if  tt-param.banco = 5 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-frances80.
+                down with frame f-frances80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-frances.
+                down with frame f-frances.
+            end.
+        end.
+                        
+        if  tt-param.banco = 6 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-geral80.
+                down with frame f-geral80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-geral.
+                down with frame f-geral.
+            end.
+        end.
+                        
+        if  tt-param.banco = 7 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-sudameris80.
+                down with frame f-sudameris80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-sudameris.
+                down with frame f-sudameris.
+            end.
+        end.
+                            
+        if  tt-param.banco = 8 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-unibanco80.
+                down with frame f-unibanco80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-unibanco.
+                down with frame f-unibanco.
+            end.
+        end.
+                        
+        if  tt-param.banco = 9 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-citibank80.
+                down with frame f-citibank80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-citibank.
+                down with frame f-citibank.
+            end.
+        end.
+                        
+        if  tt-param.banco = 10 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-bamerindus80.
+                down with frame f-bamerindus80.
+            end.
+            else do:
+                if  tt-param.imp = 1 then do:
+                    disp w-valor[1]
+                         w-ext9100[1]
+                         w-ext9100[2]
+                         w-nominal[1]
+                         w-cidade[1]
+                         w-dia[1]
+                         w-mes[1]
+                         w-ano1[1] with frame f-bamerindus.
+                    down with frame f-bamerindus.
+                end.
+                else do:
+                    disp w-valor[1]
+                         w-valor[2] when w-valor[2] <> 0
+                         w-ext9100
+                         w-nominal
+                         w-cidade
+                         w-dia[1]
+                         w-dia[2] when w-valor[2] <> 0
+                         w-mes
+                         w-ano1
+                         with frame f-bamerindus2.
+                    down with frame f-bamerindus2.
+                end.
+            end.
+        end.
+                    
+        if  tt-param.banco = 11 and w-valor[1] > 0 then do:
+            if  tt-param.colum = 1 then do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-boston80.
+                down with frame f-boston80.
+            end.
+            else do:
+                disp w-valor[1]
+                     w-ext9100[1]
+                     w-ext9100[2]
+                     w-nominal[1]
+                     w-cidade[1]
+                     w-dia[1]
+                     w-mes[1]
+                     w-ano1[1] with frame f-boston.
+                down with frame f-boston.
+            end.
+        end.
+                    
+        if  tt-param.banco = 12 and w-valor[1] > 0 then do:
+            disp w-valor[1]
+                 w-ext9100[1]
+                 w-ext9100[2]
+                 w-nominal[1]
+                 w-cidade[1]
+                 w-dia[1]
+                 w-mes[1]
+                 w-ano1[1] with frame f-nacional.
+            down with frame f-nacional.
+        end.
+    end.
+    
+    delete w-cheque.
+                    
+/* Fim de Include */

@@ -1,0 +1,81 @@
+PROCEDURE PITransUpsert: 
+    
+    DEFINE INPUT  PARAMETER pTranAction    AS CHARACTER   NO-UNDO.
+    DEFINE INPUT  PARAMETER pTranEvent     AS CHARACTER   NO-UNDO.
+    DEFINE INPUT  PARAMETER pRowidNF       AS ROWID       NO-UNDO.
+    DEFINE OUTPUT PARAMETER TABLE FOR tt_log_erro.
+
+    /*=======================================================================================================================
+                                              
+                                                         ATENÄ«O                                            
+    QUALQUER NOVO C‡DIGO DE NEG‡CIO DEVE SER INSERIDO/MANUTENIDO NA PROCEDURE pi-prepara-dados.    
+    NESTA PROCEDURE PITransUpsert, S‡ DEVE HAVER A CHAMADA ∑ pi-prepara-dados E MAIS AS CHAMADAS AO imprimetxt e imprimexml.
+    
+    =======================================================================================================================*/
+
+    FOR FIRST nota-fiscal NO-LOCK
+        WHERE ROWID(nota-fiscal) = pRowidNF:
+        
+        IF  nota-fiscal.dt-cancela  <> ? THEN
+            NEXT.
+
+        RUN cdp/cd0360b.p (INPUT nota-fiscal.cod-estabel,
+                           INPUT "NFCom",
+                           OUTPUT tp-integ).
+                           
+        RUN pi-prepara-dados-NFCom.
+    END.
+
+    IF  lLayoutXML THEN DO:
+
+        IF  LOOKUP(tp-integ, "TSS":U) > 0 THEN
+            RUN pi-integra-XML-NFCom.
+        
+        /* Via adapter -> Gerar XML para Aplicaá∆o Transmiss„o */
+        RUN PIUpsert ( INPUT  pTranAction             , /* add / upd */
+                       INPUT  pTranEvent              , /* Evento    */
+                       INPUT  TABLE ttAssinante       ,
+                       INPUT  TABLE ttDestNFCom       ,
+                       INPUT  TABLE ttDetNFCom        ,
+                       INPUT  TABLE ttEmitNFCom       ,
+                       INPUT  TABLE ttICMSTotNFCom    ,
+                       INPUT  TABLE ttIdeNFCom        ,
+                       INPUT  TABLE ttNFCom           ,
+                       INPUT  TABLE ttRetTribTotNFCom ,
+                       INPUT  TABLE ttFUST            ,
+                       INPUT  TABLE ttFUNTTEL         ,
+                       INPUT  TABLE ttICMSSN          ,
+                       INPUT  TABLE ttPISNFCom        ,
+                       INPUT  TABLE ttCOFINSNFCom     ,
+                       INPUT  TABLE ttTotal           ,
+                       INPUT  TABLE ttICMSUFDestNFCom , 
+                       INPUT  TABLE ttICMS00          ,
+                       INPUT  TABLE ttICMS20          ,
+                       INPUT  TABLE ttICMS40          ,
+                       INPUT  TABLE ttICMS51          ,
+                       INPUT  TABLE ttICMS90          ,  
+                       INPUT  TABLE ttgFatNFCom       ,
+		       		   INPUT  TABLE ttRetTrib         ,
+                       INPUT  TABLE ttInfAdicNFCom    ,
+                       INPUT  TABLE ttgCompraGov      ,
+                       INPUT  TABLE ttgPagAntecipado  ,
+                       INPUT  TABLE ttIBSCBS          ,
+                       INPUT  TABLE ttTribRT          ,
+                       INPUT  TABLE ttgTribRegular    ,
+                       INPUT  TABLE ttgCredPresOper   ,
+                       INPUT  TABLE ttgIBSCBSCredPres ,
+                       INPUT  TABLE ttgTribCompraGov  ,
+                       INPUT  TABLE ttgIBSCBSMono     ,
+                       INPUT  TABLE ttgTransfCred     ,
+                       INPUT  TABLE ttgAjusteCompet   ,
+                       INPUT  TABLE ttgEstornoCred    ,
+                       INPUT  TABLE ttgCredPresIBSZFM ,
+                       INPUT  TABLE ttVB              ,
+                       INPUT  TABLE ttDFeReferenciado ,
+                       INPUT  TABLE ttTotIBSCBSIS     ,
+                       INPUT  TABLE ttgSub            ,
+					   INPUT  TABLE ttgALCZFMCBS      ,
+                       OUTPUT TABLE tt_log_erro       ).
+    END.
+END PROCEDURE.
+

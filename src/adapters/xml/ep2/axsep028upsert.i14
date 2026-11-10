@@ -1,0 +1,147 @@
+PROCEDURE pi-cria-ttDetNFCom:
+
+    /*
+    === ttDetNFCom ===
+    nItem          AS CHARACTER INITIAL ?  /*Número do Item da NFCom*/  
+    
+    === <prod> ===
+    cProd          AS CHARACTER INITIAL ?  /*C¢digo do produto ou serviço.*/
+    xProd          AS CHARACTER INITIAL ?  /*Descrição do produto ou serviço*/
+    **cClass       AS CHARACTER INITIAL ?  /*Código da Classificação - Tabela de Classificação de ITem da NFCom - CD0903 */
+    CFOP           AS CHARACTER INITIAL ?  /*C¢digo Fiscal de Operações e Prestações - Tabela de CFOP*/
+    **CNPJLD       AS CHARACTER INITIAL ?  /*CNPJ da Operadora LD - Informar o CNPJ da operadora LD que irá lançar o item de cofaturamento em nota do tipo Faturamento 2*/
+    **uMed         AS INT       INITIAL ?  /*Unidade Básica de Medida - 1=Minuto / 2=MB / 3=GB / 4=UN*/
+    **qFaturada    AS DECIMAL   INITIAL ?  /*Quantidade Faturada - 11,0 / 11,4*/
+    infAdProd      AS CHARACTER INITIAL ?  /*Informa»„es adicionais do produto (norma referenciada, informa»„es complementares, etc)*/
+    **vItem        AS DECIMAL   INITIAL ?  /*Valor Unitário do Item - 13,2 / 13,8*/
+    vDesc          AS DECIMAL   INITIAL ?  /*Valor do Desconto 13,2*/
+    vOutro         AS DECIMAL   INITIAL ?  /*Outras despesas acessórias 13,2*/  
+    vProd          AS DECIMAL   INITIAL ?  /*Valor Bruto do produto ou serviço - 13,2 / 13,8*/
+    **dExpiracao   AS DATE      INITIAL ?  /*Data de Expiração do Crédito - AAAA-MM-DD*/
+    **indDevolucao AS INT       INITIAL ?  /*Indicador de Devolução do Valor do Item - 1-Devoluração do Valor do Item*/
+    
+    */
+    
+    DEFINE VARIABLE unid-med AS CHARACTER NO-UNDO.
+    
+    ASSIGN unid-med = fn-UN-busca-sigla(trim(it-nota-fisc.un-fatur[1])).    
+      
+    FOR FIRST bf-natur-oper-it NO-LOCK
+        WHERE bf-natur-oper-it.nat-operacao = it-nota-fisc.nat-operacao:
+    END. 
+    
+    ASSIGN c-desc-prod = "".
+    
+    RUN pi-narrativa-item-nfcom.           
+               
+    CREATE ttDetNFCom.
+    ASSIGN ttDetNFCom.cProd     = it-nota-fisc.it-codigo
+           ttDetNFCom.xProd     = c-desc-prod
+           ttDetNFCom.cClass    = TRIM(SUBSTRING(it-nota-fisc.char-2,386,7))
+           ttDetNFCom.CFOP      = (&if defined(bf_dis_formato_CFOP)
+                                   &then bf-natur-oper-it.cod-cfop
+                                   &else SUBSTR(bf-natur-oper-it.char-1,45,10) &endif) WHEN AVAIL bf-natur-oper-it
+           ttDetNFCom.qFaturada = IF NOT it-nota-fisc.ind-fat-qtfam THEN it-nota-fisc.qt-faturada[1] ELSE it-nota-fisc.qt-faturada[2]
+           ttDetNFCom.vItem     = it-nota-fisc.vl-preori
+           ttDetNFCom.vProd     = it-nota-fisc.vl-tot-item
+           ttDetNFCom.vDesc     = it-nota-fisc.val-desconto-total
+           ttDetNFCom.infAdProd = c-desc-prod
+           ttDetNFCom.infAdProd = (IF ttDetNFCom.infAdProd = ? THEN "":U ELSE ttDetNFCom.infAdProd).      
+    
+    /*---- Valor de Outras Despesas por Item (rateado no m²tod pi-calcula-valor-vOutro-por-item) ----*/
+    IF  nota-fiscal.vl-embalagem = 0 THEN
+        ASSIGN ttDetNFCom.vOutro = 0.
+    ELSE  
+       FOR FIRST tt-rateio-vOutro-NFcom NO-LOCK
+           WHERE tt-rateio-vOutro-NFcom.nr-seq-fat = it-nota-fisc.nr-seq-fat
+             AND tt-rateio-vOutro-NFcom.it-codigo  = it-nota-fisc.it-codigo:
+
+           ASSIGN ttDetNFCom.vOutro = tt-rateio-vOutro-NFcom.valor.
+       END.
+    /*---- ----*/
+           
+    IF unid-med = "min" THEN
+        ASSIGN ttDetNFCom.uMed    =  "1".
+    ELSE IF unid-med = "MB" THEN
+        ASSIGN ttDetNFCom.uMed    =  "2".
+    ELSE IF unid-med = "GB" THEN
+        ASSIGN ttDetNFCom.uMed    =  "3".
+    ELSE IF unid-med = "UN" THEN
+        ASSIGN ttDetNFCom.uMed    =  "4".
+    
+    ASSIGN ttDetNFCom.indSemCST  = trim(substring(it-nota-fisc.char-2,393,1)).
+    
+    ASSIGN d-total-vProd    = d-total-vProd    + ttDetNFCom.vprod
+           d-desconto-total = d-desconto-total + ttDetNFCom.vDesc.           
+    
+    //Chave da Tabela
+    ASSIGN ttDetNFCom.CodEstabelNFCom = nota-fiscal.cod-estabel
+           ttDetNFCom.SerieNFCom      = nota-fiscal.serie
+           ttDetNFCom.NrNotaFisNFCom  = nota-fiscal.nr-nota-fis
+           ttDetNFCom.ItCodigoNFCom   = it-nota-fisc.it-codigo
+           ttDetNFCom.NrSeqFatNFCom   = it-nota-fisc.nr-seq-fat.
+    
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttDetNFCom THEN DO:
+        ASSIGN ttDetNFCom.xProd     = REPLACE(ttDetNFCom.xProd, CHR(10), " ")
+               ttDetNFCom.xProd     = REPLACE(ttDetNFCom.xProd, CHR(13), " ")
+               ttDetNFCom.xProd     = REPLACE(ttDetNFCom.xProd, CHR(9), " ")
+               ttDetNFCom.cProd     = fn-ajusta-tamanho-campo(ttDetNFCom.cProd       , 60)
+               ttDetNFCom.cClass    = fn-ajusta-tamanho-campo(ttDetNFCom.cClass , 7)
+               ttDetNFCom.CFOP      = fn-ajusta-tamanho-campo(ttDetNFCom.CFOP   , 4)
+               ttDetNFCom.uMed      = fn-ajusta-tamanho-campo(ttDetNFCom.uMed   , 1)
+               ttDetNFCom.xProd     = fn-ajusta-tamanho-campo(ttDetNFCom.xProd       ,120)
+               ttDetNFCom.xProd     = fn-ajusta-espacos-branco(ttDetNFCom.xProd).
+               
+        /*Ajusta infAdProd*/
+         ASSIGN ttDetNFCom.infAdProd = REPLACE(ttDetNFCom.infAdProd, CHR(10), " ")
+                ttDetNFCom.infAdProd = REPLACE(ttDetNFCom.infAdProd, CHR(13), " ")
+                ttDetNFCom.infAdProd = REPLACE(ttDetNFCom.infAdProd, CHR(9), " ")
+                ttDetNFCom.infAdProd = fn-ajusta-espacos-branco(ttDetNFCom.infAdProd).     
+    END.
+    
+    /* DFeReferenciado */
+    FOR EACH nota-fisc-adc FIELDS(cod-livre-2) NO-LOCK
+        WHERE nota-fisc-adc.cod-estab              = nota-fiscal.cod-estabel
+        AND   nota-fisc-adc.cod-serie              = nota-fiscal.serie
+        AND   nota-fisc-adc.cod-nota-fisc          = nota-fiscal.nr-nota-fis
+        AND   nota-fisc-adc.cdn-emitente           = nota-fiscal.cod-emitente
+        AND   nota-fisc-adc.cod-natur-operac       = nota-fiscal.nat-operacao
+        AND   nota-fisc-adc.idi-tip-dado           = 3
+        AND   nota-fisc-adc.idi-tip-docto-referado = 2:
+
+        CREATE ttDFeReferenciado.
+        ASSIGN ttDFeReferenciado.CodEstabelNF = nota-fiscal.cod-estabel
+               ttDFeReferenciado.SerieNF      = nota-fiscal.serie
+               ttDFeReferenciado.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+               ttDFeReferenciado.ChaveAcesso  = SUBSTRING(nota-fisc-adc.cod-livre-2,1,60).
+    END.
+
+    /* gPagAntecipado  */
+    FOR EACH item-nf-adc FIELDS(cod-livre-1) NO-LOCK
+       WHERE item-nf-adc.cod-estab              = nota-fiscal.cod-estabel
+         AND item-nf-adc.cod-serie              = nota-fiscal.serie
+         AND item-nf-adc.cod-nota-fisc          = nota-fiscal.nr-nota-fis
+         AND item-nf-adc.cdn-emitente           = nota-fiscal.cod-emitente
+         AND item-nf-adc.cod-natur-operac       = it-nota-fisc.nat-operacao
+         AND item-nf-adc.idi-tip-dado           = 41
+         AND item-nf-adc.num-seq-item-nf        = it-nota-fisc.nr-seq-fat 
+         AND item-nf-adc.cod-item               = it-nota-fisc.it-codigo:
+            RUN pi-cria-ttgPagAntecipado.
+    END. 
+
+END PROCEDURE.
+
+
+PROCEDURE pi-cria-ttgPagAntecipado.
+           
+    CREATE ttgPagAntecipado.
+    ASSIGN ttgPagAntecipado.CodEstabelNF = nota-fiscal.cod-estabel
+           ttgPagAntecipado.SerieNF      = nota-fiscal.serie
+           ttgPagAntecipado.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttgPagAntecipado.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttgPagAntecipado.NrSeqFatNF   = it-nota-fisc.nr-seq-fat
+           ttgPagAntecipado.refNFe       = item-nf-adc.cod-livre-1.
+           
+END PROCEDURE.

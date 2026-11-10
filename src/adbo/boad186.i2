@@ -1,0 +1,8 @@
+open query {&QUERY-NAME} for each {&TABLE-NAME} 
+     WHERE movto-aplic-empr.ep-codigo = i-ep-codigo-usuario 
+     AND   movto-aplic-empr.transacao = 2                     
+     NO-LOCK,
+     EACH  tipo-modalidade
+     WHERE tipo-modalidade.codigo    = movto-aplic-empr.cod-mod
+     AND   tipo-modalidade.transacao = 2 NO-LOCK                        
+     by {1}.      

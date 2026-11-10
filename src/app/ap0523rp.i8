@@ -1,0 +1,57 @@
+/*******************************************************************************
+*** 
+***  app/ap0523rp.i8 - Include usada na: - Reemiss∆o 
+***                                      - Impress∆o Manual
+***                                      - Impress∆o Autom†tica.
+*** 
+*******************************************************************************/
+
+find first tt-cheque
+     where {1} = {2}
+     and   tt-cheque.da-data = che-emit.dt-emissao no-error.
+
+if  not avail tt-cheque then do:
+
+    create tt-cheque.
+    assign tt-cheque.cod-impressora   = tt-param.c-impressora
+           tt-cheque.cod-layout       = tt-param.c-layout
+           tt-cheque.cod-febraban     = portador.cod-febraban
+           tt-cheque.des-nominal      = che-emit.literal
+           tt-cheque.num-cheque       = che-emit.nr-cheque
+           tt-cheque.da-data          = che-emit.dt-emissao
+           tt-cheque.row-che-emit     = rowid(che-emit)
+           i-num-id-cheque            = i-num-id-cheque + 1
+           tt-cheque.num-id-tt-cheque = i-num-id-cheque.
+
+    if  tt-param.i-cidade = 1 then do:
+        assign tt-cheque.des-cidade = empresa.cidade.
+    end.
+    else do:
+        find first estabelec no-lock
+             where estabelec.cod-estabel = che-emit.cod-estabel no-error.
+                
+        if  avail estabelec then do:
+            assign tt-cheque.des-cidade = estabelec.cidade.
+        end.
+    end.       
+end.
+        
+assign tt-cheque.seq-cheque    = tt-cheque.seq-cheque + 1
+       tt-cheque.des-documento = tt-cheque.des-documento
+                               + " "
+                               + trim(che-emit.nr-docto)
+                               + "/"
+                               + trim(che-emit.parcela).
+                                       
+if  che-emit.transacao = 4 then do:
+    assign tt-cheque.de-valor = tt-cheque.de-valor - che-emit.valor-docto.
+end.    
+else do:    
+    assign tt-cheque.de-valor = tt-cheque.de-valor + che-emit.valor-docto.
+end.
+    
+create tt-rowid.
+assign tt-rowid.row-che-emit     = rowid(che-emit)
+       tt-rowid.num-id-tt-cheque = tt-cheque.num-id-tt-cheque.
+    
+/* Fim de Include */

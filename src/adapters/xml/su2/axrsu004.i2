@@ -1,0 +1,155 @@
+IF l-integra-webb THEN DO:
+ 
+    FOR EACH ttQuotationLine: 
+
+        FIND FIRST ordem-compra WHERE ordem-compra.numero-ordem = ttQuotationLine.POLineNumber NO-LOCK NO-ERROR.
+
+        IF NOT AVAIL ordem-compra THEN DO:
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "Ordem_de_compra_inv lida" *}
+            run utp/ut-msgs.p (INPUT 'msg':U,
+                               INPUT 6364,
+                               INPUT RETURN-VALUE).
+        
+            CREATE tt_log_erro.                  
+            ASSIGN tt_log_erro.ttv_num_cod_erro = 6364
+                   tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+            
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "Ordem_de_compra_inv lida" *}
+            RUN setError IN hMessageHandler (INPUT 6364,
+                                             INPUT "business_error":U,
+                                             INPUT RETURN-VALUE).
+            
+            RETURN "NOK":U.
+        END.
+
+
+        IF ttQuotationLine.POLineQuantityRequested <> ordem-compra.qt-solic THEN DO:
+                                        
+            run utp/ut-msgs.p (INPUT 'msg':U,
+                               INPUT 51309,
+                               INPUT "").
+        
+            CREATE tt_log_erro.                  
+            ASSIGN tt_log_erro.ttv_num_cod_erro = 51309
+                   tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+        
+            RUN setError IN hMessageHandler (INPUT 51309,
+                                             INPUT "business_error":U,
+                                             INPUT trim(RETURN-VALUE)).
+            
+            RETURN "NOK":U.
+        END.
+
+        IF cTranAction = "add":U THEN DO:
+
+            ASSIGN l-existe-cotac = NO.
+
+            FOR EACH cotacao-item WHERE cotacao-item.it-codigo    = ordem-compra.it-codigo AND
+                                        cotacao-item.numero-ordem = ordem-compra.numero-ordem AND
+                                        cotacao-item.cod-emitente = VendorNumber
+                                        NO-LOCK:
+
+                IF  &IF '{&bf_mat_versao_ems}' < '2.09' &then
+                    SUBSTRING(cotacao-item.char-2,121,18) <> ttQuotationLine.VendorResponseCode 
+                    &ELSE
+                    cotacao-item.cod-respos-fornec <> ttQuotationLine.VendorResponseCode
+                    &ENDIF
+                THEN 
+                    NEXT.
+                ELSE DO:
+                    ASSIGN ttQuotationLine.POLineNumber                     = cotacao-item.numero-ordem
+                           ttQuotationLine.QuoteSequence                    = cotacao-item.seq-cotac
+                           tt-ordem-compra.cod-transp                       = ttQuotationLine.CarrierID
+                           tt-ordem-compra.frete                            = IF ttQuotationLine.IsFreightIncluded THEN YES ELSE NO
+                           ttQuotationLine.QuotationDate                    = cotacao-item.data-cotacao
+                           ttQuotationLine.DeliveryTerm                     = ttQuotationLine.DeliveryDate - TODAY
+                           ttQuotationLine.ValidityDays                     = cotacao-item.dias-validade
+                           ttQuotationLine.ItemCode                         = cotacao-item.it-codigo
+                           ttQuotationLine.ServicesAndProductsCirculatio_01 = ordem-compra.codigo-icm
+                           l-existe-cotac                = YES.
+
+                END.
+            END.
+
+            IF NOT l-existe-cotac THEN DO:
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "Cota‡Æo_item_inexistente" *}
+                run utp/ut-msgs.p (INPUT 'msg':U,
+                                   INPUT 51234,
+                                   INPUT RETURN-VALUE).
+            
+                CREATE tt_log_erro.                  
+                ASSIGN tt_log_erro.ttv_num_cod_erro = 51234
+                       tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+            
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "Cota‡Æo_item_inexistente" *}
+                RUN setError IN hMessageHandler (INPUT 51234,
+                                                 INPUT "business_error":U,
+                                                 INPUT RETURN-VALUE).
+            
+                RETURN "NOK":U.
+            END.
+        END.
+        ELSE DO:
+            
+            IF AVAIL ordem-compra THEN DO:
+                FIND FIRST cotacao-item WHERE cotacao-item.numero-ordem = ordem-compra.numero-ordem AND
+                                              cotacao-item.it-codigo    = ordem-compra.it-codigo    AND
+                                              cotacao-item.cod-emitente = VendorNumber              AND
+                                              cotacao-item.cot-aprovada = YES NO-LOCK NO-ERROR.
+                IF AVAIL cotacao-item THEN DO:
+
+                    ASSIGN ttQuotationLine.POLineNumber  = cotacao-item.numero-ordem
+                           ttQuotationLine.QuoteSequence = cotacao-item.seq-cotac
+                           tt-ordem-compra.cod-transp    = ttQuotationLine.CarrierID
+                           tt-ordem-compra.frete         = IF ttQuotationLine.IsFreightIncluded THEN YES ELSE NO
+                           ttQuotationLine.QuotationDate = cotacao-item.data-cotacao
+                           ttQuotationLine.ItemCode      = cotacao-item.it-codigo
+                           ttQuotationLine.ServicesAndProductsCirculatio_01 = ordem-compra.codigo-icm
+                           ttQuotationLine.IsFinancialRateIncluded          = cotacao-item.taxa-financ
+                           ttQuotationLine.IsIndustrializedProductTaxInc_00 = cotacao-item.codigo-ipi.
+                END.
+                ELSE DO:
+                    /* Inicio -- Projeto Internacional */
+                    {utp/ut-liter.i "Cota‡Æo_item_inexistente" *}
+                    run utp/ut-msgs.p (INPUT 'msg',
+                                       INPUT 51234,
+                                       INPUT RETURN-VALUE).
+                
+                    CREATE tt_log_erro.                  
+                    ASSIGN tt_log_erro.ttv_num_cod_erro = 51234
+                           tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+    
+                    /* Inicio -- Projeto Internacional */
+                    {utp/ut-liter.i "Cota‡Æo_item_inexistente" *}
+                    RUN setError IN hMessageHandler (INPUT 51234,
+                                                     INPUT "business_error":U,
+                                                     INPUT RETURN-VALUE).
+                    RETURN "NOK":U.
+                END.
+            END.
+            ELSE DO:
+                 /* Inicio -- Projeto Internacional */
+                 {utp/ut-liter.i "Ordem_de_compra_inv lida" *}
+                 run utp/ut-msgs.p (INPUT 'msg',
+                                    INPUT 6364,
+                                    INPUT RETURN-VALUE).
+
+                  CREATE tt_log_erro.                  
+                  ASSIGN tt_log_erro.ttv_num_cod_erro = 6364
+                         tt_log_erro.ttv_des_msg_erro = trim(RETURN-VALUE).
+
+                  /* Inicio -- Projeto Internacional */
+                  {utp/ut-liter.i "Ordem_de_compra_inv lida" *}
+                  RUN setError IN hMessageHandler (INPUT 6364,
+                                                   INPUT "business_error":U,
+                                                   INPUT RETURN-VALUE).
+                                  
+                  RETURN "NOK":U.
+            END.
+        END.
+    END.
+END.

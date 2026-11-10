@@ -1,0 +1,37 @@
+/* ac1001.i1 */
+
+   find {1}
+        where {1}.cod-estabel     = cotas.cod-estabel
+        and   {1}.cod-canal-venda = cotas.cod-canal-venda 
+        and   {1}.cod-gr-cli      = cotas.cod-gr-cli
+        and   {1}.nome-abrev      = cotas.nome-abrev 
+        and   {1}.nome-ab-reg     = cotas.nome-ab-reg     
+        and   {1}.nome-mic-reg    = cotas.nome-mic-reg
+        and   {1}.cod-rep         = cotas.cod-rep
+        and   {1}.cd-produto      = cotas.cd-produto     
+        and   {1}.codigo          = tt-param.codigo
+        exclusive-lock no-error.
+
+   if not avail {1} then do:
+      create {1}.
+      assign {1}.cod-estabel     = cotas.cod-estabel
+             {1}.cod-canal-venda = cotas.cod-canal-venda 
+             {1}.cod-gr-cli      = cotas.cod-gr-cli      
+             {1}.nome-abrev      = cotas.nome-abrev 
+             {1}.nome-ab-reg     = cotas.nome-ab-reg     
+             {1}.nome-mic-reg    = cotas.nome-mic-reg     
+             {1}.cod-rep         = cotas.cod-rep
+             {1}.cd-produto      = cotas.cd-produto      
+             {1}.codigo          = tt-param.codigo.
+
+             if par-cota.tipo-controle = 2 then /*controle por valor*/
+                assign {1}.quantidade  = cotas.vl-previsto.
+             else /*controle por pontos e quantidade*/
+                assign {1}.quantidade  = cotas.qt-prevista.
+   end.
+   else do:
+      if par-cota.tipo-controle = 2 then /*controle por valor*/
+         assign {1}.quantidade  = {1}.quantidade + cotas.vl-previsto.
+      else /*controle por pontos e quantidade*/
+         assign {1}.quantidade  = {1}.quantidade + cotas.qt-prevista.
+   end.         

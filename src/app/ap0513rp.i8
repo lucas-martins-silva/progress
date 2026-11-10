@@ -1,0 +1,48 @@
+/**********************************************************************
+**
+** app/ap0513rp.i8 - Grava movto contabilizado qdo integra com EMS 5.0
+**
+***********************************************************************/
+
+do  transaction:
+    find mov-ap exclusive-lock where rowid(mov-ap) = rw-mov-ap no-error.
+    if  avail mov-ap 
+    and mov-ap.ep-codigo    = tt-param.i-ep-codigo
+    and mov-ap.cod-estabel  = diario-ap.cod-estabel
+    and mov-ap.cod-esp      = diario-ap.cod-esp
+    and mov-ap.serie        = diario-ap.serie
+    and mov-ap.nr-docto     = diario-ap.nr-docto
+    and mov-ap.parcela      = diario-ap.parcela
+    and mov-ap.cod-fornec   = diario-ap.cod-fornec
+    and mov-ap.dt-transacao = diario-ap.dt-transacao then 
+        assign mov-ap.contabilizou = yes.
+    else do:    
+                
+       &IF "{&mgadm_dbtype}" = "PROGRESS" &THEN
+           assign rw-impto-ap = to-rowid(diario-ap.titulo).
+       &ELSE    
+           assign rw-impto-ap = to-rowid(diario-ap.char-1).
+       &ENDIF
+                
+       find impto-tit-ap  exclusive-lock 
+           where rowid(impto-tit-ap) = rw-impto-ap no-error.
+       if  avail impto-tit-ap then
+           assign impto-tit-ap.contabilizou = yes.
+       else do:
+          run utp/ut-msgs.p (input "msg",
+                             input 3808,
+                             input " ").
+          assign c-mensagem = return-value.
+          run utp/ut-msgs.p (input "help",
+                             input 3808,
+                             input " ").
+          assign c-mensagem = c-mensagem + " " + return-value.
+          disp c-mensagem @ tt-editor.conteudo
+               with frame f-msg-editor.
+          assign l-erro = yes.
+          undo diario-block, return error.
+       end.
+    end.
+end.
+
+/*** Fim da include ***/

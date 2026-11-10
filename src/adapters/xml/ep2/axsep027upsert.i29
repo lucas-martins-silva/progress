@@ -1,0 +1,69 @@
+PROCEDURE pi-cria-ttComb:
+
+    /*
+    === ttComb ===
+    cProdANP       AS CHARACTER INITIAL ?                                         /*C¢digo de produto da ANP Informar apenas quando se tratar de produtos regulados pela ANP - Agˆncia Nacional do Petr¢leo. Utilizar a codifica‡Æo de produtos do Sistema de Informa‡äes de Movimenta‡Æo de produtos - SIMP (http://www.anp.gov.br/simp/index.htm)*/
+    CODIF          AS CHARACTER INITIAL ?                                         /*C¢digo de autoriza‡Æo / registro do CODIF. Informar apenas quando a UF utilizar o CODIF (Sistema de Controle do Diferimento do Imposto nas Opera‡äes com AEAC - µlcool Et¡lico Anidro Combust¡vel).*/
+    qTemp          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>9.9999"  DECIMALS 4 /*Quantidade de combust¡vel faturada - temperatura ambiente. Informar quando a quantidade faturada informada no campo qCom (I10) tiver sido ajustada para uma temperatura diferente da ambiente.*/ 
+    UFCons         AS CHARACTER INITIAL ?                                         /*Sigla da UF Dest*/
+    qBCProd        AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>9.9999"  DECIMALS 4 /*BC do CIDE ( Quantidade comercializada) */  
+    vAliqProd      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>9.9999"   DECIMALS 4 /*Al¡quota do CIDE  (em reais)*/ 
+    vCIDE          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.9999" DECIMALS 4 /*Valor do CIDE*/ 
+    pMixGN         AS DECIMAL   INITIAL ?  FORMAT ">9.9999"            DECIMALS 4 /*Percentual de gas natural para o produto GLP)*/ 
+    nBico          AS CHARACTER INITIAL ?                                         /*N£mero do bico utilizado no abastecimento*/
+    nBomba         AS CHARACTER INITIAL ?                                         /*Caso exista, informar o n£mero da bomba utilizada*/
+    nTanque        AS CHARACTER INITIAL ?                                         /*N£mero do tanque utilizado*/
+    vEncIni        AS CHARACTER INITIAL ?                                         /*Valor da leitura do contador (Encerrante) no in¡cio do abastecimento*/
+    vEncFin        AS CHARACTER INITIAL ?                                         /*Valor da leitura do contador (Encerrante) no t‚rmino do abastecimento*/
+    */
+
+    IF  NOT AVAIL item
+    OR (AVAIL item
+    AND item.it-codigo <> it-nota-fisc.it-codigo) THEN
+        FOR FIRST item NO-LOCK
+            WHERE item.it-codigo = it-nota-fisc.it-codigo:
+        END.
+
+    IF  AVAIL item
+    AND (TRIM(&if '{&BF_DIS_VERSAO_EMS}' >= "2.09":U &then
+                item.cod-produt-anp
+              &else
+                SUBSTR(item.char-1,268,20)
+              &endif) <> "":U
+    AND  TRIM(&if '{&BF_DIS_VERSAO_EMS}' >= "2.09":U &then
+                item.cod-produt-anp
+              &else
+                SUBSTR(item.char-1,268,20)
+              &endif) <> "0":U) THEN DO:
+             
+        IF  NOT AVAIL ttDest THEN
+            FIND FIRST ttDest NO-LOCK NO-ERROR.
+             
+        IF  NOT AVAIL ttEntrega THEN
+            FIND FIRST ttEntrega NO-LOCK NO-ERROR.
+
+        CREATE ttComb.
+        ASSIGN ttComb.cProdANP     = TRIM(&if '{&BF_DIS_VERSAO_EMS}' >= "2.09":U &then
+                                            item.cod-produt-anp
+                                          &else
+                                            SUBSTR(item.char-1,268,20)
+                                          &endif)
+               /*ttComb.CODIF        = */
+               /*ttComb.qTemp        = */
+               ttComb.UFCons         = IF AVAIL ttEntrega AND ttEntrega.UF <> ttDest.UF THEN ttEntrega.UF
+									   ELSE ttDest.UF
+               /*ttComb.qBCProd      = */
+               /*ttComb.vAliqProd    = */
+               /*ttComb.vCIDE        = */
+               ttComb.pMixGN       = DEC(TRIM(SUBSTR(item.char-1,300,20))) /*CD0903 - pasta Inf. Extras */
+               .
+
+        /* Chave EMS */
+        ASSIGN ttComb.CodEstabelNF = it-nota-fisc.cod-estabel
+               ttComb.SerieNF      = it-nota-fisc.serie
+               ttComb.NrNotaFisNF  = it-nota-fisc.nr-nota-fis
+               ttComb.ItCodigoNF   = it-nota-fisc.it-codigo
+               ttComb.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+    END.
+
+END PROCEDURE.

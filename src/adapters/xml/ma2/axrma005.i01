@@ -1,0 +1,265 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (2003)
+** Todos os Direitos Reservados.
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*------------------------------------------------------------------------
+File        : AXRMA005.i01
+Description : Include para adapter de recebimento de itens (Logistica)
+CREATED     : 28/12/2007 - Luiz Carlos Knupp Pinheiro
+Notes       :
+----------------------------------------------------------------------*/
+procedure pi-xml-log:     
+
+         /* ---   Criando Item para Cotas            --- */
+        if not avail tt-item-cota then do:
+           create tt-item-cota.
+           assign tt-item-cota.it-codigo = tt-item.it-codigo
+                  tt-item-cota.fm-codigo = "".
+        end.
+        
+        /* ---   Criando Item de Distribuicao       --- */
+        if not avail tt-item-dist then do:
+           create tt-item-dist.
+           assign tt-item-dist.it-codigo = tt-item.it-codigo.
+        end.
+        
+        /* ---   Criando Item de Materiais          --- */
+        if not avail tt-item-mat-aux then do:
+           create tt-item-mat-aux.
+           assign tt-item-mat-aux.it-codigo = tt-item.it-codigo.
+                  
+        end.   
+        
+   run searchTag in hGenXml ("Distribution":U, 1, OUTPUT iDistributionId).
+
+   if iDistributionId <> ? then do:
+
+        /* - Distribuiá∆o - */
+        run searchTag  in hGenXml ("FiscalInformation":U, iDistributionId, output iFiscalInformationId).
+        if iFiscalInformationId <> ? then do:
+             
+            run searchTag  in hGenXml ("FiscalClassification":U, iFiscalInformationId, output iFiscalClassificationId).
+            if iFiscalClassificationId <> ? then do:
+                run getSonVal in hGenXml (input iFiscalClassificationId, "FiscalClassificationID":U, output tt-item.class-fiscal).
+                run getSonDec in hGenXml (input iFiscalClassificationId, "NCMExtension":U,           output tt-item.dec-1).
+            end.
+            else
+                assign tt-item.class-fiscal = if avail familia then familia.class-fiscal else "0000.00.00":U.
+                
+            run searchTag  in hGenXml ("BrazilianTaxes":U, iFiscalInformationId, output iBrazilianTaxesId).
+            if iBrazilianTaxesId <> ? then do:
+                run searchTag  in hGenXml ("ServicesAndProductsCirculationTax":U, iBrazilianTaxesId, output iServicesProdCircTaxId).
+                if iServicesProdCircTaxId <> ? then do:
+                    run getSonDec in hGenXml (input iServicesProdCircTaxId, "TaxCode":U,               output tt-item.cd-trib-icm).
+                    run getSonDec in hGenXml (input iServicesProdCircTaxId, "TaxReadjustmentFactor":U, output tt-item.fator-reaj-icms).
+                end.
+                run searchTag  in hGenXml ("ServiceType":U, iBrazilianTaxesId, output iServiceTypeId).
+                if iServiceTypeId <> ? then
+                    run getSonDec in hGenXml (input iServiceTypeId, "ServiceID":U, output tt-item.cod-servico).
+            
+                run searchTag  in hGenXml ("ServiceTax":U, iBrazilianTaxesId, output iServiceTaxId).
+                if iServiceTaxId <> ? then do:
+                    run getSonDec in hGenXml (input iServiceTaxId, "TaxCode":U,       output tt-item.cd-trib-iss).
+                    run getSonDec in hGenXml (input iServiceTaxId, "TaxPercentage":U, output tt-item.aliquota-iss).
+                end.
+                run searchTag  in hGenXml ("IndustrializedProductTax":U, iBrazilianTaxesId, output iIndustrializedProductTaxId).
+                if iIndustrializedProductTaxId <> ? then do:
+                    run getSonDec in hGenXml (input iIndustrializedProductTaxId, "TaxCode":U,                             output tt-item.cd-trib-ipi).
+                    run getSonDec in hGenXml (input iIndustrializedProductTaxId, "TaxPercentage":U,                       output tt-item.aliquota-ipi).
+                    run getSonLog in hGenXml (input iIndustrializedProductTaxId, "IsIndustrializedProductTaxSuspended":U, output l-IndustrializedProductTax).
+                    assign overlay(tt-item.char-2,51,1) = if l-IndustrializedProductTax = no then "N" else "S".
+                end. 
+                run searchTag  in hGenXml ("SocialIntegrationProgramTax":U, iBrazilianTaxesId, output iSocialIntegrationProgramTaxId).
+                if iSocialIntegrationProgramTaxId <> ? then do:
+                    run getSonDec in hGenXml (input iSocialIntegrationProgramTaxId, "TaxSource":U,              output i-IntegrationTaxSource).
+                    run getSonDec in hGenXml (input iSocialIntegrationProgramTaxId, "TaxPercentage":U,          output d-IntegrationTaxPercentage).
+                    run getSondec in hGenXml (input iSocialIntegrationProgramTaxId, "TaxReductionPercentage":U, output d-IntegrationTaxReduction).
+                    assign overlay(tt-item.char-2,52,1) = string(i-IntegrationTaxSource)
+                           overlay(tt-item.char-2,31,5) = string(d-IntegrationTaxSource)
+                           overlay(tt-item.char-2,41,5) = string(d-IntegrationTaxReduction). 
+                end.
+                run searchTag  in hGenXml ("SocialSecurityContributionTax":U, iBrazilianTaxesId, output iSocialSecurityContributionTaxId).
+                if iSocialSecurityContributionTaxId <> ? then do:
+                    run getSonDec in hGenXml (input iSocialSecurityContributionTaxId, "TaxSource":U,              output i-SecurityTaxSource).
+                    run getSonDec in hGenXml (input iSocialSecurityContributionTaxId, "TaxPercentage":U,          output d-SecurityTaxPercentage).
+                    run getSondec in hGenXml (input iSocialSecurityContributionTaxId, "TaxReductionPercentage":U, output d-SecurityTaxReduction).
+                    assign overlay(tt-item.char-2,53,1) = string(i-SecurityTaxSource)
+                           overlay(tt-item.char-2,36,5) = string(d-SecurityTaxSource)
+                           overlay(tt-item.char-2,46,5) = string(d-SecurityTaxReduction). 
+                end.
+                run getSonDec in hGenXml (input iBrazilianTaxesId, "DemonstrativeNumberOfRestitutionCoefficient":U, output tt-item.nr-item-dcr).
+                run getSonLog in hGenXml (input iBrazilianTaxesId, "IsSocialIntegrationProgramTaxAndSocialSecurityContributionTaxValueIncorporatedInInvoiceDocumentTotalValue":U, output l-SocialIntegrationProgram).
+                run getSonDec in hGenXml (input iBrazilianTaxesId, "ImportTaxTaxationCode":U, output i-ImportTaxTaxationCode).
+                run getSonDec in hGenXml (input iBrazilianTaxesId, "ImportTaxPercentage":U, output d-ImportTaxPercentage).
+                assign overlay(tt-item.char-1,50,5) = if l-SocialIntegrationProgram = no then "N" else "S"
+                       overlay(tt-item.char-2,20,2) = string(i-ImportTaxTaxationCode)
+                       overlay(tt-item.char-2,22,6) = string(d-ImportTaxPercentage).
+            end.
+            run searchTag  in hGenXml ("Tax":U, iFiscalInformationId, output iTaxId).
+            if iTaxId <> ? then do:
+                run getSonDec in hGenXml (input iTaxId, "TaxCode":U, output tt-item-mat-aux.cod-tax).
+            end.
+        end.
+        run searchTag  in hGenXml ("BeverageInvoicingInformation":U, iDistributionId, output iBeverageInvoicingInformationId).
+        if iBeverageInvoicingInformationId <> ? then do:
+            run getSonDec in hGenXml (input iBeverageInvoicingInformationId, "BeverageIndustrializedProductTaxValue":U, output tt-item.valor-ipi-beb).
+            run getSonDec in hGenXml (input iBeverageInvoicingInformationId, "BeverageType":U,                          output tt-item.esp-beb).
+            run getSonDec in hGenXml (input iBeverageInvoicingInformationId, "BeverageClassification":U,                output tt-item.enquad-beb).
+            run getSonDec in hGenXml (input iBeverageInvoicingInformationId, "BeverageReceptacle":U,                    output tt-item.tipo-recip-beb).
+        end.
+        run searchTag  in hGenXml ("QuotaManagementInformation":U, iDistributionId, output iQuotaManagementInformationId).
+        if iQuotaManagementInformationId <> ? then do:
+            run getSonlog in hGenXml (input iQuotaManagementInformationId, "IsItemConsideredToReceiveQuotasInTheDistribution":U, output tt-item-cota.log-consid-cotas).
+            run getSonlog in hGenXml (input iQuotaManagementInformationId, "IsQuotaLimitControlAppliedToItem":U,                 output tt-item-cota.log-cota-limite).
+            run getSonlog in hGenXml (input iQuotaManagementInformationId, "IsItemQuotaControlledByProduct":U,                   output tt-item-cota.log-produto).
+            run getSonDec in hGenXml (input iQuotaManagementInformationId, "PointsNumber":U,                                     output tt-item-cota.nr-pontos).
+            run getSonDec in hGenXml (input iQuotaManagementInformationId, "QuotasSafetyStockPercentage":U,                      output tt-item-cota.quant-segur).
+        end.
+        /* --- Informaá‰es n∆o obrigat¢rias --- */
+        run getSonLog in hGenXml (input iDistributionId, "IsNegativeAllocationAllowed":U,         output tt-item-dist.log-aloc-neg).
+        run getSonDec in hGenXml (input iDistributionId, "SourceID":U,                            output tt-item.codigo-orig).
+        run searchTag  in hGenXml ("IsItemAllowedToBeInvoiced":U, iDistributionId, output iIsItemAllowedToBeInvoiced).
+        if iIsItemAllowedToBeInvoiced <> ? then 
+            run getSonLog in hGenXml (input iDistributionId, "IsItemAllowedToBeInvoiced":U,           output tt-item.ind-item-fat).
+        run getSonLog in hGenXml (input iDistributionId, "IsItemInvoicedInFamilyUnitOfMeasure":U, output tt-item.ind-inf-qtf).
+        
+        /* COMENTADO CONFORME FO 1821.355 - TABACOW                                                                           */
+        /* run getSonLog in hGenXml (input iDistributionId, "IsItemIssuedInTheInventory":U,          output tt-item.baixa-estoq). */
+
+   end.
+
+   run searchTag in hGenXml ("Material":U, 1, OUTPUT iMaterialId).
+   
+   if imaterialid <> ? then do:
+    
+        /* - Materiais - Obrigatorios */
+        run searchTag  in hGenXml ("InvestmentAccount":U, imaterialid, output iInvestmentAccountId).
+        if iInvestmentAccountId <> ? then do:
+            run getSonVal in hGenXml (input iInvestmentAccountId, "Account":U, output tt-item.ct-codigo).
+			run getSonVal in hGenXml (input iInvestmentAccountId, "SubAccount":U, output tt-item.sc-codigo).
+        end.
+        run searchTag  in hGenXml ("ExpenseNature":U, imaterialid, output iExpenseNatureId).
+        if iExpenseNatureId <> ? then do:
+            run getSonDec in hGenXml (input iExpenseNatureId, "ExpenseNatureID":U, output tt-item.nat-despesa).
+        end.        
+        run searchTag  in hGenXml ("ExpenseType":U, imaterialid, output iExpenseTypeId).
+        if iExpenseTypeId <> ? then do:
+            run getSonDec in hGenXml (input iExpenseTypeId, "ExpenseID":U, output tt-item.tp-desp-padrao).
+        end.
+              
+        /* - Informaá‰es de item referentes ao controle de estoque - */
+        run searchTag  in hGenXml ("InventoryInformation":U, imaterialid, output iInventoryInformationId).
+        if iInventoryInformationId <> ? then do:
+            run getSonDec in hGenXml (input iInventoryInformationId, "InventoryControlType":U, output tt-item.tipo-con-est).
+            run getSonLog in hGenXml (input iInventoryInformationId, "item.curva-abc":U, output tt-item.curva-abc).
+            run searchTag in hGenXml ("Replenishment":U, iInventoryInformationId, output iReplenishmentId).
+            if iReplenishmentId <> ? then do:
+                run getSonDec in hGenXml (input iReplenishmentId, "InventoryReplenishmentType":U, output tt-item-mat-aux.tp-ressup).
+                run getSonDec in hGenXml (input iReplenishmentId, "InventoryReorderPoint":U, output tt-item-mat-aux.ponto-encomenda).
+                run getSonDec in hGenXml (input iReplenishmentId, "PurchaseCriticality":U, output tt-item-mat-aux.crit-cc).
+                run getSonDec in hGenXml (input iReplenishmentId, "StockageCriticality":U, output tt-item-mat-aux.crit-ce).
+                run getSonLog in hGenXml (input iReplenishmentId, "IsAccountUpdateAllowedOnPurchaseRequest":U, output tt-item-mat-aux.altera-conta).
+                run getSonDec in hGenXml (input iReplenishmentId, "ForecastConsumptionIndex":U, output tt-item-mat-aux.ind-cons-prv).
+                run searchTag in hGenXml ("SupplyFrequency":U, iReplenishmentId, output iSupplyFrequencyId).
+                if iSupplyFrequencyId <> ? then do:
+                        run getSonDec in hGenXml (input iSupplyFrequencyId, "FrequencyCode":U, output tt-item-mat-aux.cd-freq).
+                end.
+                run searchTag  in hGenXml ("WeightingFormulas":U, iReplenishmentId, output iWeightingFormulasId).
+                if iWeightingFormulasId <> ? then do:
+                        run getSonDec in hGenXml (input iWeightingFormulasId, "WeightFactorCode":U, output tt-item-mat-aux.cod-fat-ponder).
+                end.
+            end.
+            run searchTag  in hGenXml ("Safety":U, iSafetyId, output iSafetyId).
+            if iSafetyId <> ? then do:
+
+                run getSonDec in hGenXml (input iSafetyId, "SafetyStockControlType":U,   output tt-item.tipo-est-seg).
+                run getSonDec in hGenXml (input iSafetyId, "IsNegativeBalanceAllowed":U, output tt-item.perm-saldo-neg).
+                run getSonDec in hGenXml (input iSafetyId, "SafetyTime":U,               output tt-item.tempo-segur).
+                run getSonDec in hGenXml (input iSafetyId, "SafetyStock":U,              output tt-item.quant-segur).
+                run getSonDec in hGenXml (input iSafetyId, "WasteQuantity":U,            output tt-item.quant-perda).
+                run getSonDec in hGenXml (input iSafetyId, "MaximumPeriodicalLot":U,     output tt-item-mat-aux.lote-per-max).
+            end.
+            run searchTag  in hGenXml ("InventoryCounting":U, iInventoryInformationId, output iInventoryCountingId).
+            if iInventoryCountingId <> ? then do:
+                run getSonDec  in hGenXml (input iInventoryCountingId, "CountingCicle":U,             output tt-item.ciclo-contag).
+                run getSonDec  in hGenXml (input iInventoryCountingId, "AccumulatedVariation":U,      output tt-item.variac-acum).
+                run getSonDate in hGenXml (input iInventoryCountingId, "LastInventoryCountingDate":U, output tt-item.data-ult-rep).
+                run searchTag  in hGenXml ("ListOfWeightFactors":U, iInventoryCountingId, output iListOfWeightFactorsId).
+                if iListOfWeightFactorsId <> ? then do:
+                /*
+                    run searchTag  in hGenXml ("WeightFactor":U, iListOfWeightFactorsId, output iWeightFactorId).
+                    if iWeightFactorId <> ? then do:
+                        run getSonDec in hGenXml (input iWeightFactorId, "WeightFactorIndex":U, output ??????????????????????????????????????).
+                        run getSonDec in hGenXml (input iWeightFactorId, "WeightFactorValue":U, output tt-item.fator-ponder[1..12]).
+                    end.*/
+                end.
+            end.
+        end.
+        /* - Informaá‰es de item referentes ao controle de qualidade - */
+        run searchTag  in hGenXml ("QualityControlInformation":U, imaterialid, output iQualityControlInformationId).
+        if iQualityControlInformationId <> ? then do:
+                run getSonLog in hGenXml (input iQualityControlInformationId, "IsItemQualityControlled":U, output tt-item.contr-qualid).
+                run getSonDec in hGenXml (input iQualityControlInformationId, "CriticCode":U, output tt-item.criticidade).
+                run getSonDec in hGenXml (input iQualityControlInformationId, "QualityControlLevel":U, output tt-item.nivel).
+                if tt-item.nivel = ? then
+                   assign tt-item.nivel = if avail familia then familia.nivel else 1.
+                run getSonDec in hGenXml (input iQualityControlInformationId, "AcceptableQualityLevel":U, output tt-item.perc-nqa).
+        end.
+        /* - Informaá‰es de item referentes ao gerenciamento de compras - */
+        run searchTag  in hGenXml ("PurchaseControlInformation":U, imaterialid, output iPurchaseControlInformationId).
+        if iPurchaseControlInformationId <> ? then do:
+                run getSonDate in hGenXml (input iPurchaseControlInformationId, "LastRepositionDate":U, output tt-item.data-ult-rep).
+                run getSonDec  in hGenXml (input iPurchaseControlInformationId, "RepositionPrice":U,    output tt-item.preco-repos).
+                run getSonVal  in hGenXml (input iPurchaseControlInformationId, "EANCode":U,            output v-cod-ean).
+                
+                &if defined(bf_man_205) &then
+                    assign tt-item-mat-aux.cod-ean = v-cod-ean.
+                &else
+                    assign overlay(tt-item.char-1,133,16) = v-cod-ean.                   
+                &endif
+                
+                run searchTag  in hGenXml ("Buyer":U, iPurchaseControlInformationId, output iBuyerId).
+                if iBuyerId <> ? then do:
+                    run getSonval in hGenXml (input iBuyerId, "BuyerId":U, output tt-item.cod-comprado).
+                end.
+                run searchTag  in hGenXml ("ManagerSite":U, iPurchaseControlInformationId, output iManagerSiteId).
+                if iManagerSiteId <> ? then do:
+                    run getSonval in hGenXml (input iManagerSiteId, "SiteID":U, output tt-item-mat-aux.cod-estab-gestor).
+                end.
+                run searchTag  in hGenXml ("PurchaseGroup":U, iPurchaseControlInformationId, output iPurchaseGroupId).
+                if iPurchaseGroupId <> ? then do:
+                    run getSonval in hGenXml (input iManagerSiteId, "PurchaseGroupID":U, output tt-item-mat-aux.cod-grp-compra).
+                end.
+        end.
+        /* - Informaá‰es de item referentes ao controle de recebimento - */
+        run searchTag  in hGenXml ("ReceivingControlInformation":U, imaterialid, output iReceivingControlInformationId).
+        if iReceivingControlInformationId <> ? then do:
+            run getSonDec in hGenXml (input iReceivingControlInformationId, "QuantityVarianceLimit":U,         output tt-item-mat-aux.lim-var-qtd).
+            run getSonDec in hGenXml (input iReceivingControlInformationId, "ValueVarianceLimit":U,            output tt-item-mat-aux.lim-var-valor).
+            run getSonDec in hGenXml (input iReceivingControlInformationId, "QuantityVariancePercentage":U,    output tt-item-mat-aux.var-qtd-re).
+            run getSonDec in hGenXml (input iReceivingControlInformationId, "ValueVariancePercentage":U,       output tt-item-mat-aux.var-val-re-maior).
+        end.
+        /* --- Informaá‰es n∆o obrigat¢rias --- */
+        run getSonDec in hGenXml (input imaterialid, "ControlType":U,                          output tt-item.tipo-contr).
+        run getSonDec in hGenXml (input imaterialid, "Application":U,                          output tt-item.ind-serv-mat).
+        run getSonDec in hGenXml (input imaterialid, "PurchaseOrderApprovalPriority":U,        output tt-item-mat-aux.prioridade-aprov).
+        run getSonDec in hGenXml (input imaterialid, "QualityControlLeadTime":U,               output tt-item.res-cq-comp).
+        run getSonDec in hGenXml (input imaterialid, "ManufactureLeadTime":U,                  output tt-item.ressup-fabri).
+        run getSonDec in hGenXml (input imaterialid, "ManufactureAndQualityControlLeadTime":U, output tt-item.res-cq-fabri).
+        run getSonDec in hGenXml (input imaterialid, "VendorLeadTime":U,                       output tt-item.res-for-comp).
+        run getSonDec in hGenXml (input imaterialid, "PurchasingLeadTime":U,                   output tt-item.res-int-comp).
+        run getSonDec in hGenXml (input imaterialid, "AllowedVariation":U,                     output tt-item-mat-aux.variacao-perm).
+        /* --- Informacoes nao Obrigatorias do Item Cota --- */
+        run getSonLog in hGenXml (input imaterialid, "IsItemConsideredToReceiveQuotasInTheDistribution":U, output  tt-item-cota.log-consid-cotas).
+        run getSonLog in hGenXml (input imaterialid, "IsQuotaLimitControlAppliedToItem":U,                 output  tt-item-cota.log-cota-limite).
+        run getSonlog in hGenXml (input imaterialid, "IsItemQuotaControlledByProduct":U,                   output  tt-item-cota.log-produto).
+        run getSonDec in hGenXml (input imaterialid, "PointsNumber":U,                                     output  tt-item-cota.nr-pontos).
+        run getSonDec in hGenXml (input imaterialid, "QuotasSafetyStockPercentage":U,                      output  tt-item-cota.quant-segur).
+    end.
+
+  
+end procedure.
+

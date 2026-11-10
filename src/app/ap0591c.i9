@@ -1,0 +1,80 @@
+/********************************************************************************
+***
+*** app/ap0591c.i9 - Gera AVA no saldo do documento vinculado e uma Antecipa‡Æo
+***                  no valor da diferen‡Æo em consequˆncia da NC ser maior que
+**                   o saldo do documento original.
+***
+********************************************************************************/
+
+assign de-diferenca = tit-ap.vl-orig-me - b-tit-ap-orig.vl-saldo-me.
+
+/*--- Var.Momet ria ---*/
+for each tt-variacao-monetaria:
+    delete tt-variacao-monetaria.
+end.
+
+run app/ap0570b.p (input rowid(b-tit-ap-orig),
+                   input tit-ap.dt-emissao,
+                   input tit-ap.cotacao-dia,
+                   output table tt-variacao-monetaria). 
+
+run app/ap0570c.p (input rowid(b-tit-ap-orig),
+                   input table tt-variacao-monetaria). 
+
+/*--- Gera AVA ---*/                
+{app/ap0591c.i5 "b-tit-ap-orig"
+                "tit-ap"
+                "2"
+                "tit-ap.conta-debito"
+                "tit-ap.ct-conta-db"
+                "tit-ap.sc-conta-db"
+                "b-tit-ap-orig.valor-saldo"
+                "b-tit-ap-orig.vl-saldo-me"
+                "5"}
+
+/*********** MULTIPLANTA ************/
+run pi-cria-tt-dados-mov-ap (input 1).
+/************************************/       
+
+/*--- Acerta Saldo Documento Original ---*/
+assign de-saldo-ant              = b-tit-ap-orig.valor-saldo
+       b-tit-ap-orig.valor-saldo = 0
+       b-tit-ap-orig.vl-saldo-me = 0.
+
+run app/ap6000a.p (rowid(b-tit-ap-orig)).   
+ 
+/*************** MULTIPLANTA ***************/
+run pi-cria-tt-dados-b-tit-ap-orig (input 2).
+/*******************************************/        
+
+/*--- Estorno Impostos ---*/ 
+if i-pais-impto-usuario <> 2 then do: /* Na Localizacao o estorno e diferente */       
+   {app/ap0004.i "10"
+                 "02"
+                 "05"
+                 "mov-ap.dt-emissao"
+                 "mov-ap.dt-transacao"
+                 "de-saldo-ant"
+                 "b-tit-ap-orig.valor-saldo"
+                 "b-tit-ap-orig.ep-codigo"
+                 "b-tit-ap-orig.cod-estabel"
+                 "b-tit-ap-orig.cod-fornec"
+                 "b-tit-ap-orig.cod-esp"
+                 "b-tit-ap-orig.serie"
+                 "b-tit-ap-orig.nr-docto"
+                 "b-tit-ap-orig.parcela"
+                 "mov-ap.num-id-mov-ap"
+                 "no"}
+end.                 
+
+/*--- Gera Antecipa‡Æo Diferen‡a ---*/
+assign de-vl-original = fn_ajust_dec(fn_conv_moedas (
+                            de-diferenca,
+                            tit-ap.cotacao-dia,
+                            tit-ap.moeda,
+                                     0),0).
+assign de-vl-orig-me  = de-diferenca.
+
+{app/ap0591c.i4}
+
+/* Fim de Include */

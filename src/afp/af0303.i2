@@ -1,0 +1,47 @@
+/************************************************************************* 
+*  af0303.i2 Frames e Forms
+*
+**************************************************************************/
+
+
+def temp-table tt-editor no-undo
+    field linha      as integer
+    field conteudo   as character format 'x(132)':U
+    index editor-id is primary unique 
+          linha.
+
+def temp-table tt-indice no-undo
+    field nr-controle  like af-controle.nr-controle
+    field it-codigo    like af-contr-indice.it-codigo
+    field cod-emitente like af-contr-indice.cod-emitente
+    field cod-estabel  like af-contr-indice.cod-estabel
+    field indice       like af-contr-indice.indice
+    field dt-indice    as   date.
+
+def var c-arquivo     as char format "x(20)" no-undo.
+
+FORM SKIP (2)
+    "SELE€ÇO"                 AT  3 SKIP(1)
+    tt-param.c-est-ini        COLON 24 "|<  >|" AT 53 tt-param.c-est-fim        NO-LABEL SKIP
+    tt-param.i-emi-ini        COLON 24 "|<  >|" AT 53 tt-param.i-emi-fim        NO-LABEL SKIP
+    tt-param.c-it-ini         COLON 24 "|<  >|" AT 53 tt-param.c-it-fim         NO-LABEL SKIP
+    tt-param.i-ano-ini        COLON 24 LABEL "Per¡odo"
+    tt-param.c-des-per-ini    NO-LABEL "|<  >|" AT 53 tt-param.i-ano-fim NO-LABEL
+    tt-param.c-des-per-fim    NO-LABEL SKIP
+    tt-param.i-cod-gr-forn-ini COLON 24 "|<  >|" AT 53 tt-param.i-cod-gr-forn-fim NO-LABEL SKIP
+    tt-param.c-fm-codigo-ini   COLON 24 "|<  >|" AT 53 tt-param.c-fm-codigo-fim NO-LABEL SKIP
+    tt-param.i-ge-codigo-ini   COLON 24 "|<  >|" AT 53 tt-param.i-ge-codigo-fim NO-LABEL SKIP
+    skip(2)
+    "PAR¶METROS"               AT  3  SKIP(1)
+    "C lcula Öndice"                 at 10 skip(1)
+    tt-param.l-qualidade      COLON  34 
+    tt-param.l-quantidade     COLON  34 
+    tt-param.l-preco          colon 34
+    tt-param.l-data-entrega  colon 34 skip(1)
+    tt-param.l-especifico     colon 34
+    tt-param.i-nr-controle-ini colon 34
+    tt-param.i-nr-controle-ini COLON 34 "|<  >|" AT 53 i-nr-controle-fim NO-LABEL SKIP
+    WITH NO-BOX SIDE-LABEL WIDTH 132 FRAME f-param-sel STREAM-IO.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-param-sel:HANDLE).
+

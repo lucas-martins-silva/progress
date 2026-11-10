@@ -1,0 +1,46 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i9 - pi-total-geral.
+***
+*******************************************************************************/
+    
+if  de-ger-saldo > 0 then
+    assign c-lancto1 = {adinc/i01ad059.i 04 2}.
+else
+    assign c-lancto1 = {adinc/i01ad059.i 04 1}.
+    
+if  de-ger-atual > 0 then
+    assign c-lancto2 = {adinc/i01ad059.i 04 2}.
+else
+    assign c-lancto2 = {adinc/i01ad059.i 04 1}.
+    
+if  de-tot-pef < 0 then
+    assign de-tot-pef = de-tot-pef * -1
+           c-lancto3  = {adinc/i01ad059.i 04 1}.
+else
+    assign c-lancto3  = {adinc/i01ad059.i 04 2}.
+
+if  tt-param.tp-relatorio = 1 then
+    disp de-total-geral-db
+         de-ger-saldo
+         c-lancto1
+         de-total-geral-cr
+         de-ger-atual
+         c-lancto2
+         de-tot-pef
+         c-lancto3
+         with frame f-geral.
+else
+    disp de-ger-saldo
+         c-lancto1
+         de-ger-atual
+         c-lancto2
+         with frame f-geral1.
+         
+assign de-total-geral-db = 0
+       de-total-geral-cr = 0
+       de-ger-saldo      = 0
+       de-ger-atual      = 0
+       de-tot-pef        = 0.
+
+/* Fim de Include */

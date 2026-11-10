@@ -1,0 +1,1692 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
+&ANALYZE-RESUME
+/* Connected Databases 
+          mgcad            PROGRESS
+          mgmov            PROGRESS
+*/
+&Scoped-define WINDOW-NAME wMaintenance
+
+
+/* Temp-Table and Buffer definitions                                    */
+DEFINE TEMP-TABLE tt-fechto-produt-period NO-UNDO LIKE fechto-produt-period
+       FIELD checkSum          AS CHARACTER FORMAT 'x(1)'
+       FIELD val-unit          AS DECIMAL
+       FIELD val-total         AS DECIMAL
+       FIELD val-per-anterior  AS DECIMAL
+       FIELD diferenca         AS DECIMAL
+       FIELD cidade            LIKE loc-entr.cidade
+       FIELD nome-abrev        LIKE emitente.nome-abrev
+       FIELD grp-produt        LIKE grp-produt.des-grp-produt
+       FIELD r-rowid           AS ROWID.
+
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wMaintenance 
+/*:T*******************************************************************************
+** Copyright TOTVS S.A. (2009)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da TOTVS, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+{include/i-prgvrs.i AQ0315 2.00.00.020 } /*** "010020" ***/
+
+/* Chamada a include do gerenciador de licen‡as. Necessario alterar os parametros */
+/*                                                                                */
+/* <programa>:  Informar qual o nome do programa.                                 */
+/* <m¢dulo>:  Informar qual o m¢dulo a qual o programa pertence.                  */
+
+&IF "{&EMSFND_VERSION}" >= "1.00" &THEN
+    {include/i-license-manager.i {1} MAQ}
+&ENDIF
+
+CREATE WIDGET-POOL.
+
+/* Preprocessors Definitions ---                                      */
+&GLOBAL-DEFINE Program        {1}
+&GLOBAL-DEFINE Version        2.00.00.020
+
+&GLOBAL-DEFINE Folder         NO
+&GLOBAL-DEFINE InitialPage    1
+
+&GLOBAL-DEFINE FolderLabels   
+
+&GLOBAL-DEFINE First          NO
+&GLOBAL-DEFINE Prev           NO
+&GLOBAL-DEFINE Next           NO
+&GLOBAL-DEFINE Last           NO
+&GLOBAL-DEFINE GoTo           NO
+&GLOBAL-DEFINE Search         NO
+
+&GLOBAL-DEFINE Add            NO
+&GLOBAL-DEFINE Copy           NO
+&GLOBAL-DEFINE Update         NO
+&GLOBAL-DEFINE Delete         NO
+&GLOBAL-DEFINE Undo           NO
+&GLOBAL-DEFINE Cancel         NO
+&GLOBAL-DEFINE Save           NO
+
+&GLOBAL-DEFINE ttTable        tt-fechto-produt-period
+&GLOBAL-DEFINE hDBOTable      h-boin00999
+&GLOBAL-DEFINE DBOTable       fechto-produt-period
+
+&GLOBAL-DEFINE page0KeyFields 
+&GLOBAL-DEFINE page0Fields    cb-item tt-fechto-produt-period.cod-period
+&GLOBAL-DEFINE page1Fields    l-ativa-facelift
+
+&GLOBAL-DEFINE page1Widgets   btMarcar btTodos btDesmarcar btNenhum bt-observacao
+
+/* Parameters Definitions ---                                           */
+
+/* Local Variable Definitions ---                                       */
+DEFINE VARIABLE de-tot-valor-old AS DECIMAL                   NO-UNDO. /*controlar total  */
+DEFINE VARIABLE c-observacao     AS CHARACTER FORMAT "x(500)" NO-UNDO. 
+DEFINE VARIABLE l-ja-confirmou   AS LOGICAL                   NO-UNDO. 
+DEFINE VARIABLE c-cod-estabel    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE i-val-incentivo  AS DECIMAL   NO-UNDO.
+DEFINE VARIABLE i-val-imp-retido AS DECIMAL   NO-UNDO.
+
+/* Local Variable Definitions (DBOs Handles) --- */
+DEFINE VARIABLE {&hDBOTable} AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin172na  AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin627zm  AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin627    AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin00968  AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin00983  AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin00962  AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin00963  AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-acomp      AS HANDLE NO-UNDO.
+
+{aqp/aq0315.i} /*tt-filtro tt-fechto-produt-period*/
+
+DEFINE TEMP-TABLE tt-fechto-produt-period-aux NO-UNDO LIKE fechto-produt-period
+       FIELD checkSum          AS CHARACTER FORMAT 'x(1)'
+       FIELD val-unit          AS DECIMAL
+       FIELD val-total         AS DECIMAL
+       FIELD val-per-anterior  AS DECIMAL
+       FIELD diferenca         AS DECIMAL
+       FIELD cidade            LIKE loc-entr.cidade
+       FIELD nome-abrev        LIKE emitente.nome-abrev
+       FIELD grp-produt        LIKE grp-produt.des-grp-produt
+       FIELD r-rowid           AS ROWID.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE Maintenance
+&Scoped-define DB-AWARE no
+
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
+&Scoped-define FRAME-NAME fpage0
+&Scoped-define BROWSE-NAME brFechto
+
+/* Internal Tables (found by Frame, Query & Browse Queries)             */
+&Scoped-define INTERNAL-TABLES tt-fechto-produt-period
+
+/* Definitions for BROWSE brFechto                                      */
+&Scoped-define FIELDS-IN-QUERY-brFechto tt-fechto-produt-period.checkSum ~
+tt-fechto-produt-period.cdn-produt-rural tt-fechto-produt-period.nome-abrev ~
+tt-fechto-produt-period.grp-produt tt-fechto-produt-period.cod-regiao ~
+tt-fechto-produt-period.cod-propried tt-fechto-produt-period.cod-rota ~
+tt-fechto-produt-period.cod-estabel tt-fechto-produt-period.qtd-period ~
+tt-fechto-produt-period.val-preco-final-inf ~
+tt-fechto-produt-period.val-var-qualid ~
+tt-fechto-produt-period.val-var-volum tt-fechto-produt-period.val-bonus-fix ~
+tt-fechto-produt-period.val-preco-base ~
+tt-fechto-produt-period.val-per-anterior tt-fechto-produt-period.diferenca ~
+tt-fechto-produt-period.val-preco-base + tt-fechto-produt-period.val-var-qualid + tt-fechto-produt-period.val-var-volum + tt-fechto-produt-period.val-bonus-fix ~
+tt-fechto-produt-period.val-bonus-fix-inf ~
+tt-fechto-produt-period.val-livre-1 tt-fechto-produt-period.val-impto ~
+tt-fechto-produt-period.val-total tt-fechto-produt-period.val-frete ~
+tt-fechto-produt-period.cidade ~
+fnSituacao(tt-fechto-produt-period.idi-situacao) 
+&Scoped-define ENABLED-FIELDS-IN-QUERY-brFechto ~
+tt-fechto-produt-period.val-preco-final-inf 
+&Scoped-define ENABLED-TABLES-IN-QUERY-brFechto tt-fechto-produt-period
+&Scoped-define FIRST-ENABLED-TABLE-IN-QUERY-brFechto tt-fechto-produt-period
+&Scoped-define QUERY-STRING-brFechto FOR EACH tt-fechto-produt-period NO-LOCK ~
+    BY tt-fechto-produt-period.val-livre-6 INDEXED-REPOSITION
+&Scoped-define OPEN-QUERY-brFechto OPEN QUERY brFechto FOR EACH tt-fechto-produt-period NO-LOCK ~
+    BY tt-fechto-produt-period.val-livre-6 INDEXED-REPOSITION.
+&Scoped-define TABLES-IN-QUERY-brFechto tt-fechto-produt-period
+&Scoped-define FIRST-TABLE-IN-QUERY-brFechto tt-fechto-produt-period
+
+
+/* Definitions for FRAME fPage1                                         */
+
+/* Standard List Definitions                                            */
+&Scoped-Define ENABLED-FIELDS tt-fechto-produt-period.cod-period 
+&Scoped-define ENABLED-TABLES tt-fechto-produt-period
+&Scoped-define FIRST-ENABLED-TABLE tt-fechto-produt-period
+&Scoped-Define ENABLED-OBJECTS cb-item bt-carregar-dados bt-selecao ~
+btQueryJoins btReportsJoins btExit btHelp c-desc-item bt-save bt-cancel ~
+rtToolBar rtKeys 
+&Scoped-Define DISPLAYED-FIELDS tt-fechto-produt-period.cod-period 
+&Scoped-define DISPLAYED-TABLES tt-fechto-produt-period
+&Scoped-define FIRST-DISPLAYED-TABLE tt-fechto-produt-period
+&Scoped-Define DISPLAYED-OBJECTS cb-item c-desc-item 
+
+/* Custom List Definitions                                              */
+/* List-1,List-2,List-3,List-4,List-5,List-6                            */
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fnSituacao wMaintenance 
+FUNCTION fnSituacao RETURNS CHARACTER
+  ( iSit as integer )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* ***********************  Control Definitions  ********************** */
+
+/* Define the widget handle for the window                              */
+DEFINE VAR wMaintenance AS WIDGET-HANDLE NO-UNDO.
+
+/* Menu Definitions                                                     */
+DEFINE SUB-MENU smFile 
+       MENU-ITEM m_Seleo        LABEL "&Sele‡Æo"       ACCELERATOR "CTRL-S"
+       RULE
+       MENU-ITEM miQueryJoins   LABEL "&Consultas"    
+       MENU-ITEM miReportsJoins LABEL "&Relat¢rios"   
+       RULE
+       MENU-ITEM miExit         LABEL "&Sair"          ACCELERATOR "CTRL-X".
+
+DEFINE SUB-MENU smHelp 
+       MENU-ITEM miContents     LABEL "&Conte£do"     
+       RULE
+       MENU-ITEM miAbout        LABEL "&Sobre..."     .
+
+DEFINE MENU mbMain MENUBAR
+       SUB-MENU  smFile         LABEL "&Arquivo"      
+       SUB-MENU  smHelp         LABEL "&Ajuda"        .
+
+
+/* Definitions of the field level widgets                               */
+DEFINE BUTTON bt-cancel 
+     LABEL "Cancelar" 
+     SIZE 15 BY 1.13.
+
+DEFINE BUTTON bt-carregar-dados 
+     IMAGE-UP FILE "image/im-cq.bmp":U
+     IMAGE-INSENSITIVE FILE "image/ii-cq.bmp":U
+     LABEL "Carregar Dados" 
+     SIZE 4 BY 1.17.
+
+DEFINE BUTTON bt-save 
+     LABEL "Confirmar" 
+     SIZE 15 BY 1.13.
+
+DEFINE BUTTON bt-selecao 
+     IMAGE-UP FILE "image/im-ran.bmp":U
+     IMAGE-INSENSITIVE FILE "image/ii-ran.bmp":U
+     LABEL "" 
+     SIZE 4 BY 1.25.
+
+DEFINE BUTTON btExit 
+     IMAGE-UP FILE "image/im-exi":U
+     IMAGE-INSENSITIVE FILE "image/ii-exi":U
+     LABEL "Exit" 
+     SIZE 4 BY 1.25
+     FONT 4.
+
+DEFINE BUTTON btHelp 
+     IMAGE-UP FILE "image/im-hel":U
+     IMAGE-INSENSITIVE FILE "image/ii-hel":U
+     LABEL "Help" 
+     SIZE 4 BY 1.25
+     FONT 4.
+
+DEFINE BUTTON btQueryJoins 
+     IMAGE-UP FILE "image/im-joi":U
+     IMAGE-INSENSITIVE FILE "image/ii-joi":U
+     LABEL "Query Joins" 
+     SIZE 4 BY 1.25
+     FONT 4.
+
+DEFINE BUTTON btReportsJoins 
+     IMAGE-UP FILE "image/im-pri":U
+     IMAGE-INSENSITIVE FILE "image/ii-pri":U
+     LABEL "Reports Joins" 
+     SIZE 4 BY 1.25
+     FONT 4.
+
+DEFINE VARIABLE cb-item AS CHARACTER FORMAT "X(256)":U 
+     LABEL "Item" 
+     VIEW-AS COMBO-BOX INNER-LINES 5
+     DROP-DOWN-LIST
+     SIZE 18 BY 1 NO-UNDO.
+
+DEFINE VARIABLE c-desc-item LIKE item.desc-item
+     VIEW-AS FILL-IN 
+     SIZE 61.14 BY .88 NO-UNDO.
+
+DEFINE RECTANGLE rtKeys
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 138 BY 2.58.
+
+DEFINE RECTANGLE rtToolBar
+     EDGE-PIXELS 2 GRAPHIC-EDGE    
+     SIZE 138 BY 1.5
+     BGCOLOR 7 .
+
+DEFINE BUTTON bt-observacao 
+     LABEL "Observa‡Æo" 
+     SIZE 10 BY 1.
+
+DEFINE BUTTON btDesmarcar 
+     LABEL "Desmarcar" 
+     SIZE 10 BY 1.
+
+DEFINE BUTTON btMarcar 
+     LABEL "Marcar" 
+     SIZE 10 BY 1.
+
+DEFINE BUTTON btNenhum 
+     LABEL "Nenhum" 
+     SIZE 10 BY 1.
+
+DEFINE BUTTON btTodos 
+     LABEL "Todos" 
+     SIZE 10 BY 1.
+
+DEFINE VARIABLE de-impto-sanidade-animal AS DECIMAL FORMAT "->>>,>>>,>>9.99":U INITIAL 0 
+     LABEL "Impto Sanidade" 
+     VIEW-AS FILL-IN 
+     SIZE 11.72 BY .88 NO-UNDO.
+
+DEFINE VARIABLE de-tot-frete AS DECIMAL FORMAT "->>>,>>>,>>>,>>>,>>>,>>>,>>>,>>9.9999":U INITIAL 0 
+     LABEL "Frete" 
+     VIEW-AS FILL-IN 
+     SIZE 25 BY .88 NO-UNDO.
+
+DEFINE VARIABLE de-tot-qtd-period AS DECIMAL FORMAT "->>>,>>>,>>>,>>>,>>>,>>>,>>>,>>9.9999":U INITIAL 0 
+     LABEL "Quantidade" 
+     VIEW-AS FILL-IN 
+     SIZE 25 BY .88 NO-UNDO.
+
+DEFINE VARIABLE de-tot-valor AS DECIMAL FORMAT "->>>,>>>,>>>,>>>,>>>,>>>,>>>,>>9.9999":U INITIAL 0 
+     LABEL "Valor" 
+     VIEW-AS FILL-IN 
+     SIZE 25 BY .88 NO-UNDO.
+
+DEFINE VARIABLE l-ativa-facelift AS CHARACTER FORMAT "X(1)":U 
+      VIEW-AS TEXT 
+     SIZE 1 BY .67 NO-UNDO.
+
+DEFINE RECTANGLE RECT-1
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 127.14 BY 2.
+
+/* Query definitions                                                    */
+&ANALYZE-SUSPEND
+DEFINE QUERY brFechto FOR 
+      tt-fechto-produt-period SCROLLING.
+&ANALYZE-RESUME
+
+/* Browse definitions                                                   */
+DEFINE BROWSE brFechto
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS brFechto wMaintenance _STRUCTURED
+  QUERY brFechto NO-LOCK DISPLAY
+      tt-fechto-produt-period.checkSum COLUMN-LABEL "*" FORMAT "x(1)":U
+            WIDTH 1.43
+      tt-fechto-produt-period.cdn-produt-rural FORMAT ">>>,>>>,>>9":U
+      tt-fechto-produt-period.nome-abrev COLUMN-LABEL "Produtor Rural" FORMAT "x(16)":U
+            WIDTH 10.43
+      tt-fechto-produt-period.grp-produt COLUMN-LABEL "Grupo" FORMAT "X(60)":U
+            WIDTH 19.43
+      tt-fechto-produt-period.cod-regiao FORMAT "x(12)":U
+      tt-fechto-produt-period.cod-propried FORMAT "x(16)":U
+      tt-fechto-produt-period.cod-rota FORMAT "x(12)":U
+      tt-fechto-produt-period.cod-estabel FORMAT "x(5)":U WIDTH 5
+      tt-fechto-produt-period.qtd-period COLUMN-LABEL "Qtd Per¡odo" FORMAT "->>>,>>>,>>9.9999":U
+      tt-fechto-produt-period.val-preco-final-inf FORMAT ">>9.9999":U
+            WIDTH 10.14 COLUMN-FONT 0
+      tt-fechto-produt-period.val-var-qualid FORMAT "->>>,>>9.9999":U
+            WIDTH 11.43
+      tt-fechto-produt-period.val-var-volum FORMAT "->>>,>>9.9999":U
+            WIDTH 9.43
+      tt-fechto-produt-period.val-bonus-fix FORMAT "->>>,>>9.9999":U
+            WIDTH 8.43
+      tt-fechto-produt-period.val-preco-base FORMAT ">>>>>,>>>,>>9.9999":U
+            WIDTH 11.43
+      tt-fechto-produt-period.val-per-anterior COLUMN-LABEL "Final Anterior" FORMAT ">>>>>,>>>,>>9.9999":U
+            WIDTH 9.86
+      tt-fechto-produt-period.diferenca COLUMN-LABEL "Diferen‡a" FORMAT "->>>>>,>>>,>>9.9999":U
+            WIDTH 8.43
+      tt-fechto-produt-period.val-preco-base + tt-fechto-produt-period.val-var-qualid + tt-fechto-produt-period.val-var-volum + tt-fechto-produt-period.val-bonus-fix COLUMN-LABEL "Pre Unit" FORMAT ">>>>>,>>>,>>9.9999":U
+            WIDTH 7.14
+      tt-fechto-produt-period.val-bonus-fix-inf COLUMN-LABEL "B“nus Informado" FORMAT "->>>,>>9.9999":U
+            WIDTH 10.86
+      tt-fechto-produt-period.val-livre-1 COLUMN-LABEL "Ajuste" FORMAT "->>>>>>>>>>>9.9999":U
+            WIDTH 10.43
+      tt-fechto-produt-period.val-impto FORMAT ">>>,>>>,>>>,>>9.9999":U
+      tt-fechto-produt-period.val-total COLUMN-LABEL "Total" FORMAT ">>>>>>>>,>>>,>>9.9999":U
+            WIDTH 13.72
+      tt-fechto-produt-period.val-frete FORMAT ">>>,>>>,>>>,>>9.9999":U
+            WIDTH 5.72
+      tt-fechto-produt-period.cidade FORMAT "x(20)":U
+      fnSituacao(tt-fechto-produt-period.idi-situacao) COLUMN-LABEL "Situa‡Æo" FORMAT "x(15)":U
+  ENABLE
+      tt-fechto-produt-period.val-preco-final-inf
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+    WITH NO-ROW-MARKERS SEPARATORS SIZE 131 BY 11.5
+         FONT 1 FIT-LAST-COLUMN.
+
+
+/* ************************  Frame Definitions  *********************** */
+
+DEFINE FRAME fpage0
+     tt-fechto-produt-period.cod-period AT ROW 2.96 COL 19.43 COLON-ALIGNED
+          VIEW-AS FILL-IN 
+          SIZE 11.72 BY .88
+     cb-item AT ROW 3.96 COL 19.43 COLON-ALIGNED
+     bt-carregar-dados AT ROW 3.67 COL 101.43
+     bt-selecao AT ROW 1.13 COL 1.57
+     btQueryJoins AT ROW 1.13 COL 123 HELP
+          "Consultas relacionadas"
+     btReportsJoins AT ROW 1.13 COL 127 HELP
+          "Relat¢rios relacionados"
+     btExit AT ROW 1.13 COL 131 HELP
+          "Sair"
+     btHelp AT ROW 1.13 COL 135 HELP
+          "Ajuda"
+     c-desc-item AT ROW 3.96 COL 37.72 COLON-ALIGNED HELP
+          "" NO-LABEL
+     bt-save AT ROW 21.63 COL 4
+     bt-cancel AT ROW 21.63 COL 19.29
+     rtToolBar AT ROW 1 COL 1
+     rtKeys AT ROW 2.67 COL 1
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 138.14 BY 22.13
+         FONT 1.
+
+DEFINE FRAME fPage1
+     brFechto AT ROW 1 COL 1
+     btMarcar AT ROW 12.58 COL 1
+     btDesmarcar AT ROW 12.58 COL 11.14
+     btTodos AT ROW 12.58 COL 21.29
+     btNenhum AT ROW 12.58 COL 31.43
+     bt-observacao AT ROW 12.58 COL 122.14
+     de-tot-qtd-period AT ROW 14.5 COL 10.72 COLON-ALIGNED
+     de-impto-sanidade-animal AT ROW 14.5 COL 49.14 COLON-ALIGNED WIDGET-ID 2
+     de-tot-valor AT ROW 14.5 COL 69 COLON-ALIGNED
+     de-tot-frete AT ROW 14.5 COL 101.57 COLON-ALIGNED
+     l-ativa-facelift AT ROW 12.83 COL 69.57 COLON-ALIGNED NO-LABEL
+     "Totais:" VIEW-AS TEXT
+          SIZE 6 BY .5 AT ROW 13.54 COL 59.72
+     RECT-1 AT ROW 13.83 COL 3.29
+    WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 4.29 ROW 6.38
+         SIZE 131.43 BY 15.13
+         FONT 1.
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: Maintenance
+   Allow: Basic,Browse,DB-Fields,Window,Query
+   Add Fields to: Neither
+   Temp-Tables and Buffers:
+      TABLE: tt-fechto-produt-period T "?" NO-UNDO mgmov fechto-produt-period
+      ADDITIONAL-FIELDS:
+          FIELD checkSum          AS CHARACTER FORMAT 'x(1)'
+          FIELD val-unit          AS DECIMAL
+          FIELD val-total         AS DECIMAL
+          FIELD val-per-anterior  AS DECIMAL
+          FIELD diferenca         AS DECIMAL
+          FIELD cidade            LIKE loc-entr.cidade
+          FIELD nome-abrev        LIKE emitente.nome-abrev
+          FIELD grp-produt        LIKE grp-produt.des-grp-produt
+          FIELD r-rowid           AS ROWID
+      END-FIELDS.
+   END-TABLES.
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+IF SESSION:DISPLAY-TYPE = "GUI":U THEN
+  CREATE WINDOW wMaintenance ASSIGN
+         HIDDEN             = YES
+         TITLE              = ""
+         HEIGHT             = 22
+         WIDTH              = 137.86
+         MAX-HEIGHT         = 38.58
+         MAX-WIDTH          = 182.86
+         VIRTUAL-HEIGHT     = 38.58
+         VIRTUAL-WIDTH      = 182.86
+         RESIZE             = yes
+         SCROLL-BARS        = no
+         STATUS-AREA        = yes
+         BGCOLOR            = ?
+         FGCOLOR            = ?
+         KEEP-FRAME-Z-ORDER = yes
+         THREE-D            = yes
+         MESSAGE-AREA       = no
+         SENSITIVE          = yes.
+ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
+
+ASSIGN {&WINDOW-NAME}:MENUBAR    = MENU mbMain:HANDLE.
+/* END WINDOW DEFINITION                                                */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB wMaintenance 
+/* ************************* Included-Libraries *********************** */
+
+{maintenance/maintenance.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
+
+&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
+/* SETTINGS FOR WINDOW wMaintenance
+  NOT-VISIBLE,,RUN-PERSISTENT                                           */
+/* REPARENT FRAME */
+ASSIGN FRAME fPage1:FRAME = FRAME fpage0:HANDLE.
+
+/* SETTINGS FOR FRAME fpage0
+   FRAME-NAME Custom                                                    */
+ASSIGN 
+       bt-carregar-dados:AUTO-RESIZE IN FRAME fpage0      = TRUE.
+
+/* SETTINGS FOR FILL-IN c-desc-item IN FRAME fpage0
+   LIKE = mgcad.item.desc-item EXP-SIZE                                 */
+/* SETTINGS FOR FRAME fPage1
+                                                                        */
+/* BROWSE-TAB brFechto 1 fPage1 */
+ASSIGN 
+       brFechto:COLUMN-RESIZABLE IN FRAME fPage1       = TRUE.
+
+ASSIGN 
+       tt-fechto-produt-period.val-preco-final-inf:AUTO-RESIZE IN BROWSE brFechto = TRUE.
+
+/* SETTINGS FOR FILL-IN l-ativa-facelift IN FRAME fPage1
+   NO-DISPLAY NO-ENABLE                                                 */
+ASSIGN 
+       l-ativa-facelift:HIDDEN IN FRAME fPage1           = TRUE.
+
+IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(wMaintenance)
+THEN wMaintenance:HIDDEN = yes.
+
+/* _RUN-TIME-ATTRIBUTES-END */
+&ANALYZE-RESUME
+
+
+/* Setting information for Queries and Browse Widgets fields            */
+
+&ANALYZE-SUSPEND _QUERY-BLOCK BROWSE brFechto
+/* Query rebuild information for BROWSE brFechto
+     _TblList          = "Temp-Tables.tt-fechto-produt-period"
+     _Options          = "NO-LOCK INDEXED-REPOSITION"
+     _OrdList          = "Temp-Tables.tt-fechto-produt-period.val-livre-6|yes"
+     _FldNameList[1]   > "_<CALC>"
+"tt-fechto-produt-period.checkSum" "*" "x(1)" ? ? ? ? ? ? ? no ? no no "1.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[2]   = Temp-Tables.tt-fechto-produt-period.cdn-produt-rural
+     _FldNameList[3]   > "_<CALC>"
+"tt-fechto-produt-period.nome-abrev" "Produtor Rural" "x(16)" ? ? ? ? ? ? ? no ? no no "10.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[4]   > "_<CALC>"
+"tt-fechto-produt-period.grp-produt" "Grupo" "X(60)" ? ? ? ? ? ? ? no ? no no "19.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[5]   = Temp-Tables.tt-fechto-produt-period.cod-regiao
+     _FldNameList[6]   = Temp-Tables.tt-fechto-produt-period.cod-propried
+     _FldNameList[7]   = Temp-Tables.tt-fechto-produt-period.cod-rota
+     _FldNameList[8]   > Temp-Tables.tt-fechto-produt-period.cod-estabel
+"cod-estabel" ? ? "character" ? ? ? ? ? ? no ? no no "5" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[9]   > Temp-Tables.tt-fechto-produt-period.qtd-period
+"qtd-period" "Qtd Per¡odo" "->>>,>>>,>>9.9999" "decimal" ? ? ? ? ? ? no ? no no ? yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[10]   > Temp-Tables.tt-fechto-produt-period.val-preco-final-inf
+"val-preco-final-inf" ? ">>9.9999" "decimal" ? ? 0 ? ? ? yes ? no no "10.14" yes yes no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[11]   > Temp-Tables.tt-fechto-produt-period.val-var-qualid
+"val-var-qualid" ? "->>>,>>9.9999" "decimal" ? ? ? ? ? ? no ? no no "11.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[12]   > Temp-Tables.tt-fechto-produt-period.val-var-volum
+"val-var-volum" ? "->>>,>>9.9999" "decimal" ? ? ? ? ? ? no ? no no "9.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[13]   > Temp-Tables.tt-fechto-produt-period.val-bonus-fix
+"val-bonus-fix" ? "->>>,>>9.9999" "decimal" ? ? ? ? ? ? no ? no no "8.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[14]   > Temp-Tables.tt-fechto-produt-period.val-preco-base
+"val-preco-base" ? ? "decimal" ? ? ? ? ? ? no ? no no "11.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[15]   > "_<CALC>"
+"tt-fechto-produt-period.val-per-anterior" "Final Anterior" ">>>>>,>>>,>>9.9999" ? ? ? ? ? ? ? no ? no no "9.86" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[16]   > "_<CALC>"
+"tt-fechto-produt-period.diferenca" "Diferen‡a" "->>>>>,>>>,>>9.9999" ? ? ? ? ? ? ? no ? no no "8.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[17]   > "_<CALC>"
+"tt-fechto-produt-period.val-preco-base + tt-fechto-produt-period.val-var-qualid + tt-fechto-produt-period.val-var-volum + tt-fechto-produt-period.val-bonus-fix" "Pre Unit" ">>>>>,>>>,>>9.9999" ? ? ? ? ? ? ? no ? no no "7.14" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[18]   > Temp-Tables.tt-fechto-produt-period.val-bonus-fix-inf
+"val-bonus-fix-inf" "B“nus Informado" "->>>,>>9.9999" "decimal" ? ? ? ? ? ? no ? no no "10.86" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[19]   > Temp-Tables.tt-fechto-produt-period.val-livre-1
+"val-livre-1" "Ajuste" "->>>>>>>>>>>9.9999" "decimal" ? ? ? ? ? ? no "Ajuste (Engine de Regras)" no no "10.43" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[20]   = Temp-Tables.tt-fechto-produt-period.val-impto
+     _FldNameList[21]   > "_<CALC>"
+"tt-fechto-produt-period.val-total" "Total" ">>>>>>>>,>>>,>>9.9999" ? ? ? ? ? ? ? no ? no no "13.72" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[22]   > Temp-Tables.tt-fechto-produt-period.val-frete
+"val-frete" ? ? "decimal" ? ? ? ? ? ? no ? no no "5.72" yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[23]   > "_<CALC>"
+"tt-fechto-produt-period.cidade" ? "x(20)" ? ? ? ? ? ? ? no ? no no ? yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _FldNameList[24]   > "_<CALC>"
+"fnSituacao(tt-fechto-produt-period.idi-situacao)" "Situa‡Æo" "x(15)" ? ? ? ? ? ? ? no ? no no ? yes no no "U" "" "" "" "" "" "" 0 no 0 no no
+     _Query            is NOT OPENED
+*/  /* BROWSE brFechto */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _QUERY-BLOCK FRAME fpage0
+/* Query rebuild information for FRAME fpage0
+     _Options          = "SHARE-LOCK KEEP-EMPTY"
+     _Query            is NOT OPENED
+*/  /* FRAME fpage0 */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _QUERY-BLOCK FRAME fPage1
+/* Query rebuild information for FRAME fPage1
+     _Options          = "SHARE-LOCK KEEP-EMPTY"
+     _Query            is NOT OPENED
+*/  /* FRAME fPage1 */
+&ANALYZE-RESUME
+
+ 
+
+
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME wMaintenance
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wMaintenance wMaintenance
+ON END-ERROR OF wMaintenance
+OR ENDKEY OF {&WINDOW-NAME} ANYWHERE DO:
+  /* This case occurs when the user presses the "Esc" key.
+     In a persistently run window, just ignore this.  If we did not, the
+     application would exit. */
+  IF THIS-PROCEDURE:PERSISTENT THEN RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL wMaintenance wMaintenance
+ON WINDOW-CLOSE OF wMaintenance
+DO:
+  /* This event will close the window and terminate the procedure.  */
+  APPLY "CLOSE":U TO THIS-PROCEDURE.
+  RETURN NO-APPLY.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define BROWSE-NAME brFechto
+&Scoped-define FRAME-NAME fPage1
+&Scoped-define SELF-NAME brFechto
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brFechto wMaintenance
+ON MOUSE-SELECT-DBLCLICK OF brFechto IN FRAME fPage1
+DO:
+  RUN piMarcarDesmarcar IN THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brFechto wMaintenance
+ON ROW-DISPLAY OF brFechto IN FRAME fPage1
+DO:
+  ASSIGN tt-fechto-produt-period.val-preco-base:BGCOLOR IN BROWSE brFechto = IF tt-fechto-produt-period.val-preco-base > 0 THEN ?  ELSE 14.
+
+  CASE tt-fechto-produt-period.idi-situacao:
+    WHEN 1 THEN ASSIGN tt-fechto-produt-period.checkSum:BGCOLOR IN BROWSE brFechto = ?.
+    WHEN 2 THEN ASSIGN tt-fechto-produt-period.checkSum:BGCOLOR IN BROWSE brFechto = 10.
+    WHEN 3 THEN ASSIGN tt-fechto-produt-period.checkSum:BGCOLOR IN BROWSE brFechto = 11.
+  END CASE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL brFechto wMaintenance
+ON VALUE-CHANGED OF brFechto IN FRAME fPage1
+DO:
+  RUN piHabilitarBotao IN THIS-PROCEDURE.
+
+  /* Execu‡Æo de tela de Consulta */
+  IF "{1}" = "AQ0415" THEN DO:
+     ASSIGN tt-fechto-produt-period.val-preco-final-inf:READ-ONLY IN BROWSE brFechto = YES.
+  END.
+  ELSE DO:
+    /*teste para situação da "linha" do período. caso já tenha gerado a NF, não será possível alterar os valores*/ 
+    IF AVAIL tt-fechto-produt-period THEN DO:
+      IF tt-fechto-produt-period.idi-situacao = 3 /*NF Gerada*/ THEN
+        ASSIGN tt-fechto-produt-period.val-preco-final-inf:READ-ONLY IN BROWSE brFechto = YES.
+      ELSE  
+        ASSIGN tt-fechto-produt-period.val-preco-final-inf:READ-ONLY IN BROWSE brFechto = NO.
+    END.
+  END.
+
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fpage0
+&Scoped-define SELF-NAME bt-cancel
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-cancel wMaintenance
+ON CHOOSE OF bt-cancel IN FRAME fpage0 /* Cancelar */
+DO:
+    APPLY "CLOSE":U TO THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME bt-carregar-dados
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-carregar-dados wMaintenance
+ON CHOOSE OF bt-carregar-dados IN FRAME fpage0 /* Carregar Dados */
+DO:
+
+  RUN criaTTFiltro IN THIS-PROCEDURE. /*caso j  tenha sido criado a tt, utiliza como filtro*/
+  RUN piOpenQuery  IN THIS-PROCEDURE. /*carrega o browse com base na tt-filto*/
+    
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fPage1
+&Scoped-define SELF-NAME bt-observacao
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-observacao wMaintenance
+ON CHOOSE OF bt-observacao IN FRAME fPage1 /* Observa‡Æo */
+DO:
+
+    IF brFechto:NUM-SELECTED-ROWS = 1 THEN DO:
+
+        ASSIGN c-observacao = tt-fechto-produt-period.cod-livre-2.  /* observacao gravado no cod-livre-2 */
+        
+        {&WINDOW-NAME}:SENSITIVE = NO.
+        RUN aqp/aq0315b.w(INPUT-OUTPUT c-observacao,   
+                          INPUT        IF "{1}" = "AQ0415" THEN 3 /*"Com NF gerada"*/                  /* Consulta somente ser  visualizada a observa‡Æo     */
+                                                           ELSE tt-fechto-produt-period.idi-situacao). /* se situacao = "Com NF gerada", nÆo permite alterar */
+        
+        ASSIGN tt-fechto-produt-period.cod-livre-2 = c-observacao.  
+        
+        {&WINDOW-NAME}:SENSITIVE = YES.
+
+    END.
+    ELSE
+        RUN utp/ut-msgs.p (INPUT "show":U,
+                           INPUT 32002,
+                           INPUT "":U).
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fpage0
+&Scoped-define SELF-NAME bt-save
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-save wMaintenance
+ON CHOOSE OF bt-save IN FRAME fpage0 /* Confirmar */
+DO:
+    /*RUN saveRecord IN THIS-PROCEDURE.*/
+    
+    {utp/ut-liter.i "atualiza‡Æo_dos_valores_selecionados" *}
+    RUN utp/ut-msgs.p (INPUT "show",
+                       INPUT 701,
+                       INPUT RETURN-VALUE).
+
+    IF RETURN-VALUE = "YES":U THEN DO:
+    
+        RUN piVerificarRegistros IN THIS-PROCEDURE.
+        
+        IF RETURN-VALUE = "OK":U THEN 
+            RUN piGravarRegistros IN THIS-PROCEDURE.
+
+    END.
+    ELSE
+        RETURN "NOK":U.
+
+    RUN piOpenQuery IN THIS-PROCEDURE.
+
+    RETURN "OK":U.
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME bt-selecao
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-selecao wMaintenance
+ON CHOOSE OF bt-selecao IN FRAME fpage0
+DO:
+    {&WINDOW-NAME}:SENSITIVE = NO.
+
+    RUN criaTTFiltro IN THIS-PROCEDURE. /*caso nÆo tenha sido criado a tt, ir  criar*/
+    
+    RUN aqp/aq0315a.w(INPUT-OUTPUT TABLE tt-filtro).
+    IF RETURN-VALUE = "OK" THEN
+        RUN piOpenQuery IN THIS-PROCEDURE.
+
+    {&WINDOW-NAME}:SENSITIVE = YES.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fPage1
+&Scoped-define SELF-NAME btDesmarcar
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btDesmarcar wMaintenance
+ON CHOOSE OF btDesmarcar IN FRAME fPage1 /* Desmarcar */
+DO:
+  RUN piMarcarDesmarcar IN THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fpage0
+&Scoped-define SELF-NAME btExit
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btExit wMaintenance
+ON CHOOSE OF btExit IN FRAME fpage0 /* Exit */
+OR CHOOSE OF MENU-ITEM miExit IN MENU mbMain DO:
+    APPLY "CLOSE":U TO THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME btHelp
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btHelp wMaintenance
+ON CHOOSE OF btHelp IN FRAME fpage0 /* Help */
+OR CHOOSE OF MENU-ITEM miContents IN MENU mbMain DO:
+    {include/ajuda.i}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fPage1
+&Scoped-define SELF-NAME btMarcar
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btMarcar wMaintenance
+ON CHOOSE OF btMarcar IN FRAME fPage1 /* Marcar */
+DO:
+    RUN piMarcarDesmarcar IN THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME btNenhum
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btNenhum wMaintenance
+ON CHOOSE OF btNenhum IN FRAME fPage1 /* Nenhum */
+DO:
+    FOR EACH tt-fechto-produt-period:
+        ASSIGN tt-fechto-produt-period.checkSum =  "".
+    END.
+   
+   {&OPEN-QUERY-brFechto}
+
+   RUN piHabilitarBotao IN THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fpage0
+&Scoped-define SELF-NAME btQueryJoins
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btQueryJoins wMaintenance
+ON CHOOSE OF btQueryJoins IN FRAME fpage0 /* Query Joins */
+OR CHOOSE OF MENU-ITEM miQueryJoins IN MENU mbMain DO:
+    RUN showQueryJoins IN THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME btReportsJoins
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btReportsJoins wMaintenance
+ON CHOOSE OF btReportsJoins IN FRAME fpage0 /* Reports Joins */
+OR CHOOSE OF MENU-ITEM miReportsJoins IN MENU mbMain DO:
+    RUN showReportsJoins IN THIS-PROCEDURE.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fPage1
+&Scoped-define SELF-NAME btTodos
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btTodos wMaintenance
+ON CHOOSE OF btTodos IN FRAME fPage1 /* Todos */
+DO:
+    FOR EACH tt-fechto-produt-period
+        WHERE tt-fechto-produt-period.idi-situacao <> 3:
+        ASSIGN tt-fechto-produt-period.checkSum =  "*".
+    END.
+   
+   {&OPEN-QUERY-brFechto}
+
+   RUN piHabilitarBotao IN THIS-PROCEDURE.
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME fpage0
+&Scoped-define SELF-NAME cb-item
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cb-item wMaintenance
+ON VALUE-CHANGED OF cb-item IN FRAME fpage0 /* Item */
+DO: 
+    
+    RUN goToKey IN h-boin172na (INPUT cb-item:SCREEN-VALUE IN FRAME fPage0) NO-ERROR.
+
+    IF RETURN-VALUE = "OK":U THEN DO:
+        RUN findDescItem IN h-boin00983 (INPUT SELF:SCREEN-VALUE IN FRAME fPage0, OUTPUT c-desc-item) NO-ERROR. 
+        ASSIGN c-desc-item:SCREEN-VALUE IN FRAME fPage0 = c-desc-item.
+    END.
+    ELSE 
+        ASSIGN c-desc-item:SCREEN-VALUE IN FRAME fPage0 = "".
+
+    RUN criaTTFiltro IN THIS-PROCEDURE. /*caso nÆo tenha sido criado a tt, ir  criar*/
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-fechto-produt-period.cod-period
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-fechto-produt-period.cod-period wMaintenance
+ON LEAVE OF tt-fechto-produt-period.cod-period IN FRAME fpage0 /* Periodo */
+DO:
+
+    RUN criaTTFiltro IN THIS-PROCEDURE. /*caso nÆo tenha sido criado a tt, ir  criar*/
+          
+    RETURN "OK":U.
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME miAbout
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL miAbout wMaintenance
+ON CHOOSE OF MENU-ITEM miAbout /* Sobre... */
+DO:
+  {include/sobre.i}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME m_Seleo
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL m_Seleo wMaintenance
+ON CHOOSE OF MENU-ITEM m_Seleo /* Sele‡Æo */
+DO:
+  APPLY "CHOOSE":U TO bt-selecao IN FRAME fPage0.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK wMaintenance 
+
+
+/*:T--- L¢gica para inicializa‡Æo do programam ---*/
+{maintenance/mainblock.i}
+
+ON 'LEAVE':U OF tt-fechto-produt-period.val-preco-final-inf IN BROWSE brFechto
+DO:
+
+    IF DEC(tt-fechto-produt-period.val-preco-final-inf:SCREEN-VALUE IN BROWSE brFechto) <= 0 THEN DO:
+        ASSIGN tt-fechto-produt-period.val-preco-final-inf:SCREEN-VALUE IN BROWSE brFechto = STRING(tt-fechto-produt-period.val-preco-base 
+                                                                                                  + tt-fechto-produt-period.val-var-qualid 
+                                                                                                  + tt-fechto-produt-period.val-var-volum 
+                                                                                                  + tt-fechto-produt-period.val-bonus-fix-inf).
+        
+        RUN utp/ut-msgs.p (INPUT "show",
+                           INPUT 206,
+                           INPUT "").
+
+        APPLY "ENTRY":U TO tt-fechto-produt-period.val-preco-final-inf IN BROWSE brFechto.
+       
+    END.
+    ELSE DO:
+        ASSIGN de-tot-valor-old = tt-fechto-produt-period.val-preco-final-inf * tt-fechto-produt-period.qtd-period.
+        
+        ASSIGN tt-fechto-produt-period.val-preco-final-inf = DEC(tt-fechto-produt-period.val-preco-final-inf:SCREEN-VALUE IN BROWSE brFechto)
+               tt-fechto-produt-period.val-bonus-fix-inf   = tt-fechto-produt-period.val-preco-final-inf  - ~
+                                                                  (tt-fechto-produt-period.val-preco-base + ~
+                                                                   tt-fechto-produt-period.val-var-qualid + ~
+                                                                   tt-fechto-produt-period.val-var-volum)
+               tt-fechto-produt-period.val-total           = tt-fechto-produt-period.qtd-period * tt-fechto-produt-period.val-preco-final-inf
+               tt-fechto-produt-period.diferenca           = tt-fechto-produt-period.val-preco-final-inf - ~
+                                                             tt-fechto-produt-period.val-per-anterior.
+        
+        ASSIGN de-tot-valor:SCREEN-VALUE IN FRAME fPage1 = STRING(DEC(de-tot-valor:SCREEN-VALUE IN FRAME fPage1) + tt-fechto-produt-period.val-total - de-tot-valor-old).
+        
+    END.
+
+    IF VALID-HANDLE(h-boin00999) THEN DO:
+
+        RUN retornaIncentivo IN h-boin00999(INPUT tt-fechto-produt-period.cod-period,
+                                            INPUT tt-fechto-produt-period.cdn-produt-rural,
+                                            INPUT tt-fechto-produt-period.it-codigo,
+                                            INPUT tt-fechto-produt-period.cod-estabel,
+                                            INPUT tt-fechto-produt-period.qtd-period,
+                                            INPUT tt-fechto-produt-period.val-preco-base:SCREEN-VALUE IN BROWSE brFechto,
+                                            INPUT tt-fechto-produt-period.val-var-volum,
+                                            INPUT tt-fechto-produt-period.val-bonus-fix-inf:SCREEN-VALUE IN BROWSE brFechto,
+                                            INPUT tt-fechto-produt-period.val-var-qualid,
+                                            INPUT tt-fechto-produt-period.val-preco-final-inf:SCREEN-VALUE IN BROWSE brFechto,
+                                            OUTPUT tt-fechto-produt-period.val-livre-1,
+                                            OUTPUT i-val-incentivo,
+                                            OUTPUT i-val-imp-retido).
+
+    END.
+
+    DISP tt-fechto-produt-period.diferenca
+         tt-fechto-produt-period.val-preco-final-inf 
+         tt-fechto-produt-period.val-bonus-fix-inf  
+         tt-fechto-produt-period.val-total
+         tt-fechto-produt-period.val-livre-1 WITH BROWSE brFechto NO-ERROR.
+  
+END.
+
+ON 'RETURN':U OF tt-fechto-produt-period.val-preco-final-inf IN BROWSE brFechto
+DO:
+    APPLY 'LEAVE' TO tt-fechto-produt-period.val-preco-final-inf IN BROWSE brFechto.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE afterDestroyInterface wMaintenance 
+PROCEDURE afterDestroyInterface :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+IF VALID-HANDLE(h-boin172na) THEN DO:
+    DELETE PROCEDURE h-boin172na.
+    ASSIGN h-boin172na = ?.
+END.
+
+IF VALID-HANDLE(h-boin627) THEN DO:
+    DELETE PROCEDURE h-boin627.
+    ASSIGN h-boin627 = ?.
+END.
+
+IF VALID-HANDLE(h-boin00968) THEN DO:
+    DELETE PROCEDURE h-boin00968.
+    ASSIGN h-boin00968 = ?.
+END.
+
+IF VALID-HANDLE(h-boin00983) THEN DO:
+    DELETE PROCEDURE h-boin00983.
+    ASSIGN h-boin00983 = ?.
+END.
+
+IF VALID-HANDLE(h-boin627zm) THEN DO:
+    DELETE PROCEDURE h-boin627zm.
+    ASSIGN h-boin627zm = ?.
+END.
+
+IF VALID-HANDLE(h-boin00962) THEN DO:
+    DELETE PROCEDURE h-boin00962.
+    ASSIGN h-boin00962 = ?.
+END.
+
+IF VALID-HANDLE(h-boin00963) THEN DO:
+    DELETE PROCEDURE h-boin00963.
+    ASSIGN h-boin00963 = ?.
+END.
+
+RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE afterDisplayFields wMaintenance 
+PROCEDURE afterDisplayFields :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE c-list   AS CHARACTER NO-UNDO.
+
+    DO WITH FRAME fPage0:
+
+        RUN findUsuar_mater IN h-boin627 (INPUT c-seg-usuario, OUTPUT c-cod-estabel).
+
+        IF c-cod-estabel = "" THEN DO:
+            RUN getCharField IN h-boin627 (INPUT 'char-1', OUTPUT c-cod-estabel).
+            ASSIGN c-cod-estabel = SUBSTR(c-cod-estabel,16,5). /* estab usuar */
+        END.
+
+        RUN getListItems IN h-boin00983(INPUT c-cod-estabel, OUTPUT c-list).
+
+        IF c-list <> "" THEN DO:
+            ASSIGN cb-item:LIST-ITEMS = c-list
+                   cb-item:SCREEN-VALUE = ENTRY (1,c-list).
+
+        END.
+        
+        APPLY 'VALUE-CHANGED':U TO cb-item.
+
+        ASSIGN bt-selecao:SENSITIVE                                = YES
+               tt-fechto-produt-period.cod-period:SENSITIVE        = YES
+               cb-item:SENSITIVE                                   = YES
+               bt-save:SENSITIVE                                   = YES
+               bt-cancel:SENSITIVE                                 = YES
+               bt-carregar-dados:SENSITIVE                         = YES
+               btQueryJoins:SENSITIVE                              = YES
+               btReportsJoins:SENSITIVE                            = YES.
+
+    END.
+    
+    RUN piBuscarPeriodo IN THIS-PROCEDURE.
+
+    DO WITH FRAME fPage1:
+    
+        ASSIGN btTodos:SENSITIVE       = YES
+               btNenhum:SENSITIVE      = YES
+               bt-observacao:SENSITIVE = YES.    
+
+    END.
+    
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE afterInitializeInterface wMaintenance 
+PROCEDURE afterInitializeInterface :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  IF "{1}" = "AQ0415" THEN DO:
+    btMarcar   :HIDDEN IN FRAME fPage1 = TRUE.
+    btDesmarcar:HIDDEN IN FRAME fPage1 = TRUE.
+    btTodos    :HIDDEN IN FRAME fPage1 = TRUE.
+    btNenhum   :HIDDEN IN FRAME fPage1 = TRUE.
+    bt-save    :HIDDEN IN FRAME fPage0 = TRUE.
+    bt-cancel  :HIDDEN IN FRAME fPage0 = TRUE.
+  END.
+
+  RETURN 'OK':U.
+    
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE criaTTFiltro wMaintenance 
+PROCEDURE criaTTFiltro :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    DEF VAR c-char-1      AS CHAR NO-UNDO.
+    DEF VAR c-cod-estabel AS CHAR NO-UNDO.
+
+    FIND FIRST tt-filtro NO-ERROR.
+    IF NOT AVAIL tt-filtro THEN DO:
+
+        CREATE tt-filtro.
+        ASSIGN tt-filtro.cod-period           = INPUT FRAME fPage0 tt-fechto-produt-period.cod-period
+               tt-filtro.it-codigo            = INPUT FRAME fPage0 cb-item
+               tt-filtro.cod-estabel-ini      = ""
+               tt-filtro.cod-estabel-fim      = "ZZZZZ"
+               tt-filtro.cod-regiao-ini       = ""
+               tt-filtro.cod-regiao-fim       = "ZZZZZZZZZZZZ"
+               tt-filtro.cod-rota-ini         = ""
+               tt-filtro.cod-rota-fim         = "ZZZZZZZZZZZZ"
+               tt-filtro.cdn-grp-produt-ini   = 0
+               tt-filtro.cdn-grp-produt-fim   = 999999
+               tt-filtro.cdn-produt-rural-ini = 0
+               tt-filtro.cdn-produt-rural-fim = 999999999
+               tt-filtro.cod-propried-ini     = ""
+               tt-filtro.cod-propried-fim     = "ZZZZZZZZZZZZZZZZ" 
+               tt-filtro.tg-sit-todos         = YES
+               tt-filtro.tg-sit-pendente      = YES
+               tt-filtro.tg-sit-confirmada    = YES
+               tt-filtro.tg-sit-nf-gerada     = YES 
+               tt-filtro.ordenacao            = "BY cod-estabel BY cod-regiao BY cod-rota BY cdn-produt-rural " NO-ERROR.
+
+        IF VALID-HANDLE(h-boin627zm) THEN DO:
+            RUN goTokey IN h-boin627zm(INPUT c-seg-usuario).
+            IF RETURN-VALUE = "OK":U THEN DO:
+                RUN getCharField IN h-boin627zm(INPUT "char-1":U, OUTPUT c-char-1).
+
+                IF SUBSTRING(c-char-1,16,5) <> "" THEN
+                    ASSIGN tt-filtro.cod-estabel-ini = SUBSTRING(c-char-1,16,5)      
+                           tt-filtro.cod-estabel-fim = SUBSTRING(c-char-1,16,5).
+            END.
+        END.
+    
+    END.
+    ELSE DO:
+        ASSIGN tt-filtro.cod-period           = INPUT FRAME fPage0 tt-fechto-produt-period.cod-period
+               tt-filtro.it-codigo            = INPUT FRAME fPage0 cb-item NO-ERROR.
+    END.
+    
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeDBOs wMaintenance 
+PROCEDURE initializeDBOs :
+/*:T------------------------------------------------------------------------------
+  Purpose:     Inicializa DBOs
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    /*--- Verifica se o DBO j  est  inicializado ---*/
+    IF NOT VALID-HANDLE({&hDBOTable}) OR
+       {&hDBOTable}:TYPE <> "PROCEDURE":U OR
+       {&hDBOTable}:FILE-NAME <> "inbo/boin00999.p":U THEN DO:
+        {btb/btb008za.i1 inbo/boin00999.p YES}
+        {btb/btb008za.i2 inbo/boin00999.p '' {&hDBOTable}}
+    END.
+    
+    IF NOT VALID-HANDLE(h-boin172na) THEN DO: 
+        {btb/btb008za.i1 inbo/boin172na.p}
+        {btb/btb008za.i2 inbo/boin172na.p '' h-boin172na}
+    END.
+    RUN openQueryStatic IN h-boin172na (INPUT "Main":U).
+
+    IF NOT VALID-HANDLE(h-boin627) THEN DO: /* item */
+        {btb/btb008za.i1 inbo/boin627.p}
+        {btb/btb008za.i2 inbo/boin627.p '' h-boin627}
+    END.
+
+    IF NOT VALID-HANDLE(h-boin00968) THEN DO:
+        {btb/btb008za.i1 inbo/boin00968.p}
+        {btb/btb008za.i2 inbo/boin00968.p '' h-boin00968}
+    END.
+    RUN openQueryStatic IN h-boin00968 (INPUT "Main":U).
+
+    IF NOT VALID-HANDLE(h-boin00983) THEN DO:
+        {btb/btb008za.i1 inbo/boin00983.p}
+        {btb/btb008za.i2 inbo/boin00983.p '' h-boin00983}
+    END.
+    RUN openQueryStatic IN h-boin00983 (INPUT "Main":U).
+
+    IF NOT VALID-HANDLE(h-boin627zm) THEN 
+        RUN inbo/boin627zm.p PERSISTENT SET h-boin627zm.
+
+    RUN OpenQueryStatic IN h-boin627zm (INPUT "Default":U) NO-ERROR.
+
+    /*--- Verifica se o DBO j  est  inicializado ---*/
+    IF NOT VALID-HANDLE(h-boin00962) THEN DO:
+        {btb/btb008za.i1 inbo/boin00962.p}
+        {btb/btb008za.i2 inbo/boin00962.p '' h-boin00962} 
+    END.
+    RUN openQueryStatic IN h-boin00962 (INPUT "Main":U).
+
+    IF NOT VALID-HANDLE(h-boin00963) THEN DO:
+        {btb/btb008za.i1 inbo/boin00963.p}
+        {btb/btb008za.i2 inbo/boin00963.p '' h-boin00963} 
+    END.
+    RUN openQueryStatic IN h-boin00963 (INPUT "Main":U).
+
+    RUN utp/ut-acomp.p PERSISTENT SET h-acomp.
+    
+    RETURN "OK":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piBuscarPeriodo wMaintenance 
+PROCEDURE piBuscarPeriodo :
+/*------------------------------------------------------------------------------
+  Purpose: Setar os valores iniciais para sele‡Æo.     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE c-cod-period LIKE tt-fechto-produt-period.cod-period NO-UNDO.
+
+
+    IF  VALID-HANDLE(h-boin00968) THEN DO:
+        
+        RUN goToKey IN h-boin00968 (INPUT c-cod-estabel).
+        IF RETURN-VALUE = "OK":U THEN DO:
+        
+            RUN getCharField IN h-boin00968 (INPUT  "cod-periodo",
+                                             OUTPUT c-cod-period).
+           
+                IF c-cod-period <> "" THEN DO:   /*ao fechar per¡odo, busca £ltimo per¡odo fechado, e ir  fechar o pr¢ximo*/
+                    ASSIGN tt-fechto-produt-period.cod-period:SCREEN-VALUE IN FRAME fPage0 = IF INT(SUBSTRING(c-cod-period,1,2)) < 9
+                                                                       THEN "0" + STRING(INT(SUBSTRING(c-cod-period,1,2)) + 1) + SUBSTRING(c-cod-period,3,4)
+                                                                       ELSE IF INT(SUBSTRING(c-cod-period,1,2)) < 12 
+                                                                       THEN STRING(INT(SUBSTRING(c-cod-period,1,2)) + 1) + SUBSTRING(c-cod-period,3,4)    
+                                                                       ELSE "01" +  STRING(INT(SUBSTRING(c-cod-period,3,4)) + 1).
+                END.
+                ELSE DO: /*caso nÆo encontre (primeira execu‡Æo) ir  verificar a £ltima fechto*/
+
+                    RUN setConstraintEstabel IN h-boin00999 (INPUT c-cod-estabel) NO-ERROR.
+                    RUN openQueryStatic      IN h-boin00999 (INPUT "Estabel":U) NO-ERROR.    
+                    RUN getLast              IN h-boin00999 NO-ERROR.
+                    
+                    IF RETURN-VALUE = "OK":U THEN DO:
+                        
+                        RUN getCharField IN h-boin00999 (INPUT  "cod-period",
+                                                         OUTPUT c-cod-period).
+                        ASSIGN tt-fechto-produt-period.cod-period:SCREEN-VALUE IN FRAME fPage0 = c-cod-period.
+
+                    END.
+
+                END.
+            
+        END.
+
+    END.
+
+RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piGravarRegistros wMaintenance 
+PROCEDURE piGravarRegistros :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE c-texto AS CHARACTER NO-UNDO.
+
+    IF NOT VALID-HANDLE(h-acomp)THEN
+        RUN utp/ut-acomp.p PERSISTENT SET h-acomp.
+    {utp/ut-liter.i "Efetivando_Registros" * }
+    RUN pi-inicializar IN h-acomp (RETURN-VALUE).
+
+    RUN emptyRowErrors  IN h-boin00999.
+
+    RUN setConstraintPeriodoItem IN h-boin00999 (INPUT tt-filtro.cod-period,
+                                                 INPUT tt-filtro.it-codigo).
+    RUN openQueryStatic IN h-boin00999 (INPUT "PeriodoItem":U).
+
+    FOR EACH tt-fechto-produt-period WHERE tt-fechto-produt-period.checkSum = "*":
+    
+        {utp/ut-liter.i "Prod.: " * }
+        ASSIGN c-texto = RETURN-VALUE + STRING(tt-fechto-produt-period.cdn-produt-rural).
+
+        {utp/ut-liter.i "Prop.: " * }
+        ASSIGN c-texto = c-texto + " " + RETURN-VALUE + " " + tt-fechto-produt-period.cod-propried.
+
+        RUN pi-acompanhar  IN h-acomp (c-texto).
+
+        RUN goToKey IN h-boin00999 (INPUT tt-fechto-produt-period.cod-period,
+                                    INPUT tt-fechto-produt-period.cdn-produt-rural,
+                                    INPUT tt-fechto-produt-period.cod-propried,
+                                    INPUT tt-fechto-produt-period.it-codigo,
+                                    INPUT tt-fechto-produt-period.cod-estabel).
+
+        RUN updateRowObject IN h-boin00999 (INPUT tt-fechto-produt-period.val-bonus-fix-inf,
+                                            INPUT tt-fechto-produt-period.val-preco-final-inf,
+                                            INPUT tt-fechto-produt-period.cod-livre-2,
+                                            INPUT tt-fechto-produt-period.val-livre-1).
+
+        RUN updateRecord IN h-boin00999.
+
+        IF RETURN-VALUE = "NOK":U THEN DO:
+
+            RUN getRowErrors IN h-boin00999 (OUTPUT TABLE RowErrors).
+
+            /*--- Inicializa tela de mensagens de erros ---*/
+            {method/ShowMessage.i1}                  
+            /*--- Transfere temp-table RowErrors para a tela de mensagens de erros ---*/
+            {method/ShowMessage.i2 &Modal="YES"}
+            {method/ShowMessage.i3}
+            RETURN "OK":U.
+            
+        END.
+
+    END.
+
+    ASSIGN l-ja-confirmou = NO.  /*irá perguntar novamente caso tenha situação já confirmada*/
+
+    RUN pi-finalizar IN h-acomp.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piHabilitarBotao wMaintenance 
+PROCEDURE piHabilitarBotao :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    IF AVAIL tt-fechto-produt-period THEN DO:
+        ASSIGN btMarcar:SENSITIVE    IN FRAME fPage1 = tt-fechto-produt-period.checksum = ""  AND AVAIL tt-fechto-produt-period
+               btDesmarcar:SENSITIVE IN FRAME fPage1 = tt-fechto-produt-period.checksum = "*" AND AVAIL tt-fechto-produt-period
+               bt-save:SENSITIVE     IN FRAME fPage0 = CAN-FIND(FIRST tt-fechto-produt-period WHERE tt-fechto-produt-period.checksum = "*").
+    END.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piMarcarDesmarcar wMaintenance 
+PROCEDURE piMarcarDesmarcar :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  /* Execu‡Æo de tela de Consulta */
+  IF "{1}" = "AQ0415" THEN
+    ASSIGN tt-fechto-produt-period.checkSum = "".
+  ELSE DO:
+    IF AVAIL tt-fechto-produt-period 
+         AND tt-fechto-produt-period.idi-situacao <> 3 THEN DO: /* nao atualiza NF gerada */
+    
+      ASSIGN tt-fechto-produt-period.checkSum = IF tt-fechto-produt-period.checksum = "" THEN "*" ELSE "".
+    
+      brFechto:SELECT-FOCUSED-ROW() IN FRAME fPage1.
+    
+      DISP tt-fechto-produt-period.checkSum WITH BROWSE brFechto.
+    
+    END.
+    RUN piHabilitarBotao IN THIS-PROCEDURE.
+  END.
+
+  RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piOpenQuery wMaintenance 
+PROCEDURE piOpenQuery :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE iRowsReturned AS INTEGER NO-UNDO.
+    
+    DEFINE VARIABLE qh     AS HANDLE    NO-UNDO.
+    DEFINE VARIABLE bh     AS HANDLE    NO-UNDO.
+    DEFINE VARIABLE cQuery AS CHARACTER INITIAL "FOR EACH tt-fechto-produt-period-aux NO-LOCK " NO-UNDO.
+    DEFINE VARIABLE iOrdem AS INTEGER     NO-UNDO.
+
+    EMPTY TEMP-TABLE tt-fechto-produt-period-aux NO-ERROR.
+
+    ASSIGN de-tot-qtd-period        = 0  /*totais*/
+           de-tot-valor             = 0
+           de-tot-frete             = 0
+           de-impto-sanidade-animal = 0.
+    
+    IF NOT VALID-HANDLE(h-acomp)THEN
+        RUN utp/ut-acomp.p PERSISTENT SET h-acomp.
+    {utp/ut-liter.i "Buscando_Fechamentos" * }
+    RUN pi-inicializar IN h-acomp (RETURN-VALUE).
+    IF CAN-FIND (FIRST tt-filtro WHERE TRIM(tt-filtro.cod-period) <> "/") THEN DO:
+
+        RUN getTTFechtoProdutPeriod IN {&hDBOTable} (INPUT  TABLE tt-filtro,
+                                                     OUTPUT de-tot-qtd-period,
+                                                     OUTPUT de-tot-valor,
+                                                     OUTPUT de-tot-frete,
+                                                     OUTPUT de-impto-sanidade-animal,
+                                                     OUTPUT TABLE tt-fechto-produt-period-aux).
+
+        CREATE BUFFER bh FOR TABLE "tt-fechto-produt-period-aux":U.
+        CREATE QUERY qh.
+ 
+        FIND FIRST tt-filtro NO-LOCK NO-ERROR.
+        ASSIGN cQuery = cQuery + tt-filtro.ordenacao.
+
+        qh:SET-BUFFERS(bh). 
+        qh:QUERY-PREPARE(cQuery).
+        qh:FORWARD-ONLY.  
+
+        qh:QUERY-OPEN().
+
+        EMPTY TEMP-TABLE tt-fechto-produt-period NO-ERROR.
+        ASSIGN iOrdem = 0.
+
+        REPEAT:   /*FOR EACH tt-fechto-produt-period-aux*/
+            qh:GET-NEXT().
+            IF qh:QUERY-OFF-END THEN LEAVE.
+        
+            ASSIGN iOrdem = iOrdem + 1.
+
+            CREATE tt-fechto-produt-period.
+            ASSIGN tt-fechto-produt-period.val-per-anterior    = DEC(bh:BUFFER-FIELD("val-per-anterior":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.cidade              = bh:BUFFER-FIELD("cidade":U):BUFFER-VALUE
+                   tt-fechto-produt-period.nome-abrev          = bh:BUFFER-FIELD("nome-abrev":U):BUFFER-VALUE
+                   tt-fechto-produt-period.grp-produt          = bh:BUFFER-FIELD("grp-produt":U):BUFFER-VALUE
+                   tt-fechto-produt-period.cod-period          = bh:BUFFER-FIELD("cod-period":U):BUFFER-VALUE
+                   tt-fechto-produt-period.it-codigo           = bh:BUFFER-FIELD("it-codigo":U):BUFFER-VALUE
+                   tt-fechto-produt-period.cod-estabel         = bh:BUFFER-FIELD("cod-estabel":U):BUFFER-VALUE
+                   tt-fechto-produt-period.cod-regiao          = bh:BUFFER-FIELD("cod-regiao":U):BUFFER-VALUE
+                   tt-fechto-produt-period.cod-rota            = bh:BUFFER-FIELD("cod-rota":U):BUFFER-VALUE
+                   tt-fechto-produt-period.cdn-produt-rural    = INT(bh:BUFFER-FIELD("cdn-produt-rural":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.cod-propried        = bh:BUFFER-FIELD("cod-propried":U):BUFFER-VALUE
+                   tt-fechto-produt-period.qtd-period          = DEC(bh:BUFFER-FIELD("qtd-period":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-preco-base      = DEC(bh:BUFFER-FIELD("val-preco-base":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-var-qualid      = DEC(bh:BUFFER-FIELD("val-var-qualid":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-var-volum       = DEC(bh:BUFFER-FIELD("val-var-volum":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-bonus-fix       = DEC(bh:BUFFER-FIELD("val-bonus-fix":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-unit            = DEC(bh:BUFFER-FIELD("val-unit":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-bonus-fix-inf   = DEC(bh:BUFFER-FIELD("val-bonus-fix-inf":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-preco-final-inf = DEC(bh:BUFFER-FIELD("val-preco-final-inf":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.diferenca           = DEC(bh:BUFFER-FIELD("diferenca":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-total           = DEC(bh:BUFFER-FIELD("val-total":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-frete           = DEC(bh:BUFFER-FIELD("val-frete":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.cod-livre-2         = bh:BUFFER-FIELD("cod-livre-2":U):BUFFER-VALUE      /*controle reabertura carga*/
+                   tt-fechto-produt-period.idi-situacao        = INT(bh:BUFFER-FIELD("idi-situacao":U):BUFFER-VALUE)
+                   tt-fechto-produt-period.val-livre-1         = DEC(bh:BUFFER-FIELD("val-livre-1":U):BUFFER-VALUE) /*val-ajuste*/
+                   tt-fechto-produt-period.val-impto           = DEC(bh:BUFFER-FIELD("val-impto":U):BUFFER-VALUE)   /*impto-sanidade*/
+                   tt-fechto-produt-period.val-livre-6         = iOrdem. /*ordena‡Æo*/
+
+        END.
+
+        {&OPEN-QUERY-brFechto}
+
+        ASSIGN de-tot-qtd-period:SCREEN-VALUE IN FRAME fPage1        = STRING(de-tot-qtd-period)
+               de-tot-valor:SCREEN-VALUE IN FRAME fPage1             = STRING(de-tot-valor)
+               de-tot-frete:SCREEN-VALUE IN FRAME fPage1             = STRING(de-tot-frete)
+               de-impto-sanidade-animal:SCREEN-VALUE IN FRAME fPage1 = STRING(de-impto-sanidade-animal).
+
+    END.
+    ELSE DO:
+        RUN utp/ut-msgs.p (INPUT "show",
+                           INPUT 333,
+                           INPUT "").
+        APPLY "ENTRY":U TO tt-fechto-produt-period.cod-period IN FRAME fPage0.
+
+    END.
+    RUN pi-finalizar IN h-acomp.
+
+    ASSIGN brFechto:SENSITIVE IN FRAME fPage1 = TRUE.
+
+    APPLY "VALUE-CHANGED":U TO BROWSE brFechto.
+
+    ASSIGN l-ja-confirmou = NO.  /*como carregou novamente, irá perguntar novamente caso tenha situação já confirmada*/
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piVerificarRegistros wMaintenance 
+PROCEDURE piVerificarRegistros :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE c-texto AS CHARACTER NO-UNDO. 
+    RUN emptyRowErrors  IN h-boin00999.
+
+    IF NOT VALID-HANDLE(h-acomp)THEN
+        RUN utp/ut-acomp.p PERSISTENT SET h-acomp.
+    {utp/ut-liter.i "Validando_Registros" * }
+    RUN pi-inicializar IN h-acomp (RETURN-VALUE).
+
+    FOR EACH tt-fechto-produt-period WHERE tt-fechto-produt-period.checkSum = "*":
+
+        {utp/ut-liter.i "Prod.: " * }
+        ASSIGN c-texto = RETURN-VALUE + STRING(tt-fechto-produt-period.cdn-produt-rural).
+
+        {utp/ut-liter.i "Prop.: " * }
+        ASSIGN c-texto = c-texto + " " + RETURN-VALUE + " " + tt-fechto-produt-period.cod-propried.
+
+        RUN pi-acompanhar  IN h-acomp (c-texto).
+
+        EMPTY TEMP-TABLE tt-fechto-produt-period-aux NO-ERROR.
+
+        CREATE tt-fechto-produt-period-aux.
+        BUFFER-COPY tt-fechto-produt-period TO tt-fechto-produt-period-aux.
+    
+        RUN verificaRegistro IN h-boin00999 (INPUT TABLE tt-fechto-produt-period-aux).
+
+        IF RETURN-VALUE = "NOK":U THEN DO: 
+               
+            RUN getRowErrors IN h-boin00999 (OUTPUT TABLE RowErrors).
+            
+            /*--- Inicializa tela de mensagens de erros ---*/
+            {method/ShowMessage.i1}                  
+            /*--- Transfere temp-table RowErrors para a tela de mensagens de erros ---*/
+            {method/ShowMessage.i2 &Modal="YES"}
+            {method/ShowMessage.i3}
+
+            RETURN "NOK":U.
+
+        END.
+
+    END.
+
+    RUN pi-finalizar IN h-acomp.
+
+    IF NOT l-ja-confirmou THEN DO: /*caso usuário já tenha respondido a pergunta, não executa novamente*/
+        
+        IF CAN-FIND(FIRST tt-fechto-produt-period WHERE tt-fechto-produt-period.checkSum     = "*"
+                                                    AND tt-fechto-produt-period.idi-situacao = 2) THEN DO: /*confirmada*/
+
+                RUN utp/ut-msgs.p (INPUT "show",
+                                   INPUT 54802,
+                                   INPUT "").
+        
+                IF RETURN-VALUE = "YES":U THEN /*caso usuário responda que não, cancela o processo*/
+                    ASSIGN l-ja-confirmou = YES.
+                ELSE    
+                    RETURN "NOK":U.
+        END.
+
+    END.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+/* ************************  Function Implementations ***************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fnSituacao wMaintenance 
+FUNCTION fnSituacao RETURNS CHARACTER
+  ( iSit as integer ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  CASE iSit:
+      WHEN 1 THEN DO:
+          {utp/ut-liter.i "Pendente":U *}
+          RETURN RETURN-VALUE.  
+      END.
+      WHEN 2 THEN DO:
+          {utp/ut-liter.i "Confirmada":U *}
+          RETURN RETURN-VALUE.  
+      END.
+      WHEN 3 THEN DO: 
+          {utp/ut-liter.i "NF_Gerada":U *}
+          RETURN RETURN-VALUE.  
+      END.
+  END CASE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+

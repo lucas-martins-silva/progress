@@ -1,0 +1,134 @@
+/*************************************************************************
+**
+**   Include: ap0817rp.i32
+**
+**   Gerar temp-table para a opcao "Analitico", quando a contabilizacao
+**   foi diaria.
+*************************************************************************/
+conta-block:
+for each conta-ap no-lock
+    where conta-ap.ep-codigo    = i-ep-codigo-usuario
+      and conta-ap.conta-saldo >= tt-param.c-ini-conta
+      and conta-ap.conta-saldo <= tt-param.c-fim-conta
+    break by conta-ap.conta-saldo:
+
+    {utp/ut-liter.i Conta: * L}
+    run pi-acompanhar in h-acomp (input return-value + " " + conta-ap.conta-saldo).
+    
+    if  first-of(conta-ap.conta-saldo) then do:
+
+        find first conta-contab where
+                   conta-contab.ep-codigo      = i-ep-codigo-usuario and
+                   conta-contab.conta-contabil = conta-ap.conta-saldo 
+                   no-lock no-error.
+        if avail conta-contab then
+            assign c-titulo-conta = conta-contab.titulo.
+        else
+            assign c-titulo-conta = "".
+
+        DO da-data = tt-param.dt-ini-period TO tt-param.dt-fim-period :
+
+            /* dados da contabilidade */
+            for each movimento no-lock
+                where movimento.ep-codigo   = conta-ap.ep-codigo
+                  and movimento.ct-codigo   = conta-ap.ct-saldo
+                  and movimento.sc-codigo   = conta-ap.sc-saldo
+                  and movimento.data        = da-data
+                break by movimento.data:
+
+                case tt-param.moeda:
+                    when 1 then assign de-vl-moeda = movimento.valor.
+                    when 2 then assign de-vl-moeda = movimento.valor-fasb.
+                    when 3 then assign de-vl-moeda = movimento.valor-cmi.
+                    when 4 then assign de-vl-moeda = movimento.valor-presente.
+                end.
+
+                if  substring(movimento.historico,1,40) <> "Referente Movimento do Contas a Pagar de"
+                then do:
+                    create tt-concil-ap.
+                    assign tt-concil-ap.ct-conta  = movimento.ct-codigo
+                           tt-concil-ap.sc-conta  = movimento.sc-codigo
+                           tt-concil-ap.dt-contab = movimento.data
+                           tt-concil-ap.refer     = movimento.referencia
+                           tt-concil-ap.titulo    = c-titulo-conta.
+        
+                    if movimento.tipo = 1
+                    or movimento.tipo = 3 then
+                        assign tt-concil-ap.debito-contab  = de-vl-moeda.
+                    else
+                        assign tt-concil-ap.credito-contab = de-vl-moeda.
+                end.
+                else do:
+
+                    if  movimento.tipo = 1
+                    or  movimento.tipo = 3 then
+                        assign de-vl-debito-contab  = de-vl-debito-contab  + de-vl-moeda.
+                    else
+                        assign de-vl-credito-contab = de-vl-credito-contab + de-vl-moeda.
+                    
+                    assign l-movto-modulo = yes
+                           c-referencia = movimento.referencia.
+                end.
+
+                if  last-of(movimento.data)
+                and l-movto-modulo = yes then do:
+                    create tt-concil-ap.
+                    assign tt-concil-ap.ct-conta       = movimento.ct-codigo
+                           tt-concil-ap.sc-conta       = movimento.sc-codigo
+                           tt-concil-ap.debito-contab  = de-vl-debito-contab
+                           tt-concil-ap.credito-contab = de-vl-credito-contab
+                           tt-concil-ap.dt-contab      = da-data
+                           tt-concil-ap.refer          = c-referencia
+                           tt-concil-ap.titulo         = c-titulo-conta
+                           de-vl-debito-contab         = 0
+                           de-vl-credito-contab        = 0
+                           l-movto-modulo              = no
+                           c-referencia                = ""
+                           l-achou-next                = yes.
+                end.
+            end /*movimento*/.
+
+            for each t-diario-ap no-lock
+                where t-diario-ap.ep-codigo    = conta-ap.ep-codigo
+                  and t-diario-ap.ct-conta     = conta-ap.ct-saldo
+                  and t-diario-ap.sc-conta     = conta-ap.sc-saldo
+                  and t-diario-ap.dt-transacao = da-data
+                break by t-diario-ap.dt-transacao:
+
+                case tt-param.moeda:
+                	when 1 then assign de-vl-moeda = if t-diario-ap.lancamento = 1
+                					      then t-diario-ap.vl-debito
+                					      else t-diario-ap.vl-credito.
+                	when 2 then assign de-vl-moeda = t-diario-ap.vl-deb-fasb.
+                	when 3 then assign de-vl-moeda = t-diario-ap.vl-deb-cmi.
+                	when 4 then assign de-vl-moeda = t-diario-ap.vl-deb-presente.
+                end.
+        
+                if l-achou-next = yes then do:
+                    assign l-achou-next                = no
+                           tt-concil-ap.estab          = t-diario-ap.cod-estabel
+                           tt-concil-ap.espec          = t-diario-ap.cod-esp
+                           tt-concil-ap.docto          = t-diario-ap.nr-docto
+                           tt-concil-ap.parcela        = t-diario-ap.parcela
+                           tt-concil-ap.dt-modulo      = t-diario-ap.dt-transacao
+                           tt-concil-ap.debito-modulo  = de-vl-moeda
+                           tt-concil-ap.credito-modulo = de-vl-moeda.
+                end.
+                else do:
+                    create tt-concil-ap.
+                    assign tt-concil-ap.ct-conta       = t-diario-ap.ct-conta
+                           tt-concil-ap.sc-conta       = t-diario-ap.sc-conta
+                           tt-concil-ap.estab          = t-diario-ap.cod-estabel
+                           tt-concil-ap.espec          = t-diario-ap.cod-esp
+                           tt-concil-ap.docto          = t-diario-ap.nr-docto
+                           tt-concil-ap.parcela        = t-diario-ap.parcela
+                           tt-concil-ap.dt-contab      = t-diario-ap.dt-transacao
+                           tt-concil-ap.dt-modulo      = t-diario-ap.dt-transacao
+                           tt-concil-ap.debito-modulo  = de-vl-moeda
+                           tt-concil-ap.credito-modulo = de-vl-moeda.
+                end.
+            end /*t-diario-ap*/.
+        END /*do*/.
+    end.
+end /*conta-block*/.
+/* Fim de Include */

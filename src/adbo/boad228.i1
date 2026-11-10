@@ -1,0 +1,31 @@
+{include/i_dbvers.i}
+define temp-table ttrep-tit
+&IF "{&mguni_version}" >= "2.07A" &THEN
+  field ep-codigo          LIKE empresa.ep-codigo   format "x(03)"
+&ELSE
+  field ep-codigo          as integer   format ">>9"
+&ENDIF
+&IF "{&mguni_version}" >= "2.07A" &THEN
+  field cod-estabel        as character format "x(05)"
+&ELSE
+  field cod-estabel        as character format "x(3)"
+&ENDIF
+  field cod-esp            as character format "!!"
+  field nr-docto           as character format "x(16)"
+  field parcela            as character format "x(2)"
+  field cod-cliente        as integer   format ">>>>>>>>9"
+  field desc-cliente       as character format "x(12)"
+  field serie              as character format "x(5)"
+  field cod-classificador  as character format "X(8)"
+  field vl-base-calc-comis as decimal   format ">>>,>>>,>>>,>>9.99"
+  field comis-emis         as decimal   format ">>9.99999999"
+  field comissao           as decimal   format ">>9.99999999"
+  field perc-multa         as decimal   format ">>9.99999999"
+  field perc-AVA           as decimal   format ">>9.99999999"
+  field perc-desconto      as decimal   format ">>9.99999999"
+  field perc-juros         as decimal   format ">>9.99999999"
+  field comis-propor       as logical   format "Sim/NÆo"
+  field perc-abatimento    as decimal   format ">>9.99999999"
+  field desativado         as logical   format "Sim/NÆo"
+  field dat-ult-movto      as date      format "99/99/9999"
+  field hr-hora            as char      format "99:99:99".

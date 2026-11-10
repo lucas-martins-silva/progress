@@ -1,0 +1,2801 @@
+<?xml version="1.0"?>
+<WizardAdapters xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>ProcessQuotations</Name>
+  <Id />
+  <XsdFileName>C:\Datasul\Pregão Eletronico\xmlschema\su2\ProcessQuotations_207_000.xsd</XsdFileName>
+  <HasSchemaChanges>false</HasSchemaChanges>
+  <HasReceive>true</HasReceive>
+  <HasSend>true</HasSend>
+  <HasQuery>false</HasQuery>
+  <ReceiveAdapter>
+    <Product>ems2</Product>
+    <Release>207</Release>
+    <Module>moc</Module>
+    <Application>su2</Application>
+    <FileName>C:\Datasul\Pregão Eletronico\fontes\adapters\xml\su2\axrsu003.p</FileName>
+    <OverrideInc>false</OverrideInc>
+    <MinVersion>000</MinVersion>
+    <MaxVersion>999</MaxVersion>
+    <ListActions>upd</ListActions>
+  </ReceiveAdapter>
+  <QueryAdapter>
+    <FileName />
+    <OverrideInc>false</OverrideInc>
+  </QueryAdapter>
+  <SendAdapter>
+    <Product>ems2</Product>
+    <Release>207</Release>
+    <Module>moc</Module>
+    <Application>su2</Application>
+    <FileName>C:\Datasul\Pregão Eletronico\fontes\adapters\xml\su2\axssu003.p</FileName>
+    <OverrideInc>false</OverrideInc>
+    <Version>000</Version>
+    <GenerateIsSubscribeValidate>true</GenerateIsSubscribeValidate>
+  </SendAdapter>
+  <ListOfField>
+    <Field>
+      <Name>BusinessContentType</Name>
+      <ApiField />
+      <DefaultValue />
+      <IsOk>false</IsOk>
+      <Type>ComplexType</Type>
+      <ListOfChild>
+        <Child>
+          <Name>Upsert</Name>
+          <ApiField>Upsert</ApiField>
+          <DefaultValue />
+          <IsOk>true</IsOk>
+          <Type>ComplexType</Type>
+          <ListOfChild>
+            <Child>
+              <Name>PurchaseProcess</Name>
+              <ApiField>ttPurchaseProcess</ApiField>
+              <DefaultValue />
+              <IsOk>true</IsOk>
+              <Type>ComplexType</Type>
+              <ListOfChild>
+                <Child>
+                  <Name>PurchaseProcessNumber</Name>
+                  <ApiField>PurchaseProcessNumber</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>integer</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>true</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Número do Processo de Compra. (Uso interno: Campo = mgind.proc-compra.nr-processo) </Annotation>
+                  <TestLogic>if (ttPurchaseProcess.PurchaseProcessNumber &lt;&gt; ?) then</TestLogic>
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>ProcessDescription</Name>
+                  <ApiField>ProcessDescription</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>string</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Descrição do Processo de Compra (Uso interno: campo = mgind.proc-compra.descricao)</Annotation>
+                  <TestLogic>if (ttPurchaseProcess.ProcessDescription &lt;&gt; ?) then</TestLogic>
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>ProclaimNumber</Name>
+                  <ApiField>ProclaimNumber</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>string</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Número do edital de compra - Pregão Eletronico (Uso interno: Campo = mgind.proc-compra.cod-edital)</Annotation>
+                  <TestLogic>if (ttPurchaseProcess.ProclaimNumber &lt;&gt; ? and ttPurchaseProcess.ProclaimNumber &lt;&gt; "")  then</TestLogic>
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>Buyer</Name>
+                  <ApiField>Buyer</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>BuyerID</Name>
+                      <ApiField>BuyerID</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Código do comprador do item. (Uso interno: Campo = mgind.comprador.cod-comprado)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>BuyerName</Name>
+                      <ApiField>BuyerName</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Nome do comprador do item. (Uso interno: Campo = mgind.comprador.nome)</Annotation>
+                      <TestLogic>if (ttPurchaseProcess.BuyerName &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>PhoneNumber</Name>
+                      <ApiField>PhoneNumber</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Telefone do comprador. (Uso interno: Campo = mgind.comprador.telefone[1])</Annotation>
+                      <TestLogic>if (ttPurchaseProcess.PhoneNumber &lt;&gt; ? and ttPurchaseProcess.PhoneNumber &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>EmailAddress</Name>
+                      <ApiField>EmailAddress</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Endereço eletronico do comprador (Uso Interno: Campo = mgind.comprador.e-mail)</Annotation>
+                      <TestLogic>if (ttPurchaseProcess.EmailAddress &lt;&gt; ? and ttPurchaseProcess.EmailAddress &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Comprador do Processo de Compra. Relacionamento com comprador, campo chave cotacao-item.cod-comprado</Annotation>
+                  <TestLogic>if (ttPurchaseProcess.BuyerID &lt;&gt; ?) then</TestLogic>
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>StartDate</Name>
+                  <ApiField>StartDate</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>date</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Data de Início do Processo de Compra (Uso interno: campo = mgind.proc-compra.dt-inicio)</Annotation>
+                  <TestLogic>if (ttPurchaseProcess.StartDate &lt;&gt; ?) then</TestLogic>
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>Text</Name>
+                  <ApiField>ProcessText</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>string</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Narrativa do processo de compra (Uso interno: campo = mgind.proc-compra.narrativa)</Annotation>
+                  <TestLogic>if (ttPurchaseProcess.ProcessText &lt;&gt; ?) then</TestLogic>
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>ListOfProcessVendors</Name>
+                  <ApiField>ListOfProcessVendors</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>Vendor</Name>
+                      <ApiField>ttVendor</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>VendorTaxID</Name>
+                          <ApiField>VendorTaxID</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>CGC ou CPF do fornecedor (Uso Interno: Campo = emitente.cgc)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorNumber</Name>
+                          <ApiField>VendorNumber</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.cod-emitente)</Annotation>
+                          <TestLogic>if (ttVendor.VendorNumber &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorShortName</Name>
+                          <ApiField>VendorShortName</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.nome-abrev)</Annotation>
+                          <TestLogic>if (ttVendor.VendorShortName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorName</Name>
+                          <ApiField>VendorName</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.nome-emit)</Annotation>
+                          <TestLogic>if (ttVendor.VendorName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ContactInformation</Name>
+                          <ApiField>ContactInformation</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ContactName</Name>
+                              <ApiField>ContactName</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Contato. Deve ser um contato relacionado ao fornecedor do pedido (ordem-compra.cod-emitente) (Uso Interno: Campo = mgadm.cont-emit.nome)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>PhoneNumber</Name>
+                              <ApiField>PhoneNumber</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Telefone da pessoa de contato (Uso Interno: Campo = mgadm.cont-emit.telefone)</Annotation>
+                              <TestLogic>if (ttVendor.PhoneNumber &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>EmailAddress</Name>
+                              <ApiField>EmailAddress</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Endereço de e-mail da pessoa de contato (uso Interno: Campo = mgadm.cont-emit.e-mail)</Annotation>
+                              <TestLogic>if (ttVendor.EmailAddress &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Informações da pessoa de contato</Annotation>
+                          <TestLogic>if (ContactName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>true</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações do Fornecedor do Processo de Compra (relacionamento com a tabela emitente através do campo proc-fornec.cod-emitente)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Relação de fornecedores vinculados ao processo de compra (tabela mgind.proc-fornec)</Annotation>
+                  <TestLogic>if (can-find(first ttVendor)) then</TestLogic>
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+              </ListOfChild>
+              <IsMultiple>true</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>false</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Informações do processo de compra</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+            <Child>
+              <Name>ListOfQuotationLines</Name>
+              <ApiField>ListOfQuotationLines</ApiField>
+              <DefaultValue />
+              <IsOk>true</IsOk>
+              <Type>ComplexType</Type>
+              <ListOfChild>
+                <Child>
+                  <Name>QuotationLine</Name>
+                  <ApiField>ttQuotationLine</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>QuoteSequence</Name>
+                      <ApiField>QuoteSequence</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Sequencia da cotação de preços. (Uso interno: Campo = movind.cotacao-item.seq-cotac)</Annotation>
+                      <TestLogic>if (QuoteSequence &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>POLineNumber</Name>
+                      <ApiField>POLineNumber</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Número da ordem de compra. (Uso interno: Campo = movind.cotacao-item.numero-ordem) </Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Item</Name>
+                      <ApiField>Item</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>ItemCode</Name>
+                          <ApiField>ItemCode</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do Item. (Uso Interno: Campo = mgind.item.it-codigo) </Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ItemReferenceCode</Name>
+                          <ApiField>ItemReferenceCode</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código de referência do item. (Uso Interno: Campo = mgind.referencia.cod-refer)</Annotation>
+                          <TestLogic>if (ttQuotationLine.ItemReferenceCode &lt;&gt; ? and ttQuotationLine.ItemReferenceCode &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ItemDescription</Name>
+                          <ApiField>ItemDescription</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Descrição do item. (Uso Interno: Campo = mgind.item.desc-item)</Annotation>
+                          <TestLogic>if (ttQuotationLine.ItemDescription &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>UnitOfMeasure</Name>
+                          <ApiField>UnitOfMeasure</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>UnitOfMeasureCode</Name>
+                              <ApiField>UnitOfMeasureCode</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código da Unidade de Medida. (Uso interno: Campo = mgind.tab-unidade.un)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>UnitOfMeasureDescription</Name>
+                              <ApiField>UnitOfMeasureDescription</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Descrição da Unidade de Medida. (Uso interno: Campo = mgind.tab-unidade.desc)</Annotation>
+                              <TestLogic>if (ttQuotationLine.UnitOfMeasureDescription &lt;&gt;?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Unidade de Medida interna da parcela de compra</Annotation>
+                          <TestLogic>if (ttQuotationLine.UnitOfMeasureCode &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>EANCode</Name>
+                          <ApiField>EANCode</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Codificação internacional EAN do Item. (Uso Interno: Campo = mgind.item-mat.cod-ean)</Annotation>
+                          <TestLogic>if (ttQuotationLine.EANCode &lt;&gt; ? and ttQuotationLine.EANCode &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorCode</Name>
+                          <ApiField>VendorCode</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do item fornecedor / fabricante (Uso Interno: Campo = mgind.item-fornec.item-do-forn)</Annotation>
+                          <TestLogic>if (ttQuotationLine.VendorCode &lt;&gt; ? and ttQuotationLine.VendorCode &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações sobre o Item da  Cotação. Relacionamento com item, campo chave cotacao-item.it-codigo</Annotation>
+                      <TestLogic>if (ttQuotationLine.ItemCode &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Vendor</Name>
+                      <ApiField>Vendor</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>VendorTaxID</Name>
+                          <ApiField>VendorTaxID</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>CGC ou CPF do fornecedor (Uso Interno: Campo = emitente.cgc)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorNumber</Name>
+                          <ApiField>VendorNumber</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.cod-emitente)</Annotation>
+                          <TestLogic>if (ttQuotationLine.VendorNumber &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorShortName</Name>
+                          <ApiField>VendorShortName</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.nome-abrev)</Annotation>
+                          <TestLogic>if (ttQuotationLine.VendorShortName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorName</Name>
+                          <ApiField>VendorName</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.nome-emit)</Annotation>
+                          <TestLogic>if (ttQuotationLine.VendorName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ContactInformation</Name>
+                          <ApiField>ContactInformation</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ContactName</Name>
+                              <ApiField>ContactName</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Contato. Deve ser um contato relacionado ao fornecedor do pedido (ordem-compra.cod-emitente) (Uso Interno: Campo = mgadm.cont-emit.nome)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>PhoneNumber</Name>
+                              <ApiField>PhoneNumber</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Telefone da pessoa de contato (Uso Interno: Campo = mgadm.cont-emit.telefone)</Annotation>
+                              <TestLogic>if (ttQuotationLine.PhoneNumber &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>EmailAddress</Name>
+                              <ApiField>EmailAddress</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Endereço de e-mail da pessoa de contato (uso Interno: Campo = mgadm.cont-emit.e-mail)</Annotation>
+                              <TestLogic>if (ttQuotationLine.EmailAddress &lt;&gt; ? and ttQuotationLine.EmailAddress &lt;&gt; "") then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Informações da pessoa de contato</Annotation>
+                          <TestLogic>if (ttQuotationLine.ContactName &lt;&gt; ? and ttQuotationLine.ContactName &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Fornecedor vinculado a cotação. Relacionamento com emitente, campo chave cotacao-item.cod-emitente</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>QuotationDate</Name>
+                      <ApiField>QuotationDate</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>date</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Data de Emissão. (Uso interno: Campo = movind.cotacao-item.data-cotacao)</Annotation>
+                      <TestLogic>if (ttQuotationLine.QuotationDate &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>QuotationSource</Name>
+                      <ApiField>QuotationSource</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Origem de entrada da cotação (Uso interno: Campo = movind.cotacao-item.ind-orig-entrada - Include = diinc/i07di159.i)</Annotation>
+                      <TestLogic>if (ttQuotationLine.QuotationSource &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>QuotationSending</Name>
+                      <ApiField>QuotationSending</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Via de envio da cotação (Uso interno: Campo = movind.cotacao-item.ind-via-envio - Include = diinc/i07di159.i)</Annotation>
+                      <TestLogic>if (ttQuotationLine.QuotationSending &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>IsQuoteReturned</Name>
+                      <ApiField>IsQuoteReturned</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>boolean</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Indica se hove retorno da cotação do fornecedor (via edi ou por meios normais fax, telex, etc ...). (Uso interno: Campo = movind.cotacao-item.ind-ret-cotacao)</Annotation>
+                      <TestLogic>if (ttQuotationLine.IsQuoteReturned &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>POLineQuantityRequested</Name>
+                      <ApiField>POLineQuantityRequested</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>decimal</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Quantidade interna total solicitada na ordem de compra. (Uso Interno: Campo = movind.ordem-compra.qt-solic)</Annotation>
+                      <TestLogic>if (ttQuotationLine.POLineQuantityRequested &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Price</Name>
+                      <ApiField>Price</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>NetUnitaryPrice</Name>
+                          <ApiField>NetUnitaryPrice</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Preço unitário interno incluso impostos, desconto, ipi e taxa. (Uso Interno: Campo = movind.cotacao-item.preco-unit)</Annotation>
+                          <TestLogic>if (ttQuotationLine.NetUnitaryPrice &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorUnitaryPrice</Name>
+                          <ApiField>VendorUnitaryPrice</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Preço unitário fornecedor incluso impostos, desconto, ipi e taxa. (Uso Interno: Campo = movind.cotacao-item.pre-uni-for)</Annotation>
+                          <TestLogic>if (ttQuotationLine.VendorUnitaryPrice &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>VendorPrice</Name>
+                          <ApiField>VendorPrice</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Preço do Fornecedor. (Uso Interno: Campo = movind.cotacao-item.preco-fornec)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>UnitOfMeasure</Name>
+                          <ApiField>UnitOfMeasure_00</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>UnitOfMeasureCode</Name>
+                              <ApiField>UnitOfMeasureCode_00</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código da Unidade de Medida. (Uso interno: Campo = mgind.tab-unidade.un)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>UnitOfMeasureDescription</Name>
+                              <ApiField>UnitOfMeasureDescription_00</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Descrição da Unidade de Medida. (Uso interno: Campo = mgind.tab-unidade.desc)</Annotation>
+                              <TestLogic>if (ttQuotationLine.UnitOfMeasureDescription_00 &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Unidade da cotacao. Relacionamento com moeda, campo chave cotacao-item.un</Annotation>
+                          <TestLogic>if (ttQuotationLine.UnitOfMeasureCode_00 &lt;&gt; ? and ttQuotationLine.UnitOfMeasureCode_00 &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Preço da cotação</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Currency</Name>
+                      <ApiField>Currency</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>CurrencyID</Name>
+                          <ApiField>CurrencyID</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código da moeda (Uso Interno: Campo =  mguni.moeda.mo-codigo)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>CurrencyDescription</Name>
+                          <ApiField>CurrencyDescription</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Nome da moeda (Uso Interno: Campo =  mguni.moeda.descricao)</Annotation>
+                          <TestLogic>if (ttQuotationLine.CurrencyDescription &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>CurrencySign</Name>
+                          <ApiField>CurrencySign</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Sigla da moeda. (Uso Interno: Campo = mguni.moeda.sigla)</Annotation>
+                          <TestLogic>if (ttQuotationLine.CurrencySign &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Moeda na qual os preços são expressos. Relacionamento com moeda, campo chave cotacao-item.mo-codigo</Annotation>
+                      <TestLogic>if (ttQuotationLine.CurrencyID &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>BrazilianTaxes</Name>
+                      <ApiField>BrazilianTaxes</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>IsIndustrializedProductTaxIncluded</Name>
+                          <ApiField>IsIndustrializedProductTaxInc_00</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>boolean</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>IPI Incluso? (Uso Interno: Campo = movind.cotacao-item.codigo-ipi)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>IndustrializedProductTaxPercentage</Name>
+                          <ApiField>IndustrializedProductTaxPerce_00</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Alíquota de IPI. (Uso Interno: Campo =  movind.cotacao-item.aliquota-ipi)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ServicesAndProductsCirculationTaxPercentage</Name>
+                          <ApiField>ServicesAndProductsCirculatio_00</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Alíquota de ICMS. (Uso Interno: Campo =  movind.cotacao-item.aliquota-icm)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ServicesAndProductsCirculationTaxCode</Name>
+                          <ApiField>ServicesAndProductsCirculatio_01</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do ICMS. Valores: 1 - Consumo, 2 - Industrialização. (Uso interno: Campo = mguni.cotacao-item.codigo-icms - Include = ininc/i01in082.i)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ServiceTaxPercentage</Name>
+                          <ApiField>ServiceTaxPercentage</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Aliquota ISS (Uso Interno: Campo =  movind.cotacao-item.aliquota-iss)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Impostos exlusivos para o Brasil</Annotation>
+                      <TestLogic>if ((IsIndustrializedProductTaxInc_00 &lt;&gt; ?) or (IndustrializedProductTaxPerce_00 &lt;&gt; ?) or (ServicesAndProductsCirculatio_00 &lt;&gt; ?) or (ServicesAndProductsCirculatio_01 &lt;&gt; ?) or (ServiceTaxPercentage &lt;&gt; ?)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Freight</Name>
+                      <ApiField>Freight</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>IsFreightIncluded</Name>
+                          <ApiField>IsFreightIncluded</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>boolean</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Frete Incluso? Valores: YES = "FOB", NO = "CIF". (Uso Interno: Campo = movind.cotacao-item.frete)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>FreightValue</Name>
+                          <ApiField>FreightValue</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Valor do Frete. (Uso Interno: Campo = movind.cotacao-item.valor-frete)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações sobre Frete</Annotation>
+                      <TestLogic>if ((IsFreightIncluded &lt;&gt; ?) or (FreightValue &lt;&gt; ?)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>FinancialRate</Name>
+                      <ApiField>FinancialRate</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>IsFinancialRateIncluded</Name>
+                          <ApiField>IsFinancialRateIncluded</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>boolean</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Define se os encargos financeiros estão inclusos. (Uso Interno: Campo =  movind.cotacao-item.taxa-financ)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>FinancialRatePercentage</Name>
+                          <ApiField>FinancialRatePercentage</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Define o percentual da taxa financeira. (Uso Interno: Campo =  movind.cotacao-item.valor-taxa)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>FinancialRateDays</Name>
+                          <ApiField>FinancialRateDays</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Número de dias da taxa financeira (Uso Interno: Campo = movind.cotacao-item.nr-dias-taxa)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações sobre Taxa Financeira</Annotation>
+                      <TestLogic>if ((IsFinancialRateIncluded &lt;&gt; ?) or (FinancialRatePercentage &lt;&gt; ?) or (FinancialRateDays &lt;&gt; ?)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Discount</Name>
+                      <ApiField>Discount</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>DiscountPercentage</Name>
+                          <ApiField>DiscountPercentage</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Percentual de Desconto. (Uso Interno: Campo =  movind.cotacao-item.perc-descto)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>DiscountAmount</Name>
+                          <ApiField>DiscountAmount</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Valor de Desconto. (Uso Interno: Campo = movind.cotacao-item.valor-descto)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações sobre desconto</Annotation>
+                      <TestLogic>if ((DiscountPercentage &lt;&gt; ?) or (DiscountAmount &lt;&gt; ?)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Readjust</Name>
+                      <ApiField>Readjust</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>ReadjustQuote</Name>
+                          <ApiField>ReadjustQuote</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>boolean</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Reajusta cotação. (Uso Interno: Campo =  movind.cotacao-item.reajusta-cotacao)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ReadjustRatePercentage</Name>
+                          <ApiField>ReadjustRatePercentage</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Define o percentual da taxa financeira. (Uso Interno: Campo =  movind.cotacao-item.valor-taxa)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações de reajuste da cotação</Annotation>
+                      <TestLogic>if ((ReadjustQuote &lt;&gt; ?) or (ReadjustRatePercentage &lt;&gt; ?)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>PaymentPlan</Name>
+                      <ApiField>PaymentPlan</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>PaymentPlanCode</Name>
+                          <ApiField>PaymentPlanCode</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código da condição de pagamento. (Uso Interno: Campo =   mgadm.cond-pagto.cod-cond-pag )</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>PaymentPlanDescription</Name>
+                          <ApiField>PaymentPlanDescription</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Descrição da condição de pagamento (Uso Interno: Campo = mgadm.cond-pagto.descricao)</Annotation>
+                          <TestLogic>if (PaymentPlanDescription &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações sobre a condição de pagamento. Relacionamento com cond-pagto, campo chave cotacao-item.cod-cond-pag</Annotation>
+                      <TestLogic>if (PaymentPlanCode &lt;&gt;?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>PriceTable</Name>
+                      <ApiField>PriceTable</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>PriceTableNumber</Name>
+                          <ApiField>PriceTableNumber</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Numero da tabela de preços. (Uso Interno: Campo = mgind.tb-pr-cc.nr-tab)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>PriceTableDescription</Name>
+                          <ApiField>PriceTableDescription</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>descrição da tabela financeira. (Uso Interno: Campo = mgind.tb-pr-cc.descricao - Descricao) </Annotation>
+                          <TestLogic>if (PriceTableDescription &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Tabela de Preço. Relacionamento com tb-pr-cc, campo chave cotacao-item.nr-tab</Annotation>
+                      <TestLogic>if (ttQuotationLine.PriceTableNumber &lt;&gt; ? and ttQuotationLine.PriceTableNumber &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>CarrierInformation</Name>
+                      <ApiField>CarrierInformation</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>CarrierID</Name>
+                          <ApiField>CarrierID</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código de identificação da transportadora (Uso Interno: Campo =  transporte.cod-transp)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>CarrierName</Name>
+                          <ApiField>CarrierName</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Nome do transportador (Uso Interno: Campo = transporte.nome)</Annotation>
+                          <TestLogic>if (CarrierName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>CarrierShippingMethod</Name>
+                          <ApiField>CarrierShippingMethod</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Método de transporte do transportador (Uso Interno: Campo = transporte.via-transp -  Include: adinc/i01ad268.i)</Annotation>
+                          <TestLogic>if (CarrierShippingMethod &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>CarrierContactInformation</Name>
+                          <ApiField>CarrierContactInformation</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ContactName</Name>
+                              <ApiField>CarrierContactName</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Contato. Deve ser um contato relacionado ao fornecedor do pedido (ordem-compra.cod-emitente) (Uso Interno: Campo = mgadm.cont-emit.nome)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>PhoneNumber</Name>
+                              <ApiField>CarrierContactPhone</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Telefone da pessoa de contato (Uso Interno: Campo = mgadm.cont-emit.telefone)</Annotation>
+                              <TestLogic>if (CarrierContactPhone &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>EmailAddress</Name>
+                              <ApiField>CarrierContactEmail</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Endereço de e-mail da pessoa de contato (uso Interno: Campo = mgadm.cont-emit.e-mail)</Annotation>
+                              <TestLogic>if (CarrierContactEmail &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Informações de contato do transportador</Annotation>
+                          <TestLogic>if (CarrierContactName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações do transportador. Relacionamento com transporte, campo chave cotacao-item.cod-transp</Annotation>
+                      <TestLogic>if (ttQuotationLine.CarrierID &lt;&gt; ? and ttQuotationLine.CarrierID &lt;&gt; 0) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Buyer</Name>
+                      <ApiField>Buyer</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>BuyerID</Name>
+                          <ApiField>BuyerID</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Código do comprador do item. (Uso interno: Campo = mgind.comprador.cod-comprado)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>BuyerName</Name>
+                          <ApiField>BuyerName</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Nome do comprador do item. (Uso interno: Campo = mgind.comprador.nome)</Annotation>
+                          <TestLogic>if (ttQuotationLine.BuyerName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>PhoneNumber</Name>
+                          <ApiField>BuyerPhoneNumber</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Telefone do comprador. (Uso interno: Campo = mgind.comprador.telefone[1])</Annotation>
+                          <TestLogic>if (ttQuotationLine.BuyerPhoneNumber &lt;&gt; ? and ttQuotationLine.BuyerPhoneNumber &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>EmailAddress</Name>
+                          <ApiField>BuyerEmailAddress</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Endereço eletronico do comprador (Uso Interno: Campo = mgind.comprador.e-mail)</Annotation>
+                          <TestLogic>if (ttQuotationLine.BuyerEmailAddress &lt;&gt; ? and ttQuotationLine.BuyerEmailAddress &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Comprador. Relacionamento com comprador, campo chave cotacao-item.cod-comprado</Annotation>
+                      <TestLogic>if (ttQuotationLine.BuyerID &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Approval</Name>
+                      <ApiField>Approval</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>IsQuoteApproved</Name>
+                          <ApiField>IsQuoteApproved</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>boolean</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Cotação aprovada Sim/Não. (Uso Interno: Campo = mgind.cotacao-item.cot-aprovada)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ApprovalReason</Name>
+                          <ApiField>ApprovalReason</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Motivo aprovação / rejeição da cotação. (Uso interno: Campo = mgind.cotacao-item.motivo-apr)</Annotation>
+                          <TestLogic>if (ttQuotationLine.ApprovalReason &lt;&gt; ? and ttQuotationLine.ApprovalReason &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>Approver</Name>
+                          <ApiField>Approver</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ApproverID</Name>
+                              <ApiField>ApproverID</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código do comprador do item. (Uso interno: Campo = mgind.aprovador.cod-aprov)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>ApproverName</Name>
+                              <ApiField>ApproverName</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Nome do comprador do item. (Uso interno: Campo = mgind.aprovador.nome)</Annotation>
+                              <TestLogic>if (ttQuotationLine.ApproverName &lt;&gt; ? and ttQuotationLine.ApproverName &lt;&gt; "") then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Aprovador da cotação. Relacionamento com aprovador, campo chave cotacao-item.aprovador</Annotation>
+                          <TestLogic>if (ttQuotationLine.ApproverID &lt;&gt; ? and ttQuotationLine.ApproverID &lt;&gt; "") then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações sobre a aprovação da cotação</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>ValidityDays</Name>
+                      <ApiField>ValidityDays</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Dias de validade da cotação (Uso interno: Campo = movind.cotacao-item.dias-validade)</Annotation>
+                      <TestLogic>if (ValidityDays &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>DeliveryTerm</Name>
+                      <ApiField>DeliveryTerm</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Prazo Entrega. (Uso interno: Campo = movind.cotacao-item.prazo-entreg) </Annotation>
+                      <TestLogic>if (DeliveryTerm &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>UpdateDate</Name>
+                      <ApiField>UpdateDate</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>date</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Data em que foi efetuada a última alteração na ordem de compra. (Uso Interno: Campo = movind.cotacao-item.data-atualiz) </Annotation>
+                      <TestLogic>if (UpdateDate &lt;&gt; ?) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>UpdateTime</Name>
+                      <ApiField>UpdateTime</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Hora em que foi efetuada a última alteração na ordem de compra. (Uso Interno: Campo = movind.cotacao-item.hora-atualiz)</Annotation>
+                      <TestLogic>if (ttQuotationLine.UpdateTime &lt;&gt; ? and ttQuotationLine.UpdateTime &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>User</Name>
+                      <ApiField>User</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>UserID</Name>
+                          <ApiField>cUserID</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Identificador do usuário (Uso Interno: Campo = usuar_mestre.cod_usuario)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>UserName</Name>
+                          <ApiField>UserName</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Nome usuário (Uso Interno: Campo = usuar_mestre.nom_usuario)</Annotation>
+                          <TestLogic>if (UserName &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Usuário. Relacionamento com usuar_mestre, campo chave cotacao-item.usuario</Annotation>
+                      <TestLogic>if (ttQuotationLine.cUserID &lt;&gt; ? and ttQuotationLine.cUserID &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Text</Name>
+                      <ApiField>QuoteText</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Narrativa. (Uso Interno: Campo = movind.cotacao-item.narrativa)</Annotation>
+                      <TestLogic>if (ttQuotationLine.QuoteText &lt;&gt; ? and ttQuotationLine.QuoteText &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>POLineText</Name>
+                      <ApiField>POLineText</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Narrativa da ordem de compra. (Uso Interno: Campo = movind.orde-compra.narrativa)</Annotation>
+                      <TestLogic>if (ttQuotationLine.POLineText &lt;&gt; ? and ttQuotationLine.POLineText &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>DestineState</Name>
+                      <ApiField>DestineState</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Estado do estabelecimento da ordem de compra (Uso interno: Campo = mgadm.estabelec.estado)</Annotation>
+                      <TestLogic>if (ttQuotationLine.DestineState &lt;&gt; ? and ttQuotationLine.DestineState &lt;&gt; "") then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>EDI</Name>
+                      <ApiField>EDI</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>QuoteEntryProcessNumber</Name>
+                          <ApiField>QuoteEntryProcessNumber</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Número do processo de entrada da cotação. (Uso interno: Campo = movind.cotacao-item.num-proc-entr-edi)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>QuoteDispatchProcessNumber</Name>
+                          <ApiField>QuoteDispatchProcessNumber</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Número do processo de envio da cotação. (Uso interno: Campo = movind.cotacao-item.num-proc-envio-edi)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações de EDI</Annotation>
+                      <TestLogic>if ((ttQuotationLine.QuoteEntryProcessNumber &lt;&gt; ? and ttQuotationLine.QuoteEntryProcessNumber &lt;&gt; 0) and (ttQuotationLine.QuoteDispatchProcessNumber &lt;&gt; ? and ttQuotationLine.QuoteDispatchProcessNumber &lt;&gt; 0)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>ListOfDeliverySchedules</Name>
+                      <ApiField>ListOfDeliverySchedules</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>DeliveryScheduleInformation</Name>
+                          <ApiField>ttDeliveryScheduleInforma_00</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>DeliveryScheduleID</Name>
+                              <ApiField>DeliveryScheduleID</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Parcela da Ordem de Compra (Uso Interno: Campo = prazo-compra.parcela)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>QuantityInformation</Name>
+                              <ApiField>QuantityInformation</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>ComplexType</Type>
+                              <ListOfChild>
+                                <Child>
+                                  <Name>Quantity</Name>
+                                  <ApiField>Quantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>true</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade.  (Uso Interno: Campo = prazo-compra.quantidade)</Annotation>
+                                  <TestLogic />
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>OriginalQuantity</Name>
+                                  <ApiField>OriginalQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade Original. (Uso Interno: Campo = prazo-compra.quant-orig)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.OriginalQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>BalenceQuantity</Name>
+                                  <ApiField>BalenceQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade Saldo. (Uso Interno: Campo = prazo-compra.quant-saldo)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.BalenceQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>ReturnedQuantity</Name>
+                                  <ApiField>ReturnedQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade Rejeitada. (Uso Interno: Campo = prazo-compra.quant-rejeit)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.ReturnedQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>ReceivedQuantity</Name>
+                                  <ApiField>ReceivedQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade Recebida. (Uso Interno: Campo = prazo-compra.quant-receb)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.ReceivedQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>VendorQuantity</Name>
+                                  <ApiField>VendorQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade do Fornecedor. (Uso Interno: Campo = prazo-compra.qtd-do-forn)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.VendorQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>VendorBalenceQuantity</Name>
+                                  <ApiField>VendorBalenceQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade de Saldo do Fornecedor. (Uso Interno: Campo = prazo-compra.qtd-sal-forn)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.VendorBalenceQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>VendorReturnedQuantity</Name>
+                                  <ApiField>VendorReturnedQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade Devolvida p/ o Fornecedor. (Uso Interno: Campo = prazo-compra.qtd-rej-forn)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.VendorReturnedQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                                <Child>
+                                  <Name>VendorReceivedQuantity</Name>
+                                  <ApiField>VendorReceivedQuantity</ApiField>
+                                  <DefaultValue />
+                                  <IsOk>true</IsOk>
+                                  <Type>decimal</Type>
+                                  <ListOfChild />
+                                  <IsMultiple>false</IsMultiple>
+                                  <IsKeyField>false</IsKeyField>
+                                  <IsRequired>false</IsRequired>
+                                  <Enabled>true</Enabled>
+                                  <Annotation>Quantidade Recebida do Fornecedor. (Uso Interno: Campo = prazo-compra.qtd-rec-forn)</Annotation>
+                                  <TestLogic>if (ttDeliveryScheduleInforma_00.VendorReceivedQuantity &lt;&gt; ?) then</TestLogic>
+                                  <IsNewPI>false</IsNewPI>
+                                </Child>
+                              </ListOfChild>
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Informações sobre as quantidades solicitadas e atendidas para a entrega</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>DeliveryDate</Name>
+                              <ApiField>DeliveryDate</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>date</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Data Entrega. (Uso Interno: Campo = prazo-compra.data-entrega) </Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>DeliveryTime</Name>
+                              <ApiField>DeliveryTime</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Hora a ser efetuada entrega. (Uso Interno: Campo = prazo-compra.hora)</Annotation>
+                              <TestLogic>if (ttDeliveryScheduleInforma_00.DeliveryTime &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>OriginalDeliveryDate</Name>
+                              <ApiField>OriginalDeliveryDate</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>date</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Data Entrega Original. (Uso Interno: Campo = prazo-compra.data-orig) </Annotation>
+                              <TestLogic>if (ttDeliveryScheduleInforma_00.OriginalDeliveryDate &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>UpdateDate</Name>
+                              <ApiField>UpdateDate</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>date</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Data Entrega. (Uso Interno: Campo = prazo-compra.data-alter) </Annotation>
+                              <TestLogic>if (ttDeliveryScheduleInforma_00.UpdateDate &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>Status</Name>
+                              <ApiField>DeliveryScheduleStatus</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Situação da Parcela. Valores: 1 - Não Confirmada, 2 - Confirmada, 3 - Cotada, 4 - Eliminada, 5 - Em Cotação, 6 - Recebida. (Uso interno: Campo = ordem-compra.natureza - Include = ininc/i02in274.i)</Annotation>
+                              <TestLogic>if (ttDeliveryScheduleInforma_00.DeliveryScheduleStatus &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>Concentration</Name>
+                              <ApiField>Concentration</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>decimal</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Concentração do Item.  (Uso Interno: Campo = prazo-compra.concentracao)</Annotation>
+                              <TestLogic>if (ttDeliveryScheduleInforma_00.Concentration &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>Efficiency</Name>
+                              <ApiField>Efficiency</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>decimal</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Rendimento.  (Uso Interno: Campo = prazo-compra.rendimento)</Annotation>
+                              <TestLogic>if (ttDeliveryScheduleInforma_00.Efficiency &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>true</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Informações sobre a prazo-compra.</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Programações de Entrega da Ordem de Compra relacionada a cotação.</Annotation>
+                      <TestLogic>if (can-find(first ttDeliveryScheduleInforma_00)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>ImportInformation</Name>
+                      <ApiField>ttImportInformation</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>ImportationTaxPercentage</Name>
+                          <ApiField>ImportationTaxPercentage</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Aliquota do imposto de importação. (Uso interno: Campo = movind.cotacao-item.aliquota-ii)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>Incoterm</Name>
+                          <ApiField>Incoterm</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>string</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Incoterm para importação. (Uso interno: Campo = movind.cotacao-item.cod-incoterm)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>SourceCountry</Name>
+                          <ApiField>SourceCountry</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>CountryCode</Name>
+                              <ApiField>CountryCode</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código identificador do país. (Uso interno: Campo = mguni.pais.cod-pais)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>CountryName</Name>
+                              <ApiField>CountryName</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Nome do país. (Uso interno: Campo = mguni.pais.nome-pais)</Annotation>
+                              <TestLogic>if (CountryName &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Páis de origem. Relacionamento com pais, campo cotacao-item.cdn-pais-orig</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ImportationRules</Name>
+                          <ApiField>ImportationRules</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ImportationRulesCode</Name>
+                              <ApiField>ImportationRulesCode</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código do regime de importação. (Uso interno: Campo = mgcex.pais-aliquota.regime-import)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>ImportationRulesDescription</Name>
+                              <ApiField>ImportationRulesDescription</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Descrição do regime de importação. (Uso interno: Campo = mgcex.pais-aliquota.des-regim-import)</Annotation>
+                              <TestLogic>if (ImportationRulesDescription &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Declaração de importação. Relacionamento com pais-aliquota, campo cotacao-item.class-fiscal e cotacao-item.cdn-pais-orig</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>FiscalClassification</Name>
+                          <ApiField>FiscalClassification</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>FiscalClassificationID</Name>
+                              <ApiField>FiscalClassificationID</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código da classificação fiscal. (Uso interno: Campo = mgind.classif-fisc.class-fiscal)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>FiscalClassificationDescription</Name>
+                              <ApiField>FiscalClassificationDescription</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Descrição da classificação fiscal. (Uso interno: Campo = mgind.classif-fisc.descricao)</Annotation>
+                              <TestLogic>if (FiscalClassificationDescription &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Classificação fiscal. Relacionamento com classif-fisc, campo cotacao-item.class-fiscal</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>Itinerary</Name>
+                          <ApiField>Itinerary</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ItineraryCode</Name>
+                              <ApiField>ItineraryCode</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código Itinerário. (Uso interno: Campo = mgcex.itinerario.cod-itiner)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>ItineraryDescription</Name>
+                              <ApiField>ItineraryDescription</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Descrição do Itinerário. (Uso interno: Campo = mgcex.itinerario.descricao)</Annotation>
+                              <TestLogic>if (ItineraryDescription &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Itinerário. Relacionamento com itinerario, campo chave cotacao-item.itinerario</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ControlPoint</Name>
+                          <ApiField>ControlPoint</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ControlPointCode</Name>
+                              <ApiField>ControlPointCode</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código do ponto de controle. (Uso interno: Campo = mgcex.pto-contr.cod-pto-contr)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>ControlPointDescription</Name>
+                              <ApiField>ControlPointDescription</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Descrição do ponto de despacho. (Uso interno: Campo = Campo: mgcex.pto-contr.descricao)</Annotation>
+                              <TestLogic>if (ControlPointDescription &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Ponto de controle. Relacionamento com pto-contr, campo chave cotacao-item.cdn-pto-control</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>BasisControlPoint</Name>
+                          <ApiField>BasisControlPoint</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ControlPointCode</Name>
+                              <ApiField>ControlPointCode_00</ApiField>
+                              <DefaultValue />
+                              <IsOk>true</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código do ponto de controle. (Uso interno: Campo = mgcex.pto-contr.cod-pto-contr)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>ControlPointDescription</Name>
+                              <ApiField>ControlPointDescription_00</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Descrição do ponto de despacho. (Uso interno: Campo = Campo: mgcex.pto-contr.descricao)</Annotation>
+                              <TestLogic>if (ControlPointDescription_00 &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Ponto de controle base. Relacionamento com pto-contr, campo chave cotacao-item.cod-pto-contr-base</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>QuoteMap</Name>
+                          <ApiField>QuoteMap</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Mapa cotação. (Uso interno: Campo = movind.cotacao-item.mapa-cotacao)</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>Manufacturer</Name>
+                          <ApiField>Manufacturer</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>ManufacturerNumber</Name>
+                              <ApiField>ManufacturerNumber</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Código do Fabricante. ( Uso Interno: Campo= emitente.cod-emitente)</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>ManufacturerName</Name>
+                              <ApiField>ManufacturerName</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>false</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Nome do Fabricante. ( Uso Interno: Campo= emitente.nome-emit)</Annotation>
+                              <TestLogic>if (ManufacturerName &lt;&gt; ?) then</TestLogic>
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Fabricante vinculado a cotação. Relacionamento com emitente, campo chave cotacao-item.cdn-fabrican</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>ShipmentDate</Name>
+                          <ApiField>ShipmentDate</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>date</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Data de embarque da mercadoria. (Uso interno: Campo = movind.cotacao-item.dt</Annotation>
+                          <TestLogic>if (ttImportInformation.ShipmentDate &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>DeliveryDate</Name>
+                          <ApiField>DeliveryDate</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>date</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>false</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Data de entrega da mercadoria. (Uso interno: Campo = movind.cotacao-item.dt-entrega)</Annotation>
+                          <TestLogic>if (ttImportInformation.DeliveryDate &lt;&gt; ?) then</TestLogic>
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>true</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Informações referentes ao módulo de importação</Annotation>
+                      <TestLogic>if (can-find(first ttImportInformation)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>ListOfQuoteExtraInformation</Name>
+                      <ApiField>ListOfQuoteExtraInformation</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>ExtraInformation</Name>
+                          <ApiField>ttExtraInformation</ApiField>
+                          <DefaultValue />
+                          <IsOk>true</IsOk>
+                          <Type>ComplexType</Type>
+                          <ListOfChild>
+                            <Child>
+                              <Name>Key</Name>
+                              <ApiField>InfoKey</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Chave da informação extra</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>Type</Name>
+                              <ApiField>InfoType</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>integer</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Tipo de dado da informação extra. Tipo de dado da informação extra. Valores: 1 - Alfanumérico, 2 - Numérico, 3 - Decimal, 4 - Lógico, 5 - Data</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                            <Child>
+                              <Name>Value</Name>
+                              <ApiField>InfoValue</ApiField>
+                              <DefaultValue />
+                              <IsOk>false</IsOk>
+                              <Type>string</Type>
+                              <ListOfChild />
+                              <IsMultiple>false</IsMultiple>
+                              <IsKeyField>false</IsKeyField>
+                              <IsRequired>true</IsRequired>
+                              <Enabled>true</Enabled>
+                              <Annotation>Valor da informação extra</Annotation>
+                              <TestLogic />
+                              <IsNewPI>false</IsNewPI>
+                            </Child>
+                          </ListOfChild>
+                          <IsMultiple>true</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation />
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Lista de informações complementares da cotação</Annotation>
+                      <TestLogic>if (can-find(first ttExtraInformation)) then</TestLogic>
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>true</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation />
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+              </ListOfChild>
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Cotações relacionadas ao processo</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+          </ListOfChild>
+          <IsMultiple>false</IsMultiple>
+          <IsKeyField>false</IsKeyField>
+          <IsRequired>true</IsRequired>
+          <Enabled>true</Enabled>
+          <Annotation>Operação de inclusão e alteração</Annotation>
+          <TestLogic />
+          <IsNewPI>false</IsNewPI>
+        </Child>
+        <Child>
+          <Name>Delete</Name>
+          <ApiField>Delete</ApiField>
+          <DefaultValue />
+          <IsOk>true</IsOk>
+          <Type>ComplexType</Type>
+          <ListOfChild>
+            <Child>
+              <Name>POLineNumber</Name>
+              <ApiField>POLineNumber</ApiField>
+              <DefaultValue />
+              <IsOk>false</IsOk>
+              <Type>integer</Type>
+              <ListOfChild />
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Descrição: Número da Ordem de Compra (Uso Interno: Campo = cotacao-item.numero-ordem)</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+            <Child>
+              <Name>Vendor</Name>
+              <ApiField>Vendor</ApiField>
+              <DefaultValue />
+              <IsOk>true</IsOk>
+              <Type>ComplexType</Type>
+              <ListOfChild>
+                <Child>
+                  <Name>VendorTaxID</Name>
+                  <ApiField>VendorTaxID</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>string</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>CGC ou CPF do fornecedor (Uso Interno: Campo = emitente.cgc)</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>VendorNumber</Name>
+                  <ApiField>VendorNumber</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>integer</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.cod-emitente)</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>VendorShortName</Name>
+                  <ApiField>VendorShortName</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>string</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.nome-abrev)</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>VendorName</Name>
+                  <ApiField>VendorName</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>string</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Código do Fornecedor. ( Uso Interno: Campo= emitente.nome-emit)</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>ContactInformation</Name>
+                  <ApiField>ContactInformation</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>ContactName</Name>
+                      <ApiField>ContactName</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Contato. Deve ser um contato relacionado ao fornecedor do pedido (ordem-compra.cod-emitente) (Uso Interno: Campo = mgadm.cont-emit.nome)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>PhoneNumber</Name>
+                      <ApiField>PhoneNumber_00</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Telefone da pessoa de contato (Uso Interno: Campo = mgadm.cont-emit.telefone)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>EmailAddress</Name>
+                      <ApiField>EmailAddress_00</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>string</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>false</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Endereço de e-mail da pessoa de contato (uso Interno: Campo = mgadm.cont-emit.e-mail)</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Informações da pessoa de contato</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+              </ListOfChild>
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Informações do Fornecedor</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+          </ListOfChild>
+          <IsMultiple>false</IsMultiple>
+          <IsKeyField>false</IsKeyField>
+          <IsRequired>true</IsRequired>
+          <Enabled>true</Enabled>
+          <Annotation>Operação de eliminação</Annotation>
+          <TestLogic />
+          <IsNewPI>false</IsNewPI>
+        </Child>
+      </ListOfChild>
+      <IsMultiple>false</IsMultiple>
+      <IsKeyField>false</IsKeyField>
+      <IsRequired>false</IsRequired>
+      <Enabled>true</Enabled>
+      <Annotation />
+      <TestLogic />
+      <IsNewPI>false</IsNewPI>
+    </Field>
+  </ListOfField>
+  <IsNew>false</IsNew>
+  <ConfFileName>C:\Datasul\Pregão Eletronico\fontes\adapters\xml\su2\ProcessQuotations.eai</ConfFileName>
+  <RecentLoad>false</RecentLoad>
+</WizardAdapters>

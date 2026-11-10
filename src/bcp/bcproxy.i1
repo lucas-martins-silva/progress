@@ -1,0 +1,32 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1999)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*******************************************************************************
+**   Programa..: bcproxy.i1
+**
+**   Vers∆o....: 02.00.00 - Datasul
+**
+**   Objetivo..: Include de temp-tables padr‰es para o Proxy de Acesso as tabelas
+**
+**   Autor.....: Carlos Alberto Soares Pereira - Nov/1999
+*********************************************************************************/
+
+/*********************************  bcproxy.i1  *********************************/
+Define temp-table ttReturnMessages no-undo
+    Field CodErro      as Integer format '99999'
+    Field DesErro      as Char    format 'x(60)'
+    Field Local        as Integer format '9' /* 1=Proxy, 2=API_Magnus, 3=BO_EMS_2 */
+    Field Type         as Integer format '9' /* 1=Error, 2=Warning, 3=Information */
+    Field Parameters   as Char    format 'x(2000)'.
+
+DEF VAR vLocalList           AS Character init 'Proxy,Magnus_BO,EMS_2_BO'          no-undo.
+DEF VAR vTypeList            AS Character init 'Error,Warning,Information'         no-undo.
+DEF VAR vAcessModeList       AS Character init 'Current,First,Prev,Next,Last,Each' no-undo.
+
+/*********************************  bcproxy.i1  *********************************/
+

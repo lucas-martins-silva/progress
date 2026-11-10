@@ -1,0 +1,20 @@
+Hide All No-pause.
+Disp '{1}'              At Row 01 Col 01
+     '{2}'              At Row 02 Col 01 With Size {&FrameSize} Font 3 No-box Frame fErr{1}.
+Bell.
+DO ON ENDKEY UNDO,RETRY:
+    DO WHILE LASTKEY <> -1: 
+        &IF DEFINED(ErrorDisplaySeconds) = 0 
+        &THEN
+           READKEY.
+           IF LASTKEY <> 27 THEN   /* sai com qualquer tecla, com exce‡Æo da tecla "ESC" */
+              LEAVE.
+        &ELSE
+           READKEY PAUSE {&ErrorDisplaySeconds}. 
+           IF LASTKEY <> 27 THEN   /* sai com qualquer tecla, com exce‡Æo da tecla "ESC" */
+              LEAVE.                  
+        &ENDIF                              
+    END.
+    Hide Frame _Error.
+END.
+If Session:data-entry-return = Yes Then.

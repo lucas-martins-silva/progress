@@ -1,0 +1,173 @@
+/*******************************************************************************
+**
+** app/ap0501e.i7 - Atualiza‡Æo de Impostos. A elimina‡Æo dos impostos pendentes
+**                  ser  feita na trigger de delete da tabela lin-i-ap.
+**
+*******************************************************************************/
+if  avail tit-ap then do:
+
+    /*--- Reten‡äes de IVA ---*/
+    if  tit-ap.vl-original = tit-ap.valor-saldo then do:
+
+        find first b-espec-ap no-lock where b-espec-ap.cod-esp = tit-ap.cod-esp no-error.
+
+        if  avail b-espec-ap then do:
+            if  b-espec-ap.tipo <> 9 then do:  /*necess rio para docto tipo pagar‚*/
+                {app/ap0501e.i12}
+            end.
+        end.
+    end.
+    /* Chamada DPC - Localiza‡Æo Argentina *****************************/    
+    if  c-nom-prog-dpc-mg97  <> "" or
+        c-nom-prog-appc-mg97 <> "" or
+        c-nom-prog-upc-mg97  <> "" then do:
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "tit-ap-assign"
+               tt-epc.cod-parameter = "tit-ap rowid"
+               tt-epc.val-parameter = string(rowid(tit-ap)).
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "tit-ap-assign"
+               tt-epc.cod-parameter = "lin-i-ap rowid"
+               tt-epc.val-parameter = string(rowid(lin-i-ap)).
+
+        {include/i-epc201.i "tit-ap-assign"}
+
+        if return-value = "NOK" then do:
+            undo criacao.
+            run pi-finalizar in h-acomp.
+            return "NOK".
+        end.
+    end.        
+    /*********************/
+
+    /*------ RETEN€åES -------*/
+    /** Verirfica se Pa¡s ‚ Mexico **/
+    if i-pais-impto-usuario <> 4 then do:
+        for each  impto-tit-pend-ap exclusive-lock
+        where impto-tit-pend-ap.ep-codigo   = tit-ap.ep-codigo
+        and   impto-tit-pend-ap.cod-est     = tit-ap.cod-est
+        and   impto-tit-pend-ap.cod-esp     = tit-ap.cod-esp
+        and   impto-tit-pend-ap.serie       = tit-ap.serie
+        and   impto-tit-pend-ap.nr-docto    = tit-ap.nr-docto
+        and   impto-tit-pend-ap.parcela     = tit-ap.parcela
+        and   impto-tit-pend-ap.cod-fornec  = tit-ap.cod-fornec
+        and   (impto-tit-pend-ap.tipo       = 1
+        or     impto-tit-pend-ap.tipo       = 3) 
+        on error undo criacao, leave criacao:      
+
+                run pi-atz-impto.
+                if return-value = "NOK":U 
+                   then next.
+
+        end.
+    end.
+    run pi-iva.
+end.
+Procedure pi-iva:    
+    /*------------------- IVA ------------------*/
+    for each  impto-tit-pend-ap
+        where impto-tit-pend-ap.ep-codigo  = tit-ap.ep-codigo
+        and   impto-tit-pend-ap.cod-est    = tit-ap.cod-est
+        and   impto-tit-pend-ap.cod-esp    = tit-ap.cod-esp
+        and   impto-tit-pend-ap.serie      = tit-ap.serie
+        and   impto-tit-pend-ap.nr-docto   = tit-ap.nr-docto
+        and   impto-tit-pend-ap.parcela    = tit-ap.parcela
+        and   impto-tit-pend-ap.cod-fornec = tit-ap.cod-fornec no-lock:
+        /** Alterado em fun‡Æo do Pa¡s ser M‚xico **/
+        if i-pais-impto-usuario <> 4 then
+           if impto-tit-pend-ap.tipo <> 2 then next.
+        if i-pais-impto-usuario = 4 then
+           if  impto-tit-pend-ap.tipo <> 1
+           and impto-tit-pend-ap.tipo <> 2 then next.           
+
+        create impto-tit-ap.
+        assign impto-tit-ap.ep-codigo           = impto-tit-pend-ap.ep-codigo
+               impto-tit-ap.cod-est             = impto-tit-pend-ap.cod-est
+               impto-tit-ap.cod-esp             = impto-tit-pend-ap.cod-esp
+               impto-tit-ap.serie               = impto-tit-pend-ap.serie
+               impto-tit-ap.cod-fornec          = impto-tit-pend-ap.cod-fornec
+               impto-tit-ap.nr-docto            = impto-tit-pend-ap.nr-docto
+               impto-tit-ap.parcela             = impto-tit-pend-ap.parcela
+               impto-tit-ap.dt-emissao          = impto-tit-pend-ap.dt-emissao
+               impto-tit-ap.dt-vencimen         = impto-tit-pend-ap.dt-vencimen
+               impto-tit-ap.lancamento          = impto-tit-pend-ap.lancamento
+               impto-tit-ap.tipo                = impto-tit-pend-ap.tipo
+               impto-tit-ap.cod-classificacao   = impto-tit-pend-ap.cod-classificacao
+               impto-tit-ap.trans-impto-ap      = impto-tit-pend-ap.trans-impto-ap
+               impto-tit-ap.origem-impto        = impto-tit-pend-ap.origem-impto
+               impto-tit-ap.contabilizou        = impto-tit-pend-ap.contabilizou
+               impto-tit-ap.ind-data-base       = impto-tit-pend-ap.ind-data-base
+               impto-tit-ap.obs                 = impto-tit-pend-ap.obs
+               impto-tit-ap.vl-base             = impto-tit-pend-ap.vl-base
+               impto-tit-ap.vl-base-me          = impto-tit-pend-ap.vl-base-me
+               impto-tit-ap.cod-imposto         = impto-tit-pend-ap.cod-imposto
+               impto-tit-ap.mo-codigo           = impto-tit-pend-ap.mo-codigo
+               impto-tit-ap.cotacao-dia         = impto-tit-pend-ap.cotacao-dia
+               impto-tit-ap.num-seq-impto       = impto-tit-pend-ap.num-seq-impto.
+
+        /*--- Lote Gerado Pelo MultiPlanta ---*/
+        if  doc-i-ap.log-2 = yes then do:
+            assign impto-tit-ap.contabilizou = yes.
+        end.
+
+        find mov-ap where rowid(mov-ap) = r-movapfa no-lock no-error.
+        if  avail mov-ap then do:
+            assign impto-tit-ap.num-id-mov-ap  = mov-ap.num-id-mov-ap
+                   impto-tit-ap.dt-transacao   = mov-ap.dt-transacao.
+        end.
+
+        assign impto-tit-ap.conta-imposto       = impto-tit-pend-ap.conta-imposto
+               impto-tit-ap.ct-imposto          = impto-tit-pend-ap.ct-imposto
+               impto-tit-ap.sc-imposto          = impto-tit-pend-ap.sc-imposto
+               impto-tit-ap.perc-imposto        = impto-tit-pend-ap.perc-imposto.
+
+        assign impto-tit-ap.conta-percepcao     = impto-tit-pend-ap.conta-percepcao
+               impto-tit-ap.ct-percepcao        = impto-tit-pend-ap.ct-percepcao
+               impto-tit-ap.sc-percepcao        = impto-tit-pend-ap.sc-percepcao
+               impto-tit-ap.perc-percepcao      = impto-tit-pend-ap.perc-percepcao.
+
+        assign impto-tit-ap.conta-retencao      = impto-tit-pend-ap.conta-retencao
+               impto-tit-ap.ct-retencao         = impto-tit-pend-ap.ct-retencao
+               impto-tit-ap.sc-retencao         = impto-tit-pend-ap.sc-retencao
+               impto-tit-ap.perc-retencao       = impto-tit-pend-ap.perc-retencao.
+
+        assign impto-tit-ap.conta-iva-liberado  = impto-tit-pend-ap.conta-iva-liberado
+               impto-tit-ap.ct-iva-liberado     = impto-tit-pend-ap.ct-iva-liberado
+               impto-tit-ap.sc-iva-liberado     = impto-tit-pend-ap.sc-iva-liberado
+               impto-tit-ap.perc-iva-liberado   = impto-tit-pend-ap.perc-iva-liberado.
+
+        assign impto-tit-ap.vl-imposto          = impto-tit-pend-ap.vl-imposto
+               impto-tit-ap.vl-saldo-imposto    = impto-tit-pend-ap.vl-saldo-imposto
+               impto-tit-ap.vl-retencao         = impto-tit-pend-ap.vl-retencao
+               impto-tit-ap.vl-percepcao        = impto-tit-pend-ap.vl-percepcao
+               impto-tit-ap.vl-iva-liberado     = impto-tit-pend-ap.vl-iva-liberado.
+
+        assign impto-tit-ap.vl-imposto-me       = impto-tit-pend-ap.vl-imposto-me
+               impto-tit-ap.vl-saldo-imposto-me = impto-tit-pend-ap.vl-saldo-imposto-me
+               impto-tit-ap.vl-retencao-me      = impto-tit-pend-ap.vl-retencao-me
+               impto-tit-ap.vl-percepcao-me     = impto-tit-pend-ap.vl-percepcao-me
+               impto-tit-ap.vl-iva-liberado-me  = impto-tit-pend-ap.vl-iva-liberado-me.
+
+        /* Chamada DPC - Localiza‡Æo Argentina *****************************/    
+        for each tt-epc where tt-epc.cod-event = "tax-assign" exclusive-lock:
+            delete tt-epc.
+        end.
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "tax-assign"
+               tt-epc.cod-parameter = "impto-tit-ap rowid"
+               tt-epc.val-parameter = string(rowid(impto-tit-ap)).
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "tax-assign"
+               tt-epc.cod-parameter = "impto-tit-pend-ap rowid"
+               tt-epc.val-parameter = string(rowid(impto-tit-pend-ap)).
+
+        {include/i-epc201.i "tax-assign"}
+        /******************************************************************/
+
+    end.
+
+end procedure.

@@ -1,0 +1,68 @@
+/*****************************************************************************
+**       INCLUDE : boaf016.i2
+**       DATA....: Outubro de 2004    
+**       OBJETIVO: Preencher combo-box com os anos de avalia‡Æo
+******************************************************************************
+** Parƒmetros 
+** {1} Combo-box com os anos iniciais
+** {2} Combo-box com os anos finais
+******************************************************************************/
+
+   DEFINE VARIABLE c-list-item-pairs-ano AS CHARACTER   NO-UNDO.
+   DEFINE VARIABLE i-maior-ano           AS INTEGER     NO-UNDO.
+
+   &if "{&FNC_MULTI_IDIOMA}" = "Yes" &then
+       for each af-periodo-aval 
+           where af-periodo-aval.ep-codigo = v_cdn_empres_usuar no-lock:
+          if c-list-item-pairs-ano <> "" then do:
+              assign c-list-item-pairs-ano = c-list-item-pairs-ano + "," + string(af-periodo-aval.ano-avaliacao).
+          end.
+          else do:
+             assign c-list-item-pairs-ano = string(af-periodo-aval.ano-avaliacao).
+          end.
+          if af-periodo-aval.ano-avaliacao > i-maior-ano then do:
+             assign i-maior-ano = af-periodo-aval.ano-avaliacao.
+          end.
+       end.
+       
+       run utp/ut-lstit.p (input-output c-list-item-pairs-ano).
+       
+       assign {1}:list-item-pairs in frame {3}  = c-list-item-pairs-ano
+              {2}:list-item-pairs in frame {3}  = c-list-item-pairs-ano
+              {1}:screen-value    in frame {3}  = string(year(today))
+              {2}:screen-value    in frame {3}  = {1}:screen-value no-error.     
+      
+       if {1}:screen-value    in frame {3} = ? then do:
+          assign {1}:screen-value  in frame {3}  = string(i-maior-ano)
+                 {2}:screen-value  in frame {3}  = {1}:screen-value.
+
+       end.
+   &else
+       assign {1}:list-items in frame {3} = ""
+              {2}:list-items in frame {3} = "".
+        
+       for each af-periodo-aval 
+           where af-periodo-aval.ep-codigo = v_cdn_empres_usuar no-lock:
+          if {1}:list-items in frame {3} <> ? then
+             assign {1}:list-items in frame {3} = input frame {3} {1}:list-items + "," + string(af-periodo-aval.ano-avaliacao).
+          else
+             assign {1}:list-items in frame {3} = string(af-periodo-aval.ano-avaliacao).
+             
+          if af-periodo-aval.ano-avaliacao > i-maior-ano then do:
+             assign i-maior-ano = af-periodo-aval.ano-avaliacao.
+          end.
+       end.
+       assign {2}:list-items    in frame {3}  = {1}:list-items
+              {1}:screen-value  in frame {3}  = string(year(today))
+              {2}:screen-value  in frame {3}  = {1}:screen-value no-error.
+              
+       if {1}:screen-value    in frame {3} = ? then do:
+          assign {1}:screen-value  in frame {3}  = string(i-maior-ano)
+                 {2}:screen-value  in frame {3}  = {1}:screen-value.
+       end.
+
+   &endif
+
+
+   
+/**** Fim boaf016.i2 **********************************************************/

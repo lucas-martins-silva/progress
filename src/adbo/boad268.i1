@@ -1,0 +1,94 @@
+/*
+**  BOAD268.i1
+**
+**  Procedure findCodigo: esta procedure foi transformada
+**  em include pois este codigo e comum aos produtos EMS e
+**  Magnus.
+**
+*/
+
+procedure findCodigo:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter i-cod-transp as inte no-undo.
+    def output parameter c-return as char no-undo.
+
+    find first transporte where
+        transporte.cod-transp = i-cod-transp
+        no-lock no-error.
+    if not avail transporte then do:
+        {utp/ut-table.i mgadm transporte 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+end procedure.
+
+procedure findNome:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter c-nome-abrev as char no-undo.
+    def output parameter c-return as char no-undo.
+
+    find first transporte where
+        transporte.nome-abrev = c-nome-abrev
+        no-lock no-error.
+    if not avail transporte then do:
+        {utp/ut-table.i mgadm transporte 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+end procedure.
+
+&IF '{&BF_DIS_VERSAO_EMS}' >= '2.02' AND "{&mguni_version}" < "2.07" &THEN
+procedure importaTransp:
+    def output parameter table for tt-imp-transp.
+
+    for each tt-imp-transp:
+        delete tt-imp-transp.
+    end.
+
+    for each transporte no-lock:
+
+        find first emitente
+            where emitente.cgc = transporte.cgc no-lock no-error.
+
+        create tt-imp-transp.
+        assign tt-imp-transp.nome-transp      = transporte.nome-abrev
+               tt-imp-transp.nome             = transporte.nome
+               tt-imp-transp.cgc              = transporte.cgc
+               tt-imp-transp.nome-abrev-emit  = if avail emitente
+                                                then emitente.nome-abrev
+                                                else ""
+               tt-imp-transp.cod-emitente     = if avail emitente
+                                                then emitente.cod-emitente
+                                                else 0
+               tt-imp-transp.endereco         = transporte.endereco
+               tt-imp-transp.cidade           = transporte.cidade
+               tt-imp-transp.estado           = transporte.estado
+             &IF '{&BF_DIS_VERSAO_EMS}' >= '2.04' &THEN
+               tt-imp-transp.log-edi          = transporte.log-edi
+               tt-imp-transp.des-ident-transp = transporte.des-ident-transp
+               tt-imp-transp.cdn-parcei-edi   = transporte.cdn-parcei-edi
+             &ENDIF .
+
+    end.
+end procedure.
+&ENDIF

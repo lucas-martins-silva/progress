@@ -1,0 +1,32 @@
+/********************************************************************************
+**
+**  Programa....: bc0001.i1 - Concatena‡Æo das includes i01cl016, i02cl016, i03cl016
+**
+**  Data Cria‡Æo: 15/01/2001 - Luciano Leonhardt
+**
+********************************************************************************/
+define var c-lista1         as char.
+define var c-lista2         as char.
+define var c-lista3         as char.
+define var i-cont-lista     as inte.
+define var c-lista          as char.
+
+assign  c-lista1 = {clinc/i01cl016.i 03}.
+assign  c-lista2 = {clinc/i02cl016.i 03}.
+assign  c-lista3 = {clinc/i03cl016.i 03}.
+
+do i-cont-lista = 1 to num-entries(c-lista1):
+    if  entry(i-cont-lista,c-lista1) <> ''
+    then    assign  c-lista = c-lista + entry(i-cont-lista,c-lista1) + ",".
+end.
+
+do i-cont-lista= 1 to num-entries(c-lista2):
+    if  entry(i-cont-lista,c-lista2) <> ''
+    then    assign  c-lista = c-lista + entry(i-cont-lista,c-lista2) + ",".
+end.
+do i-cont-lista = 1 to num-entries(c-lista3):
+    if  entry(i-cont-lista,c-lista3) <> ''
+    then    assign  c-lista = c-lista + entry(i-cont-lista,c-lista3) + ",".
+end.
+
+assign  c-lista = substring(c-lista,1,length(c-lista) - 1).

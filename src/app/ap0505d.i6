@@ -1,0 +1,67 @@
+/******************************************************************
+***
+***  AP0503D.i6 Tratamento para emiss∆o do relat¢rio de erros.
+***
+******************************************************************/
+
+def var v-nom-arquivo      as char format "x(50)" no-undo.
+def var v-des-mensagem
+    as character
+    format "x(50)"
+    view-as editor max-chars 2000 scrollbar-vertical
+    size 50 by 4
+    bgcolor 15 font 2
+    label "Mensagem"
+    column-label "Mensagem"
+    no-undo.
+
+def new shared temp-table tt-lin-b-ap
+    field tta-sequencia               like lin-b-ap.sequencia
+    field tta-referencia              like lin-b-ap.referencia
+    field tta-cod-estabel             like lin-b-ap.cod-estabel
+    field tta-cod-esp                 like lin-b-ap.cod-esp
+    field tta-serie                   like lin-b-ap.serie
+    field tta-nr-docto                like lin-b-ap.nr-docto
+    field tta-parcela                 like lin-b-ap.parcela
+    field tta-cod-fornec              like lin-b-ap.cod-fornec
+    field tta-cod-erro                as integer
+    field tta-situacao                as logical
+    field ttv-des-mensagem            like v-des-mensagem.
+
+{include/i-rpvar.i}
+
+find first empresa no-lock
+     where empresa.ep-codigo = i-ep-codigo-usuario no-error.
+
+if  not avail empresa then do:
+    run utp/ut-msgs.p (input "show",
+                       input 12,
+                       input string(i-ep-codigo-usuario)).
+    return. 
+end.
+
+{utp/ut-liter.i CONTAS_A_PAGAR * L}
+assign c-programa    = "AP/0505":U
+       c-versao      = "1.00":U
+       c-revisao     = "000":U
+       c-empresa     = empresa.nome  
+       c-sistema     = return-value.
+
+{include/i-rpcab.i}
+
+form
+     "     "
+     tt-lin-b-ap.tta-sequencia        
+     tt-lin-b-ap.tta-cod-estabel      
+     tt-lin-b-ap.tta-cod-esp          
+     tt-lin-b-ap.tta-serie            
+     tt-lin-b-ap.tta-nr-docto         
+     tt-lin-b-ap.tta-parcela          
+     tt-lin-b-ap.tta-cod-fornec  
+     tt-lin-b-ap.ttv-des-mensagem     
+     with width 132 no-box down stream-io frame f-consiste.
+
+{utp/ut-liter.i Mensagem * R}
+assign tt-lin-b-ap.ttv-des-mensagem:label in frame f-consiste = return-value.
+
+/* Fim de Include */

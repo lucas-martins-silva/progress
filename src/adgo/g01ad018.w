@@ -1,0 +1,401 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
+&ANALYZE-RESUME
+&Scoped-define WINDOW-NAME CURRENT-WINDOW
+&Scoped-define FRAME-NAME cdg1101
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS cdg1101 
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+{include/i-prgvrs.i G01AD018 2.00.00.007}
+
+&IF "{&EMSFND_VERSION}" >= "1.00"
+&THEN
+{include/i-license-manager.i G01AD018 MUT}
+&ENDIF
+
+
+/*------------------------------------------------------------------------
+
+  File: 
+
+  Description: 
+
+  Input Parameters:
+      <none>
+
+  Output Parameters:
+      <none>
+
+  Author: Vanei
+
+  Created: 
+------------------------------------------------------------------------*/
+/*          This .W file was created with the Progress UIB.             */
+/*----------------------------------------------------------------------*/
+
+/* Create an unnamed pool to store all the widgets created 
+     by this procedure. This is a good default which assures
+     that this procedure's triggers and internal procedures 
+     will execute in this procedure's storage, and that proper
+     cleanup will occur on deletion of the procedure. */
+
+CREATE WIDGET-POOL.
+
+/* ***************************  Definitions  ************************** */
+&glob version 1.00.000
+
+/* Parameters Definitions ---                                           */
+define output parameter     p-row-tabela    as rowid    no-undo.
+
+/* Local Variable Definitions ---                                       */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE SmartDialog
+
+&Scoped-define ADM-CONTAINER DIALOG-BOX
+
+/* Name of first Frame and/or Browse and/or first Query                 */
+&Scoped-define FRAME-NAME cdg1101
+
+/* Standard List Definitions                                            */
+&Scoped-Define ENABLED-OBJECTS fi-banco rt-button bt-ok bt-cancela bt-ajuda 
+&Scoped-Define DISPLAYED-OBJECTS fi-banco 
+
+/* Custom List Definitions                                              */
+/* List-1,List-2,List-3,List-4,List-5,List-6                            */
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+/* ***********************  Control Definitions  ********************** */
+
+/* Define a dialog box                                                  */
+
+/* Definitions of the field level widgets                               */
+DEFINE BUTTON bt-ajuda 
+     LABEL "&Ajuda" 
+     SIZE 12 BY 1.08
+     BGCOLOR 8 .
+
+DEFINE BUTTON bt-cancela AUTO-END-KEY 
+     LABEL "&Cancela" 
+     SIZE 12 BY 1.08
+     BGCOLOR 8 .
+
+DEFINE BUTTON bt-ok AUTO-GO 
+     LABEL "&OK" 
+     SIZE 12 BY 1.08
+     BGCOLOR 8 .
+
+DEFINE VARIABLE fi-banco AS INTEGER FORMAT ">>9":U INITIAL 0 
+     LABEL "Banco" 
+     VIEW-AS FILL-IN 
+     SIZE 6 BY .88 NO-UNDO.
+
+DEFINE RECTANGLE rt-button
+     EDGE-PIXELS 2 GRAPHIC-EDGE  
+     SIZE 42.86 BY 1.67
+     BGCOLOR 7 .
+
+
+/* ************************  Frame Definitions  *********************** */
+
+DEFINE FRAME cdg1101
+     fi-banco AT ROW 1.25 COL 19 COLON-ALIGNED
+     bt-ok AT ROW 3 COL 2.72
+     bt-cancela AT ROW 3 COL 15.29
+     bt-ajuda AT ROW 3 COL 31.29
+     rt-button AT ROW 2.67 COL 1.57
+     SPACE(0.56) SKIP(0.23)
+    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
+         TITLE "V  Para Banco"
+         DEFAULT-BUTTON bt-ok CANCEL-BUTTON bt-cancela.
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: SmartDialog
+   Allow: Basic,Browse,DB-Fields,Query,Smart
+   Other Settings: COMPILE
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+
+/* ***************  Runtime Attributes and UIB Settings  ************** */
+
+&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
+/* SETTINGS FOR DIALOG-BOX cdg1101
+   L-To-R                                                               */
+ASSIGN 
+       FRAME cdg1101:SCROLLABLE       = FALSE
+       FRAME cdg1101:HIDDEN           = TRUE.
+
+/* _RUN-TIME-ATTRIBUTES-END */
+&ANALYZE-RESUME
+
+
+/* Setting information for Queries and Browse Widgets fields            */
+
+&ANALYZE-SUSPEND _QUERY-BLOCK DIALOG-BOX cdg1101
+/* Query rebuild information for DIALOG-BOX cdg1101
+     _Options          = "SHARE-LOCK"
+     _Query            is NOT OPENED
+*/  /* DIALOG-BOX cdg1101 */
+&ANALYZE-RESUME
+
+ 
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB cdg1101 
+/* ************************* Included-Libraries *********************** */
+
+{src/adm/method/containr.i}
+{utp/ut-glob.i}
+{include/d-vapara.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME cdg1101
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cdg1101 cdg1101
+ON GO OF FRAME cdg1101 /* V  Para Banco */
+DO:
+  /*assign input frame {&frame-name} fi-banco.*/
+  find banco
+      where banco.cod-banco = input frame {&frame-name} fi-banco no-lock no-error.
+  if  not avail banco then do:
+     /* message "NÆo encontrado Banco para valor informado..." view-as alert-box error.*/
+   /* {UTP/UT-TABLE.I MGADM BANCO 1}*/
+      run utp/ut-msgs.p (input "show",
+                         input 2,
+                         input return-value).
+      return no-apply.
+  end.
+  assign p-row-tabela = rowid(banco).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cdg1101 cdg1101
+ON WINDOW-CLOSE OF FRAME cdg1101 /* V  Para Banco */
+DO:  
+  /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
+  APPLY "END-ERROR":U TO SELF.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME bt-ajuda
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-ajuda cdg1101
+ON CHOOSE OF bt-ajuda IN FRAME cdg1101 /* Ajuda */
+OR HELP OF FRAME {&FRAME-NAME}
+DO: /* Call Help Function (or a simple message). */
+  {include/ajuda.i}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK cdg1101 
+
+
+/* ***************************  Main Block  *************************** */
+{utp/ut-field.i mgadm banco Cod-banco 1}
+assign fi-banco:label in frame {&frame-name} = return-value.
+
+assign p-row-tabela = ?.
+
+{src/adm/template/dialogmn.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-create-objects cdg1101 _ADM-CREATE-OBJECTS
+PROCEDURE adm-create-objects :
+/*------------------------------------------------------------------------------
+  Purpose:     Create handles for all SmartObjects used in this procedure.
+               After SmartObjects are initialized, then SmartLinks are added.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-row-available cdg1101 _ADM-ROW-AVAILABLE
+PROCEDURE adm-row-available :
+/*------------------------------------------------------------------------------
+  Purpose:     Dispatched to this procedure when the Record-
+               Source has a new row available.  This procedure
+               tries to get the new row (or foriegn keys) from
+               the Record-Source and process it.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+
+  /* Define variables needed by this internal procedure.             */
+  {src/adm/template/row-head.i}
+
+  /* Process the newly available records (i.e. display fields,
+     open queries, and/or pass records on to any RECORD-TARGETS).    */
+  {src/adm/template/row-end.i}
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI cdg1101 _DEFAULT-DISABLE
+PROCEDURE disable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     DISABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we clean-up the user-interface by deleting
+               dynamic widgets we have created and/or hide 
+               frames.  This procedure is usually called when
+               we are ready to "clean-up" after running.
+------------------------------------------------------------------------------*/
+  /* Hide all frames. */
+  HIDE FRAME cdg1101.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI cdg1101 _DEFAULT-ENABLE
+PROCEDURE enable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     ENABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we display/view/enable the widgets in the
+               user-interface.  In addition, OPEN all queries
+               associated with each FRAME and BROWSE.
+               These statements here are based on the "Other 
+               Settings" section of the widget Property Sheets.
+------------------------------------------------------------------------------*/
+  DISPLAY fi-banco 
+      WITH FRAME cdg1101.
+  ENABLE fi-banco rt-button bt-ok bt-cancela bt-ajuda 
+      WITH FRAME cdg1101.
+  VIEW FRAME cdg1101.
+  {&OPEN-BROWSERS-IN-QUERY-cdg1101}
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-destroy cdg1101 
+PROCEDURE local-destroy :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  /* Dispatch standard ADM method.                             */
+  RUN dispatch IN THIS-PROCEDURE ( INPUT 'destroy':U ) .
+  {include/i-logfin.i}
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-initialize cdg1101 
+PROCEDURE local-initialize :
+{utp/ut9000.i "G01AD018" "2.00.00.007"}
+
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  run SetaTitulo.
+  
+  /* Dispatch standard ADM method.                             */
+  RUN dispatch IN THIS-PROCEDURE ( INPUT 'initialize':U ) .
+
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE send-records cdg1101 _ADM-SEND-RECORDS
+PROCEDURE send-records :
+/*------------------------------------------------------------------------------
+  Purpose:     Send record ROWID's for all tables used by
+               this file.
+  Parameters:  see template/snd-head.i
+------------------------------------------------------------------------------*/
+
+  /* SEND-RECORDS does nothing because there are no External
+     Tables specified for this SmartDialog, and there are no
+     tables specified in any contained Browse, Query, or Frame. */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE state-changed cdg1101 
+PROCEDURE state-changed :
+/* -----------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+-------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER p-issuer-hdl AS HANDLE NO-UNDO.
+  DEFINE INPUT PARAMETER p-state AS CHARACTER NO-UNDO.
+
+  run pi-trata-state (p-issuer-hdl, p-state).
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+

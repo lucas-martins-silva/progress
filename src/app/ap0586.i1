@@ -1,0 +1,30 @@
+/********************************************************************************
+***
+*** app/ap0586.i1 - Impostos referente desconto/juros
+***
+********************************************************************************/
+
+find first impto-tit-ap use-index codigo
+   where impto-tit-ap.ep-codigo    = tit-ap.ep-codigo
+     and impto-tit-ap.cod-estabel  = tit-ap.cod-estabel
+     and impto-tit-ap.cod-esp      = tit-ap.cod-esp
+     and impto-tit-ap.serie        = tit-ap.serie
+     and impto-tit-ap.nr-docto     = tit-ap.nr-docto
+     and impto-tit-ap.parcela      = tit-ap.parcela
+     and impto-tit-ap.cod-fornec   = tit-ap.cod-fornec
+     and impto-tit-ap.tipo         = 2 
+     and impto-tit-ap.origem-impto = 1  /* Implanta‡Æo */
+     no-lock no-error.
+             
+if  avail impto-tit-ap then do:
+                
+    if  de-desconto > 0 then do:
+        {app/ap0586.i4 "2" 
+                       "de-desconto" 
+                       "de-desconto"
+                       "l-desconto"
+                       "3"}
+    end.                        
+end.
+
+/* Fim da Include */

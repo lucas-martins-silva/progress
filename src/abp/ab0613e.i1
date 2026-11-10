@@ -1,0 +1,103 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*****************************************************************************
+**
+**       PROGRAMA: AB0613e.i1
+**
+**       DATA....: Outubro de 2003
+**
+**       AUTOR...: Marcio Willwock - Manufatura - DATASUL S.A.
+**
+**       OBJETIVO: Resumo Eventos Realizados em Compartimentos e Filtros
+**
+*****************************************************************************/
+                                                /** Defini‡Æo de Vari veis **/
+DEFINE VARIABLE c-liter-imp  AS CHARACTER FORMAT "x(14)" NO-UNDO.
+DEFINE VARIABLE c-destino    AS CHARACTER FORMAT "x(09)" NO-UNDO.
+DEFINE VARIABLE c-total      AS CHARACTER FORMAT "x(09)" NO-UNDO.
+DEFINE VARIABLE c-fora       AS CHARACTER FORMAT "x(01)" NO-UNDO.
+
+/*****************************************************************************/
+                                                     /** Form de Parƒmetros **/
+
+form   /*IMPRESSÇO*/
+       skip(1)
+       c-liter-imp              AT 09    no-label
+       skip(1)
+       c-destino                COLON 30 " - " tt-param.arquivo NO-LABEL
+       tt-param.usuario         COLON 30
+       skip(1)
+       with width 132 side-labels frame f-param-definidos stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-param-definidos:HANDLE).
+
+/*****************************************************************************/
+                                                              /** ImpressÆo **/
+     
+form tt-digita.desc-dimensao   format "x(33)"
+     bfDigita.desc-dimensao    format "x(33)"
+     bfDigita.iAntes
+     deAnte
+     bfDigita.iDentro
+     deDent
+     bfDigita.iApos
+     deApos
+     iTotal
+     with width 132 no-attr-space no-box down frame f-dados stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-dados:HANDLE).
+
+     
+form c-total at 59 no-label
+     iAntes 
+     deAnte  
+     iDentr  
+     deDent  
+     iApos   
+     deApos  
+     iTotal  
+     with width 132 no-attr-space no-box down frame f-total stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-total:HANDLE).
+
+
+/*****************************************************************************/
+                                               /** Literais Form Parƒmetros **/
+{utp/ut-liter.i Usu rio * l}
+assign tt-param.usuario:label in frame f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i Destino * l}
+assign c-destino:label in frame f-param-definidos = trim(return-value).
+
+{utp/ut-liter.i IMPRESSÇO * R}
+assign c-liter-imp = trim(return-value).
+
+/*****************************************************************************/
+                                                    /** Literais Form Dados **/
+{utp/ut-liter.i "Antes"}
+assign bfDigita.iAntes:label in frame f-dados = trim(return-value).
+{utp/ut-liter.i "Dentro"}
+assign bfDigita.iDentro:label in frame f-dados = trim(return-value).
+{utp/ut-liter.i "Ap¢s"}
+assign bfDigita.iApos:label in frame f-dados = trim(return-value).
+{utp/ut-liter.i "Total"}
+assign iTotal:label in frame f-dados = trim(return-value)
+       c-total = trim(return-value) + ":".
+assign deAnte:label in frame f-dados = "     %":U
+       deAnte:label in frame f-total = "":U
+       deDent:label in frame f-dados = "     %":U
+       deDent:label in frame f-total = "":U
+       deApos:label in frame f-dados = "     %":U
+       deApos:label in frame f-total = "":U
+       iAntes:label in frame f-total = "":U
+       iDentr:label in frame f-total = "":U
+       iApos:label  in frame f-total = "":U
+       iTotal:label in frame f-total = "":U.
+
+/*****************************************************************************/
+                                                         /** Fim da Include **/

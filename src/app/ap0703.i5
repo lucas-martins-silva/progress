@@ -1,0 +1,63 @@
+/*****************************************************************************
+**
+**  Include.: AP0703.i5
+**  Objetivo: Acumular Valores para Resumo.
+**
+******************************************************************************/
+if  tt-param.chave = 1 then do:
+    assign i-venc-30 = tt-param.venc-31 - 1
+           i-venc-91 = tt-param.venc-90 + 1.
+    if  tit-ap.dt-vencimen <= tt-param.resumo then do:
+        assign nr-dias = tt-param.resumo - tit-ap.dt-vencimen.
+
+        if  nr-dias >= 0 then do:
+            if  nr-dias <= i-venc-30 then
+                assign de-ven-30    = de-ven-30 + de-saldo
+                          de-total  = de-total + de-saldo.
+
+            if  nr-dias >= tt-param.venc-31
+            and nr-dias <= tt-param.venc-60 then
+               assign de-ven-60 = de-ven-60 + de-saldo
+                      de-total  = de-total  + de-saldo.
+
+            if  nr-dias >= tt-param.venc-61
+            and nr-dias <= tt-param.venc-90 then
+                assign  de-ven-90 = de-ven-90   + de-saldo
+                           de-total  = de-total + de-saldo.
+
+            if  nr-dias >= i-venc-91 then
+                assign  de-ven-999 = de-ven-999  + de-saldo
+                        de-total   = de-total    + de-saldo.
+
+        end.
+    end.
+    else do: 
+        assign i-a-venc-30  = tt-param.a-venc-31  - 1
+               i-a-venc-121 = tt-param.a-venc-120 + 1.
+        assign nr-dias = tit-ap.dt-vencimen - tt-param.resumo.
+        if  nr-dias <= i-a-venc-30 then
+            assign de-ven1-30 = de-ven1-30 + de-saldo
+                       de-total1  = de-total1 + de-saldo.
+
+        if  nr-dias >= tt-param.a-venc-31
+        and nr-dias <= tt-param.a-venc-60 then
+            assign de-ven1-60  = de-ven1-60 + de-saldo
+                   de-total1   = de-total1  + de-saldo.
+
+        if  nr-dias >= tt-param.a-venc-61
+        and nr-dias <= tt-param.a-venc-90 then
+             assign de-ven1-90  = de-ven1-90 + de-saldo
+                    de-total1   = de-total1  + de-saldo.
+
+        if  nr-dias >= tt-param.a-venc-91
+        and nr-dias <= tt-param.a-venc-120 then
+            assign de-ven1-120  = de-ven1-120 + de-saldo
+                   de-total1    = de-total1   + de-saldo.
+
+        if  nr-dias >= i-a-venc-121 then
+            assign de-ven1-999 = de-ven1-999 + de-saldo
+                   de-total1   = de-total1   + de-saldo.
+    end.
+end.
+
+/* fim-de-programa */

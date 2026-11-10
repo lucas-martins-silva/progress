@@ -1,0 +1,29 @@
+<Statistics>
+  <Plate>AAA0000</Plate>
+  <DateTime>00/00/0000 00:00:00</DateTime>
+  <PeriodAnalyzed>
+    <Of>00/00/0000 00:00:00</Of>
+    <Until>00/00/0000 00:00:00</Until>
+  </PeriodAnalyzed>
+  <TotalKm>000.00</TotalKm>
+  <TimeEngineRunning>00:00:00</TimeEngineRunning>
+  <NumberMotorDrives>0</NumberMotorDrives>
+  <NumberBraking>0</NumberBraking>
+  <NumberDrivesParkingBrake>0</NumberDrivesParkingBrake>
+  <TimeTriggeredParkingBrake>00:00:00</TimeTriggeredParkingBrake>
+  <NumberDrivesSensor1>0</NumberDrivesSensor1>
+  <TimeSensor1Triggered>00:00:00</TimeSensor1Triggered>
+  <NumberDrivesSensor2>0</NumberDrivesSensor2>  
+  <TimeSensor2Triggered>00:00:00</TimeSensor2Triggered>  
+  <NumberDrivesSensor3>0</NumberDrivesSensor3>
+  <TimeSensor3Triggered>00:00:00</TimeSensor3Triggered>
+  <SpinMediumEngine>0</SpinMediumEngine>
+  <TimeAnalysisGreenBand>00:00:00</TimeAnalysisGreenBand>
+  <TrackTimeInGreen>00:00:00</TrackTimeInGreen>
+  <ExcessRotationsLowSpeed>0</ExcessRotationsLowSpeed>
+  <ExcessRotationsMaximum>0</ExcessRotationsMaximum>
+  <ExcessRotationsSubsystem>0</ExcessRotationsSubsystem>
+  <NumberSuddenAccelerations>0</NumberSuddenAccelerations>
+  <NumberSuddenBraking>0</NumberSuddenBraking>
+  <NumberNeutral>0</NumberNeutral>
+</Statistics>

@@ -1,0 +1,226 @@
+/***************************************************************************
+***
+***  ap1001e.i2 
+***  Objetivo: Gerar detalhe Segmentos A e B
+***
+***************************************************************************/
+
+if  l-antecipacao = no then do:
+    if  mov-ap.transacao = 15 then
+        assign i-tipo-mov = 5
+               c-cod-mov  = "19".
+
+    if  mov-ap.transacao = 10 
+    or  mov-ap.transacao = 11 
+    or  mov-ap.transacao = 12 then
+        assign i-tipo-mov = 9
+               c-cod-mov = "99".
+
+    if  mov-ap.transacao = 1 
+    or  mov-ap.transacao = 6 then
+        assign i-tipo-mov = 0
+               c-cod-mov  = "00".
+
+    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+        assign de-desconto = (tit-ap.vl-isr + tit-ap.vl-abatimento-tot) * 100
+               de-juros    = (tit-ap.dec-2  + tit-ap.vl-multa-tot) * 100.
+    &else
+        assign de-desconto = tit-ap.vl-isr * 100
+               de-juros    = tit-ap.dec-2  * 100.
+    &endif
+
+end.
+else 
+    assign i-tipo-mov  = 0
+           c-cod-mov   = "00"
+           de-desconto = 0
+           de-juros    = 0.
+
+assign l-avisa         = if tt-param.i-tipo-pag = 4 then yes else no
+       i-num-reg       = i-num-reg + 1
+       c-carteira      = tt-digita.ita-carteira
+       l-aceite        = tt-digita.ita-aceite
+       c-uso-banco-ita = tt-digita.ita-uso-banco.
+
+if  tt-param.i-tipo-pag < 30 
+or  tt-param.i-tipo-pag = 41
+or  tt-param.i-tipo-pag = 43
+then do:
+
+    assign i-lote = 1.
+
+    /*--- Segmento A ---*/
+    put stream relat
+        "341"                                                           at 001
+        i-lote                                                          at 004
+        "3"                                                             at 008
+        i-num-reg  format "99999"                                       at 009
+        "A"                                                             at 014
+        i-tipo-mov                                                      at 015
+        c-cod-mov                                                       at 016
+        "000"                                                           at 018
+        tt-digita.banco                            format "999"         at 021.
+
+    if  tt-digita.banco = 341 then do:
+        put stream relat
+            "0"                                                         at 024
+            substr(tt-digita.agencia, 03,04)       format "9999"        at 025
+            "0000000"                                                   at 030
+            substr(tt-digita.cta-corrente, 6,5)    format "99999"       at 037.
+    end.
+    else do:
+        put stream relat
+            substr(tt-digita.agencia, 02,05)       format "99999"       at 024
+            "00"                                                        at 030
+            substr(tt-digita.cta-corrente, 01,10)  format "9999999999"  at 032.
+    end.
+
+    if  substr(tt-digita.cta-corrente, 12,01) = " " then
+        put stream relat
+            substr(tt-digita.cta-corrente, 11,01)  format "9"           at 043.
+    else
+        put stream relat
+            substr(tt-digita.cta-corrente, 11,02)  format "99"          at 042.
+
+    put stream relat
+        c-nome                                 format "x(25)"           at 044.
+
+    if  l-antecipacao = no then do:
+        put stream relat
+            string(mov-ap.num-id-mov-ap)       format "x(20)"           at 074.
+        if  tit-ap.dt-vencimen < today then
+            put stream relat 
+                tt-param.da-pagto              format "99999999"        at 094.
+        else 
+            put stream relat 
+                tit-ap.dt-vencimen             format "99999999"        at 094.
+    end.
+    else 
+        put stream relat
+            bordero-ap.char-2                  format "x(20)"           at 074
+            bordero-ap.dt-vencto               format "99999999"        at 094.
+
+    put stream relat
+        "REA"                                                           at 102
+        "000000000000000"                                               at 105
+        de-valor-pag                           format "999999999999999" at 120.
+
+    put stream relat
+        tt-digita.titulo-banco                 format "x(15)"           at 135.
+
+    if  tt-param.i-tipo-pag = 01 or
+        tt-param.i-tipo-pag = 06 then do:
+        if  l-antecipacao = no then
+            put stream relat
+                mov-ap.nr-docto                    format "x(16)"       at 178
+                mov-ap.parcela                     format "x(02)"       at 194.
+        else
+            put stream relat
+                bordero-ap.nr-docto                format "x(16)"       at 178
+                bordero-ap.parcela                 format "x(02)"       at 194.
+    end.
+
+    put stream relat
+        de-inscric                              format "99999999999999" at 204   
+        l-avisa                                                         at 230
+        " "                                                             at 240
+        skip.
+
+    /*--- Segmento B ---*/
+    if tt-param.i-tipo-pag = 04
+    or tt-param.i-tipo-pag = 01
+    or tt-param.i-tipo-pag = 03
+    or tt-param.i-tipo-pag = 41
+    or tt-param.i-tipo-pag = 43 
+    or tt-param.i-tipo-pag = 06
+    or tt-param.i-tipo-pag = 07
+    then do:
+        assign i-lote = 1.
+        put stream relat
+            "341"                                                       at 001
+            i-lote                                                      at 004
+            "3"                                                         at 008
+            i-num-reg    format "99999"                                 at 009
+            "B"                                                         at 014
+            "2"                                                         at 018
+            c-aux        format "x(14)"                                 at 019
+            c-endereco   format "x(30)"                                 at 033
+            "00000"                                                     at 063
+            c-cidade                                                    at 098
+            i-cep        format "99999999"                              at 118
+            c-estado                                                    at 126
+            " "                                                         at 240
+            skip.
+    end.
+end.
+else do:
+
+    assign i-lote = 1.
+
+    if  tt-digita.log-leitora = no then
+        assign c-cod-barras = substring(tt-digita.c-cod-barras,01,04)
+                            + substring(tt-digita.c-cod-barras, 33,01)
+                            + string(dec(substring(tt-digita.c-cod-barras,34,14)), "99999999999999")
+                            + substring(tt-digita.c-cod-barras, 05,05)
+                            + substring(tt-digita.c-cod-barras, 11,10)
+                            + substring(tt-digita.c-cod-barras, 22,10).
+    else
+        assign c-cod-barras = tt-digita.c-cod-barras.
+
+    put stream relat
+        "341"                                                         at 001
+        i-lote                                                        at 004
+        "3"                                                           at 008
+        i-num-reg format "99999"                                      at 009
+        "J"                                                           at 014
+        i-tipo-mov                                                    at 015
+        c-cod-mov                                                     at 016 
+        c-cod-barras                                 format "x(44)"   at 018
+        c-nome  format "x(30)"                                        at 062.
+
+    if  l-antecipacao = no then
+        put stream relat
+            tit-ap.dt-vencimen                         format "99999999"              at 092
+           (tit-ap.valor-saldo - vl-tot-impto) * 100   format "999999999999999"       at 100.
+    else
+        put stream relat
+            bordero-ap.dt-vencto                       format "99999999"              at 092
+           (bordero-ap.vl-docto - vl-tot-impto) * 100  format "999999999999999"       at 100.
+
+    put stream relat
+        de-desconto                    format "999999999999999"       at 115
+        de-juros                       format "999999999999999"       at 130.
+
+    if  l-antecipacao = no then do:
+        if  tit-ap.dt-vencimen < today then
+            put stream relat
+            tt-param.da-pagto          format "99999999"              at 145.
+        else
+            put stream relat
+            tit-ap.dt-vencimen         format "99999999"              at 145.
+        put stream relat 
+            de-valor-pag               format "999999999999999"       at 153.
+    end.
+    else
+        put stream relat
+            bordero-ap.dt-vencto       format "99999999"              at 145
+            bordero-ap.vl-docto * 100  format "999999999999999"       at 153.
+
+    put stream relat
+        "000000000000000"                                             at 168.
+
+    if  l-antecipacao = no then
+        put stream relat
+            string(mov-ap.num-id-mov-ap) format "x(20)"               at 183
+            tt-digita.titulo-banco       format "x(15)"               at 216.
+    else
+        put stream relat
+            bordero-ap.char-2            format "x(20)"               at 183
+            tt-digita.titulo-banco       format "x(15)"               at 216.
+
+    put stream relat
+        " "                                                           at 240
+        skip.
+end.
+
+/* Fim ap1001e.i2 */

@@ -1,0 +1,100 @@
+/*******************************************************************************
+***
+*** app/apapi17a.i5 - Valida‡äes tt-novo-documento.
+***
+*******************************************************************************/
+        
+{utp/ut-liter.i Novo_Documento}
+assign c-identificacao = trim(return-value).
+        
+assign i-contador = 0.
+            
+/*--- Valida‡äes Novo Documento ---*/
+for each  tt-novo-documento
+    where tt-novo-documento.ep-codigo   = tt-nota-debito-credito.ep-codigo
+    and   tt-novo-documento.cod-estabel = tt-nota-debito-credito.cod-estabel
+    and   tt-novo-documento.cod-fornec  = tt-nota-debito-credito.cod-fornec
+    and   tt-novo-documento.cod-esp     = tt-nota-debito-credito.cod-esp
+    and   tt-novo-documento.serie       = tt-nota-debito-credito.serie
+    and   tt-novo-documento.nr-docto    = tt-nota-debito-credito.nr-docto
+    and   tt-novo-documento.parcela     = tt-nota-debito-credito.parcela:
+            
+    assign i-contador = i-contador + 1.
+            
+    /*--- Verifica se o documento j  existe com a chave informada ---*/
+    find first tit-ap no-lock
+         where tit-ap.ep-codigo   = tt-novo-documento.ep-codigo
+         and   tit-ap.cod-estabel = tt-novo-documento.cod-estabel
+         and   tit-ap.cod-fornec  = tt-novo-documento.cod-fornec
+         and   tit-ap.cod-esp     = tt-novo-documento.cod-esp-ligac
+         and   tit-ap.serie       = tt-novo-documento.serie
+         and   tit-ap.nr-docto    = tt-novo-documento.nr-docto-nov
+         and   tit-ap.parcela     = tt-novo-documento.parcela-nov
+         no-error.
+                
+    if  avail tit-ap then do:         
+        run utp/ut-msgs.p (input "help",
+                           input 630,
+                           input string(tt-novo-documento.ep-codigo) + "~~" +
+                                 string(tt-novo-documento.cod-estabel) + "~~" +
+                                 string(tt-novo-documento.cod-esp-ligac) + "~~" +
+                                 string(tt-novo-documento.nr-docto-nov) + "~~" +
+                                 string(tt-novo-documento.parcela-nov) + "~~" +
+                                 string(tt-novo-documento.serie) + "~~" +
+                                 string(tt-novo-documento.cod-fornec)).
+        run pi-gerar-erro-retorno (input 630, input return-value).
+    end.
+
+    /*--- BANCOS HISTàRICOS ---*/
+    if  l-funcao-banc-hist-adm then do:
+        if  can-find (first his-tit-ap no-lock
+                      where his-tit-ap.ep-codigo   = tt-novo-documento.ep-codigo
+                      and   his-tit-ap.cod-estabel = tt-novo-documento.cod-estabel
+                      and   his-tit-ap.cod-fornec  = tt-novo-documento.cod-fornec
+                      and   his-tit-ap.serie       = tt-novo-documento.serie
+                      and   his-tit-ap.cod-esp     = tt-novo-documento.cod-esp-ligac
+                      and   his-tit-ap.nr-docto    = tt-novo-documento.nr-docto-nov
+                      and   his-tit-ap.parcela     = tt-novo-documento.parcela-nov)  then do:
+            run utp/ut-msgs.p(input "help",
+                              input 25578,
+                              input string(tt-novo-documento.ep-codigo) + "~~" +
+                                    tt-novo-documento.cod-estabel       + "~~" +
+                                    string(tt-novo-documento.cod-fornec)+ "~~" +
+                                    tt-novo-documento.cod-esp-ligac     + "~~" +
+                                    tt-novo-documento.serie             + "~~" +
+                                    tt-novo-documento.nr-docto-nov          + "~~" +
+                                    tt-novo-documento.parcela-nov).
+            run pi-gerar-erro-retorno (input 25578, input return-value).
+        end.
+    end. /*--- fim param-global ---*/
+    /*--- FIM BANCOS HISTàRICOS ---*/
+    
+end.
+    
+if  i-contador > 1 then do:
+    {utp/ut-liter.i Foi_informado_mais_de_um_documento_a_ser_gerado}
+    run pi-gerar-erro-retorno (input 0, input return-value).
+end.
+    
+/*--- Verifica a existˆncia do novo documento informado ---*/
+{app/apapi17a.i6 "tit-ap"}
+        
+if  l-novo-docto = yes then do:            
+    find first tt-novo-documento
+         where tt-novo-documento.ep-codigo   = tt-nota-debito-credito.ep-codigo
+         and   tt-novo-documento.cod-estabel = tt-nota-debito-credito.cod-estabel
+         and   tt-novo-documento.cod-fornec  = tt-nota-debito-credito.cod-fornec
+         and   tt-novo-documento.cod-esp     = tt-nota-debito-credito.cod-esp
+         and   tt-novo-documento.serie       = tt-nota-debito-credito.serie
+         and   tt-novo-documento.nr-docto    = tt-nota-debito-credito.nr-docto
+         and   tt-novo-documento.parcela     = tt-nota-debito-credito.parcela no-error.
+        
+    if  not avail tt-novo-documento then do:    
+        run utp/ut-msgs.p (input "help",
+                           input 17398,
+                           input trim(c-documento)).
+        run pi-gerar-erro-retorno (input 17398, input return-value).
+    end.
+end.        
+            
+/* Fim de Include */

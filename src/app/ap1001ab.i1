@@ -1,0 +1,57 @@
+/**************************************************************************
+**
+** AP1001AB.I1
+** Objetivo : Registros header do banco BANDEIRANTES
+**
+**************************************************************************/
+find first empresa  
+    where empresa.ep-codigo = i-empresa no-lock no-error.
+
+assign c-cgc-emp = "".
+
+do i-cont = 1 to 19:
+   if  substr(empresa.cgc,i-cont,1) >= "0" 
+   and substr(empresa.cgc,i-cont,1) <= "9" then
+       assign c-cgc-emp = c-cgc-emp + substr(empresa.cgc,i-cont,1).
+end.
+
+
+/*---- Zeros a esquerda no campo CGC ----*/
+do  i-cont = 1 to 15:
+    IF  LENGTH(c-cgc-emp, "CHARACTER") < 15 THEN do:
+        assign c-cgc-emp = "0" + c-cgc-emp.
+    end.
+end.
+    
+find first portador 
+    where portador.ep-codigo    = i-empresa and
+          portador.cod-portador = i-portador no-lock no-error.
+          
+find banco 
+    where banco.cod-banco = portador.cod-banco no-lock no-error.          
+    
+find first cta-corrente
+     where cta-corrente.cod-banco    = portador.cod-banco
+     and   cta-corrente.agencia      = portador.agencia
+     and   cta-corrente.conta-corren = portador.conta-corren
+     no-lock no-error.
+
+put stream relat                       
+    "0"                                                           at 001
+    "1"                                                           at 002
+    "REMESSA"                                                     at 003
+    "11"                                                          at 010
+    "PAGTOS FORNECED"                                             at 012
+    tt-param.de-tipo-band                     format "9999999999" at 027   
+    substr(cta-corrente.agencia-extrato, 01,07)  format "9999999" at 038
+    fn-free-accent(caps(empresa.razao-social))     format "x(30)" at 047
+    "230"                                                         at 077
+    "BANDEIRANTES"                                                at 080
+    today                                         format "999999" at 095
+    c-cgc-emp                             format "99999999999999" at 101
+    "1"                                                           at 388
+    "1"                                            format "x(06)" at 389
+    i-num-seq                                     format "999999" at 395 
+    skip.
+
+/* ap1001ab.i1 */

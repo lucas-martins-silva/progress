@@ -1,0 +1,62 @@
+/*******************************************************************************
+***
+***  app/ap0523rp.i6 - Gera Endosso para o Cheque.
+***
+*******************************************************************************/
+                        
+if  tt-param.l-endosso = yes then do:
+    if  tt-cheque.seq-cheque = 1 then do:
+                        
+        {utp/ut-liter.i Este_cheque_destina-se_a:}
+        assign tt-cheque.des-texto = trim(return-value)
+                                   + chr(10)
+                                   + chr(10).
+                    
+        find first b-che-emit where rowid(b-che-emit) = tt-cheque.row-che-emit no-error.
+        if  avail b-che-emit then do:
+            find first tit-ap no-lock
+                 where tit-ap.ep-codigo   = b-che-emit.ep-codigo
+                 and   tit-ap.cod-estabel = b-che-emit.cod-estabel
+                 and   tit-ap.cod-esp     = b-che-emit.cod-esp
+                 and   tit-ap.serie       = b-che-emit.serie
+                 and   tit-ap.nr-docto    = b-che-emit.nr-docto
+                 and   tit-ap.parcela     = b-che-emit.parcela
+                 and   tit-ap.cod-fornec  = b-che-emit.cod-fornec 
+                 no-error.
+                                 
+            if  avail tit-ap then do:
+                assign tt-cheque.des-texto = tt-cheque.des-texto
+                                           + tit-ap.observacao
+                                           + chr(10)
+                                           + trim(tt-cheque.des-documento).
+            end.
+            else do:
+                assign tt-cheque.des-texto = tt-cheque.des-texto
+                                           + b-che-emit.historico
+                                           + chr(10)
+                                           + trim(tt-cheque.des-documento).
+            end.
+        end.
+    end.
+    else do:
+       {utp/ut-liter.i Pagamentos_diversos,_documentos:}
+       assign tt-cheque.des-texto = trim(return-value)
+                                  + chr(10)
+                                  + chr(10)
+                                  + trim(tt-cheque.des-documento).
+    end.
+            
+    if  tt-param.l-razao-social = yes then do:
+        assign tt-cheque.des-texto = tt-cheque.des-texto
+                                   + chr(10)
+                                   + chr(10)
+                                   + chr(10)
+                                   + empresa.razao-social.
+    end.
+            
+end.
+else do:
+    assign tt-cheque.des-texto = "".
+end.
+
+/* Fim de Include */

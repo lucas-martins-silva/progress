@@ -1,0 +1,139 @@
+/***************************************************************************
+**
+** app/ap0505b.i6 - Atualiza Valores.
+**
+***************************************************************************/
+
+/* Miniflexibiliza‡Æo 2.03 */
+{cdp/cdcfgfin.i}
+
+find doc-b-ap where rowid(doc-b-ap) = v-row-parent no-error.
+
+if  avail doc-b-ap then do:
+
+    find first tit-ap where tit-ap.ep-codigo   = doc-b-ap.ep-codigo
+                      and   tit-ap.cod-esp     = lin-b-ap.cod-esp
+                      and   tit-ap.cod-estabel = lin-b-ap.cod-estabel
+                      and   tit-ap.serie       = lin-b-ap.serie
+                      and   tit-ap.nr-docto    = lin-b-ap.nr-docto
+                      and   tit-ap.parcela     = lin-b-ap.parcela 
+                      and   tit-ap.cod-fornec  = lin-b-ap.cod-fornec
+                      no-lock no-error.       
+
+    if  avail tit-ap then do:
+        if  doc-b-ap.mo-codigo = 0 and tit-ap.moeda = 0 then do:
+            assign lin-b-ap.vl-baixa        = de-vl-baixa-atz
+                   lin-b-ap.vl-juros        = de-vl-juros-atz
+                   lin-b-ap.vl-desconto     = de-vl-desconto-atz
+
+                   &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                   lin-b-ap.vl-multa         = de-vl-multa-atz
+                   lin-b-ap.vl-abatimento    = de-vl-abatimento-atz
+                   lin-b-ap.vl-multa-me      = de-vl-multa-atz
+                   lin-b-ap.vl-abatimento-me = de-vl-abatimento-atz
+                   &endif
+
+                   lin-b-ap.vl-correcao     = 0
+                   lin-b-ap.vl-baixa-me     = de-vl-baixa-atz
+                   lin-b-ap.vl-juros-me     = de-vl-juros-atz
+                   lin-b-ap.vl-desconto-me  = de-vl-desconto-atz.
+        end.
+        else do:
+            if  doc-b-ap.mo-codigo = 0 and tit-ap.moeda <> 0 then do:
+
+                assign lin-b-ap.vl-baixa        = fn_ajust_dec(de-vl-baixa-atz, 0)
+                       lin-b-ap.vl-juros        = fn_ajust_dec(de-vl-juros-atz, 0)
+                       lin-b-ap.vl-desconto     = fn_ajust_dec(de-vl-desconto-atz, 0)
+
+                       &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                       lin-b-ap.vl-multa        = fn_ajust_dec(de-vl-multa-atz, 0)
+                       lin-b-ap.vl-abatimento   = fn_ajust_dec(de-vl-abatimento-atz, 0)
+                       &endif
+
+                       lin-b-ap.vl-correcao     = fn_ajust_dec(de-vl-correcao-atz, 0).
+
+                       /*--- Tratamento Casas Decimais ---*/                     
+                assign lin-b-ap.vl-baixa-me     = fn_ajust_dec((de-vl-baixa-atz      / lin-b-ap.cotacao-dia), tit-ap.moeda).
+                assign lin-b-ap.vl-juros-me     = fn_ajust_dec((de-vl-juros-atz      / lin-b-ap.cotacao-dia), tit-ap.moeda).
+                assign lin-b-ap.vl-desconto-me  = fn_ajust_dec((de-vl-desconto-atz   / lin-b-ap.cotacao-dia), tit-ap.moeda).
+
+                &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                assign lin-b-ap.vl-multa-me      = fn_ajust_dec((de-vl-multa-atz      / lin-b-ap.cotacao-dia), tit-ap.moeda).
+                assign lin-b-ap.vl-abatimento-me = fn_ajust_dec((de-vl-abatimento-atz / lin-b-ap.cotacao-dia), tit-ap.moeda).
+                &endif
+
+                /*--- Ajuste Difere‡a Varia‡Æo Monet ria ---*/
+                if  tit-ap.moeda <> 0 then do:
+                    run app/ap0570a.p (input rowid(tit-ap),
+                                       input lin-b-ap.dt-baixa,
+                                       input lin-b-ap.cotacao-dia,
+                                       output de-vl-var-monet).
+
+                    if (round(de-vl-var-monet,2) + tit-ap.valor-saldo) = lin-b-ap.vl-baixa then
+                        assign lin-b-ap.vl-baixa-me = tit-ap.vl-saldo-me.
+
+                end.
+
+            end.
+            else do:
+                if  doc-b-ap.mo-codigo <> 0 and tit-ap.moeda = 0 then do:
+                    /*--- Tratamento Casas Decimais ---*/
+                    assign lin-b-ap.vl-baixa        = fn_ajust_dec((de-vl-baixa-atz    * lin-b-ap.cotacao-dia), doc-b-ap.mo-codigo).
+                    assign lin-b-ap.vl-juros        = fn_ajust_dec((de-vl-juros-atz    * lin-b-ap.cotacao-dia), doc-b-ap.mo-codigo).
+                    assign lin-b-ap.vl-desconto     = fn_ajust_dec((de-vl-desconto-atz * lin-b-ap.cotacao-dia), doc-b-ap.mo-codigo).
+
+                    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                    assign lin-b-ap.vl-multa        = fn_ajust_dec((de-vl-multa-atz    * lin-b-ap.cotacao-dia), doc-b-ap.mo-codigo).
+                    assign lin-b-ap.vl-abatimento   = fn_ajust_dec((de-vl-abatimento-atz * lin-b-ap.cotacao-dia), doc-b-ap.mo-codigo).
+                    &endif
+
+                    assign lin-b-ap.vl-correcao     = de-vl-correcao-atz
+                           lin-b-ap.vl-baixa-me     = de-vl-baixa-atz
+
+                           &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                           lin-b-ap.vl-multa-me      = de-vl-multa-atz
+                           lin-b-ap.vl-abatimento-me = de-vl-abatimento-atz
+                           &endif
+
+                           lin-b-ap.vl-juros-me     = de-vl-juros-atz
+                           lin-b-ap.vl-desconto-me  = de-vl-desconto-atz.
+
+                    /*--- Tratamento Casas Decimais ---*/
+                    assign de-valor-saldo = fn_ajust_dec((tit-ap.valor-saldo / lin-b-ap.cotacao-dia),doc-b-ap.mo-codigo).
+
+                    if  lin-b-ap.vl-baixa-me = de-valor-saldo then
+                        assign lin-b-ap.vl-baixa = tit-ap.valor-saldo.                            
+                end.
+                else do:
+                    if  doc-b-ap.mo-codigo <> 0 and tit-ap.moeda <> 0 then do:
+                        /*--- Tratamento Casas Decimais ---*/
+                        assign lin-b-ap.vl-baixa        = fn_ajust_dec((de-vl-baixa-atz    * lin-b-ap.cotacao-dia), 0).
+                        assign lin-b-ap.vl-juros        = fn_ajust_dec((de-vl-juros-atz    * lin-b-ap.cotacao-dia), 0).
+                        assign lin-b-ap.vl-desconto     = fn_ajust_dec((de-vl-desconto-atz * lin-b-ap.cotacao-dia), 0).
+
+                        &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                        assign lin-b-ap.vl-multa        = fn_ajust_dec((de-vl-multa-atz    * lin-b-ap.cotacao-dia), 0).
+                        assign lin-b-ap.vl-abatimento   = fn_ajust_dec((de-vl-abatimento-atz * lin-b-ap.cotacao-dia), 0).
+                        &endif
+
+                        assign lin-b-ap.vl-correcao     = de-vl-correcao-atz
+                               lin-b-ap.vl-baixa-me     = de-vl-baixa-atz
+
+                               &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                               lin-b-ap.vl-multa-me      = de-vl-multa-atz
+                               lin-b-ap.vl-abatimento-me = de-vl-abatimento-atz
+                               &endif
+
+                               lin-b-ap.vl-juros-me     = de-vl-juros-atz
+                               lin-b-ap.vl-desconto-me  = de-vl-desconto-atz.
+                        /*181092 - Qdo o vlr (lin-b-ap.vl-baixa) vem 0,004 ² arredondado para 0,00, ao inv‚s de 0,01*/       
+                        if tit-ap.moeda <> 0 and lin-b-ap.vl-baixa-me <> 0 and lin-b-ap.vl-baixa = 0 then 
+                            assign lin-b-ap.vl-baixa = 0.01. 
+                    end.
+                end.
+            end.
+        end.
+    end.
+end.
+
+/* Fim de Include */

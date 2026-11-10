@@ -1,0 +1,199 @@
+/*******************************************
+**     Programa: apapi024.i2
+**     Objetivo: Validacoes do Cancelamento 
+**               da Baixa do titulo
+**         Data: Dezembro de 1999
+*******************************************/
+
+  def output param p-row-mov-ap as rowid no-undo.
+
+  assign p-row-mov-ap = ?.
+  
+  find first tt-param no-error.
+
+  if not avail tt-param then do:
+     assign c-param = "".
+     {app/apapi024.i1 "140"} 
+  end.
+
+  if tt-param.l-video then 
+     assign c-video = "show".
+
+  if tt-param.cod-versao-integracao <> i-cod-versao-integracao then do:
+     assign c-param = "".
+     {app/apapi024.i1 "3941"} 
+  end.
+
+  find estabelec where 
+       estabelec.cod-estabel = tt-param.cod-estabel no-lock no-error.
+  if not avail estabelec then do:
+     assign c-param = tt-param.cod-estabel.
+     {app/apapi024.i1 "13"} 
+  end.
+
+  find first emitente where 
+             emitente.cod-emitente = tt-param.cod-fornec and
+             emitente.identific   <> 1 no-lock no-error.
+  if not avail emitente then do:
+     assign c-param = "".
+     {app/apapi024.i1 "654"} 
+  end.      
+
+  find espec-ap where 
+       espec-ap.cod-esp = tt-param.cod-esp no-lock no-error.
+  if not avail espec-ap then do:
+     assign c-param = "".
+     {app/apapi024.i1 "652"} 
+  end.
+
+  if espec-ap.tipo = 2 or        /* AN */
+     espec-ap.tipo = 3 then do:  /* PR */
+     assign c-param = "".
+     {app/apapi024.i1 "32423"} 
+  end.
+
+  {app/ap0030.i}
+  if tt-param.dt-transacao < da-ini-validac or
+     tt-param.dt-transacao > da-fim-validac then do:
+     /* Data transa‡Æo docto fora dos parƒmetros */
+     assign c-param = "".     
+     {app/apapi024.i1 "404"}     
+  end.
+
+  find tit-ap where 
+       tit-ap.ep-codigo   = tt-param.i-ep-codigo and
+       tit-ap.cod-fornec  = tt-param.cod-fornec  and 
+       tit-ap.cod-estabel = tt-param.cod-estabel and 
+       tit-ap.cod-esp     = tt-param.cod-esp     and 
+       tit-ap.serie       = tt-param.serie       and 
+       tit-ap.nr-docto    = tt-param.nr-docto    and 
+       tit-ap.parcela     = tt-param.parcela no-lock no-error. 
+  if not avail tit-ap then do:
+     assign c-param = string(tt-param.i-ep-codigo) + "~~" +
+                             tt-param.cod-estabel  + "~~" +
+                             tt-param.cod-esp      + "~~" +
+                             tt-param.serie        + "~~" +
+                             tt-param.nr-docto     + "~~" +
+                             tt-param.parcela.     
+     {app/apapi024.i1 "474"} 
+  end.       
+
+  if tt-param.portador > 0 then do:
+     find portador where 
+          portador.cod-portador = tt-param.portador    and
+          portador.ep-codigo    = tt-param.i-ep-codigo and
+          portador.modalidade   = tt-param.modalidade no-lock no-error.
+     if not avail portador then do:
+        {utp/ut-liter.i Cb_Simples * C}
+
+        assign c-param = string(tt-param.portador) + "~~" +
+                         trim(return-value)        + "~~" +
+                         string(tt-param.i-ep-codigo).
+        {app/apapi024.i1 "927"}
+     end. 
+  end.
+
+  find first mov-ap where 
+          mov-ap.ep-codigo    = tt-param.i-ep-codigo  and
+          mov-ap.cod-fornec   = tt-param.cod-fornec   and
+          mov-ap.cod-estabel  = tt-param.cod-estabel  and
+          mov-ap.cod-esp      = tt-param.cod-esp      and
+          mov-ap.serie        = tt-param.serie        and
+          mov-ap.nr-docto     = tt-param.nr-docto     and
+          mov-ap.parcela      = tt-param.parcela      and
+          mov-ap.portador     = tt-param.portador     and
+          mov-ap.modalidade   = tt-param.modalidade   and
+          mov-ap.nr-cheque    = tt-param.nr-cheque    and
+          mov-ap.dt-transacao = tt-param.dt-transacao and
+          mov-ap.transacao    = 2 /* BND */           and
+          mov-ap.valor-mov    = tt-param.valor-mov no-lock no-error.                                                                                                                
+
+  if not avail mov-ap then do:
+     assign c-param = "".
+     {app/apapi024.i1 "659"}     
+  end. 
+
+  if mov-ap.contabilizou = yes then do:
+     assign c-param = "".
+     {app/apapi024.i1 "660"}       
+  end.
+
+  /*--- Verifica se o cheque j  foi emitido ---*/
+  find first che-emit where 
+             che-emit.ep-codigo   = mov-ap.ep-codigo    and
+             che-emit.portador    = mov-ap.portador     and
+             che-emit.nr-cheque   = mov-ap.nr-cheque    and
+             che-emit.cod-fornec  = mov-ap.cod-fornec   and
+             che-emit.cod-estabel = mov-ap.cod-estabel  and
+             che-emit.cod-esp     = mov-ap.cod-esp      and
+             che-emit.serie       = mov-ap.serie        and
+             che-emit.nr-docto    = mov-ap.nr-docto     and
+             che-emit.parcela     = mov-ap.parcela      and
+             che-emit.dt-emissao  = mov-ap.dt-transacao and
+             che-emit.emitiu      = yes no-lock no-error.
+
+  if avail che-emit then do:
+     assign c-param = string(che-emit.cod-estabel) + "~~" +
+                      string(che-emit.cod-fornec)  + "~~" +
+                      string(che-emit.cod-esp)     + "~~" +
+                      string(che-emit.serie)       + "~~" +
+                      string(che-emit.nr-docto)    + "~~" +
+                      string(che-emit.parcela)     + "~~" +
+                      string(che-emit.nr-cheque)   + "~~" +
+                      string(che-emit.referencia).
+     {app/apapi024.i1 "16907"}
+  end.
+
+  if mov-ap.vl-antecip > 0 then do:
+     find tit-ap use-index codigo where 
+          tit-ap.ep-codigo   = mov-ap.ep-codigo   and
+          tit-ap.cod-fornec  = mov-ap.fornec-ant  and
+          tit-ap.cod-estabel = mov-ap.cod-estabel and
+          tit-ap.cod-esp     = mov-ap.esp-ant     and
+          tit-ap.serie       = mov-ap.serie-ant   and
+          tit-ap.nr-docto    = mov-ap.docto-ant   and
+          tit-ap.parcela     = mov-ap.parc-ant no-lock no-error.
+
+     if not avail tit-ap then do:
+        assign c-param = string(mov-ap.ep-codigo)  + "~~" +
+                                mov-ap.cod-estabel + "~~" +
+                                mov-ap.esp-ant     + "~~" +
+                                mov-ap.serie-ant   + "~~" +
+                                mov-ap.docto-ant   + "~~" +
+                                mov-ap.parc-ant.
+        {app/apapi024.i1 "30575"}      
+     end.
+  end.
+
+  /***********Valida‡Æo Movto conciliado***************/
+  if  l-funcao-movto-cb = yes then do:
+      if  avail mov-ap then do:       
+          assign r-movto = rowid(mov-ap)
+                 l-video = no.
+
+          run cbp/cb0002.p (input mov-ap.ep-codigo, 
+                            input  2,
+                            input  r-movto,
+                            input  l-video,       
+                            output l-erro,            
+                            input-output table tt-erros).
+
+          find first tt-erros no-lock no-error.
+          if  avail tt-erros then do:
+              if  tt-erros.cd-erro = 404 then do:
+                  assign c-param = tt-erros.mensagem.
+                  {app/apapi024.i1 "404"}
+              end.
+              else do:
+                  assign c-param = tt-erros.mensagem.
+                  {app/apapi024.i1 "19451"}
+              end.
+          end.
+      end.                  
+  end.
+
+  assign p-row-mov-ap = rowid(mov-ap).
+
+  return "OK".
+
+/* fim include */

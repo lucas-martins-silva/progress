@@ -1,0 +1,19 @@
+/*******************************************************************************
+***
+***  app/ap0523rp.i5 - Impress∆o do Cheque via SLIP.
+***
+*******************************************************************************/
+
+run btb/btb921za.p (input tt-cheque.cod-impressora,
+                    input tt-cheque.cod-layout,
+                    input string(tt-cheque.cod-febraban, "999"),
+                    input tt-cheque.des-nominal,
+                    input tt-cheque.des-cidade,
+                    input string(tt-cheque.da-data, "99/99/9999"),
+                    input tt-cheque.de-valor,                      
+                    input trim(tt-cheque.des-texto)).
+            
+if  return-value = 'NOK' then
+    return.
+            
+/* Fim de Include */

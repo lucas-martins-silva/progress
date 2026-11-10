@@ -1,0 +1,70 @@
+/***************************************************************************
+**
+** AP0501.I4 - Valida datas para consistˆncia do lote.
+**
+***************************************************************************/
+
+   find doc-i-ap where rowid(doc-i-ap) = p-row-doc-i-ap no-error.
+   if  avail doc-i-ap then do:
+      /*---- Valida parƒmetros globais do produto ----*/
+      find first param-global no-lock no-error.
+      if  not avail param-global then do:
+          run utp/ut-msgs.p (input "show",
+                             input 16,
+                             input " ").
+          return error.
+      end.
+      
+      /*---- Valida parƒmetros Contas a Pagar ----*/
+      find first param-ap no-lock 
+           where param-ap.ep-codigo = doc-i-ap.ep-codigo no-error.
+      if  not avail param-ap then do:
+          run utp/ut-msgs.p (input "show",
+                             input 647,
+                             input " ").
+          return error. 
+      end.
+      
+      /*---- Valida empresa do usu rio ----*/
+      find first empresa no-lock 
+           where empresa.ep-codigo = i-ep-codigo-usuario no-error.
+      if  not avail empresa then do:
+          run utp/ut-msgs.p (input "show",
+                             input 12,
+                             input string(i-ep-codigo-usuario)).
+          return error. 
+      end.
+  
+      /*---- Valida Estabelecimento */
+      find estabelec no-lock
+           where estabelec.cod-estabel = doc-i-ap.cod-estabel
+           no-error.
+      if  not avail estabelec then do:
+          run utp/ut-msgs.p (input "show",
+                             input 13,
+                             input string(doc-i-ap.cod-estabel)).
+          return error. 
+      end.         
+      
+     /*---- Valida a data do movimento ----*/
+     
+     {app/ap0020.i}
+     
+      if  doc-i-ap.data-movto < da-ini-validac or
+          doc-i-ap.data-movto > da-fim-validac then do:
+          
+          run utp/ut-msgs.p (input "show",
+                             input 1032,
+                             input string(da-ini-validac) + "~~" + string(da-fim-validac)).
+          return error.
+      end.
+                  
+      /*---- Valida valor do movimento ------*/
+      if  doc-i-ap.total-movto = 0 then do:
+          /* Valor do movimento nÆo pode ser zero  */
+          run utp/ut-msgs.p (input "show",
+                             input 267,
+                             input " ").
+          return error.
+      end.
+   end.

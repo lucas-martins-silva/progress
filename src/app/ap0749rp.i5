@@ -1,0 +1,166 @@
+/******************************************************************************
+***
+*** app/ap0749rp.i5 - Classifica‡Æo 1 e 2.
+***
+******************************************************************************/
+
+if not l-vl-liq-impto then
+    view frame f-cabec-1.
+else
+    view frame f-cabec-2.
+
+For each tt-mov-ap 
+    break by {1}
+          by {2}
+          by tt-mov-ap.nr-docto:
+
+    assign v-num-reg-lidos = v-num-reg-lidos + 1.
+
+    run pi-acompanhar in h-acomp(input string(v-num-reg-lidos)).
+
+    if  first-of({1}) then do:
+       assign de-tot-dia = 0
+              de-tot-liquido = 0
+              l-display  = no.
+    end.
+
+    find tit-ap
+        where tit-ap.ep-codigo  = tt-mov-ap.ep-codigo
+        and   tit-ap.cod-fornec = tt-mov-ap.cod-fornec
+        and   tit-ap.cod-estab  = tt-mov-ap.cod-estabel
+        and   tit-ap.cod-esp    = tt-mov-ap.cod-esp
+        and   tit-ap.serie      = tt-mov-ap.serie
+        and   tit-ap.nr-docto   = tt-mov-ap.nr-docto
+        and   tit-ap.parcela    = tt-mov-ap.parcela
+        no-lock no-error.
+    if  avail tit-ap then do:
+        assign i-tipo = tit-ap.tipo.
+        if  tit-ap.tipo = 3 then
+            assign tt-mov-ap.nome-abrev = tit-ap.nome-abrev.
+    end.
+    else 
+        assign i-tipo = 0.
+
+    if l-vl-liq-impto then do:
+        assign de-vl-liquido = 0.
+        for each mov-ap
+            where mov-ap.ep-codigo    = tt-mov-ap.ep-codigo  
+            and   mov-ap.cod-fornec   = tt-mov-ap.cod-fornec 
+            and   mov-ap.cod-estabel  = tt-mov-ap.cod-estabel
+            and   mov-ap.cod-esp      = tt-mov-ap.cod-esp    
+            and   mov-ap.serie        = tt-mov-ap.serie      
+            and   mov-ap.nr-docto     = tt-mov-ap.nr-docto   
+            and   mov-ap.parcela      = tt-mov-ap.parcela
+            and   mov-ap.referencia   = tt-mov-ap.referencia
+            and   mov-ap.dt-transacao = tt-mov-ap.dt-transacao
+            and   mov-ap.transacao    = 5   /* AVA */
+            and   mov-ap.impostos     = yes /* Reten‡Æo de Impostos */ no-lock:
+
+            if de-vl-liquido = 0 then
+                assign de-vl-liquido = tt-mov-ap.valor-mov.
+            assign de-vl-liquido = de-vl-liquido - mov-ap.valor-mov.
+
+        end.
+        if de-vl-liquido = 0 then
+            assign de-vl-liquido = tt-mov-ap.valor-mov.
+    end.
+
+    if  i-tipo <> 1
+    and i-tipo <> 2
+    and i-tipo <> 3
+    and i-tipo <> 4
+    and i-tipo <> 5
+    and i-tipo <> 6
+    and i-tipo <> 8 then do:
+        if  last-of({1}) 
+        and de-tot-dia > 0 
+        and l-display = yes then do:
+           put  " -------------"  at 101. 
+           if not l-vl-liq-impto then
+               put c-total           at 80 
+                   de-tot-dia format "->>>>>>,>>>,>>9.99" at 097.
+           else do:
+               put  " -------------"  to 132. 
+               put c-total           at 80 
+                   de-tot-dia format "->>>>>>,>>>,>>9.99" at 097
+                   de-tot-liquido format "->>>>>>>>>,>>9.99" at 116.
+
+           end.
+           next.
+        end.
+        else next.
+    end.
+
+    assign l-display = yes.
+
+    if not l-vl-liq-impto then do:
+        disp tt-mov-ap.dt-transacao
+             tt-mov-ap.cod-estabel
+             tt-mov-ap.cod-fornec
+             tt-mov-ap.nome-abrev
+             tt-mov-ap.cod-esp
+             tt-mov-ap.serie
+             tt-mov-ap.nr-docto
+             tt-mov-ap.parcela
+             tt-mov-ap.dt-vencimen
+             tt-mov-ap.referencia
+             tt-mov-ap.transacao
+             tt-mov-ap.origem
+             tt-mov-ap.valor-mov
+             with stream-io frame f-det-1.
+        down with frame f-det-1.
+    end.
+    else do:
+        disp tt-mov-ap.dt-transacao
+             tt-mov-ap.cod-estabel
+             tt-mov-ap.cod-fornec
+             tt-mov-ap.nome-abrev
+             tt-mov-ap.cod-esp
+             tt-mov-ap.serie
+             tt-mov-ap.nr-docto
+             tt-mov-ap.parcela
+             tt-mov-ap.dt-vencimen
+             tt-mov-ap.referencia
+             tt-mov-ap.transacao
+             tt-mov-ap.origem
+             tt-mov-ap.valor-mov
+             de-vl-liquido
+             with stream-io frame f-det-2.
+        down with frame f-det-2.
+    end.
+
+    assign de-valor-mov-tt-001 = de-valor-mov-tt-001 + tt-mov-ap.valor-mov
+           de-tot-geral        = de-tot-geral + tt-mov-ap.valor-mov
+           de-tot-dia          = de-tot-dia + tt-mov-ap.valor-mov
+           de-tot-liquido      = de-tot-liquido     + de-vl-liquido
+           de-tot-liquido-ger  = de-tot-liquido-ger + de-vl-liquido.
+
+    if  last-of({1}) then do:
+       put  " -------------"  at 101. 
+       if not l-vl-liq-impto then
+           put c-total           at 80
+               de-tot-dia format "->>>>>>,>>>,>>9.99" at 097.
+       else do:
+           put  " -------------"  to 132.
+           put c-total           at 80 
+               de-tot-dia format "->>>>>>,>>>,>>9.99"    at 097
+               de-tot-liquido format "->>>>>>>>>,>>9.99" at 116.
+       end.
+    end.
+end.
+
+put " -------------"  at 101.
+if not l-vl-liq-impto then
+    put c-tot-ger         at 80 
+        de-valor-mov-tt-001 format "->>>>>>,>>>,>>9.99"  at 097.
+else do:
+    put  " -------------"  to 132.
+    put c-tot-ger         at 80 
+        de-valor-mov-tt-001 format "->>>>>>,>>>,>>9.99"  at 097
+        de-tot-liquido-ger  format "->>>>>>>>>,>>9.99"   at 116.
+                                   
+end.        
+
+if tt-param.imp-par = yes then 
+    run pi-imp-par.
+

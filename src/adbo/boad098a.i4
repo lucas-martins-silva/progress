@@ -1,0 +1,62 @@
+/*****************************************************************************
+**
+**   Include.: BOAD098a.I4
+**
+**   Objetivo: Variaveis para calculo estatistica
+**
+**   Utilizada no programa WPD0902.W
+**
+*****************************************************************************/
+
+def var i-moeda    like cotacao.mo-codigo   init 0 no-undo.
+def var de-indice  like cotacao.cota-mensal init 1 no-undo.
+def var de-indice2 like cotacao.cota-mensal init 1 no-undo.
+
+def var l-pedido   as logical init yes no-undo.
+def var c-moeda    as character format "x(10)" no-undo.
+def var moeda      as integer                  no-undo.
+def var de-fator-1 as decimal   format "999999,9999" init 1 no-undo.
+def var de-fator-3 as decimal   format "999999,9999" init 1 no-undo.
+
+def var i-nao-cota    as integer.
+def var l-atrasado    as logical initial no no-undo.
+def var l-ind1        as logical format "Sim/Nao" no-undo.
+def var l-ind2        like l-ind1 no-undo.
+def var l-ind3        like l-ind1 no-undo.
+def var l-ind4        like l-ind1 no-undo.
+def var l-ind5        like l-ind1 no-undo.
+
+def var i-nr-ped-1    as integer format "ZZ,ZZ9".
+def var i-nr-ped-2    as integer format "ZZ,ZZ9".
+def var i-nr-ped-3    as integer format "ZZ,ZZ9".
+def var i-nr-ped-4    as integer format "ZZ,ZZ9".
+def var i-nr-ped-5    as integer format "ZZ,ZZ9".
+def var i-totpdab     as integer format ">>>,>>9"  no-undo.
+def var i-pedatra     like i-totpdab           no-undo.
+def var c-pedatr      like ped-venda.nr-pedcli no-undo.
+def var i-diamaiat    as integer format ">>9"      no-undo.
+def var c-pedmai      like ped-venda.nr-pedcli no-undo.
+def var i-diamai      like i-diamaiat          no-undo.
+
+def var de-valmai     like ped-venda.vl-liq-ab no-undo.
+def var de-valatped   like ped-venda.vl-liq-ab no-undo.
+def var de-valmaiat   like ped-venda.vl-liq-ab no-undo.
+def var de-valatra    like ped-venda.vl-liq-ab no-undo.
+def var de-totvlab    like ped-venda.vl-liq-ab no-undo.
+def var de-tab-val-1  like ped-venda.vl-liq-ab.
+def var de-tab-val-2  like ped-venda.vl-liq-ab.
+def var de-tab-val-3  like ped-venda.vl-liq-ab.
+def var de-tab-val-4  like ped-venda.vl-liq-ab.
+def var de-tab-val-5  like ped-venda.vl-liq-ab.
+def var de-qtatend    like ped-item.qt-atendida.
+def var de-vlaber     like ped-venda.vl-liq-abe.
+def var da-dtentatr   like ped-item.dt-entorig no-undo.
+def var da-entpvatr   like ped-item.dt-entorig no-undo.
+def var da-entmai     like ped-item.dt-entorig initial today no-undo.
+def var da-prvmai     like ped-item.dt-entorig initial today no-undo.
+def var da-ate-dez    as date format "99/99/9999" no-undo.
+def var da-dez-vin    like da-ate-dez no-undo.
+def var da-vin-tri    like da-ate-dez no-undo.
+def var da-dt-atr     like da-ate-dez initial today no-undo.
+def var da-dt-prv     like da-ate-dez no-undo.
+def var l-soma-ped    as logical no-undo.

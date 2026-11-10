@@ -1,0 +1,38 @@
+/*********************************************************************
+***  ap1001.i5
+***  Objetivo: Impressao da mensagem de observacao.
+**********************************************************************/
+
+disp {1}.cod-fornec  @ mov-ap.cod-fornec
+     {1}.cod-estabel @ mov-ap.cod-estabel
+     {1}.cod-esp     @ mov-ap.cod-esp
+     {1}.serie       @ mov-ap.serie
+     {1}.nr-docto    @ mov-ap.nr-docto
+     c-traco
+     {1}.parcela     @ mov-ap.parcela
+     /*{2}             @ mov-ap.dt-emissao*/
+     {1}.transacao   @ mov-ap.transacao
+     da-data
+     i-tipo-pag
+     c-agencia
+     i-nr-banco
+     c-cc-forn
+     de-valor
+     {1}.vl-desconto @ mov-ap.vl-desconto
+     with frame f-detalhe.
+
+if  avail tit-ap then
+    disp tit-ap.dec-2  @ mov-ap.vl-juro-fasb
+     with frame f-detalhe.
+
+if  avail emitente then
+    disp emitente.nome-abrev @ mov-ap.nome-abrev with frame f-detalhe.
+
+down with frame f-detalhe.
+
+disp c-observacao
+     with frame f-observacao.
+
+down with frame f-observacao.
+
+/* Fim da Include */

@@ -1,0 +1,524 @@
+/*********************************************************************************
+***
+*** app/apapi022.i6 - Valida Impostos.
+***
+*********************************************************************************/
+
+assign l-erro = no.
+
+for each tt-ant-ir:
+
+    /*--- Valida Imposto Informado ---*/
+    find first tipo-tax no-lock
+         where tipo-tax.cod-tax = tt-ant-ir.i-cod-imposto no-error.
+
+    if  not avail tipo-tax then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 3459,
+                           input string(tt-ant-ir.i-cod-imposto)).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 3459, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+    else do:    
+
+        /*--- Tipo de Imposto deve ser Retená∆o ---*/
+        if  tipo-tax.tipo <> 1 then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 7267,
+                               input "(Imposto: " + string(tt-ant-ir.i-cod-imposto) + ")").
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 7267, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.    
+    end.
+
+    /*--- Valida Fornecedor Informado ---*/    
+    if  not avail emitente or emitente.cod-emitente <> tt-antecip.cod-fornec then do:
+
+        find first emitente
+             where emitente.cod-emitente = tt-antecip.cod-fornec
+             and   emitente.identific   <> 1
+             no-lock no-error.
+
+        if  not avail emitente then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 627,
+                               input string(tt-antecip.cod-fornec)).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 627, input c-mensagem, input 1).
+            return "NOK".
+        end.    
+
+        /*--- Valida Incidància do Imposto ---*/    
+        IF  AVAIL tipo-tax then do:
+
+            if  emitente.natureza <> 3 then do:
+                if  tipo-tax.incidencia-impto = 1 and (tipo-tax.incidencia-impto <> emitente.natureza) then do:
+                    run utp/ut-msgs.p (input "msg",
+                                       input 6700,
+                                       input string(tipo-tax.cod-tax)).
+
+                    assign c-mensagem = return-value.
+                    run pi-cria-log-tit-ap (input 6700, input c-mensagem, input 1).
+                    assign l-erro = yes.
+                end.
+
+                if  tipo-tax.incidencia-impto = 2 and (tipo-tax.incidencia-impto <> emitente.natureza) then do:
+                    run utp/ut-msgs.p (input "msg",
+                                       input 6701,
+                                       input string(tipo-tax.cod-tax)).
+
+                    assign c-mensagem = return-value.
+                    run pi-cria-log-tit-ap (input 6701, input c-mensagem, input 1).
+                    assign l-erro = yes.
+                end.
+            end.
+        end.
+    end.
+
+    /*--- Valida EspÇcie de Documento ---*/
+    if  not avail espec-ap or espec-ap.cod-esp <> tt-ant-ir.c-cod-esp then
+        find first espec-ap where espec-ap.cod-esp = tt-ant-ir.c-cod-esp no-lock no-error.
+
+    if  not avail espec-ap then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 624,
+                           input caps(tt-ant-ir.c-cod-esp)).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 624, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+    else do:
+
+        /*--- Verifica se a espÇcie Ç de Retená∆o ---*/
+        if  espec-ap.tipo <> 8 and espec-ap.tipo <> 1 then do:
+            run utp/ut-msgs.p (input "help",
+                               input 29767,
+                               input caps(espec-ap.cod-esp)).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 29767, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.
+
+        if  espec-ap.tipo = 8 then do:
+            &IF DEFINED (BF_FIN_TAB_PROG_IR) &THEN
+                if  (emitente.natureza  =  1)
+                and (param-ap.acum-ir = 1 or param-ap.acum-ir = 2) then do:
+                    assign l-habilita-aliq = no.
+                   &if '{&mgadm_version}' < '2.05' &then
+                    if  index(param-ap.char-2, string(tt-ant-ir.i-cod-retencao)) <> 0 then
+                        assign l-habilita-aliq = yes.
+                   &else
+                    if index(param-ap.cod-retenc-excec, string(tt-ant-ir.i-cod-retencao)) <> 0 then
+                       assign l-habilita-aliq = yes.
+                   &endif
+                    if  not l-habilita-aliq then
+                        run pi-tab-prog-ir.
+                end.
+                else do:
+                    /*--- Verifica se o valor do imposto foi informado ---*/
+                    if  tt-ant-ir.de-vl-impto = 0 then do:
+                        {utp/ut-liter.i Valor * C}
+                        run utp/ut-msgs.p (input "msg",
+                                           input 4323,
+                                           input trim(return-value)).
+
+                        assign c-mensagem = return-value.
+                        run pi-cria-log-tit-ap (input 4323, input c-mensagem, input 1).
+                        assign l-erro = yes.
+                    end.
+                end.
+            &ENDIF
+        end.
+    end.
+
+    /* Verifica se n∆o existe mais de um imposto com o mesmo c¢digo,
+       n∆o pode existir sen∆o da erro na criaá∆o do compl-retenc-impto-pagto (chave duplicada)
+       A consistància deve ser feita para QUALQUER pais (MÇxico, Brasil, Etc. */
+
+    find first b-tt-ant-ir
+         where b-tt-ant-ir.i-ep-codigo   = tt-ant-ir.i-ep-codigo
+         and   b-tt-ant-ir.c-cod-estab   = tt-ant-ir.c-cod-estab
+         and   b-tt-ant-ir.c-cod-esp     = tt-ant-ir.c-cod-esp
+         and   b-tt-ant-ir.c-serie       = tt-ant-ir.c-serie
+         and   b-tt-ant-ir.c-nr-docto    = tt-ant-ir.c-nr-docto
+         and   b-tt-ant-ir.c-parcela     = tt-ant-ir.c-parcela
+         and   b-tt-ant-ir.i-cod-fornec  = tt-ant-ir.i-cod-fornec
+         and   b-tt-ant-ir.i-cod-imposto = tt-ant-ir.i-cod-imposto
+         and   rowid(b-tt-ant-ir)       <> rowid(tt-ant-ir)
+         no-lock no-error.
+
+    if  avail b-tt-ant-ir then do:
+        run utp/ut-msgs.p (input "help",
+                           input 30823,
+                           input string(tt-ant-ir.i-cod-imposto) + "~~" + 
+                                 caps(tt-ant-ir.c-cod-esp) + "~~" +
+                                 string(b-tt-ant-ir.i-cod-imposto)).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 30823, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+
+    if  i-pais-impto-usuario = 1 then do:
+
+        /* Verifica se h† + de 1 imposto com o mesmo c¢digo
+           de retená∆o, para n∆o ocorrer problema com a DIRF */
+
+        &IF DEFINED(BF_FIN_EMS2_X_MG) &THEN
+        if  tt-ant-ir.i-cod-retencao <> 0 then do:
+            assign l-inss = no.
+
+            find first espec-ap no-lock
+                where espec-ap.cod-esp = tt-ant-ir.c-cod-esp no-error.
+
+            if  not (avail espec-ap and espec-ap.log-1 = yes and espec-ap.inss-iss = yes ) then do:
+                find first b-tt-ant-ir
+                     where b-tt-ant-ir.i-ep-codigo   = tt-ant-ir.i-ep-codigo
+                     and   b-tt-ant-ir.c-cod-estab   = tt-ant-ir.c-cod-estab
+                     and   b-tt-ant-ir.c-cod-esp     = tt-ant-ir.c-cod-esp
+                     and   b-tt-ant-ir.c-serie       = tt-ant-ir.c-serie
+                     and   b-tt-ant-ir.c-nr-docto    = tt-ant-ir.c-nr-docto
+                     and   b-tt-ant-ir.c-parcela     = tt-ant-ir.c-parcela
+                     and   b-tt-ant-ir.i-cod-fornec  = tt-ant-ir.i-cod-fornec
+                     and   b-tt-ant-ir.i-cod-retencao = tt-ant-ir.i-cod-retencao
+                     and   rowid(b-tt-ant-ir)        <> rowid(tt-ant-ir)
+                     no-lock no-error.
+
+                if  avail b-tt-ant-ir then do:
+                    run utp/ut-msgs.p (input "help",
+                                       input 30824,
+                                       input string(tt-ant-ir.i-cod-imposto) + "~~" +
+                                             caps(tt-ant-ir.c-cod-esp) + "~~" +
+                                             string(b-tt-ant-ir.i-cod-retencao)).
+
+                    assign c-mensagem = return-value.
+                    run pi-cria-log-tit-ap (input 30824, input c-mensagem, input 1).
+                    assign l-erro = yes.
+                end.
+            end.
+        end.
+        &ENDIF.
+    end.
+
+    /*--- Verifica se existe conta de saldo para a espÇcie ---*/
+    find first conta-ap no-lock
+         where conta-ap.ep-codigo   = tt-antecip.ep-codigo
+         and   conta-ap.cod-estabel = tt-antecip.cod-estabel
+         and   conta-ap.cod-esp     = tt-ant-ir.c-cod-esp
+         and   conta-ap.cod-grupo   = emitente.cod-gr-forn no-error.
+
+    if  not avail conta-ap then do:
+        run utp/ut-msgs.p (input "help":U,
+                           input 27392,
+                           input string(tt-antecip.ep-codigo) + "~~" +
+                                 string(tt-antecip.cod-estabel) + "~~" +
+                                 string(tt-ant-ir.c-cod-esp) + "~~" +
+                                 string(emitente.cod-gr-forn)).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 303, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+
+    /*--- Valida SÇrie do Documento ---*/
+    if  tt-ant-ir.c-serie <> "" then do:
+        find first serie where serie.serie = tt-ant-ir.c-serie no-lock no-error.
+        if  not avail serie then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 1116,
+                               input tt-ant-ir.c-serie).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 1116, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.
+    end.
+
+    /*--- Verifica se o n£mero do documento foi informado ---*/
+    if  tt-ant-ir.c-nr-docto = "" then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 6247,
+                           input "").
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 6247, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+
+    /*--- Verifica se j† existe documento c/ a chave informada ---*/
+    find first tit-ap no-lock
+         where tit-ap.ep-codigo   = tt-antecip.ep-codigo
+         and   tit-ap.cod-fornec  = tt-antecip.cod-fornec
+         and   tit-ap.cod-estabel = tt-antecip.cod-estabel
+         and   tit-ap.cod-esp     = tt-ant-ir.c-cod-esp
+         and   tit-ap.serie       = tt-ant-ir.c-serie
+         and   tit-ap.nr-docto    = tt-ant-ir.c-nr-docto
+         and   tit-ap.parcela     = tt-ant-ir.c-parcela no-error.
+
+    if  avail tit-ap then do:
+        run utp/ut-msgs.p (input "help",
+                           input 630,
+                           input string(tt-antecip.ep-codigo)  + "~~" +
+                                 tt-antecip.cod-estabel        + "~~" +
+                                 tt-ant-ir.c-cod-esp           + "~~" +
+                                 tt-ant-ir.c-nr-docto          + "~~" +
+                                 tt-ant-ir.c-parcela           + "~~" + 
+                                 tt-ant-ir.c-serie             + "~~" +
+                                 string(tt-antecip.cod-fornec)).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 630, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+
+    /*--- BANCOS HIST‡RICOS ---*/
+    if  l-funcao-banc-hist-adm  then do:
+        if  can-find (first his-tit-ap no-lock
+                      where his-tit-ap.ep-codigo   = tt-antecip.ep-codigo
+                      and   his-tit-ap.cod-estabel = tt-antecip.cod-estabel
+                      and   his-tit-ap.cod-fornec  = tt-antecip.cod-fornec
+                      and   his-tit-ap.serie       = tt-ant-ir.c-serie
+                      and   his-tit-ap.cod-esp     = tt-ant-ir.c-cod-esp
+                      and   his-tit-ap.nr-docto    = tt-ant-ir.c-nr-docto
+                      and   his-tit-ap.parcela     = tt-ant-ir.c-parcela)  then do:
+            run utp/ut-msgs.p(input "help",
+                              input 25578,
+                              input string(tt-antecip.ep-codigo) + "~~" +
+                                    tt-antecip.cod-estabel       + "~~" +
+                                    string(tt-antecip.cod-fornec)+ "~~" +
+                                    tt-ant-ir.c-cod-esp           + "~~" +
+                                    tt-ant-ir.c-serie             + "~~" +
+                                    tt-ant-ir.c-nr-docto          + "~~" +
+                                    tt-ant-ir.c-parcela).
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 25578, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.
+    end.
+
+    /*--- Verifica se a data de vencimento foi informada ---*/
+    if  tt-ant-ir.da-vencimento = ? then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 1764,
+                           input "").
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 1764, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+
+    /*--- Data vencimento deve ser maior que emiss∆o da AN ---*/
+    if  tt-ant-ir.da-vencimento < tt-antecip.dt-emissao then do:
+        run utp/ut-msgs.p (input "help",
+                           input 17343,
+                           input string(tt-ant-ir.da-vencimento, "99/99/9999") + "~~" +
+                                 string(tt-antecip.dt-emissao, "99/99/9999")).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 17343, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+
+    /*--- Valida Tipo de Despesa ---*/    
+    find first tipo-rec-desp
+         where tipo-rec-desp.tp-codigo = tt-ant-ir.i-tp-codigo no-lock no-error.
+
+    if  not avail tipo-rec-desp then do:
+        run utp/ut-msgs.p (input "help",
+                           input 146,
+                           input string(tt-ant-ir.i-tp-codigo)).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 146, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.
+
+    /*--- Valida Conta DÇbito Informada ---*/    
+    find first b-conta-contab no-lock
+         where b-conta-contab.ep-codigo       = tt-antecip.ep-codigo 
+         and   b-conta-contab.conta-contabil  = tt-ant-ir.c-conta-debito
+         no-error.
+
+    if  not avail b-conta-contab then do:
+        run utp/ut-msgs.p (input "help",
+                           input 1060,
+                           input tt-ant-ir.c-conta-debito).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 1060, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.    
+    else do:
+
+         /*--- Conta n∆o pode ser de t°tulo ---*/
+        if  b-conta-contab.tipo = 6 then do:
+            run utp/ut-msgs.p (input "help",
+                               input 1061,
+                               input string(tt-ant-ir.c-conta-debito)).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 1061, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.
+
+        /*--- Conta deve ser de sistema ---*/
+        if  b-conta-contab.estado <> 3 then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 1062,
+                               input string(tt-ant-ir.c-conta-debito)).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 1062, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.        
+
+        /*--- Conta n∆o pode receber lancamentos ---*/
+        if  b-conta-contab.contas-pagar = 1 then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 637,
+                               input string(tt-ant-ir.c-conta-debito)).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 637, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.        
+
+        /*--- Conta de banco n∆o pode ser usada ---*/
+        if  b-conta-contab.caixa-bancos = 3 then do:
+            run utp/ut-msgs.p (input "help",
+                               input 2399,
+                               input string(tt-ant-ir.c-conta-debito)).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 2399, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.        
+
+        /*--- Verifica se a conta pertence a uma conta de saldo ---*/
+        find first conta-ap
+             where conta-ap.ep-codigo = b-conta-contab.ep-codigo
+             and   conta-ap.ct-saldo  = b-conta-contab.ct-codigo
+             and   conta-ap.sc-saldo  = b-conta-contab.sc-codigo
+             no-lock no-error.
+
+        if  avail conta-ap then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 18058,
+                               input string(tt-ant-ir.c-conta-debito)).
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 18058, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.        
+    end.
+
+    /*--- Aliquota n∆o pode ser superior a 100% ---*/
+    if  tt-antecip.de-aliquota > 100 then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 374,
+                           input "").
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 374, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.        
+
+    /*--- Verifica se a AN est† na moeda corrente ---*/
+    if  tt-antecip.moeda <> 0 then do:
+        run utp/ut-msgs.p (input "help",
+                           input 17344,
+                           input " ").
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 17344, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.        
+
+    /*--- Valor da Antecipaá∆o Ç menor que o valor informado ---*/
+    if  tt-ant-ir.de-vl-impto > tt-antecip.vl-orig-me then do:
+        run utp/ut-msgs.p (input "msg",
+                           input 6258,
+                           input "").
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 6258, input c-mensagem, input 1).
+        assign l-erro = yes.
+    end.            
+
+    /*--- Valor Rendimento Tributavel n∆o pode ser maior que o valor da AN ---*/
+    if  avail tipo-tax and tt-ant-ir.de-tributavel > tt-antecip.vl-orig-me then do:
+
+        /* --- Limite Retená∆o PIS/COFINS/CSLL --- */
+        RUN pi-ret-matriz-cod-forn IN h-cd0421 (INPUT emitente.cod-emitente,
+                                                OUTPUT v-cod-forn-matriz,
+                                                output l-retem-matriz-impto) .
+        if  not(i-pais-impto-usuario = 1 and
+            &if '{&mgadm_version}' >= '2.06' &then
+                 tipo-tax.retenc-pis-cofins 
+            &else
+                tipo-tax.log-1
+            &endif 
+                and l-retem-matriz-impto
+            ) then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 645,
+                               input " ").
+
+            assign c-mensagem = return-value.
+            run pi-cria-log-tit-ap (input 645, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.
+    end.    
+
+    /*--- Valida C¢digo de Rentená∆o ---*/
+    find first tt-cod-ir no-lock
+         where tt-cod-ir.c-cod = string(tt-ant-ir.i-cod-retencao, "9999") no-error.
+    if  not avail tt-cod-ir then do:
+        run utp/ut-msgs.p (input "help",
+                           input 843,
+                           input string(tt-ant-ir.i-cod-retencao, "9999")).
+
+        assign c-mensagem = return-value.
+        run pi-cria-log-tit-ap (input 843, input c-mensagem, input 2).
+    end.        
+    else do:
+        if  avail emitente then do:
+            assign c-mensagem = ''.
+            {cdp/cd8889.i2 help tt-cod-ir.i-pessoa emitente.natureza c-mensagem " " emitente.cod-emitente tt-cod-ir.c-cod}
+            if c-mensagem <> " " then do:
+               run pi-cria-log-tit-ap (input 25843, input c-mensagem, input 1).
+               assign l-erro = yes.
+            end.   
+        end. 
+    end.        
+
+    &IF DEFINED (BF_FIN_TAB_PROG_IR) &THEN
+    &ELSE
+        /*--- Verifica se o valor do imposto foi informado ---*/
+        if  tt-ant-ir.de-vl-impto = 0 then do:
+            {utp/ut-liter.i Valor * C}
+            run utp/ut-msgs.p (input "msg",
+                               input 4323,
+                               input trim(return-value)).
+
+            assign c-mensagem = return-value.
+
+            run pi-cria-log-tit-ap (input 4323, input c-mensagem, input 1).
+            assign l-erro = yes.
+        end.
+    &ENDIF
+end.
+
+if  l-erro = no then
+    return "OK".        
+else
+    return "NOK".    
+
+/* fim app/apapi022.i6 */

@@ -1,0 +1,94 @@
+/*-----------------------------------------------------------------------------------------*/
+/*   Projeto 156 - Banking Connect                                                         */
+/*   AP1001x.i1                                                                            */
+/*   - Registro Header de Arquivo (Banking Connect)                                        */
+/*-----------------------------------------------------------------------------------------*/
+
+
+/*-------------------------------------------------------*/
+/*  - Inicializacao                                      */
+/*-------------------------------------------------------*/
+find first empresa where empresa.ep-codigo = i-empresa no-lock no-error.
+
+find first portador where portador.ep-codigo = i-empresa and
+           portador.cod-portador = i-portador no-lock no-error.
+
+find first cta-corrente
+     where cta-corrente.cod-banco    = portador.cod-banco
+     and   cta-corrente.agencia      = portador.agencia
+     and   cta-corrente.conta-corren = portador.conta-corren
+     no-lock no-error.
+
+find banco where banco.cod-banco = portador.cod-banco no-lock no-error.
+
+assign c-cgc-emp = "".
+
+do i-cont = 1 to 19:
+   if  substr(empresa.cgc,i-cont,1) >= "0" 
+   and substr(empresa.cgc,i-cont,1) <= "9" then
+       assign c-cgc-emp = c-cgc-emp + substr(empresa.cgc,i-cont,1).
+end.
+/*.......................................................*/
+
+
+/*-------------------------------------------------------*/
+/*  - Variaveis                                          */
+/*-------------------------------------------------------*/
+def var onlyTime as char format "x(6)". 
+assign onlyTime = substr(string(time,"HH:MM:SS"),1,2) + substr(string(time,"HH:MM:SS"),4,2) + substr(string(time,"HH:MM:SS"),7,2).
+
+/* codigo do Convnio no Banco */
+def var c-codigo-convenio as char.
+
+&if "{&mgadm_version}" >= "2.04" &then
+   assign c-codigo-convenio = string(portador.convenio-pagto).
+   
+   if c-codigo-convenio = "0" then
+     assign c-codigo-convenio = string(portador.conta-convenio).
+&endif    
+
+if banco.cod-febraban = 237 then 
+  assign c-codigo-convenio = tt-param.identific-emp.
+       
+if banco.cod-febraban = 1 then /* Banco do Brasil */
+   if substring(portador.complemento, 21,1) = "2" then /* CNAB240 */
+      assign c-codigo-convenio = substring(portador.complemento, 22,20).
+/*.......................................................*/
+
+
+/*-------------------------------------------------------*/
+/*  - Imprime Header de Arquivo                          */
+/*-------------------------------------------------------*/
+put stream relat
+    banco.cod-febraban                                      format "999" at 001   /* 01 - CONTROLE - Banco                                  */
+    "0000"                                                               at 004   /* 02 -            Lote                                   */
+    "0"                                                                  at 008   /* 03 -            Registro                               */
+    /* CNAB */                                                                    /* 04 - CNAB     - Uso Exclusivo FEBRABAN / CNAB          */
+    "2"                                                                  at 018   /* 05 - EMPRESA  - Tipo de inscri‡Æo da empresa           */
+    c-cgc-emp                                    format "99999999999999" at 019   /* 06 -            Numero de inscri‡Æo da Empresa         */
+    c-codigo-convenio                                     format "x(20)" at 033   /* 07 -            Codigo do Convenio no Banco            */
+    substr(cta-corrente.agencia-extrato,2,5)              format "99999" at 053   /* 08 -            Agˆncia Mantenedora da Conta           */
+    substr(cta-corrente.agencia-extrato,7,1)              format "x(01)" at 058   /* 09 -            Digito Verificador da Agˆncia          */
+    "00"                                                     format "99" at 059  
+    substr(cta-corrente.conta-corren-extr,1,10)      format "9999999999" at 061.   /* 10 -            Nœmero da Conta Corrente               */ 
+    if substr(cta-corrente.conta-corren-extr,12,1) = " " then 
+      put stream relat                                                                                   
+       substr(cta-corrente.conta-corren-extr,11,1)            format "9" at 072.   /* 12 -            Digito Verificador da Ag/Conta         */
+    else 
+      put stream relat  
+       substr(cta-corrente.conta-corren-extr,11,2)           format "99" at 071.   /* 12 -            Digito Verificador da Ag/Conta         */ 
+    put stream relat   
+    fn-free-accent(caps(empresa.razao-social))            format "x(30)" at 073   /* 13 -            Nome da empresa                        */ 
+    fn-free-accent(caps(banco.nome-banco))                format "x(30)" at 103   /* 14 -            Nome do Banco                          */
+    "NEXXERA"                                             format "x(10)" at 133   /* 15 -            Nome da Van                            */
+    "1"                                                                  at 143   /* 16 - ARQUIVO  - C½digo Remessa / Retorno               */
+    TODAY                                              format "99999999" at 144   /* 17 -            Data de Gera»’o do Arquivo             */
+    onlyTime                                             format "999999" at 152   /* 18 -            Hora de Gera»’o do Arquivo             */
+    string(tt-param.i-sequencia,"9999999")              format "9999999" at 158   /* 19 -            Nœmero sequancial do Arquivo (NSA)     */
+    "020"                                                   format "999" at 165   /* 20 -            Nœmero da Vers’o do Layout do Arquivo  */ 
+    "00000"                                                              at 168   /* 21 -            Densidade de Grava‡Æo do Arquivo       */ 
+                                                                                  /* 22 -            Para uso reservado do Banco            */ 
+                                                                                  /* 23 -            Para uso reservado do Empresa          */ 
+                                                                                  /* 24 -            Uso Exclusivo FEBRABAN / CNAB          */ 
+    " "                                                                  at 240 skip.
+/*.......................................................*/

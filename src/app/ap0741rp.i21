@@ -1,0 +1,19 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i21 - Quebra Esp‚cie.
+***
+*******************************************************************************/
+
+find first espec-ap no-lock
+     where espec-ap.cod-esp = {1} no-error.
+    
+if  avail espec-ap then do:
+    put trim(c-especie) format "x(10)"
+        " "
+        espec-ap.cod-esp
+        " - "
+        espec-ap.descricao skip(1).
+end.
+
+
+/* Fim de Include */

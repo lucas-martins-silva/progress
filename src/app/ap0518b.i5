@@ -1,0 +1,52 @@
+/********************************************************************************
+***
+*** app/ap0518b.i5 - Gera Hist¢rico para a AN Gerada.
+***
+********************************************************************************/
+
+find last  his-d-ap no-lock
+     where his-d-ap.ep-codigo   = tit-ap.ep-codigo
+     and   his-d-ap.cod-estabel = tit-ap.cod-estabel
+     and   his-d-ap.cod-esp     = tit-ap.cod-esp
+     and   his-d-ap.serie       = tit-ap.serie
+     and   his-d-ap.nr-docto    = tit-ap.nr-docto
+     and   his-d-ap.parcela     = tit-ap.parcela
+     and   his-d-ap.cod-fornec  = tit-ap.cod-fornec
+     and   his-d-ap.dt-his-doc  = today no-error.
+
+if  avail his-d-ap then
+    assign i-sequencia = his-d-ap.sequencia + 1.
+else
+    assign i-sequencia = 1.
+    
+create his-d-ap.
+assign his-d-ap.ep-codigo   = tit-ap.ep-codigo
+       his-d-ap.cod-estabel = tit-ap.cod-estabel
+       his-d-ap.cod-esp     = tit-ap.cod-esp
+       his-d-ap.serie       = tit-ap.serie
+       his-d-ap.nr-docto    = tit-ap.nr-docto
+       his-d-ap.parcela     = tit-ap.parcela
+       his-d-ap.cod-fornec  = tit-ap.cod-fornec
+       his-d-ap.sequencia   = i-sequencia
+       his-d-ap.dt-his-doc  = today.
+
+if  his-d-ap.historico = " " then do:
+    {utp/ut-liter.i Antecipa‡Æo}
+    assign c-var-1 = trim(return-value).
+    {utp/ut-liter.i gerada}
+    assign c-var-2 = trim(return-value).
+    run utp/ut-msgs.p (input "help",
+                       input 6492,
+                       input c-var-1 + "~~" + c-var-2 + "~~" + 
+                             string(b-tit-ap-orig.cod-estabel) + "~~" + 
+                             c-seg-usuario      + "~~" + 
+                             string(today,"99/99/9999")).
+    assign his-d-ap.historico = trim(return-value).
+end.
+    
+/******** Multiplanta ********/  
+run pi-cria-tt-dados-his-d-ap (input 1).     
+/****** Fim-Multiplanta ******/ 
+
+/* Fim de Include */
+

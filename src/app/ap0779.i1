@@ -1,0 +1,121 @@
+&GLOBAL-DEFINE hDBOSon1         h-boad434
+
+{method/dbotterr.i}
+
+DEFINE VARIABLE {&hDBOSon1}   AS HANDLE NO-UNDO.
+
+{include/i-rpvar.i}
+
+{include/i-getentryfield.i}
+
+def var c-emp-razao        like empresa.razao-social no-undo.
+def var c-emp-cgc          like empresa.cgc no-undo.
+
+def {1} shared var h-acomp as handle no-undo.
+
+def {1} shared temp-table tt-erros-tit-ap-bcio no-undo
+    field tta-cod-estab                    as character format "x(3)" label "Estabelecimento" column-label "Estab"
+    field tta-cdn-febraban                 as integer format ">>>>9" label "C¢digo Sist Banc rio" column-label "C¢digo Sist Banc rio"
+    field tta-cod-tit-ap-bco               as character format "x(20)" label "T¡tulo  Banco" column-label "T¡tulo Banco"
+    field ttv-tipo                         as character format "x(9)" label "Tipo" column-label "Tipo"
+    field ttv-num-linha                    as integer format ">>>>,>>9" label "Linha" column-label "Linha"
+    field ttv-num-mensagem                 as integer format ">>>>,>>9" label "N£mero" column-label "N£mero Mensagem"
+    field ttv-des-erro-msg                 as character format "x(60)" label "Msg Erro":U column-label "Msg Erro":U
+    field ttv-des-erro-ajuda               as character format "x(130)" label "Ajuda Erro":U column-label "Ajuda Erro":U
+    field ttv-nom-filename-import          as character format "x(40)" label "Nome Arquivo" column-label "Arquivo"
+    field tta-dat-concil                   as date
+    field tta-cod-estab-tit                as character
+    field tta-cdn-fornecedor               as integer
+    field tta-cod-espec-docto              as character
+    field tta-cod-serie                    as character
+    field tta-cod-docto                    as character
+    field tta-cod-parcela                  as character
+    index idx
+          tta-cod-estab     
+          tta-cdn-febraban  
+          tta-cod-tit-ap-bco
+        .                                      
+                                           
+def {1} shared temp-table tt-layout-diver no-undo
+    field ttv-cod-layout                   as character format "x(8)" label "Layout" column-label "Layout"
+    field ttv-des-layout                   as character format "x(40)" label "Descri‡Æo Layout" column-label "Descri‡Æo Layout"
+    field ttv-idi-tip-layout-diver         as integer   format "9"     initial 1 label "Tipo Layout" column-label "Tipo Layout"
+    field ttv-log-utiliz-header-layout     as logical format "Sim/NÆo" initial no label "Utiliza Header" column-label "Utiliza Header"
+    field ttv-log-utiliz-trailler-layout   as logical format "Sim/NÆo" initial no label "Utiliza Trailler" column-label "Utiliza Trailler"
+    field ttv-num-pos-prim-ident-layout    as integer format ">>9" label "Posi‡Æo 1o Identific":U column-label "Posi‡Æo 1o Identific":U
+    field ttv-num-tam-prim-ident-layout    as integer format ">>9" label "Tamanho 1o Identific":U column-label "Tamanho 1o Identific":U
+    field ttv-num-pos-segndo-ident-layout  as integer format ">>9" label "Posi‡Æo 2o Identific":U column-label "Posi‡Æo 2o Identific":U
+    field ttv-num-tam-segndo-ident-layout  as integer format ">>9" label "Tamanho 2o Identific":U column-label "Tamanho 2o Identific":U
+    field ttv-num-tam-reg-layout           as integer format ">>9" label "Tamanho Registro":U column-label "Tamanho Registro":U
+    field ttv-dat-base-layout              as date format "99/99/9999" label "Base Layout" column-label "Base Layout"
+    field ttv-log-control-modalid          as logical format "Sim/NÆo" initial no label "Controla Modalidade" column-label "Control Mod"
+    field ttv-cod-modalid-dda              as character format "x(4)" label "Modalidade DDA" column-label "Modalid DDA"
+    field ttv-cod-livre-1-aux              as character format "x(100)" label "Livre 1" column-label "Livre 1"
+    field ttv-log-livre-1                  as logical format "Sim/NÆo" initial no label "Livre 1" column-label "L¢g.Livre 1":U
+    field ttv-num-livre-1-aux              as integer format ">>>>>9" label "Livre 1" column-label "Livre 1"
+    field ttv-val-livre-1-aux              as decimal format ">>>,>>>,>>9.9999" decimals 4 label "Livre 1" column-label "Livre 1"
+    field ttv-dat-livre-1                  as date format "99/99/9999" label "Data Livre 1" column-label "Dt.Livre 1"
+    index tt-id                            is unique
+          ttv-cod-layout                   ascending
+          ttv-idi-tip-layout-diver         ascending
+    index tt-layout-diver                  is primary unique
+          ttv-cod-layout                   ascending
+    .                                      
+                                           
+def {1} shared temp-table tt-lista-arquivos-importa no-undo
+    field ttv-nom-filename-import          as character format "x(40)" label "Nome Arquivo" column-label "Arquivo"
+    .                                      
+                                           
+def {1} shared temp-table tt-mapa-tip-reg-layout no-undo
+    field ttv-cod-layout                   as character format "x(8)" label "Layout" column-label "Layout"
+    field ttv-num-seq-reg-layout           as integer format ">9" initial 0 label "Sequˆncia" column-label "Sequˆncia"
+    field ttv-num-seq-mapa-tip-reg-layout  as integer format ">>9" label "Sequˆncia" column-label "Sequˆncia"
+    field ttv-idi-contdo-layout            as integer format "9" label "Conte£do Layout" column-label "Conte£do Layout"
+    field ttv-num-pos-contdo-layout        as integer format ">>>>,>>9" label "Posi‡Æo Conte£do Lay":U column-label "Posi‡Æo Conte£do Lay":U
+    field ttv-num-tam-contdo-layout        as integer format ">>>>,>>9" label "Tamanho Conte£do Lay":U column-label "Tamanho Conte£do Lay":U
+    field ttv-cod-livre-1-aux              as character format "x(100)" label "Livre 1" column-label "Livre 1"
+    field ttv-log-livre-1                  as logical format "Sim/NÆo" initial no label "Livre 1" column-label "L¢g.Livre 1":U
+    field ttv-num-livre-1-aux              as integer format ">>>>>9" label "Livre 1" column-label "Livre 1"
+    field ttv-dat-livre-1                  as date format "99/99/9999" label "Data Livre 1" column-label "Dt.Livre 1"
+    field ttv-val-livre-1                  as decimal format "9999999999999.99" decimals 2 initial 0 label "Livre 1" column-label "Vlr.Livre 1":U
+    index tt-contdo                        
+          ttv-cod-layout                   ascending
+          ttv-num-seq-reg-layout           ascending
+          ttv-idi-contdo-layout            ascending
+    index tt-id                            is primary unique
+          ttv-cod-layout                   ascending
+          ttv-num-seq-reg-layout           ascending
+          ttv-num-seq-mapa-tip-reg-layout  ascending
+    .                                      
+                                           
+def {1} shared temp-table tt-tip-reg-layout no-undo   
+    field ttv-cod-layout                   as character format "x(8)" label "Layout" column-label "Layout"
+    field ttv-num-seq-reg-layout           as integer   format ">9" initial 0 label "Sequˆncia" column-label "Sequˆncia"
+    field ttv-idi-tip-reg-layout           as integer   format "9" label "Tipo Registro"
+    field ttv-des-tip-reg-layout           as character format "x(40)" label "Descri‡Æo" column-label "Descri‡Æo"
+    field ttv-cod-prim-ident-layout        as character format "x(8)" label "1o Identificador":U column-label "1o Identificador":U
+    field ttv-cod-segndo-ident-layout      as character format "x(8)" label "2o Identificador":U column-label "2o Identificador":U
+    field ttv-cod-livre-1-aux              as character format "x(100)" label "Livre 1" column-label "Livre 1"
+    field ttv-log-livre-1                  as logical format "Sim/NÆo" initial no label "Livre 1" column-label "L¢g.Livre 1":U
+    field ttv-num-livre-1-aux              as integer format ">>>>>9" label "Livre 1" column-label "Livre 1"
+    field ttv-val-livre-1-aux              as decimal format ">>>,>>>,>>9.9999" decimals 4 label "Livre 1" column-label "Livre 1"
+    field ttv-dat-livre-1                  as date format "99/99/9999" label "Data Livre 1" column-label "Dt.Livre 1"
+    index tt-id                            
+          ttv-cod-layout              ascending
+          ttv-idi-tip-reg-layout      ascending
+    index tt-lay-seq                  is primary unique
+          ttv-cod-layout              ascending
+          ttv-num-seq-reg-layout      ascending
+    .                                      
+                                           
+def {1} shared temp-table tt-tit-ap-bcio no-undo like tit-ap-bcio
+    field tta-num-seq-arq                  as integer format ">>>>,>>9" initial 0 label "Sequˆncia Arquivo" column-label "Sequˆncia Arquivo"
+    field tta-idi-tip-movto-bco            as integer   format "9" label "Tipo Movto Banco":U column-label "Tipo Movo Banco":U
+    field tta-dsl-histor-movto-bco         as Character format "x(15000)" label "Hist¢rico Movimento" column-label "Hist¢rico Movimento"
+    field ttv-num-linha                    as integer format ">>>>,>>9" label "Linha" column-label "Linha"
+    field ttv-nom-filename-import          as character format "x(40)" label "Nome Arquivo" column-label "Arquivo"
+    field tta-modalidade                   as integer
+    field ttv-log-erro                     as logical format "Sim/NÆo" initial no label "Livre 1" column-label "L¢g.Livre 1":U
+    .
+
+

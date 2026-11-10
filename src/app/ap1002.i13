@@ -1,0 +1,29 @@
+/******************************************************************************
+**
+**   AP1002.I13
+**   Objetivo: Definicao de Variaveis e frames 
+**             APENAS A PARTIR DA VERSÇO 2.02.
+**
+**  {1} - Valor preparado - Baixa Parcial
+******************************************************************************/
+
+    &if  "{&mgadm_version}" >= "2.02" &then
+        /* Verifica se ‚ baixa parcial de border“ */
+        find bord-tit use-index codigo where
+             bord-tit.ep-codigo   = {1}.ep-codigo and
+             bord-tit.cod-estabel = {1}.cod-estabel and
+             bord-tit.cod-fornec  = {1}.cod-fornec and
+             bord-tit.cod-esp     = {1}.cod-esp and
+             bord-tit.serie       = {1}.serie and
+             bord-tit.nr-docto    = {1}.nr-docto and
+             bord-tit.parcela     = {1}.parcela and
+             bord-tit.portador    = {2} and
+             bord-tit.nr-bordero  = {3}
+             no-lock no-error.
+        if  avail bord-tit then
+            assign {4} = bord-tit.vl-saldo
+                   l-vl-saldo = no.
+                    
+    &endif
+
+/* Fim app/ap1002.i13 */

@@ -1,0 +1,86 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*******************************************************************************
+*   {1}  N£mero da imagem
+*******************************************************************************/
+
+case {1}:
+    when 1 then do:
+        {utp/ut-liter.i Empresa}
+    end.
+    when 2 then do:
+        {utp/ut-liter.i Equipamento}
+    end.
+    when 3 then do:
+        {utp/ut-liter.i Grupo_Equipamento}
+    end.
+    when 4 then do:
+        {utp/ut-liter.i Modelo_Equipamento}
+    end.
+    when 5 then do:
+        {utp/ut-liter.i Estabelecimento}
+    end.
+    when 6 then do:
+        {utp/ut-liter.i TAG}
+    end.
+    when 7 then do:
+        {utp/ut-liter.i Tipo_Material}
+    end.
+    when 8 then do:
+        {utp/ut-liter.i Atividade}
+    end.
+    when 9 then do:
+        {utp/ut-liter.i Documento}
+    end.
+    when 10 then do:
+        {utp/ut-liter.i Trajeto}
+    end.
+    when 11 then do:
+        {utp/ut-liter.i Data}
+    end.
+    when 12 then do:
+        {utp/ut-liter.i "Mˆs / Ano"}
+    end.
+    when 13 then do:
+        {utp/ut-liter.i "Motorista"}
+    end.    
+    when 14 then do:
+        {utp/ut-liter.i "Centro Custo Eqpto"}
+    end.    
+    when 15 then do:
+        {utp/ut-liter.i "Marca"}
+    end.    
+    when 16 then do:
+        {utp/ut-liter.i "Un Percurso"}
+    end.  
+    when 17 then do:
+        {utp/ut-liter.i "Centro Custo Docto"}
+    end.     
+    when 18 then do:
+        {utp/ut-liter.i "Estrutura Mecƒnica"}
+    end.
+    when 19 then do:
+        {utp/ut-liter.i "Propriet rio"}
+    end.
+    when 20 then do:
+        {utp/ut-liter.i "Tipo Propriet rio"}
+    end.
+    when 21 then do:
+        {utp/ut-liter.i Unidade_Neg¢cio}
+    end.
+    when 22 then do:
+        {utp/ut-liter.i CC_Item}
+    end.
+    when 23 then do:
+        {utp/ut-liter.i Item}
+    end.
+    when 24 then do:
+        {utp/ut-liter.i Posto}
+    end.
+end case.

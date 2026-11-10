@@ -1,0 +1,13 @@
+/***************************************************************************
+**
+** ap1001k.i5
+** Objetivo: Gerar registro Trailer do Lote para o banco Safra.
+**
+***************************************************************************/
+
+/* Trailer */
+
+put stream relat
+    "9"                                                               at 001
+    i-hea-qua + 2                                     format "999999" at 395
+    skip.

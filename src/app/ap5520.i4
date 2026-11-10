@@ -1,0 +1,205 @@
+/******************************************************************************
+**
+** app/ap5520.i4 - Definiá∆o Variaveis, temp-table's, etc.
+**
+*******************************************************************************/
+
+def new shared var de-val9100          as decimal.
+def new shared var  i-num9100          as integer.
+def new shared var  i-tam9100          as integer.
+def new shared var  c-ext9100          as character extent 10.
+
+def shared var r-bordero               as rowid.
+
+def var i-cod-banco      as integer format 999.
+def var c-instrucao      as character format "x(70)" no-undo.
+def var c-conta          like portador.conta-corren.
+def var c-codigo-agencia like portador.agencia.
+def var c-impressora     as  char format "x(12)".
+def var l-sem-inst       as logical no-undo.
+def var i-cont           as integer no-undo.
+def var l-inst           as logical no-undo.
+def var da-today         as date init today no-undo.
+
+def var c-descricao    like mensagem.descricao.
+def var c-port-abrev   like portador.nome-abrev.
+def var c-opcao        as character no-undo.
+def var de-liquido     like tit-ap.valor-saldo  no-undo.
+def var de-saldo       like tit-ap.valor-saldo  no-undo.
+def var de-total-monet like mov-ap.vl-var-monet no-undo.
+def var de-total-juros like tit-ap.jur-dia-fasb no-undo.
+def var de-total-desc  like tit-ap.vl-desc-fasb no-undo.
+
+&IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    def var de-total-multa like mov-ap.vl-multa-fasb       no-undo.
+    def var de-tot-multa   like de-total-multa             no-undo.
+    def var c-multa        as   char format "x(13)"        no-undo.
+
+    def var de-total-abat  like mov-ap.vl-abatimento-fasb  no-undo.
+    def var de-tot-abat    like de-total-abat              no-undo.
+    def var c-abat         as   char format "x(18)"        no-undo.
+&ENDIF
+
+def var de-total-liq   like tit-ap.valor-saldo  no-undo.
+def var de-total-geral as decimal
+                       format ">>,>>>,>>>,>>>,>>>,>>>,>>9.99" no-undo.
+def var de-total-tit   as   integer format ">>>>9" init 0     no-undo.
+def var de-tot-ger     like de-total-geral                    no-undo.
+def var de-tot-tit     like de-total-tit                      no-undo.
+def var de-tot-liq     like de-total-liq                      no-undo.
+def var de-tot-monet   like de-total-liq                      no-undo.
+def var de-tot-desc    like de-total-desc                     no-undo.
+def var de-tot-jur     like de-total-juros                    no-undo.
+
+def var c-reemissao    as character format "x(15)" init "(REEMISSAO)".
+def var c-total-geral  as character format "x(132)"           no-undo.
+def var c-total-geral2 as character format "x(132)"           no-undo.
+
+def var c-mensagem      as char                no-undo.
+def var c-tot-bord      as char format "x(20)" no-undo.
+def var c-pg            as char format "x(04)" no-undo.
+def var c-empresa       as char format "x(15)" no-undo.
+def var c-endereco      as char format "x(15)" no-undo.
+def var c-cidade        as char format "x(15)" no-undo.
+def var c-cgc           as char format "x(15)" no-undo.
+def var c-banco         as char format "x(15)" no-undo.
+def var c-agencia       as char format "x(15)" no-undo.
+def var c-corrente      as char format "x(15)" no-undo.
+def var c-bordero       as char format "x(15)" no-undo.
+def var c-data          as char format "x(15)" no-undo.
+def var c-documento     as char format "x(16)" no-undo.
+def var c-parc          as char format "x(02)" no-undo.
+def var c-fornec        as char format "x(06)" no-undo.
+def var c-emissao       as char format "x(07)" no-undo.
+def var c-vencimento    as char format "x(10)" no-undo.
+def var c-valor-doc     as char format "x(11)" no-undo.
+def var c-juros         as char format "x(11)" no-undo.
+def var c-desconto      as char format "x(14)" no-undo.
+def var c-variacao      as char format "x(14)" no-undo.
+def var c-razao         as char format "x(12)" no-undo.
+def var c-praca         as char format "x(20)" no-undo.
+def var c-nome-banc     as char format "x(20)" no-undo.
+def var c-nome-agencia  as char format "x(09)" no-undo. 
+def var c-cont-corrent  as char format "x(35)" no-undo.
+def var c-vl-liq        as char format "x(13)" no-undo.
+def var c-tot-titulo    as char format "x(16)" no-undo.
+def var c-tot-pag       as char format "x(15)" no-undo.
+def var c-texto-mensag  as char format "x(70)" extent 5 no-undo.
+def var c-texto-mensag1 as char format "x(70)" extent 5 no-undo.
+def var c-estab         as char format "x(3)"  no-undo.
+def var c-esp           as char format "x(3)"    no-undo.
+def var c-serie         as char format "x(5)"  no-undo.
+
+def var i-conta-corrente like emitente.conta-corren.
+def var i-agencia        like emitente.agencia.
+
+def var  c-cgc-fornec  like emitente.cgc no-undo.
+
+{utp/ut-liter.i EST}
+assign c-estab = trim(return-value).
+
+{utp/ut-liter.i ESP}
+assign c-esp = trim(return-value).
+
+{utp/ut-liter.i SêRIE}
+assign c-serie = trim(return-value).
+
+{utp/ut-liter.i TOTAL_DE_T÷TULOS}
+assign c-tot-titulo = trim(return-value) + "..:".
+
+{utp/ut-liter.i TOTAL_DA_PµGINA}
+assign c-tot-pag= trim(return-value) + "...:".
+
+{utp/ut-liter.i TOTAL_DO_BORDER‚}
+assign c-tot-bord = trim(return-value) + "..:".
+
+{utp/ut-liter.i NÈMERO_DOCUMENTO}
+assign c-documento = trim(return-value).
+
+{utp/ut-liter.i P}
+assign c-parc = "/" + trim(return-value).
+
+{utp/ut-liter.i FORNEC}
+assign c-fornec = trim(return-value).
+
+{utp/ut-liter.i EMISS«O}
+assign c-emissao = trim(return-value).
+
+{utp/ut-liter.i VENCIMENTO}
+assign c-vencimento = trim(return-value).
+
+{utp/ut-liter.i VALOR_DOCTO}
+assign c-valor-doc = trim(return-value).
+
+{utp/ut-liter.i VALOR_JUROS}
+assign c-juros = trim(return-value).
+
+&IF DEFINED(BF_FIN_MULTA_ABATIMENTO) &THEN
+    {utp/ut-liter.i VALOR_MULTA}
+    assign c-multa = trim(return-value).
+
+    {utp/ut-liter.i VALOR_ABATIMENTO}
+    assign c-abat = trim(return-value).
+&endif
+
+{utp/ut-liter.i VALOR_DESCONTO}
+assign c-desconto = trim(return-value).
+
+{utp/ut-liter.i VARIAÄ«O_MONET}
+assign c-variacao = trim(return-value).
+
+{utp/ut-liter.i RAZ«O_SOCIAL}
+assign c-razao = trim(return-value).
+
+{utp/ut-liter.i PRAÄA}
+assign c-praca =  trim(return-value).
+
+{utp/ut-liter.i NOME_BANCO}
+assign c-nome-banc =  trim(return-value).
+
+{utp/ut-liter.i CONTA_CORRENTE}
+assign c-cont-corrent = trim(return-value).
+
+{utp/ut-liter.i EMPRESA}
+assign c-empresa = trim(return-value)  + ".....:".
+
+{utp/ut-liter.i ENDEREÄO}
+assign c-endereco = trim(return-value) + "....:".
+
+{utp/ut-liter.i CIDADE}
+assign c-cidade = trim(return-value)   + "......:".
+
+{utp/ut-liter.i CGCMF}
+assign c-cgc = trim(return-value)      + ".......:".
+
+{utp/ut-liter.i BANCO}
+assign c-banco = trim(return-value) + ".......:".
+
+{utp/ut-liter.i AG“NCIA}
+assign c-agencia = trim(return-value) + ".....:".
+
+{utp/ut-liter.i CT_CORRENTE}
+assign c-corrente = trim(return-value) + ".:".
+
+{utp/ut-liter.i BORDERO}
+assign c-bordero = trim(return-value) + ".....:".
+
+{utp/ut-liter.i DATA_EMISS«O}
+assign c-data = trim(return-value) + ":".
+
+{utp/ut-liter.i VALOR_LIQUIDO}
+assign c-vl-liq = trim(return-value).
+
+def temp-table w-bordero no-undo
+    field w-ep-codigo   like tit-ap.ep-codigo
+    field w-cod-estabel like tit-ap.cod-estabel
+    field w-serie       like tit-ap.serie
+    field w-cod-esp     like tit-ap.cod-esp
+    field w-nr-docto    like tit-ap.nr-docto
+    field w-parcela     like tit-ap.parcela
+    field w-fornecedor  like tit-ap.cod-fornec
+    field w-dt-vencimen like tit-ap.dt-vencimen.
+
+
+find first param-global no-lock no-error.
+/* Fim de Include  ap5520.i4 */

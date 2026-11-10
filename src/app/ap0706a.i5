@@ -1,0 +1,425 @@
+/****************************************************************************
+***
+*** app/ap0706a.i5 - pi-classif3-moeda1.
+***
+****************************************************************************/
+class-block:
+do  on error  undo class-block, return error
+    on endkey undo class-block, return error
+    on stop   undo class-block, return error:
+
+    {app/ap0706.i6 "and tit-ap.matriz >= tt-param.matriz-ini
+                    and tit-ap.matriz <= tt-param.matriz-fim"
+                   matriz
+                   tit-ap.matriz}
+
+    matriz-block:
+    for each tit-ap use-index matriz
+          where tit-ap.ep-codigo     = i-ep-codigo-usuario          
+          and   tit-ap.matriz       >= tt-param.matriz-ini
+          and   tit-ap.matriz       <= tt-param.matriz-fim 
+          and   tit-ap.cod-estabel  >= tt-param.estab-ini
+          and   tit-ap.cod-estabel  <= tt-param.estab-fim
+          and   tit-ap.cod-esp      >= tt-param.espec-ini
+          and   tit-ap.cod-esp      <= tt-param.espec-fim            
+          and   tit-ap.cod-fornec   >= tt-param.fornec-ini
+          and   tit-ap.cod-fornec   <= tt-param.fornec-fim
+          and   tit-ap.tipo         <> 4
+          and   tit-ap.tipo         <> 5
+          and  (tit-ap.tipo         <> 7
+          or    tt-param.l-lista-op)
+          no-lock
+          break by tit-ap.ep-codigo
+                by tit-ap.matriz:
+            
+        
+       find emitente
+            where emitente.cod-emitente = tit-ap.cod-fornec
+            and   emitente.identific <> 1 no-lock no-error.
+       if avail emitente then do:    
+             if  first-of(tit-ap.matriz) then 
+                   assign l-primeiro   = yes
+                   de-total-cr  = 0
+                   de-total-db  = 0
+                   de-tot-saldo = 0
+                   de-tot-atual = 0.
+                          
+                run pi-acompanhar in h-acomp (input (c-text-acomp + string(emitente.cod-emitente))).
+
+             mov-block:
+              for each mov-ap use-index codigo no-lock
+              where mov-ap.ep-codigo     = i-ep-codigo-usuario
+              and   mov-ap.cod-fornec    = emitente.cod-emitente
+              and   mov-ap.cod-esp      = tit-ap.cod-esp
+              and   mov-ap.serie         = tit-ap.serie
+              and   mov-ap.nr-docto      = tit-ap.nr-docto
+              and   mov-ap.parcela       = tit-ap.parcela
+              and   mov-ap.cod-estabel   = tit-ap.cod-estabel                   
+              and   mov-ap.dt-transacao >= tt-param.dt-transac-ini
+              and   mov-ap.dt-transacao <= tt-param.dt-transac-fim
+              and  (mov-ap.transacao <> 8
+              and   mov-ap.transacao <> 9
+              and   mov-ap.transacao <> 10
+              and   mov-ap.transacao <> 11
+              and   mov-ap.transacao <> 12
+              and   mov-ap.transacao <> 13
+              and   mov-ap.transacao <> 14
+              and   mov-ap.transacao <> 15)
+              and   mov-ap.tipo      <> 4
+              and   mov-ap.tipo      <> 5
+              and  (mov-ap.tipo      <> 7
+              or  tt-param.l-lista-op)
+              break by mov-ap.ep-codigo
+                    by mov-ap.cod-fornec
+                    by mov-ap.cod-estabel
+                    by mov-ap.cod-esp
+                    by mov-ap.serie
+                    by mov-ap.nr-docto
+                    by mov-ap.parcela:
+
+             if mov-ap.transacao = 5 and mov-ap.tipo = 10 and mov-ap.contabiliza = false then
+                 next.
+
+             {app/ap9999.i2 mov-ap tt-param.moeda tit-ap}
+                         
+             find espec-ap
+                  where espec-ap.cod-esp = mov-ap.cod-esp no-lock no-error.
+            
+                 assign i-tipo-esp = if  avail espec-ap then espec-ap.tipo else 0.
+              
+              if  l-primeiro = yes then do:
+                  if  line-counter < 7 then do:
+                      hide frame f-matriz no-pause.
+                  end.
+              end.
+            
+              if   tt-param.l-espec-ctbl and mov-ap.transacao <> 7
+              and  mov-ap.transacao <> 3 and mov-ap.transacao <> 4 then
+                   if  not avail espec-ap or espec-ap.contabiliza = no then
+                       next mov-block.
+
+              if  tt-param.l-prev-saldo = no
+              and mov-ap.transacao = 1 and (i-tipo-esp = 3 or i-tipo-esp = 10) then
+                  next mov-block.
+                                
+              if  mov-ap.transacao <> 7 then do:
+                  if  l-primeiro = yes then do:
+                      if  emitente.nome-matriz = "" or mov-ap.cod-fornec = 0 then do:
+                          {utp/ut-liter.i Desconhecido * R}
+                          disp 0 @ b-emitente.cod-emitente
+                               trim(return-value) @ emitente.nome-matriz
+                               with frame f-matriz.
+                      end.
+                      else do:
+                          find first b-emitente
+                               where b-emitente.nome-abrev = emitente.nome-matriz
+                               and   b-emitente.identific <> 1 no-lock no-error.
+                          if  avail b-emitente then
+                              disp b-emitente.cod-emitente
+                                   emitente.nome-matriz with frame f-matriz.
+                          else do:
+                              {utp/ut-liter.i Inexistente * R}
+                              disp 0 @ b-emitente.cod-emitente
+                                   trim(return-value) @ emitente.nome-matriz
+                                 with frame f-matriz.
+                          end.
+                      end.
+                      assign l-primeiro = no
+                             l-existe   = yes.
+                  end.
+        end.
+                if  (mov-ap.transacao = 1 and i-tipo-esp <> 2)
+                or  (mov-ap.transacao = 5 and mov-ap.lancamento = 1)
+                or  (mov-ap.transacao = 6 and mov-ap.lancamento = 2)
+                or  (mov-ap.transacao = 3 and i-tipo-esp = 2)
+                or   mov-ap.transacao = 4 then do:
+                    if  i-tipo-esp = 3 then do:
+                        assign de-total-cr = de-total-cr + de-calc-valor-mov
+                               de-total-geral-cr = de-total-geral-cr + de-calc-valor-mov.
+                    end.
+                    else do:
+                        if  i-tipo-esp = 2 and mov-ap.transacao = 3 then do:
+                            assign de-total-cr = de-total-cr + de-calc-vl-antecip
+                                   de-total-geral-cr = de-total-geral-cr + de-calc-vl-antecip.
+                        end.
+                        else do:
+                            if  mov-ap.transacao <> 4 then do:
+                                assign de-total-cr = de-total-cr + de-calc-valor-mov
+                                       de-total-geral-cr = de-total-geral-cr + de-calc-valor-mov.
+                            end.
+                        end.
+                    end.
+                    assign c-tipo = {adinc/i01ad059.i 04 2}.
+                end.
+
+                if  (mov-ap.transacao = 1 and i-tipo-esp = 2)
+                or  (mov-ap.transacao = 5 and mov-ap.lancamento = 2)
+                or  (mov-ap.transacao = 6 and mov-ap.lancamento = 1)
+                or  (mov-ap.transacao = 3 and i-tipo-esp <> 2 and tt-param.l-prev-saldo = yes)
+                or  mov-ap.transacao  = 2 then do:
+                            
+                    assign de-total-db = de-total-db + if mov-ap.transacao <> 5
+                                     and mov-ap.esp-ant >= tt-param.espec-ini
+                                     and mov-ap.esp-ant <= tt-param.espec-fim then
+                                     de-calc-valor-mov
+                                     else de-calc-valor-mov
+                                     
+                            de-total-geral-db = de-total-geral-db + if mov-ap.transacao <> 5
+                                           and mov-ap.esp-ant >= tt-param.espec-ini
+                                           and mov-ap.esp-ant <= tt-param.espec-fim then
+                                           de-calc-valor-mov
+                                           else de-calc-valor-mov
+                                           
+                            de-total-cr = de-total-cr + if mov-ap.transacao <> 5
+                                     and mov-ap.transacao <> 1
+                                     and mov-ap.esp-ant <> " "
+                                     and mov-ap.esp-ant >= tt-param.espec-ini
+                                     and mov-ap.esp-ant <= tt-param.espec-fim then
+                                     de-calc-valor-mov
+                                     else 0
+                                     
+                            de-total-geral-cr = de-total-geral-cr + if mov-ap.transacao <> 5
+                                           and mov-ap.transacao <> 1
+                                           and mov-ap.esp-ant <> " "
+                                           and mov-ap.esp-ant >= tt-param.espec-ini
+                                           and mov-ap.esp-ant <= tt-param.espec-fim then
+                                           de-calc-valor-mov
+                                           else 0.                        
+                    assign c-tipo = {adinc/i01ad059.i 04 1}.
+                end.
+
+                if  mov-ap.transacao = 3
+                and tt-param.l-prev-saldo = no and i-tipo-esp <> 2 then
+                    assign c-tipo = {adinc/i01ad059.i 04 1}.
+
+                if  mov-ap.transacao = 1 and i-tipo-esp <> 2
+                and ((i-tipo-esp <> 3 and i-tipo-esp <> 10) or tt-param.l-prev-perfil = yes) then do:
+                    {app/ap0706.i2}
+                end.
+
+                if  mov-ap.transacao = 2
+                and (mov-ap.dt-transacao > mov-ap.dt-vencimen or tt-param.atraso-medio = 1) then do:
+                    assign i-data      = mov-ap.dt-transacao - mov-ap.dt-vencimen
+                           de-atraso   = fn_ajust_dec((de-atraso + (i-data * de-calc-valor-mov)),tt-param.moeda)
+                           de-at-total = de-at-total + de-calc-valor-mov.
+                end.
+                                
+                if  (mov-ap.transacao = 3 or mov-ap.transacao = 4) then do:
+                    assign de-tot-pef = de-tot-pef + if mov-ap.transacao = 4
+                                        then de-calc-valor-mov else (- de-calc-valor-mov).
+                end.
+                        
+                if  mov-ap.transacao = 4 and i-tipo-esp <> 2 then   
+                    assign c-tipo = {adinc/i01ad059.i 04 2}.
+
+                assign c-trans = {adinc/i01ad165.i 04 mov-ap.transacao}.
+
+                if  tt-param.l-pula-linha = yes then
+                    put skip(1).
+                        
+                disp mov-ap.cod-estabel
+                     mov-ap.cod-esp
+                     mov-ap.serie
+                     mov-ap.nr-docto
+                     mov-ap.parcela
+                     mov-ap.portador
+                     c-trans
+                     mov-ap.referencia
+                     mov-ap.dt-transacao
+                     mov-ap.dt-vencimen
+                     de-calc-valor-mov @ mov-ap.valor-mov
+                     c-tipo
+                     with frame f-detalhe.
+
+                down 1 with frame f-detalhe.
+
+                if  tt-param.l-lista-antecip = yes then do:
+                    if  mov-ap.esp-ant <> "" then do:
+                        disp mov-ap.esp-ant   @ mov-ap.cod-esp
+                             mov-ap.serie-ant @ mov-ap.serie
+                             mov-ap.docto-ant @ mov-ap.nr-docto
+                             mov-ap.parc-ant  @ mov-ap.parcela
+                             with frame f-detalhe.
+                        
+                        find b-espec-ap no-lock
+                             where b-espec-ap.cod-esp = mov-ap.cod-esp no-error.
+                             
+                        if  avail b-espec-ap and b-espec-ap.tipo = 1 then do:
+                            find b-espec-ap no-lock
+                                 where b-espec-ap.cod-esp = mov-ap.esp-ant no-error.
+                            
+                            if  avail b-espec-ap and b-espec-ap.tipo = 2 then do:
+                                disp  de-calc-valor-mov @ mov-ap.valor-mov
+                                      {adinc/i01ad059.i 04 2} @ c-tipo
+                                      with frame f-detalhe.
+                            end.
+                        end.
+                        down 1 with frame f-detalhe.
+                    end.
+                end.
+            end.
+            assign l-entrou = no.
+        end.
+
+        if  last-of(tit-ap.matriz) then do:
+            find first mov-ap use-index codigo
+                 where mov-ap.ep-codigo     = i-ep-codigo-usuario
+                 and   mov-ap.cod-estabel   = tt-param.estab-fim
+                 and   mov-ap.cod-esp       = tt-param.espec-fim
+                 and   mov-ap.cod-fornec    = tit-ap.matriz 
+                 and   mov-ap.dt-transacao  = tt-param.dt-transac-fim
+                 and   mov-ap.transacao     = 7 no-lock no-error.
+                                  
+            if  avail mov-ap then do:
+            
+                {app/ap9999.i2 mov-ap tt-param.moeda mov-ap}
+   
+                assign de-tot-saldo = de-tot-saldo + de-calc-valor-mov
+                       de-tot-atual = de-tot-atual + de-calc-valor-mov.
+            end.
+            
+            hide
+            frame f-matriz no-pause.
+            assign i-prazo  = if  de-pr-total <> 0 then de-prazo / de-pr-total else 0
+                   i-atraso = if  de-at-total <> 0 then de-atraso / de-at-total else 0.
+            if avail mov-ap and mov-ap.cod-fornec > 0 then
+               assign de-tot-atual = de-tot-atual + de-total-cr - de-total-db.
+            if not avail mov-ap then  
+               assign de-tot-atual = de-tot-atual + de-total-cr - de-total-db.
+               
+            do  with frame f-medio:
+                if  de-tot-saldo >= 0 then do:
+                    if  l-existe then disp {adinc/i01ad059.i 04 2} @ c-tipo.
+                    assign de-ger-saldo-cr = de-ger-saldo-cr + de-tot-saldo.
+                end.
+                else do:
+                    if  l-existe then disp {adinc/i01ad059.i 04 1} @ c-tipo.
+                    assign de-tot-saldo = de-tot-saldo * (- 1)
+                           de-ger-saldo-db = de-ger-saldo-db + de-tot-saldo.
+                end.
+
+                if  de-tot-atual >= 0 then do:
+                    if  l-existe then disp {adinc/i01ad059.i 04 2} @ c-lancto.
+                    assign de-ger-atual-cr = de-ger-atual-cr + de-tot-atual.
+                end.
+                else do:
+                    if  l-existe then disp {adinc/i01ad059.i 04 1} @ c-lancto.
+                    assign de-tot-atual = de-tot-atual * (- 1)
+                           de-ger-atual-db = de-ger-atual-db + de-tot-atual.
+                end.
+
+                if  l-existe then
+                    disp i-prazo
+                         de-tot-saldo
+                         i-atraso
+                         de-tot-atual.    
+            end.
+            if  l-existe then put skip(1).
+
+            assign de-at-geral  = de-at-geral + de-at-total
+                   de-pr-geral  = de-pr-geral + de-pr-total
+                   de-at-data   = de-at-data  + de-atraso
+                   de-pr-data   = de-pr-data  + de-prazo
+                   de-pr-total  = 0
+                   de-at-total  = 0
+                   de-atraso    = 0
+                   de-prazo     = 0
+                   de-tot-cr    = 0
+                   de-tot-db    = 0
+                   de-total-cr  = 0
+                   de-total-db  = 0
+                   de-tot-saldo = 0
+                   de-tot-atual = 0
+                   l-nao-entrou = yes
+                   l-entrou     = yes
+                   l-existe     = no.
+            if  tt-param.l-ficha = yes then page.
+        end.
+    end.
+
+    if  l-nao-entrou = no then do:
+        assign i-prazo  = if  de-pr-total <> 0 then de-prazo / de-pr-total else 0
+               i-atraso = if  de-at-total <> 0 then de-atraso / de-at-total else 0
+               de-tot-atual = de-tot-atual + de-total-cr - de-total-db.
+        do  with frame f-medio:
+            if  de-tot-saldo >= 0 then do:
+                disp {adinc/i01ad059.i 04 2} @ c-tipo.
+                assign de-ger-saldo-cr = de-ger-saldo-cr + de-tot-saldo.
+            end.
+            else do:
+                disp {adinc/i01ad059.i 04 1} @ c-tipo.
+                assign de-tot-saldo = de-tot-saldo * (- 1)
+                       de-ger-saldo-db = de-ger-saldo-db + de-tot-saldo.
+            end.
+
+            if  de-tot-atual >= 0 then do:
+                disp {adinc/i01ad059.i 04 2} @ c-lancto.
+                assign de-ger-atual-cr = de-ger-atual-cr + de-tot-atual.
+            end.
+            else do:
+                disp {adinc/i01ad059.i 04 1} @ c-lancto.
+                assign de-tot-atual = de-tot-atual * (- 1)
+                       de-ger-atual-db = de-ger-atual-db + de-tot-atual.
+            end.
+
+            disp i-prazo
+                 de-tot-saldo
+                 i-atraso
+                 de-tot-atual.
+        end.
+        put skip(1).
+
+        assign de-at-geral  = de-at-geral + de-at-total
+               de-pr-geral  = de-pr-geral + de-pr-total
+               de-at-data   = de-at-data  + de-atraso
+               de-pr-data   = de-pr-data  + de-prazo
+               de-pr-total  = 0
+               de-at-total  = 0
+               de-atraso    = 0
+               de-prazo     = 0
+               de-tot-cr    = 0
+               de-tot-db    = 0
+               de-total-cr  = 0
+               de-total-db  = 0
+               de-tot-saldo = 0
+               de-tot-atual = 0
+               l-entrou     = yes.
+    end.
+    
+    do  with frame f-geral:
+        if  de-ger-saldo-cr >= de-ger-saldo-db then do:
+            assign de-diferenca = de-ger-saldo-cr - de-ger-saldo-db.
+            disp de-diferenca @ de-ger-saldo
+                 {adinc/i01ad059.i 04 2} @ c-tipo.
+        end.
+        else do:
+            assign de-diferenca = de-ger-saldo-db - de-ger-saldo-cr.
+            disp de-diferenca @ de-ger-saldo
+                 {adinc/i01ad059.i 04 1} @ c-tipo.
+        end.
+
+        if  de-ger-atual-cr >= de-ger-atual-db  then do:
+            assign de-diferenca = de-ger-atual-cr - de-ger-atual-db.
+            disp de-diferenca @ de-ger-atual
+                 {adinc/i01ad059.i 04 2} @ c-lancto.
+        end.
+        else do:
+            assign de-diferenca = de-ger-atual-db - de-ger-atual-cr.
+            disp de-diferenca @ de-ger-atual
+                 {adinc/i01ad059.i 04 1} @ c-lancto.
+        end.
+
+        if  de-tot-pef < 0 then
+            assign de-tot-pef = de-tot-pef * -1
+                   c-db-cr    = {adinc/i01ad059.i 04 1}.
+        else
+            assign c-db-cr = {adinc/i01ad059.i 04 2}.
+
+        disp de-total-geral-cr
+             de-total-geral-db
+             de-tot-pef
+             c-db-cr.
+    end.
+end.
+
+/* Fim de Include */

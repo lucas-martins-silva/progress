@@ -1,0 +1,99 @@
+PROCEDURE pi-cria-ttExporta:
+
+    /*
+    === ttExporta ===
+     UFEmbarq       AS CHARACTER INITIAL ?    /*Sigla da UF onde ocorrer  o embarque dos produtos*/
+     xLocEmbarq     AS CHARACTER INITIAL ?    /*Local onde ocorrer  o embarque dos produtos*/     
+    /*Chave EMS*/                                                                                      
+     CodEstabelNF   AS CHARACTER INITIAL ?                                                        
+     SerieNF        AS CHARACTER INITIAL ?                                                        
+     NrNotaFisNF    AS CHARACTER INITIAL ?    
+    */
+
+    FIND FIRST param-global NO-LOCK NO-ERROR.
+
+    /* MODULO DE EXPORTA€ÇO IMPLANTADO */
+    IF  CONNECTED("mgcex":U)
+    AND param-global.modulo-ex THEN DO:
+
+        IF  nota-fiscal.nat-operacao BEGINS "7" 
+        AND nota-fiscal.cod-rota <> "" THEN DO:
+            FOR FIRST rota NO-LOCK
+                WHERE rota.cod-rota = nota-fiscal.cod-rota:
+            END.
+            
+            CREATE ttExporta.
+            ASSIGN ttExporta.CodEstabelNF  = nota-fiscal.cod-estabel
+                   ttExporta.SerieNF       = nota-fiscal.serie
+                   ttExporta.NrNotaFisNF   = nota-fiscal.nr-nota-fis
+                   ttExporta.UFEmbarq      = TRIM(SUBSTRING(rota.roteiro,1,2))
+                   ttExporta.xLocEmbarq    = rota.descricao.
+
+        END.
+
+        FOR FIRST proc-nota-fiscal NO-LOCK
+            WHERE proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estab-proces-export
+              AND proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis
+              AND proc-nota-fiscal.nr-proc-exp = nota-fiscal.nr-proc-exp
+              and proc-nota-fiscal.cod-estab-faturam = nota-fiscal.cod-estabel
+              AND proc-nota-fiscal.serie = nota-fiscal.serie,
+            FIRST processo-exp NO-LOCK
+            WHERE processo-exp.cod-estabel = proc-nota-fiscal.cod-estabel
+              AND processo-exp.nr-proc-exp = proc-nota-fiscal.nr-proc-exp,
+            FIRST historico-proc-exp NO-LOCK
+            WHERE historico-proc-exp.cod-estabel = processo-exp.cod-estabel
+              AND historico-proc-exp.nr-proc-exp = processo-exp.nr-proc-exp
+              AND historico-proc-exp.cod-itiner = processo-exp.cod-itiner
+              AND historico-proc-exp.cod-pto-contr = processo-exp.pto-embarque,
+            FIRST itinerario OF historico-proc-exp NO-LOCK,
+            FIRST pto-contr FIELDS(descricao char-1 &if '{&bf_dis_versao_ems}' >= '2.07':U &then cod-uf &ENDIF) NO-LOCK
+            WHERE pto-contr.cod-pto-contr = itinerario.pto-embarque:
+                IF NOT CAN-FIND(FIRST ttExporta
+                                WHERE ttExporta.CodEstabelNF = nota-fiscal.cod-estabel
+                                  AND ttExporta.SerieNF      = nota-fiscal.serie
+                                  AND ttExporta.NrNotaFisNF  = nota-fiscal.nr-nota-fis) THEN DO:
+                        CREATE ttExporta.
+                        ASSIGN ttExporta.CodEstabelNF = nota-fiscal.cod-estabel
+                               ttExporta.SerieNF      = nota-fiscal.serie
+                               ttExporta.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+                END.
+                ASSIGN ttExporta.UFEmbarq   = IF historico-proc-exp.cod-uf <> "" THEN historico-proc-exp.cod-uf ELSE string(pto-contr.cod-uf)
+                       ttExporta.xLocEmbarq = IF historico-proc-exp.descricao <> "" THEN historico-proc-exp.descricao ELSE pto-contr.descricao.
+        END.
+    END.
+    ELSE DO:
+
+        /* MODULO DE EXPORTA€ÇO NÇO IMPLANTADO E FUNCAO ATIVA */
+        IF  CAN-FIND(FIRST funcao 
+                     WHERE funcao.cd-funcao = "spp-NFE-sem-modulo-MEX"
+                     AND   funcao.ativo = YES) THEN DO:
+    
+            IF  nota-fiscal.nat-operacao BEGINS "7" 
+            AND nota-fiscal.cod-rota <> "" THEN DO:
+    
+                FOR FIRST emitente FIELDS () NO-LOCK 
+                    WHERE emitente.nome-abrev = nota-fiscal.nome-ab-cli
+                    AND   (   i-natureza = 3
+                           OR i-natureza = 4):
+    
+                    FOR FIRST rota NO-LOCK
+                        WHERE rota.cod-rota = nota-fiscal.cod-rota:
+    
+                        CREATE ttExporta.
+                        ASSIGN ttExporta.CodEstabelNF  = nota-fiscal.cod-estabel
+                               ttExporta.SerieNF       = nota-fiscal.serie
+                               ttExporta.NrNotaFisNF   = nota-fiscal.nr-nota-fis
+                               ttExporta.UFEmbarq      = substring(rota.roteiro,1,2)
+                               ttExporta.xLocEmbarq    = rota.descricao.
+                    END.
+                END.
+            END.
+        END.
+    END.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttExporta THEN
+        ASSIGN ttExporta.UFEmbarq   = fn-ajusta-tamanho-campo(ttExporta.UFEmbarq  , 2)
+               ttExporta.xLocEmbarq = fn-ajusta-tamanho-campo(ttExporta.xLocEmbarq,60).
+
+END PROCEDURE.

@@ -1,0 +1,47 @@
+/************************************************************************
+*** AP0727rp.i1 -  PROCFEDURES INTERNAS PARA CALCULO DOS RENDIMENTOS 
+***********************************************************************/
+PROCEDURE pi-acumulado :
+
+    if  i-rend-tributavel  = 40
+    or  i-rend-tributavel = 60 then
+        assign  c-outros-5 = "Rend. Ref. a servicos de transporte".
+
+    do  i-mes = 1 to 12:
+        assign de-rend-ano = de-rend-ano 
+                           + dirf-apf.base-bruta[i-mes].
+                                  
+       if trim(dirf-apf.char-1) <> "" then
+          assign de-rend-ano = de-rend-ano
+                             - dec(entry(i-mes,dirf-apf.char-1,";"))
+                 de-outros-5 = de-outros-5 
+                             + dec(entry(i-mes,dirf-apf.char-1,";")).
+
+        assign de-contr-prev = de-contr-prev + dirf-apf.ded-inss[i-mes]
+               de-pens-jud   = de-pens-jud   + dirf-apf.ded-pensao[i-mes]
+               de-irrf-ret   = de-irrf-ret   + dirf-apf.valor-irrf[i-mes]
+ /*-               de-dependente = de-dependente + dirf-apf.ded-depend[i-mes] -*/. 
+    end.
+
+END PROCEDURE.
+
+PROCEDURE pi-normal:
+    do  i-mes = 1 to 12:
+        if  i-rend-tributavel = 40
+        or  i-rend-tributavel = 60 then
+            assign de-rend-ano = fn_ajust_dec((de-rend-ano 
+                          + ((dirf-apf.base-bruta[i-mes] 
+                          * i-rend-tributavel) / 100)),0)
+                   de-outros-5 = fn_ajust_dec((de-outros-5 
+                               + ((dirf-apf.base-bruta[i-mes] 
+                               * (100 - i-rend-tributavel)) / 100)),0)
+                   c-outros-5 = "Rend. Ref. a servicos de transporte".
+        else
+           assign de-rend-ano = de-rend-ano + dirf-apf.base-bruta[i-mes].
+
+        assign de-contr-prev = de-contr-prev + dirf-apf.ded-inss[i-mes]
+               de-pens-jud   = de-pens-jud   + dirf-apf.ded-pensao[i-mes]
+               de-irrf-ret   = de-irrf-ret   + dirf-apf.valor-irrf[i-mes]. 
+    end.
+END PROCEDURE.
+

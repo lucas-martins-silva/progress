@@ -1,0 +1,133 @@
+/*seleção e soma dos valores de volume (bonificação) para apuração de valores*/
+/*aqapi001.i13 - considerar negoc-coletiv*/
+
+DEFINE VARIABLE l-negoc-coletiv AS LOGICAL NO-UNDO.
+DEFINE VARIABLE d-qtd-aplicar-bonus  AS DECIMAL NO-UNDO.
+DEFINE BUFFER   bf-fechto FOR fechto-produt-period.
+DEFINE BUFFER   bf-produt FOR produt-rural.
+
+FOR EACH tt-rd-fechto:
+
+    FOR EACH fechto-produt-period EXCLUSIVE-LOCK WHERE ROWID(fechto-produt-period) = tt-rd-fechto.r-rd-fechto
+                                               BREAK BY fechto-produt-period.cod-propried
+                                                     BY fechto-produt-period.cdn-produt-rural: 
+
+        /*caso já tenha fechto com situacao diferente de pendente, nao ira alterar*/
+        IF fechto-produt-period.idi-situacao <> 1 THEN  /*pendente*/
+            NEXT.
+        
+        /*TT-DIGITA - FILTRA ROTAS*/        
+        IF CAN-FIND(FIRST tt-digita) THEN DO: /*caso tenha alguma tt-digita, o usuário informou rotas na tela*/
+            IF NOT CAN-FIND(FIRST tt-digita WHERE tt-digita.cod-rota = fechto-produt-period.cod-rota) THEN /* caso não encontre a rota da carga na tt-digita */
+                NEXT.                                                                                      /* não usará esta carga no fechamento             */
+        END.
+        
+        l-negoc-coletiv = no.
+
+        FOR FIRST produt-rural FIELDS(cdn-grp-produt) NO-LOCK 
+            WHERE produt-rural.cdn-produt-rural = fechto-produt-period.cdn-produt-rural:
+            FOR FIRST grp-produt FIELDS(log-negoc-coletiv cdn-grp-produt) NO-LOCK 
+                WHERE grp-produt.cdn-grp-produt = produt-rural.cdn-grp-produt:
+                IF grp-produt.log-negoc-coletiv THEN DO:
+                     
+                    ASSIGN l-negoc-coletiv = YES.
+                    FIND FIRST tt-negoc-coletiv WHERE tt-negoc-coletiv.cdn-grp-produt = grp-produt.cdn-grp-produt NO-ERROR.
+                    
+                    IF NOT AVAIL tt-negoc-coletiv THEN DO:
+                        CREATE tt-negoc-coletiv.
+                        ASSIGN tt-negoc-coletiv.cdn-grp-produt = grp-produt.cdn-grp-produt
+                               tt-negoc-coletiv.grp-qtd-coleta = fechto-produt-period.qtd-period.
+
+                        FOR EACH bf-produt NO-LOCK WHERE bf-produt.cdn-grp-produt = grp-produt.cdn-grp-produt:
+                            
+                            FOR EACH bf-fechto NO-LOCK WHERE bf-fechto.cod-period       =  fechto-produt-period.cod-period
+                                                         AND bf-fechto.cod-estabel      =  fechto-produt-period.cod-estabel   
+                                                         AND bf-fechto.it-codigo        =  fechto-produt-period.it-codigo
+                                                         AND bf-fechto.cdn-produt-rural =  bf-produt.cdn-produt-rural
+                                                         AND bf-fechto.cdn-produt-rural <> fechto-produt-period.cdn-produt-rural:
+                        
+                                ASSIGN tt-negoc-coletiv.grp-qtd-coleta = tt-negoc-coletiv.grp-qtd-coleta + bf-fechto.qtd-period.
+                                            
+                            END.
+    
+                        END.
+                    
+                    END.
+
+                END.
+
+            END.
+        END.
+
+        ASSIGN l-achou = FALSE.
+        
+        FOR EACH tt-regra-form-preco 
+            BREAK BY tt-regra-form-preco.cdn-abrangen:            
+            
+            IF l-achou THEN
+            LEAVE.
+
+            CASE tt-regra-form-preco.cdn-abrangen:
+                WHEN 1 THEN DO: /*Ponto Coleta*/
+                    FOR FIRST produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK 
+                        WHERE produt-pto-coleta.cdn-produt-rural = fechto-produt-period.cdn-produt-rural
+                          AND produt-pto-coleta.cod-propried     = fechto-produt-period.cod-propried:
+                        IF produt-pto-coleta.cod-pto-coleta <> tt-regra-form-preco.cod-pto-coleta THEN
+                            NEXT.
+                        {aqp/aqapi001.i13}
+                    END.
+                END.
+                WHEN 2 THEN DO: /*Propriedade*/
+                    IF fechto-produt-period.cod-propried <> tt-regra-form-preco.cod-propried THEN
+                        NEXT.
+                    {aqp/aqapi001.i13}    
+                END.
+                WHEN 3 THEN DO: /*Produtor*/
+                    IF fechto-produt-period.cdn-produt-rural <> tt-regra-form-preco.cdn-produt-rural THEN
+                        NEXT.
+                    {aqp/aqapi001.i13}
+                END.
+                WHEN 4 THEN DO: /*Grupo*/
+                        IF produt-rural.cdn-grp-produt <> tt-regra-form-preco.cdn-grp-produt THEN
+                            NEXT.
+                        {aqp/aqapi001.i13}
+                END.
+                WHEN 5 THEN DO: /*Rota*/
+                    FOR FIRST produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK 
+                        WHERE produt-pto-coleta.cdn-produt-rural = fechto-produt-period.cdn-produt-rural
+                          AND produt-pto-coleta.cod-propried     = fechto-produt-period.cod-propried:
+                        FOR FIRST pto-rota-coleta FIELDS(cod-rota) NO-LOCK 
+                            WHERE pto-rota-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:    
+                            IF pto-rota-coleta.cod-rota <> tt-regra-form-preco.cod-rota THEN
+                                NEXT.
+                            {aqp/aqapi001.i13}
+                        END.
+                    END.
+                END.
+                WHEN 6 THEN DO: /*Região*/
+                    FOR FIRST produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK 
+                        WHERE produt-pto-coleta.cdn-produt-rural = fechto-produt-period.cdn-produt-rural
+                          AND produt-pto-coleta.cod-propried     = fechto-produt-period.cod-propried:
+                        FOR FIRST pto-coleta FIELDS(cod-regiao) NO-LOCK WHERE pto-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:
+                            IF pto-coleta.cod-regiao <> tt-regra-form-preco.cod-regiao THEN
+                                NEXT.
+                            {aqp/aqapi001.i13}
+                        END.
+                    END.
+                END.
+                WHEN 7 THEN DO: /*Estabelecimento*/
+                    IF fechto-produt-period.cod-estabel <> tt-regra-form-preco.cod-estabel THEN
+                        NEXT.
+                    {aqp/aqapi001.i13}
+                END.
+                WHEN 8 THEN DO: /*Todos*/
+                    {aqp/aqapi001.i13}
+                END.
+            END CASE.
+            
+            
+        END. /*FOR EACH tt-regra-form-preco*/
+    
+    END.
+
+END.    

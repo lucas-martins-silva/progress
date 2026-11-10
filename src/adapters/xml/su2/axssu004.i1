@@ -1,0 +1,6 @@
+IF l-integra-portal THEN DO:
+    IF (ttPurchaseOrder.PaymentDescription <> ?) THEN
+    DO: /*Test LOGIC*/
+         RUN addNode IN hGenXml (getStack(), "PaymentDescription", ttPurchaseOrder.PaymentDescription, OUTPUT iId).
+    END. /*Test LOGIC*/
+END.

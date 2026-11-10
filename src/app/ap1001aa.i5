@@ -1,0 +1,33 @@
+/***************************************************************************
+**
+** AP1001AA.i5 - Padrao CNAB240.
+** Objetivo: Trailler Banco do Brasil
+**
+***************************************************************************/
+assign i-num-reg-1 = i-num-reg-1 + 2.
+
+/* --------------------------  Trailer de Lote  ------------------------- */
+put stream relat
+    "001"                         format "999"                 at 001
+    i-num-reg                     format "9999"                at 004
+    "5"                           format "9"                   at 008
+    i-num-reg-1                   format "999999"              at 018
+    de-hea-val                    format "999999999999999999"  at 024.
+    /* --- Titulo Banco do Brasil ----- Outro Banco --- */
+    if   tt-param.i-tipo-pag = 30  or  tt-param.i-tipo-pag = 31  then do:  
+         put stream relat
+         fill("",189)             format "x(189)"              at 042.
+    end.
+    else put stream relat
+         fill("0",18)             format "999999999999999999"  at 042.
+    put stream relat ""           format "x(01)"               at 240 skip.
+
+/* ------------------------  Trailer de Arquivo  ------------------------ */
+put stream relat
+    "001"                         format "999"     at 001
+    "9999"                        format "9999"    at 004
+    "9"                           format "9"       at 008
+    "000001"                      format "999999"  at 018
+    i-num-reg-1 + 2               format "999999"  at 024
+    "000000"                      format "999999"  at 030
+    ""                            format "x(01)"   at 240  skip.

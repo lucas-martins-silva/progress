@@ -1,0 +1,18 @@
+/**********************************************************************************
+***
+***   app/ap0512a.i5 - Defini‡Æo tt-log-erro-ap
+***  Parameters :  {1} Preprocessador &BASE
+**********************************************************************************/
+
+def temp-table tt-log-erro-ap no-undo
+    field ep-codigo  like {1}tit-ap.ep-codigo
+    field cod-est    like {1}tit-ap.cod-est
+    field cod-esp    like {1}tit-ap.cod-esp
+    field serie      like {1}tit-ap.serie
+    field cod-fornec like {1}tit-ap.cod-fornec 
+    field nr-docto   like {1}tit-ap.nr-docto
+    field parcela    like {1}tit-ap.parcela
+    field erro       as char format "x(60)".
+
+
+/*--- Fim de ap0512a.i5 ---*/

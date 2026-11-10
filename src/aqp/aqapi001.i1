@@ -1,0 +1,115 @@
+DEF VAR cQuery as CHARACTER  no-undo.
+
+/* VIGÊNCIA */
+ASSIGN cQuery = "FOR EACH regra-form-preco NO-LOCK WHERE  regra-form-preco.Dat-fim >= '" + string(tt-param.da-dat-ini) + "'"
+                  + " AND regra-form-preco.Dat-inic <= '" + string(tt-param.da-dat-fim) + "'".
+
+/* ITEM */
+IF tt-param.it-codigo <> "" THEN DO:
+    ASSIGN cQuery = cQuery + " AND regra-form-preco.it-codigo = '" + tt-param.it-codigo + "'".
+END.    
+
+/* TIPO */
+IF tt-param.cdn-tipo <> 5 THEN DO: /* TODOS*/
+    ASSIGN cQuery = cQuery + " AND regra-form-preco.cdn-tipo = " + STRING(tt-param.cdn-tipo).
+END.
+
+IF cPrograma = 'aq0201' THEN DO:
+ 
+    /* ESTABELEC */
+    IF tt-param.cod-estabel-ini <> "" OR tt-param.cod-estabel-fim  <> FILL('Z', 5) THEN DO:    
+        IF tt-param.cod-estabel-ini = tt-param.cod-estabel-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-estabel = '"  + tt-param.cod-estabel-ini  + "'".
+        ELSE                                                          
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-estabel >= '" + tt-param.cod-estabel-ini + "'"
+                                   + " AND regra-form-preco.cod-estabel <= '" + tt-param.cod-estabel-fim + "'".     
+    END.  
+    
+    /* REGIAO */
+    IF tt-param.cod-regiao-ini <> "" OR  tt-param.cod-regiao-fim  <> FILL('Z', 12) THEN DO:    
+        IF tt-param.cod-regiao-ini = tt-param.cod-regiao-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-regiao = '" + tt-param.cod-regiao-ini  + "'". 
+        ELSE                                                                                                 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-regiao >= '" + tt-param.cod-regiao-ini + "'"  
+                                   + " AND regra-form-preco.cod-regiao <= '" + tt-param.cod-regiao-fim + "'". 
+    END.
+    
+    /* ROTA */
+    IF tt-param.cod-rota-ini <> "" OR  tt-param.cod-rota-fim  <> FILL('Z', 12) THEN DO:    
+        IF tt-param.cod-rota-ini = tt-param.cod-rota-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-rota = '" + tt-param.cod-rota-ini  + "'". 
+        ELSE                                                                                                 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-rota >= '" + tt-param.cod-rota-ini + "'"  
+                                   + " AND regra-form-preco.cod-rota <= '" + tt-param.cod-rota-fim + "'". 
+    END.
+    
+    /* GRUPO */
+    IF tt-param.cdn-grp-produt-ini <> INT("") OR  tt-param.cdn-grp-produt-fim  <> INT(FILL('9', 3)) THEN DO:    
+        IF tt-param.cdn-grp-produt-ini = tt-param.cdn-grp-produt-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cdn-grp-produt = '" + STRING(tt-param.cdn-grp-produt-ini) + "'".  /*trocar para inteiro*/
+        ELSE                                                                                                 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cdn-grp-produt >= '" + STRING(tt-param.cdn-grp-produt-ini) + "'"  
+                                   + " AND regra-form-preco.cdn-grp-produt <= '" + STRING(tt-param.cdn-grp-produt-fim) + "'". 
+    END.
+    
+    /* PRODUTOR RURAL */
+    IF tt-param.cdn-produt-rural-ini <> INT("") OR  tt-param.cdn-produt-rural-fim  <> INT(FILL('9', 9)) THEN DO:    
+        IF tt-param.cdn-produt-rural-ini = tt-param.cdn-produt-rural-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cdn-produt-rural = " + string(tt-param.cdn-produt-rural-ini).  
+        ELSE                                                                                                 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cdn-produt-rural >= " + string(tt-param.cdn-produt-rural-ini)    
+                                   + " AND regra-form-preco.cdn-produt-rural <= " + string(tt-param.cdn-produt-rural-fim). 
+    END.
+    
+    /* PROPRIEDADE */
+    IF tt-param.cod-propried-ini <> "" OR  tt-param.cod-propried-fim  <> FILL('Z', 16) THEN DO:    
+        IF tt-param.cod-pto-coleta-ini = tt-param.cod-pto-coleta-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-propried = '" + tt-param.cod-propried-ini  + "'". 
+        ELSE                                                                                                 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-propried >= '" + tt-param.cod-propried-ini + "'"  
+                                   + " AND regra-form-preco.cod-propried <= '" + tt-param.cod-propried-fim + "'". 
+    END.
+    
+    /* PONTO DE COLETA */
+    IF tt-param.cod-pto-coleta-ini <> "" OR  tt-param.cod-pto-coleta-fim  <> FILL('Z', 12) THEN DO:    
+        IF tt-param.cod-pto-coleta-ini = tt-param.cod-pto-coleta-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-pto-coleta = '" + tt-param.cod-pto-coleta-ini  + "'". 
+        ELSE                                                                                                 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-pto-coleta >= '" + tt-param.cod-pto-coleta-ini + "'"  
+                                   + " AND regra-form-preco.cod-pto-coleta <= '" + tt-param.cod-pto-coleta-fim + "'". 
+    END.
+        
+    /* REGRA */
+    IF tt-param.cod-regra-ini <> "" OR  tt-param.cod-regra-fim  <> FILL('Z', 20) THEN DO:    
+        IF tt-param.cod-regra-ini = tt-param.cod-regra-fim THEN 
+            ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-regra = '" + string(tt-param.cod-regra-ini)  + "'".  
+        ELSE                                                                                                 
+           ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-regra >= '" + string(tt-param.cod-regra-ini) + "'"  
+                                  + " AND regra-form-preco.cod-regra <= '" + string(tt-param.cod-regra-fim) + "'". 
+    END.  
+    
+    /* CONTROLE QUALIDADE */ 
+    IF tt-param.cdn-tipo = 2 THEN DO:
+ 
+        /* EXAME */
+        IF tt-param.cod-exame-ini <> INT("") OR  tt-param.cod-exame-fim  <> INT(FILL('9', 6)) THEN DO:    
+            IF tt-param.cod-exame-ini = tt-param.cod-exame-fim THEN 
+                ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-exame = '" + string(tt-param.cod-exame-ini)  + "'".  
+            ELSE                                                                                                 
+                ASSIGN cQuery = cQuery  + " AND regra-form-preco.cod-exame >= '" + string(tt-param.cod-exame-ini) + "'"  
+                                        + " AND regra-form-preco.cod-exame <= '" + string(tt-param.cod-exame-fim) + "'". 
+        END.  
+        
+        /* COMPONENTE */
+        IF tt-param.cod-comp-ini <> INT("") OR  tt-param.cod-comp-fim  <> INT(FILL('9', 4)) THEN DO:    
+            IF tt-param.cod-comp-ini = tt-param.cod-comp-fim THEN 
+                ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-comp = '" + string(tt-param.cod-comp-ini)  + "'".  
+            ELSE                                                                                                 
+               ASSIGN cQuery = cQuery + " AND regra-form-preco.cod-comp >= '" + string(tt-param.cod-comp-ini) + "'"  
+                                      + " AND regra-form-preco.cod-comp <= '" + string(tt-param.cod-comp-fim) + "'". 
+        END. 
+        
+    END.
+    
+END.
+

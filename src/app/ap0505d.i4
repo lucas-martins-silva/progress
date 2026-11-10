@@ -1,0 +1,24 @@
+/*************************************************************************
+**
+**  app/ap0505d.i4 - Transferˆncia de antecipa‡Æo entre estabelecimentos
+**
+*************************************************************************/
+
+if  l-ant-ap.cod-estabel-transf <> " " then do:
+    if  l-ant-ap.cod-estabel <> l-ant-ap.cod-estabel-transf then do:
+
+        assign l-transferencia = yes.
+
+        run app/ap0518b.p (input rowid({1}),
+                           input l-ant-ap.cod-estabel,
+                           input l-ant-ap.conta-transf,
+                           input l-ant-ap.vl-antecip-me, 
+                           input {2},
+		           input h-acomp,
+                           input rowid(l-ant-ap)).
+        if return-value = "NOK":U then
+                return "NOK":U.
+    end.
+end.
+
+/* Fim de Include */

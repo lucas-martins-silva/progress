@@ -1,0 +1,241 @@
+/*****************************************************************************
+***
+*** app/ap506arp.i2 - pi-validar-cancelamento
+*** 
+*****************************************************************************/
+
+def output param p-erro        as log no-undo.
+def output param p-elimina-ir  as log no-undo.
+def output param p-elimina-iss as log no-undo.
+    
+assign p-erro = no.  
+
+/* Localiza‡Æo Argentina - ELIMINA€¶O DOCUMENTOS *************************
+   Verifica se a fatura j  foi paga atrav‚s de uma Ordem de Pagamento   */
+   
+for each tt-epc where tt-epc.cod-event = "Verify-Doc" exclusive-lock:
+    delete tt-epc.
+end.
+     
+create tt-epc.
+assign tt-epc.cod-event     = "Verify-Doc" 
+       tt-epc.cod-parameter = "tit-ap rowid"
+       tt-epc.val-parameter = string(rowid(tit-ap)).
+       
+{include/i-epc201.i "Verify-Doc"}
+
+find tt-epc where
+     tt-epc.cod-parameter = "error" and
+     tt-epc.cod-event     = "Verify-doc" no-lock no-error.
+     
+if  avail tt-epc then do:      
+    run utp/ut-msgs.p (input "Help", 
+                       input 16307, 
+                       input tit-ap.nr-docto + "~~" + 
+                             string(tit-ap.cod-fornec) + "~~" +
+                             tt-epc.val-parameter).
+    assign c-des-mensagem = trim(return-value)
+           p-erro = yes.
+    return.  
+end.        
+/*************************************************************************/
+    
+if  tit-ap.tipo = 2 then do:
+    find first l-ant-ap
+        where l-ant-ap.ep-codigo     = tit-ap.ep-codigo
+          and l-ant-ap.cod-est-ant   = tit-ap.cod-estab
+          and l-ant-ap.cod-esp-ant   = tit-ap.cod-esp
+          and l-ant-ap.serie-ant     = tit-ap.serie
+          and l-ant-ap.nr-docto-ant  = tit-ap.nr-docto
+          and l-ant-ap.parcela-ant   = tit-ap.parcela
+          and l-ant-ap.fornec-ant    = tit-ap.cod-fornec
+          no-lock no-error.
+          
+    if  avail l-ant-ap then do:
+        run utp/ut-msgs.p ("msg", 397, "").
+        assign c-des-mensagem = trim(return-value)
+               p-erro = yes.
+        return.
+    end.
+end.                  
+  
+if  tit-ap.tipo = 1 or tit-ap.tipo = 8 then do:
+
+    find first lin-b-ap
+        where lin-b-ap.ep-codigo   = tit-ap.ep-codigo
+          and lin-b-ap.cod-estabel = tit-ap.cod-estabel
+          and lin-b-ap.cod-esp     = tit-ap.cod-esp
+          and lin-b-ap.nr-docto    = tit-ap.nr-docto
+          and lin-b-ap.parcela     = tit-ap.parcela
+          and lin-b-ap.serie       = tit-ap.serie
+          and lin-b-ap.cod-fornec  = tit-ap.cod-fornec no-lock no-error.
+          
+    if  avail lin-b-ap then do:
+        run utp/ut-msgs.p ("msg", 398, "").
+        assign c-des-mensagem = trim(return-value) .                   
+        assign p-erro = yes.
+        return.
+    end.
+
+    find first bord-tit
+        where bord-tit.ep-codigo   = tit-ap.ep-codigo
+        and   bord-tit.cod-estabel = tit-ap.cod-estabel
+        and   bord-tit.cod-esp     = tit-ap.cod-esp
+        and   bord-tit.serie       = tit-ap.serie
+        and   bord-tit.nr-docto    = tit-ap.nr-docto
+        and   bord-tit.parcela     = tit-ap.parcela
+        and   bord-tit.cod-fornec  = tit-ap.cod-fornec no-lock no-error.
+        
+    if  avail bord-tit then do:
+        run utp/ut-msgs.p ("msg", 399, "").
+        assign c-des-mensagem = trim(return-value) . 
+        assign p-erro = yes.
+        return.
+    end.  
+end.
+
+if  tit-ap.tipo = 2
+and tit-ap.valor-saldo < tit-ap.vl-original then do:
+    find first mov-ap use-index ch-antecip
+        where mov-ap.ep-codigo   = tit-ap.ep-codigo
+        and   mov-ap.cod-estabel = tit-ap.cod-estabel
+        and   mov-ap.esp-ant     = tit-ap.cod-esp
+        and   mov-ap.serie-ant   = tit-ap.serie
+        and   mov-ap.docto-ant   = tit-ap.nr-docto
+        and   mov-ap.parc-ant    = tit-ap.parcela
+        and   mov-ap.fornec-ant  = tit-ap.cod-fornec
+        no-lock no-error.
+    if  avail mov-ap then do:
+        run utp/ut-msgs.p ("msg", 400, "").
+        assign c-des-mensagem = trim(return-value). 
+        assign p-erro = yes.
+        return.
+    end.
+end.
+
+find first mov-ap use-index codigo
+    where mov-ap.ep-codigo   = tit-ap.ep-codigo
+    and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+    and   mov-ap.cod-estabel = tit-ap.cod-estabel
+    and   mov-ap.cod-esp     = tit-ap.cod-esp
+    and   mov-ap.serie       = tit-ap.serie
+    and   mov-ap.nr-docto    = tit-ap.nr-docto
+    and   mov-ap.parcela     = tit-ap.parcela
+    and   mov-ap.transacao   = 6 /* SND */ no-lock no-error.
+if  avail mov-ap then do:
+    run utp/ut-msgs.p ("msg", 401, "").
+    assign c-des-mensagem = trim(return-value) .                  
+    assign p-erro = yes.
+    return.
+end.    
+
+find first mov-ap use-index codigo
+    where mov-ap.ep-codigo    = tit-ap.ep-codigo
+    and   mov-ap.cod-fornec   = tit-ap.cod-fornec
+    and   mov-ap.cod-estabel  = tit-ap.cod-estabel
+    and   mov-ap.cod-esp      = tit-ap.cod-esp
+    and   mov-ap.serie        = tit-ap.serie
+    and   mov-ap.nr-docto     = tit-ap.nr-docto
+    and   mov-ap.parcela      = tit-ap.parcela
+    and   mov-ap.contabilizou = yes  no-lock no-error.
+    
+if  avail mov-ap then do:
+    if (mov-ap.tipo <> 4 and mov-ap.tipo <> 5) then do:
+        run utp/ut-msgs.p ("help", 402, "").
+        assign c-des-mensagem = trim(return-value) . 
+        assign p-erro = yes.
+        return.
+    end.
+end.
+
+find espec-ap where espec-ap.cod-esp = tit-ap.cod-esp no-lock no-error.
+  
+if  espec-ap.tipo = 3 then do:
+    run utp/ut-msgs.p ("msg", 425, "").
+    assign c-des-mensagem = trim(return-value) . 
+    assign p-erro = yes.
+    return.
+end.
+  
+/*--- NÆo pode Cancelar ND/NC ---*/
+if (espec-ap.tipo = 4 or
+    espec-ap.tipo = 5) then do:
+    {utp/ut-liter.i Documento}
+    run utp/ut-msgs.p ("help", 15904, trim(return-value)).
+    assign c-des-mensagem = trim(return-value) . 
+    assign p-erro = yes.
+    return.
+end.
+                          
+/*--- NÆo pode Cancelar Docto Originado por ND/NC ---*/
+find first mov-ap of tit-ap no-lock no-error.
+if  avail mov-ap then do:
+    find first b-tit-ap no-lock
+         where b-tit-ap.ep-codigo   = mov-ap.ep-codigo
+         and   b-tit-ap.cod-estabel = mov-ap.cod-estabel
+         and   b-tit-ap.cod-esp     = mov-ap.esp-ant
+         and   b-tit-ap.serie       = mov-ap.serie-ant
+         and   b-tit-ap.nr-docto    = mov-ap.docto-ant
+         and   b-tit-ap.parcela     = mov-ap.parc-ant
+         and   b-tit-ap.cod-fornec  = mov-ap.fornec-ant 
+         no-error.
+            
+    if  avail b-tit-ap then do:
+        find espec-ap where espec-ap.cod-esp = b-tit-ap.cod-esp no-lock no-error.
+        if  avail espec-ap then do:
+            if (espec-ap.tipo = 4 or
+                espec-ap.tipo = 5) then do:
+                {utp/ut-liter.i Documento}
+                run utp/ut-msgs.p ("help", 15904, trim(return-value)).
+                assign c-des-mensagem = trim(return-value) . 
+                assign p-erro = yes.
+                return.
+            end.
+        end.
+    end.
+end.      
+
+if  tit-ap.dt-transacao < da-ini-validac or
+    tit-ap.dt-transacao > da-fim-validac  then do:
+    run utp/ut-msgs.p ("msg", 404, "").
+    assign c-des-mensagem = trim(return-value) . 
+    assign p-erro = yes.
+    return.
+end.    
+
+if  param-ap.cont-baixa then do:
+    find first bordero-ap
+         where bordero-ap.ep-codigo   = tit-ap.ep-codigo
+         and   bordero-ap.cod-estabel = tit-ap.cod-estab
+         and   bordero-ap.cod-esp     = tit-ap.cod-esp
+         and   bordero-ap.serie       = tit-ap.serie
+         and   bordero-ap.nr-docto    = tit-ap.nr-docto
+         and   bordero-ap.parcela     = tit-ap.parcela
+         and   bordero-ap.cod-fornec  = tit-ap.cod-fornec
+         and   bordero-ap.tp-transacao = 2 /* Cheque */  no-error.
+    if  avail bordero-ap then do:
+        run utp/ut-msgs.p ("msg", 405, "").
+        assign c-des-mensagem = trim(return-value) . 
+        assign p-erro = yes.
+        return.
+    end.
+end.
+
+find first mov-ap use-index codigo
+    where mov-ap.ep-codigo    = tit-ap.ep-codigo
+    and   mov-ap.cod-fornec   = tit-ap.cod-fornec
+    and   mov-ap.cod-estabel  = tit-ap.cod-estabel
+    and   mov-ap.cod-esp      = tit-ap.cod-esp
+    and   mov-ap.serie        = tit-ap.serie
+    and   mov-ap.nr-docto     = tit-ap.nr-docto
+    and   mov-ap.parcela      = tit-ap.parcela
+    and   mov-ap.origem       = 2 /* Estoque */  no-lock no-error.
+if  avail mov-ap then do:
+    run utp/ut-msgs.p ("msg", 5859, "").
+    assign c-des-mensagem = trim(return-value) .   
+    assign p-erro = not tt-param.elimina-estoque.   /*yes se nÆo elimina*/
+    return.
+end.    
+
+/* Fim de Include */
+

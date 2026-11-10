@@ -1,0 +1,311 @@
+<?xml version="1.0"?>
+<WizardAdapters xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>CurrencyRate</Name>
+  <Id />
+  <XsdFileName>\\araca\ReqPro_Projects\Fin\FIN_MCD\Release 2.07\Cotação - Camada XML\20. Análise de Projeto\xmlschema\fi2\CurrencyRate_207_000.xsd</XsdFileName>
+  <HasSchemaChanges>false</HasSchemaChanges>
+  <HasReceive>false</HasReceive>
+  <HasSend>true</HasSend>
+  <ReceiveAdapter>
+    <Product />
+    <Release>207</Release>
+    <Module>MCD</Module>
+    <Application />
+    <FileName>axrXX000.p</FileName>
+    <OverrideInc>false</OverrideInc>
+    <MinVersion>000</MinVersion>
+    <MaxVersion>999</MaxVersion>
+    <ListActions>add,upd,del</ListActions>
+  </ReceiveAdapter>
+  <SendAdapter>
+    <Product>EMS2</Product>
+    <Release>207</Release>
+    <Module>MCD</Module>
+    <Application>FI2</Application>
+    <FileName>C:\temp\adapterCurrency\adapters\xml\fi2\axsfi003.p</FileName>
+    <OverrideInc>false</OverrideInc>
+    <Version>000</Version>
+  </SendAdapter>
+  <ListOfField>
+    <Field>
+      <Name>BusinessContentType</Name>
+      <DefaultValue />
+      <IsOk>false</IsOk>
+      <Type>ComplexType</Type>
+      <ListOfChild>
+        <Child>
+          <Name>Upsert</Name>
+          <ApiField>Upsert</ApiField>
+          <DefaultValue />
+          <IsOk>true</IsOk>
+          <Type>ComplexType</Type>
+          <ListOfChild>
+            <Child>
+              <Name>CurrencyRate</Name>
+              <ApiField>CurrencyRate</ApiField>
+              <DefaultValue />
+              <IsOk>true</IsOk>
+              <Type>ComplexType</Type>
+              <ListOfChild>
+                <Child>
+                  <Name>CurrencyCode</Name>
+                  <ApiField>CurrencyCode</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>integer</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>true</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Código da Moeda da cotação (Uso Interno: emsuni.moeda.mo-codigo)</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>Period</Name>
+                  <ApiField>Period</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>Year</Name>
+                      <ApiField>Year</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Ano da Cotação</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                    <Child>
+                      <Name>Month</Name>
+                      <ApiField>Month</ApiField>
+                      <DefaultValue />
+                      <IsOk>false</IsOk>
+                      <Type>integer</Type>
+                      <ListOfChild />
+                      <IsMultiple>false</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Mês da Cotação</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Período das Cotações, agrupa Mês e Ano</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>ListOfRate</Name>
+                  <ApiField>ListOfRate</ApiField>
+                  <DefaultValue />
+                  <IsOk>true</IsOk>
+                  <Type>ComplexType</Type>
+                  <ListOfChild>
+                    <Child>
+                      <Name>Rate</Name>
+                      <ApiField>ttRate</ApiField>
+                      <DefaultValue />
+                      <IsOk>true</IsOk>
+                      <Type>ComplexType</Type>
+                      <ListOfChild>
+                        <Child>
+                          <Name>Day</Name>
+                          <ApiField>Day</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>integer</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Dia da Cotação</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                        <Child>
+                          <Name>Rate</Name>
+                          <ApiField>Rate</ApiField>
+                          <DefaultValue />
+                          <IsOk>false</IsOk>
+                          <Type>decimal</Type>
+                          <ListOfChild />
+                          <IsMultiple>false</IsMultiple>
+                          <IsKeyField>false</IsKeyField>
+                          <IsRequired>true</IsRequired>
+                          <Enabled>true</Enabled>
+                          <Annotation>Valor da Cotação</Annotation>
+                          <TestLogic />
+                          <IsNewPI>false</IsNewPI>
+                        </Child>
+                      </ListOfChild>
+                      <IsMultiple>true</IsMultiple>
+                      <IsKeyField>false</IsKeyField>
+                      <IsRequired>true</IsRequired>
+                      <Enabled>true</Enabled>
+                      <Annotation>Cotação</Annotation>
+                      <TestLogic />
+                      <IsNewPI>false</IsNewPI>
+                    </Child>
+                  </ListOfChild>
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Lista de Cotações</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>AverageRate</Name>
+                  <ApiField>AverageRate</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>decimal</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Cotação Média (Uso Interno: mguni.cotacao.cota-media)</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>MothRate</Name>
+                  <ApiField>MothRate</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>decimal</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>false</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Cotação Mensal (Uso Interno: mguni.cotacao.cota-mensal)</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+              </ListOfChild>
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Cotação de Moedas</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+          </ListOfChild>
+          <IsMultiple>false</IsMultiple>
+          <IsKeyField>false</IsKeyField>
+          <IsRequired>true</IsRequired>
+          <Enabled>true</Enabled>
+          <Annotation>Operação de Inclusão ou Alteração</Annotation>
+          <TestLogic />
+          <IsNewPI>false</IsNewPI>
+        </Child>
+        <Child>
+          <Name>Delete</Name>
+          <ApiField>Delete</ApiField>
+          <DefaultValue />
+          <IsOk>true</IsOk>
+          <Type>ComplexType</Type>
+          <ListOfChild>
+            <Child>
+              <Name>CurrencyCode</Name>
+              <ApiField>CurrencyCode</ApiField>
+              <DefaultValue />
+              <IsOk>false</IsOk>
+              <Type>integer</Type>
+              <ListOfChild />
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>true</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Código da Moeda da cotação (Uso Interno: emsuni.moeda.mo-codigo)</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+            <Child>
+              <Name>Period</Name>
+              <ApiField>Period_00</ApiField>
+              <DefaultValue />
+              <IsOk>true</IsOk>
+              <Type>ComplexType</Type>
+              <ListOfChild>
+                <Child>
+                  <Name>Year</Name>
+                  <ApiField>Year</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>integer</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Ano da Cotação</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+                <Child>
+                  <Name>Month</Name>
+                  <ApiField>Month</ApiField>
+                  <DefaultValue />
+                  <IsOk>false</IsOk>
+                  <Type>integer</Type>
+                  <ListOfChild />
+                  <IsMultiple>false</IsMultiple>
+                  <IsKeyField>false</IsKeyField>
+                  <IsRequired>true</IsRequired>
+                  <Enabled>true</Enabled>
+                  <Annotation>Mês da Cotação</Annotation>
+                  <TestLogic />
+                  <IsNewPI>false</IsNewPI>
+                </Child>
+              </ListOfChild>
+              <IsMultiple>false</IsMultiple>
+              <IsKeyField>false</IsKeyField>
+              <IsRequired>true</IsRequired>
+              <Enabled>true</Enabled>
+              <Annotation>Período da Cotação</Annotation>
+              <TestLogic />
+              <IsNewPI>false</IsNewPI>
+            </Child>
+          </ListOfChild>
+          <IsMultiple>false</IsMultiple>
+          <IsKeyField>false</IsKeyField>
+          <IsRequired>true</IsRequired>
+          <Enabled>true</Enabled>
+          <Annotation>Operação de Deleção</Annotation>
+          <TestLogic />
+          <IsNewPI>false</IsNewPI>
+        </Child>
+      </ListOfChild>
+      <IsMultiple>false</IsMultiple>
+      <IsKeyField>false</IsKeyField>
+      <IsRequired>false</IsRequired>
+      <Enabled>true</Enabled>
+      <Annotation />
+      <TestLogic />
+      <IsNewPI>false</IsNewPI>
+    </Field>
+  </ListOfField>
+  <IsNew>false</IsNew>
+  <ConfFileName>C:\temp\adapterCurrency\adapters\xml\fi2\axsfi003.eai</ConfFileName>
+  <RecentLoad>false</RecentLoad>
+</WizardAdapters>

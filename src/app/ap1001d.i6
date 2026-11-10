@@ -1,0 +1,17 @@
+/*******************************************************************************
+**
+** AP1001D.I6 - Verifica se utiliza varios tipos de pagamento Bradesco
+**
+*******************************************************************************/
+
+
+def var l-varios-pagtos as logical no-undo.
+
+
+&if defined(BF_FIN_VAR_PAGTOS_BRADESCO) &then 
+    assign l-varios-pagtos = yes. 
+&else 
+    if (can-find(funcao where funcao.cd-funcao = "spp-varios-pagto" 
+    and funcao.ativo = yes ) ) then 
+        assign l-varios-pagtos = yes. 
+&endif

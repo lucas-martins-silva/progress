@@ -1,0 +1,122 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
+&ANALYZE-RESUME
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DBOTempTable 
+/*:T--------------------------------------------------------------------------
+    Library    : dbott.i
+    Purpose    : Include que cont‚m defini‡Æo da temptable RowObject
+
+    Parameters :
+
+    Notes      :
+  ------------------------------------------------------------------------*/
+/*          This .W file was created with the Progress UIB.               */
+/*------------------------------------------------------------------------*/
+
+/* ***************************  Definitions  **************************** */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: DBOTempTable
+   Allow: 
+   Frames: 0
+   Add Fields to: Neither
+   Other Settings: INCLUDE-ONLY
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+/* DESIGN Window definition (used by the UIB) 
+  CREATE WINDOW DBOTempTable ASSIGN
+         HEIGHT             = 7.04
+         WIDTH              = 40.
+/* END WINDOW DEFINITION */
+                                                                        */
+&ANALYZE-RESUME
+
+ 
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK DBOTempTable 
+
+
+/* ***************************  Main Block  *************************** */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertError DBOTempTable 
+PROCEDURE insertError :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    DEFINE INPUT  PARAMETER ipcCodServid   AS CHARACTER  NO-UNDO.
+    DEFINE INPUT  PARAMETER ipcCdTrans     AS CHARACTER  NO-UNDO.
+    DEFINE INPUT  PARAMETER ipcCodEqpto    AS CHARACTER  NO-UNDO.
+    DEFINE INPUT  PARAMETER ipcCodVarDtsul AS CHARACTER  NO-UNDO.
+    DEFINE INPUT  PARAMETER ipcCodVarEqpto AS CHARACTER  NO-UNDO.
+    DEFINE INPUT  PARAMETER ipiNumErro     AS INTEGER    NO-UNDO.
+    DEFINE INPUT  PARAMETER ipcDslMsgErro  AS CHARACTER  NO-UNDO.
+    DEFINE INPUT  PARAMETER ipcDslDetMsg   AS CHARACTER  NO-UNDO.
+
+    DEFINE VARIABLE hQuery    AS HANDLE     NO-UNDO.
+    DEFINE VARIABLE hTTBuffer AS HANDLE     NO-UNDO.
+
+    DEFINE VARIABLE iErrorSeq AS INTEGER    NO-UNDO
+        INITIAL 1.
+
+    ASSIGN hTTBuffer = hTTServerError:DEFAULT-BUFFER-HANDLE.
+
+    CREATE QUERY hQuery.
+    hQuery:ADD-BUFFER(hTTBuffer).
+    hQuery:QUERY-PREPARE("for each tt-server-error no-lock by tt-server-error.num-seq-erro").
+    hQuery:QUERY-OPEN().
+
+    IF hQuery:GET-LAST(NO-LOCK) THEN
+        ASSIGN iErrorSeq = hTTBuffer:BUFFER-FIELD("num-seq-erro"):BUFFER-VALUE + 1.
+
+    hTTBuffer:BUFFER-CREATE().
+
+    ASSIGN
+        hTTBuffer:BUFFER-FIELD("num-seq-erro"):BUFFER-VALUE = iErrorSeq
+        hTTBuffer:BUFFER-FIELD("cod-servid"):BUFFER-VALUE = ipcCodServid
+        hTTBuffer:BUFFER-FIELD("cd-trans"):BUFFER-VALUE = ipcCdTrans
+        hTTBuffer:BUFFER-FIELD("cod-eqpto"):BUFFER-VALUE = ipcCodEqpto
+        hTTBuffer:BUFFER-FIELD("cod-var-dtsul"):BUFFER-VALUE = ipcCodVarDtsul
+        hTTBuffer:BUFFER-FIELD("cod-var-eqpto"):BUFFER-VALUE = ipcCodVarEqpto
+        hTTBuffer:BUFFER-FIELD("num-erro"):BUFFER-VALUE = ipiNumErro
+        hTTBuffer:BUFFER-FIELD("dsl-msg-erro"):BUFFER-VALUE = ipcDslMsgErro
+        hTTBuffer:BUFFER-FIELD("dsl-det-msg"):BUFFER-VALUE = ipcDslDetMsg.
+
+    hTTBuffer:BUFFER-RELEASE().
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME

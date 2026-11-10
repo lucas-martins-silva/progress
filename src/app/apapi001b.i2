@@ -1,0 +1,58 @@
+find first emitente
+   where emitente.cod-emitente = tt-lin-i-ap.cod-fornec
+     and emitente.identific    <> 1 no-lock no-error.
+
+if avail emitente then do:
+
+   find calen-coml
+     where calen-coml.ep-codigo   = tt-lin-i-ap.ep-codigo
+       and calen-coml.cod-estabel = tt-lin-i-ap.cod-estabel
+       and calen-coml.data        = tt-lin-i-ap.dt-vencimen
+      no-lock no-error. 
+   if avail calen-coml then do:
+      i-semana   = weekday(tt-lin-i-ap.dt-vencimen).
+      if  calen-coml.tipo-dia <> 1 then do:
+          if  (i-semana = 7 and emitente.ven-sabado = 1)
+          or  (i-semana = 1 and emitente.ven-domingo = 1)
+          or  (i-semana > 1 and i-semana < 7
+          and emitente.ven-feriado = 1) then repeat:
+             assign da-data = da-data + 1.
+             find calen-coml
+               where calen-coml.ep-codigo   = tt-lin-i-ap.ep-codigo
+               and calen-coml.cod-estabel = tt-lin-i-ap.cod-estabel
+               and calen-coml.data        = da-data
+             no-lock no-error.
+             if  not avail calen-coml then do:
+                 run utp/ut-msgs.p(input "show",
+                                   input 648,
+                                   input string(da-data)).                                    
+                 leave.
+             end.
+             if  calen-coml.tipo-dia = 1 then
+                 leave.  
+          end.
+
+          if  (i-semana = 7 and emitente.ven-sabado = 2)
+          or  (i-semana = 1 and emitente.ven-domingo = 2)
+          or  (i-semana > 1 and i-semana < 7
+          and emitente.ven-feriado = 2) then repeat:
+              assign da-data = da-data - 1.      
+
+              find calen-coml
+                 where calen-coml.ep-codigo   = tt-lin-i-ap.ep-codigo
+                   and calen-coml.cod-estabel = tt-lin-i-ap.cod-estabel
+                   and calen-coml.data        = da-data
+                   no-lock no-error.
+              if  not avail calen-coml then do:
+                  run utp/ut-msgs.p(input "show",
+                                    input 648,
+                                    input string(da-data)).                                    
+
+                  leave.
+              end.      
+              if  calen-coml.tipo-dia = 1 then
+                  leave.    
+          end.
+      end.
+   end. 
+end.

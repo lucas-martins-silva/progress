@@ -1,0 +1,763 @@
+/********************************************************************************
+***
+*** app/ap8100c.i2 - Contabilizaá∆o Baixa por Pagamento Centralizado.
+***
+********************************************************************************/
+
+assign l-ok = yes.
+
+/* Miniflexibilizacao EMS203 */
+{cdp/cdcfgfin.i}
+
+/*--- Valida Fornecedor do Movimento ---*/
+find first emitente
+     where emitente.cod-emitente = mov-ap.cod-fornec
+     and   emitente.identific   <> 1 no-lock no-error.
+
+if  not avail emitente then do:
+    run utp/ut-msgs.p (input "msg",
+                       input 91,
+                       input string(mov-ap.cod-fornec)).
+
+    assign c-mensagem = trim(return-value)
+           c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+           c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+           l-ok       = no.
+
+    disp mov-ap.cod-estabel
+         mov-ap.cod-esp
+         mov-ap.serie
+         mov-ap.cod-fornec
+         c-docto
+         mov-ap.parcela
+         c-trans
+         c-mensagem
+         with frame f-mensagem.
+    down with frame f-mensagem.
+end.
+else do:
+
+    if  param-ap.int-2 <= 1 then do:        
+        /*--- Valida Conta de Saldo do Fornecedor ---*/
+        find first conta-ap use-index codigo
+             where conta-ap.ep-codigo   = mov-ap.ep-codigo
+             and   conta-ap.cod-estabel = substring(param-ap.char-1, 01,03)
+             and   conta-ap.cod-esp     = mov-ap.cod-esp
+             and   conta-ap.cod-grupo   = emitente.cod-gr-forn
+             no-lock no-error.
+        assign c-cod-estabel = substring(param-ap.char-1, 01,03).
+    end.
+    else do:
+        /*--- Valida Conta de Saldo do Fornecedor ---*/
+        find first conta-ap use-index codigo
+             where conta-ap.ep-codigo   = mov-ap.ep-codigo
+             and   conta-ap.cod-estabel = mov-ap.cod-estabel
+             and   conta-ap.cod-esp     = mov-ap.cod-esp
+             and   conta-ap.cod-grupo   = emitente.cod-gr-forn
+             no-lock no-error.
+        assign c-cod-estabel = mov-ap.cod-estabel.
+    end.
+
+    if  not avail conta-ap then do:
+        run utp/ut-msgs.p (input "help",
+                           input 1823,
+                           input c-cod-estabel + "~~" +
+                                 string(mov-ap.cod-esp) + "~~" +
+                                 string(emitente.cod-gr-forn)).
+
+        assign c-mensagem = return-value
+               c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+               c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+               l-ok       = no.
+
+        disp mov-ap.cod-estabel
+             mov-ap.cod-esp
+             mov-ap.serie
+             mov-ap.cod-fornec
+             c-docto
+             mov-ap.parcela
+             c-trans
+             c-mensagem
+             with frame f-mensagem.
+        down with frame f-mensagem.
+    end.
+    else do:
+
+        /*--- Valida Conta Cont†bil da Conta de Saldo ---*/
+        find first b-conta-contab use-index codigo
+             where b-conta-contab.ep-codigo = mov-ap.ep-codigo
+             and   b-conta-contab.ct-codigo = conta-ap.ct-saldo
+             and   b-conta-contab.sc-codigo = conta-ap.sc-saldo
+             no-lock no-error.
+
+        if  not avail b-conta-contab then do:
+
+            {utp/ut-liter.i Conta_Cont†bil_da_Conta_de_Saldo_n∆o_Cadastrada}
+
+            assign c-mensagem = trim(return-value)
+                   c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                   c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                   l-ok       = no.
+
+            disp mov-ap.cod-estabel
+                 mov-ap.cod-esp
+                 mov-ap.serie
+                 mov-ap.cod-fornec
+                 c-docto
+                 mov-ap.parcela
+                 c-trans
+                 c-mensagem
+                 with frame f-mensagem.
+            down with frame f-mensagem.
+        end.        
+
+        /*--- Valida conta de desconto da Conta de Saldo ---*/
+        if  mov-ap.vl-desconto > 0 then do:
+            find first b-conta-contab-des use-index codigo
+                 where b-conta-contab-des.ep-codigo = mov-ap.ep-codigo
+                 and   b-conta-contab-des.ct-codigo = conta-ap.ct-desconto
+                 and   b-conta-contab-des.sc-codigo = conta-ap.sc-desconto
+                 no-lock no-error.
+
+            if  not avail b-conta-contab-des then do:
+
+                {utp/ut-liter.i Conta_Desconto_Cta_Saldo_Fornecedor_n∆o_Cadastrada}    
+
+                assign c-mensagem = trim(return-value)
+                       c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                       c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                       l-ok       = no.
+
+                disp mov-ap.cod-estabel
+                     mov-ap.cod-esp
+                     mov-ap.serie
+                     mov-ap.cod-fornec
+                     c-docto
+                     mov-ap.parcela
+                     c-trans
+                     c-mensagem
+                     with frame f-mensagem.
+                down with frame f-mensagem.
+            end.        
+        end.        
+
+        /*--- Valida conta de juros da Conta de Saldo ---*/
+        if  mov-ap.valor-juros > 0 then do:
+            find first b-conta-contab-jur use-index codigo
+                 where b-conta-contab-jur.ep-codigo = mov-ap.ep-codigo
+                 and   b-conta-contab-jur.ct-codigo = conta-ap.ct-juros
+                 and   b-conta-contab-jur.sc-codigo = conta-ap.sc-juros
+                 no-lock no-error.
+
+            if  not avail b-conta-contab-jur then do:
+
+                {utp/ut-liter.i Conta_Juros_Cta_Saldo_Fornecedor_n∆o_Cadastrada}    
+
+                assign c-mensagem = trim(return-value)
+                       c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                       c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                       l-ok       = no.
+
+                disp mov-ap.cod-estabel
+                     mov-ap.cod-esp
+                     mov-ap.serie
+                     mov-ap.cod-fornec
+                     c-docto
+                     mov-ap.parcela
+                     c-trans
+                     c-mensagem
+                     with frame f-mensagem.
+                down with frame f-mensagem.
+            end.        
+        end.
+
+        &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+        /*--- Valida conta de Abatimento da Conta de Saldo ---*/
+        if  mov-ap.vl-abatimento > 0 then do:
+            find first b-conta-contab-abat use-index codigo
+                 where b-conta-contab-abat.ep-codigo = mov-ap.ep-codigo
+                 and   b-conta-contab-abat.ct-codigo = conta-ap.ct-abatimento
+                 and   b-conta-contab-abat.sc-codigo = conta-ap.sc-abatimento
+                 no-lock no-error.
+
+            if  not avail b-conta-contab-abat then do:
+
+                {utp/ut-liter.i Conta_Abatimento_Cta_Saldo_Fornecedor_n∆o_Cadastrada}    
+
+                assign c-mensagem = trim(return-value)
+                       c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                       c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                       l-ok       = no.
+
+                disp mov-ap.cod-estabel
+                     mov-ap.cod-esp
+                     mov-ap.serie
+                     mov-ap.cod-fornec
+                     c-docto
+                     mov-ap.parcela
+                     c-trans
+                     c-mensagem
+                     with frame f-mensagem.
+                down with frame f-mensagem.
+            end.        
+        end.
+
+
+        /*--- Valida conta de multa da Conta de Saldo ---*/
+        if  mov-ap.vl-multa > 0 then do:
+            find first b-conta-contab-multa use-index codigo
+                 where b-conta-contab-multa.ep-codigo = mov-ap.ep-codigo
+                 and   b-conta-contab-multa.ct-codigo = conta-ap.ct-multa
+                 and   b-conta-contab-multa.sc-codigo = conta-ap.sc-multa
+                 no-lock no-error.
+
+            if  not avail b-conta-contab-multa then do:
+
+                {utp/ut-liter.i Conta_Multa_Cta_Saldo_Fornecedor_n∆o_Cadastrada}    
+
+                assign c-mensagem = trim(return-value)
+                       c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                       c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                       l-ok       = no.
+
+                disp mov-ap.cod-estabel
+                     mov-ap.cod-esp
+                     mov-ap.serie
+                     mov-ap.cod-fornec
+                     c-docto
+                     mov-ap.parcela
+                     c-trans
+                     c-mensagem
+                     with frame f-mensagem.
+                down with frame f-mensagem.
+            end.
+        end.
+        &endif
+    end.
+
+    /*--- Baixa com Antecipaá∆o ---*/
+    if  mov-ap.vl-antecip > 0 then do:
+        if  param-ap.int-2 <= 1 then do:
+            find first b-conta-ap use-index codigo
+                 where b-conta-ap.ep-codigo   = mov-ap.ep-codigo
+                 and   b-conta-ap.cod-estabel = substring(param-ap.char-1, 01,03)
+                 and   b-conta-ap.cod-esp     = mov-ap.esp-ant
+                 and   b-conta-ap.cod-grupo   = emitente.cod-gr-forn
+                 no-lock no-error.
+            assign c-cod-estabel = substring(param-ap.char-1, 01,03).
+        end.
+        else do:
+            find first b-conta-ap use-index codigo
+                 where b-conta-ap.ep-codigo   = mov-ap.ep-codigo
+                 and   b-conta-ap.cod-estabel = mov-ap.cod-estabel
+                 and   b-conta-ap.cod-esp     = mov-ap.esp-ant
+                 and   b-conta-ap.cod-grupo   = emitente.cod-gr-forn
+                 no-lock no-error.
+            assign c-cod-estabel = mov-ap.cod-estabel.
+        end.
+
+        if  not avail b-conta-ap then do:
+            run utp/ut-msgs.p (input "help",
+                               input 1823,
+                               input c-cod-estabel + "~~" +
+                                     string(mov-ap.esp-ant) + "~~" +
+                                     string(emitente.cod-gr-forn)).
+
+            assign c-mensagem = return-value
+                   c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                   c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                   l-ok       = no.
+
+            disp mov-ap.cod-estabel
+                 mov-ap.cod-esp
+                 mov-ap.serie
+                 mov-ap.cod-fornec
+                 c-docto
+                 mov-ap.parcela
+                 c-trans
+                 c-mensagem
+                 with frame f-mensagem.
+            down with frame f-mensagem.
+        end.
+        else do:
+
+            /*--- Valida Conta Cont†bil da Conta de Saldo ---*/
+            find first b-conta-contab-ant use-index codigo
+                 where b-conta-contab-ant.ep-codigo = mov-ap.ep-codigo
+                 and   b-conta-contab-ant.ct-codigo = b-conta-ap.ct-saldo
+                 and   b-conta-contab-ant.sc-codigo = b-conta-ap.sc-saldo
+                 no-lock no-error.
+
+            if  not avail b-conta-contab-ant then do:
+
+                {utp/ut-liter.i Conta_Ctbl_da_Cta_de_Saldo_Antec_n∆o_Cadastrada}
+
+                assign c-mensagem = trim(return-value)
+                       c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                       c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                       l-ok       = no.
+
+                disp mov-ap.cod-estabel
+                     mov-ap.cod-esp
+                     mov-ap.serie
+                     mov-ap.cod-fornec
+                     c-docto
+                     mov-ap.parcela
+                     c-trans
+                     c-mensagem
+                     with frame f-mensagem.
+                down with frame f-mensagem.
+            end.        
+        end.
+    end.
+end.
+
+find first portador use-index codigo
+     where portador.ep-codigo    = mov-ap.ep-codigo
+     and   portador.cod-portador = mov-ap.portador
+     and   portador.modalidade   = mov-ap.modalidade
+     no-lock no-error.
+
+if  not avail portador then do:
+
+    run utp/ut-msgs.p (input "msg",
+                       input 152,
+                       input string(mov-ap.portador)).
+
+    assign c-mensagem = return-value
+           c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+           c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+           l-ok       = no.
+
+    disp mov-ap.cod-estabel
+         mov-ap.cod-esp
+         mov-ap.serie
+         mov-ap.cod-fornec
+         c-docto
+         mov-ap.parcela
+         c-trans
+         c-mensagem
+         with frame f-mensagem.
+    down with frame f-mensagem.
+end.
+else do:
+    if  portador.bancario = yes then do:
+
+        assign l-bancario = yes.
+
+        find first cta-corrente use-index conta
+             where cta-corrente.cod-banco    = portador.cod-banco
+             and   cta-corrente.agencia      = portador.agencia
+             and   cta-corrente.conta-corren = portador.conta-corren
+             no-lock no-error.
+
+        if  not avail cta-corrente then do:
+
+            run utp/ut-msgs.p (input "help",
+                               input 928,
+                               input string(portador.cod-banco) + "~~" +
+                                     portador.agencia + "~~" +
+                                     portador.conta-corren).
+
+            assign c-mensagem = return-value
+                   c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                   c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                   l-ok       = no.
+
+            disp mov-ap.cod-estabel
+                 mov-ap.cod-esp
+                 mov-ap.serie
+                 mov-ap.cod-fornec
+                 c-docto
+                 mov-ap.parcela
+                 c-trans
+                 c-mensagem
+                 with frame f-mensagem.
+            down with frame f-mensagem.
+        end.
+        else do:
+
+            /*--- Valida Conta DÇbito do Portador ---*/
+            find first b-conta-contab-deb use-index codigo
+                 where b-conta-contab-deb.ep-codigo = mov-ap.ep-codigo
+                 and   b-conta-contab-deb.ct-codigo = cta-corrente.ct-deb-princ
+                 and   b-conta-contab-deb.sc-codigo = cta-corrente.sc-deb-princ
+                 no-lock no-error.
+
+            if  not avail b-conta-contab-deb then do:
+
+                {utp/ut-liter.i Conta_DÇbito_do_Portador_n∆o_Cadastrada}
+
+                assign c-mensagem = trim(return-value)
+                       c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                       c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                       l-ok       = no.
+
+                disp mov-ap.cod-estabel
+                     mov-ap.cod-esp
+                     mov-ap.serie
+                     mov-ap.cod-fornec
+                     c-docto
+                     mov-ap.parcela
+                     c-trans
+                     c-mensagem
+                     with frame f-mensagem.
+                down with frame f-mensagem.
+            end.        
+
+            /*--- Valida Conta Juros Pagos do Portador ---*/
+            if  mov-ap.valor-juros > 0 then do:
+                find first b-conta-contab-jur-por use-index codigo
+                     where b-conta-contab-jur-por.ep-codigo = mov-ap.ep-codigo
+                     and   b-conta-contab-jur-por.ct-codigo = cta-corrente.ct-juros-pg
+                     and   b-conta-contab-jur-por.sc-codigo = cta-corrente.sc-juros-pg
+                     no-lock no-error.
+
+                if  not avail b-conta-contab-jur-por then do:
+
+                    {utp/ut-liter.i Conta_Juros_pagos_Portador_n∆o_Cadastrada}
+
+                    assign c-mensagem = trim(return-value)
+                           c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                           c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                           l-ok       = no.
+
+                    disp mov-ap.cod-estabel
+                         mov-ap.cod-esp
+                         mov-ap.serie
+                         mov-ap.cod-fornec
+                         c-docto
+                         mov-ap.parcela
+                         c-trans
+                         c-mensagem
+                         with frame f-mensagem.
+                    down with frame f-mensagem.
+                end.        
+            end.
+        end.
+    end.
+    else do:
+
+        assign l-bancario = no.
+
+        find first b-conta-contab-deb use-index ch-conta-contabil
+             where b-conta-contab-deb.ep-codigo      = portador.ep-codigo
+             and   b-conta-contab-deb.conta-contabil = portador.conta-contabil
+             no-lock no-error.
+
+        if  not avail b-conta-contab-deb then do:
+            run utp/ut-msgs.p (input "msg",
+                               input 8885,
+                               input portador.conta-contabil).
+
+            assign c-mensagem = trim(return-value) + " (" + portador.conta-contabil + ")."
+                   c-trans    = {adinc/i01ad165.i 04 mov-ap.transacao}
+                   c-docto    = fill(" ", 16 - length(mov-ap.nr-docto)) + mov-ap.nr-docto
+                   l-ok       = no.
+
+            disp mov-ap.cod-estabel
+                 mov-ap.cod-esp
+                 mov-ap.serie
+                 mov-ap.cod-fornec
+                 c-docto
+                 mov-ap.parcela
+                 c-trans
+                 c-mensagem
+                 with frame f-mensagem.
+            down with frame f-mensagem.
+        end.
+    end.
+end.
+
+if  l-ok = yes then do:
+
+    assign vl-fasb = mov-ap.vl-mov-fasb.
+
+    /************ GE - Rodrigo ************/
+    IF  c-nom-prog-upc-mg97  <> "" OR  
+        c-nom-prog-dpc-mg97  <> "" OR
+        c-nom-prog-appc-mg97 <> "" THEN DO:
+        for each tt-epc
+            where tt-epc.cod-event = "MOEDA_ORIGEM":U exclusive-lock:
+            delete tt-epc.
+        end.
+
+        create tt-epc.
+        assign tt-epc.cod-event = "MOEDA_ORIGEM":U.
+
+        {include/i-epc201.i MOEDA_ORIGEM}
+
+        find tt-epc
+            where tt-epc.cod-event   = "MOEDA_ORIGEM":U
+            and tt-epc.cod-parameter = "RETURN":U no-error.
+
+        if avail tt-epc and tt-epc.val-parameter = "yes":U then
+            assign vl-fasb = mov-ap.valor-mov-me.
+    END.
+    /************ GE - Rodrigo ************/
+
+    if  c-programa-ap8100 <> "AP/0817" and
+        c-programa-ap8100 <> "AP/0707" then            
+        run value(c-prog-hist-ap8100).
+
+    if  mov-ap.baixa-subs = no then do:
+
+        if  mov-ap.vl-antecip > 0 then do:
+
+            if  avail b-conta-contab then do:
+                run pi-criar-movimento (input b-conta-contab.ct-codigo,
+                                        input b-conta-contab.sc-codigo, 
+                                        input 1,
+                                        input mov-ap.valor-mov,
+                                        input vl-fasb,
+                                        input b-conta-contab.titulo,
+                                        input mov-ap.vl-mov-cmi,
+                                        input mov-ap.valor-presente).
+            end.
+
+            if  mov-ap.vl-antecip = mov-ap.valor-mov then do:
+                if  avail b-conta-contab-ant then do:
+                    run pi-criar-movimento (input b-conta-contab-ant.ct-codigo,
+                                            input b-conta-contab-ant.sc-codigo, 
+                                            input 2,
+                                            input mov-ap.valor-mov,
+                                            input vl-fasb,
+                                            input b-conta-contab-ant.titulo,
+                                            input mov-ap.vl-mov-cmi,
+                                            input mov-ap.valor-presente).
+                end.
+            end.
+            else do:
+
+                if  avail b-conta-contab-ant then do:                
+                    run pi-criar-movimento (input b-conta-contab-ant.ct-codigo,
+                                            input b-conta-contab-ant.sc-codigo, 
+                                            input 2,
+                                            input mov-ap.vl-antecip,
+                                            input vl-fasb,
+                                            input b-conta-contab-ant.titulo,
+                                            input mov-ap.vl-mov-cmi,
+                                            input mov-ap.valor-presente).
+                end.
+
+                if  avail b-conta-contab-deb then do:                        
+                    run pi-criar-movimento (input b-conta-contab-deb.ct-codigo,
+                                            input b-conta-contab-deb.sc-codigo, 
+                                            input 2,
+                                            input mov-ap.valor-mov - mov-ap.vl-antecip 
+                                                                   &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                                                                   - mov-ap.vl-abatimento
+                                                                   &endif
+                                                                   - mov-ap.vl-desconto,
+                                            input vl-fasb,
+                                            input b-conta-contab-deb.titulo,
+                                            input mov-ap.vl-mov-cmi,
+                                            input mov-ap.valor-presente).
+                end.
+            end.
+        end.
+        else do:
+
+            if  avail b-conta-contab then do:
+                run pi-criar-movimento (input b-conta-contab.ct-codigo,
+                                        input b-conta-contab.sc-codigo,
+                                        input 1,
+                                        input mov-ap.valor-mov,
+                                        input vl-fasb,
+                                        input b-conta-contab.titulo,
+                                        input mov-ap.vl-mov-cmi,
+                                        input mov-ap.valor-presente).
+            end.
+
+            if  avail b-conta-contab-deb then do:                              
+                run pi-criar-movimento (input b-conta-contab-deb.ct-codigo,
+                                        input b-conta-contab-deb.sc-codigo, 
+                                        input 2,
+                                        &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+                                        input mov-ap.valor-mov - mov-ap.vl-desconto
+                                                               - mov-ap.vl-abatimento,
+                                        &else
+                                        input mov-ap.valor-mov - mov-ap.vl-desconto,
+                                        &endif
+                                        input vl-fasb,
+                                        input b-conta-contab-deb.titulo,
+                                        input mov-ap.vl-mov-cmi,
+                                        input mov-ap.valor-presente).
+            end.
+
+            if  mov-ap.valor-juros > 0 then do:
+            
+                assign vl-fasb = mov-ap.vl-juro-fasb.
+
+                /************ GE - Rodrigo ************/
+                IF  c-nom-prog-upc-mg97  <> "" OR  
+                    c-nom-prog-dpc-mg97  <> "" OR
+                    c-nom-prog-appc-mg97 <> "" THEN DO:
+                    for each tt-epc
+                        where tt-epc.cod-event = "MOEDA_ORIGEM":U exclusive-lock:
+                        delete tt-epc.
+                    end.
+        
+                    create tt-epc.
+                    assign tt-epc.cod-event = "MOEDA_ORIGEM":U.
+        
+                    {include/i-epc201.i MOEDA_ORIGEM}
+        
+                    find tt-epc
+                        where tt-epc.cod-event   = "MOEDA_ORIGEM":U
+                        and tt-epc.cod-parameter = "RETURN":U no-error.
+        
+                    if avail tt-epc and tt-epc.val-parameter = "yes":U then
+                        assign vl-fasb = mov-ap.valor-juros-me.
+                END.
+                /************ GE - Rodrigo ************/
+
+                if  avail b-conta-contab-jur then do:
+                    run pi-criar-movimento (input b-conta-contab-jur.ct-codigo,
+                                            input b-conta-contab-jur.sc-codigo, 
+                                            input 1,
+                                            input mov-ap.valor-juros,
+                                            input vl-fasb,
+                                            input b-conta-contab-jur.titulo,
+                                            input mov-ap.vl-juros-cmi,
+                                            input mov-ap.valor-juros).
+                end.
+
+                if  avail b-conta-contab-jur-por then do: 
+                    run pi-criar-movimento (input b-conta-contab-jur-por.ct-codigo,
+                                            input b-conta-contab-jur-por.sc-codigo, 
+                                            input 2,
+                                            input mov-ap.valor-juros,
+                                            input mov-ap.vl-juro-fasb,
+                                            input b-conta-contab-jur-por.titulo,
+                                            input mov-ap.vl-juros-cmi,
+                                            input mov-ap.valor-juros).
+                end.
+            end.
+
+            &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+            if  mov-ap.vl-multa > 0 then do:
+                if  avail b-conta-contab-multa then do:
+
+                    assign vl-fasb = mov-ap.vl-multa-fasb.
+
+                    /************ GE - Rodrigo ************/
+                    IF  c-nom-prog-upc-mg97  <> "" OR  
+                        c-nom-prog-dpc-mg97  <> "" OR
+                        c-nom-prog-appc-mg97 <> "" THEN DO:
+                        for each tt-epc
+                            where tt-epc.cod-event = "MOEDA_ORIGEM":U exclusive-lock:
+                            delete tt-epc.
+                        end.
+             
+                        create tt-epc.
+                        assign tt-epc.cod-event = "MOEDA_ORIGEM":U.
+        
+                        {include/i-epc201.i MOEDA_ORIGEM}
+        
+                        find tt-epc
+                            where tt-epc.cod-event   = "MOEDA_ORIGEM":U
+                            and tt-epc.cod-parameter = "RETURN":U no-error.
+        
+                        if avail tt-epc and tt-epc.val-parameter = "yes":U then
+                            assign vl-fasb = mov-ap.vl-multa-me.
+                    END.
+                    /************ GE - Rodrigo ************/                
+
+                    run pi-criar-movimento (input b-conta-contab-multa.ct-codigo,
+                                            input b-conta-contab-multa.sc-codigo, 
+                                            input 1,
+                                            input mov-ap.vl-multa,
+                                            input vl-fasb,
+                                            input b-conta-contab-multa.titulo,
+                                            input mov-ap.vl-multa-cmi,
+                                            input mov-ap.vl-multa).
+                end.
+            end.
+            &endif
+        end.
+
+        if  mov-ap.vl-desconto > 0 then do:
+            if  avail b-conta-contab-des then do:
+            
+                assign vl-fasb = mov-ap.vl-desc-fasb.
+
+                /************ GE - Rodrigo ************/
+                IF  c-nom-prog-upc-mg97  <> "" OR  
+                    c-nom-prog-dpc-mg97  <> "" OR
+                    c-nom-prog-appc-mg97 <> "" THEN DO:
+                    for each tt-epc
+                        where tt-epc.cod-event = "MOEDA_ORIGEM":U exclusive-lock:
+                        delete tt-epc.
+                    end.
+     
+                    create tt-epc.
+                    assign tt-epc.cod-event = "MOEDA_ORIGEM":U.
+
+                    {include/i-epc201.i MOEDA_ORIGEM}
+
+                    find tt-epc
+                        where tt-epc.cod-event   = "MOEDA_ORIGEM":U
+                        and tt-epc.cod-parameter = "RETURN":U no-error.
+
+                    if avail tt-epc and tt-epc.val-parameter = "yes":U then
+                        assign vl-fasb = mov-ap.vl-desconto-me.
+                END.
+                /************ GE - Rodrigo ************/
+
+                run pi-criar-movimento (input b-conta-contab-des.ct-codigo,
+                                        input b-conta-contab-des.sc-codigo, 
+                                        input 2,
+                                        input mov-ap.vl-desconto,
+                                        input vl-fasb,
+                                        input b-conta-contab-des.titulo,
+                                        input mov-ap.vl-desc-cmi,
+                                        input mov-ap.vl-desconto).
+            end.
+        end.
+
+        &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+        if  mov-ap.vl-abatimento > 0 then do:
+            if  avail b-conta-contab-abat then do:
+            
+                assign vl-fasb = mov-ap.vl-abatimento-fasb.
+
+                /************ GE - Rodrigo ************/
+                IF  c-nom-prog-upc-mg97  <> "" OR  
+                    c-nom-prog-dpc-mg97  <> "" OR
+                    c-nom-prog-appc-mg97 <> "" THEN DO:
+                    for each tt-epc
+                        where tt-epc.cod-event = "MOEDA_ORIGEM":U exclusive-lock:
+                        delete tt-epc.
+                    end.
+     
+                    create tt-epc.
+                    assign tt-epc.cod-event = "MOEDA_ORIGEM":U.
+
+                    {include/i-epc201.i MOEDA_ORIGEM}
+
+                    find tt-epc
+                        where tt-epc.cod-event   = "MOEDA_ORIGEM":U
+                        and tt-epc.cod-parameter = "RETURN":U no-error.
+
+                    if avail tt-epc and tt-epc.val-parameter = "yes":U then
+                        assign vl-fasb = mov-ap.vl-abatimento-me.
+                END.
+                /************ GE - Rodrigo ************/
+
+                run pi-criar-movimento (input b-conta-contab-abat.ct-codigo,
+                                        input b-conta-contab-abat.sc-codigo, 
+                                        input 2,
+                                        input mov-ap.vl-abatimento,
+                                        input vl-fasb,
+                                        input b-conta-contab-abat.titulo,
+                                        input mov-ap.vl-abatimento-cmi,
+                                        input mov-ap.vl-abatimento).
+            end.
+        end.
+        &endif
+
+    end.
+end.
+
+/* Fim de Include */

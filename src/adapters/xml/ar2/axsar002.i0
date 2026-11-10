@@ -1,0 +1,48 @@
+/* Vari veis Globais */
+DEF VAR hGenXml           AS HANDLE NO-UNDO.
+
+/* Handle do BusinessContent */
+DEF VAR hBusinessContent  AS HANDLE NO-UNDO.
+
+/* Variaveis da constru‡Æo do BusinessContent Utilizando APIXML */
+DEF VAR iId                         AS INT NO-UNDO.
+DEF VAR iFirstId                    AS INT NO-UNDO.
+DEF VAR iIdItem                     AS INT NO-UNDO.
+DEF VAR iIdCurrency                 AS INT NO-UNDO.
+DEF VAR iIdBasePrice                AS INT NO-UNDO.
+DEF VAR iIdFiscalPrice              AS INT NO-UNDO.
+DEF VAR iIdLastRepositionPrice      AS INT NO-UNDO.
+DEF VAR iIdLastReceivingPrice       AS INT NO-UNDO.
+DEF VAR iIdListOfSites              AS INT NO-UNDO.
+DEF VAR iIdSiteItemCosting          AS INT NO-UNDO.
+DEF VAR iIdSite                     AS INT NO-UNDO.
+DEF VAR iIdBatchAverageCosting      AS INT NO-UNDO.
+DEF VAR iIdListOfBatchAverageCosts  AS INT NO-UNDO.
+DEF VAR iIdUnitValues               AS INT NO-UNDO.
+DEF VAR iIdOnLineCosting            AS INT NO-UNDO.
+DEF VAR iIdListOfOnLineAverageCosts AS INT NO-UNDO.
+DEF VAR iIdStandardCosting          AS INT NO-UNDO.
+DEF VAR iIdListOfStandardCosts      AS INT NO-UNDO.
+DEF VAR iIdListOfCostingSequences   AS INT NO-UNDO.
+DEF VAR iIdCostSequence             AS INT NO-UNDO.
+DEF VAR iIdItemRefence              AS INT NO-UNDO.
+DEF VAR iIdOriginalCosting          AS INT NO-UNDO.
+DEF VAR iIdBalanceCosting           AS INT NO-UNDO.
+
+/* Vari veis para armazenar valores da inicializa‡Æo do loalMessageHandler */
+DEF VAR hMessageHandler   AS HANDLE NO-UNDO.
+DEF VAR cMHReturnValue    AS CHAR   NO-UNDO. /* Retorno xmlinc/xmlloadmessagehandler.i */
+DEF VAR cGXReturnValue    AS CHAR   NO-UNDO. /* Retorno xmlinc/xmlloadgenxml.i         */
+
+/* Vari veis locais */
+DEF VAR pSendSuccess      AS LOG INITIAL YES NO-UNDO.
+DEF VAR lCREATEMsg        AS LOG             NO-UNDO.
+DEF VAR pTotalErrors      AS INT             NO-UNDO.
+DEF VAR pErrorNumber      AS INT             NO-UNDO.
+DEF VAR pErrorType        AS CHAR            NO-UNDO.
+DEF VAR pErrorDesc        AS CHAR            NO-UNDO.
+DEF VAR iCont             AS INT             NO-UNDO.
+DEF VAR iCount            AS INT             NO-UNDO.
+
+{utp/ut-glob.i}
+{cdp/cdcfgmat.i} 

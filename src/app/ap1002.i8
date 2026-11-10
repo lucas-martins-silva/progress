@@ -1,0 +1,15 @@
+/*******************************************************************************
+***
+*** app/ap1002.i8 - Atualiza‡Æo Antecipa‡Æo.
+***
+*******************************************************************************/
+
+if  avail bordero-ap then do:
+    run app/ap0521c.p (input bordero-ap.ep-codigo,
+                       input bordero-ap.nr-bordero,
+                       input bordero-ap.portador,
+                       input da-baixa,
+                       input c-seg-usuario).
+end.
+
+/* Fim de Include */

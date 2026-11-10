@@ -1,0 +1,144 @@
+{utp/ut-glob.i}
+def new global shared var v_cod_estab_usuar 
+    as character 
+    format 'x(3)' 
+    label 'emsuni.estabelecimento' 
+    column-label 'Estab' 
+    no-undo. 
+def new global shared var v_cod_idiom_usuar 
+    as character 
+    format 'x(8)' 
+    label 'emsuni.idioma' 
+    column-label 'emsuni.idioma' 
+    no-undo. 
+def new global shared var v_cod_pais_empres_usuar 
+    as character 
+    format 'x(3)' 
+    label 'Pa¡s emsuni.empresa Usu rio' 
+    column-label 'Pa¡s' 
+    no-undo. 
+def new global shared var v_cod_usuar_corren_criptog 
+    as character 
+    format 'x(16)' 
+    no-undo. 
+    
+def new global shared var v2_cod_usuar_corren 
+    as character 
+    format 'x(12)' 
+    label 'Usu rio Corrente' 
+    column-label 'Usu rio Corrente' 
+    no-undo. 
+def new global shared var v2_cod_empres_usuar 
+    as character 
+    format 'x(3)' 
+    label 'emsuni.empresa' 
+    column-label 'emsuni.empresa' 
+    no-undo. 
+def new global shared var v2_cod_estab_usuar 
+    as character 
+    format 'x(3)' 
+    label 'emsuni.estabelecimento' 
+    column-label 'Estab' 
+    no-undo. 
+def new global shared var v2_cod_idiom_usuar 
+    as character 
+    format 'x(8)' 
+    label 'emsuni.idioma' 
+    column-label 'emsuni.idioma' 
+    no-undo. 
+def new global shared var v2_cod_pais_empres_usuar 
+    as character 
+    format 'x(3)' 
+    label 'Pa¡s emsuni.empresa Usu rio' 
+    column-label 'Pa¡s' 
+    no-undo. 
+def new global shared var v2_cod_usuar_corren_criptog 
+    as character 
+    format 'x(16)' 
+    no-undo. 
+def new global shared var v2_cod_grp_usuar_lst  
+    as character  
+    label 'Grupo Usu rios'  
+    column-label 'Grupo'  
+    no-undo. 
+def var vind-sit-agrupador 
+    like wm-etiqueta.ind-sit-agrupador 
+    no-undo.
+Def Var vLogControlaLogin  
+    As Logical Init No  
+    No-undo.
+Define Variable vDesDocumento           
+    As Character  Format 'x(14)'  Init ''  
+    No-undo.
+Define Variable vCodTipoEquip           
+    As Character  Init ''  
+    No-undo.
+Define Variable vNumStatus      
+    As Integer  Init 0   
+    No-undo.
+Define Variable vQtdLeituras            
+    As Integer Init 0 
+    No-undo.
+Define Variable vDesLidos
+    As Character 
+    No-undo.
+Define Variable vLogOk                  
+    As Logical     
+    Init No  No-undo.
+Define Variable vLogAtivo
+    As Logical Init No  
+    No-undo.
+Define Variable vLogProcesso            
+    As Logical Init No  
+    No-undo.
+Define Variable vQtdPalletCarga   
+    As Integer  Init 0   
+    No-undo.
+Define Variable vNrLeitura
+    As Integer Init 1   
+    No-undo.
+DEFINE VARIABLE vtiptarefa
+    AS CHARACTER FORMAT 'x(18)':U 
+    NO-UNDO.
+DEFINE VARIABLE vdoctar  
+    AS CHARACTER 
+    NO-UNDO.
+DEFINE VARIABLE vcod-senha      
+    AS CHARACTER FORMAT 'x(18)':U
+    NO-UNDO.
+DEFINE VARIABLE vLogUtilizaColetor 
+    AS LOGICAL INIT NO  
+    NO-UNDO.
+DEFINE VARIABLE vLogAprovaFatura        
+    AS LOGICAL iNIT NO  
+    NO-UNDO.
+Define Variable wgBOSC092  
+    As Widget-handle
+    No-undo.
+Define Variable wgBOSC093
+    As Widget-handle  
+    No-undo.
+Define Variable wgBOSC095 
+    As Widget-handle  
+    No-undo.
+Define Variable wgBOSC094
+    As Widget-handle  
+    No-undo.
+Define Variable wgBOSC074 
+    As Widget-handle 
+    No-undo.
+DEFINE VARIABLE wgbcapi001 
+    AS WIDGET-HANDLE 
+    NO-UNDO.
+DEFINE VARIABLE wgbc9016f 
+    AS WIDGET-HANDLE  
+    NO-UNDO.
+Define Variable wgbosc079 
+    aS WIDGET-HANDLE
+    NO-UNDO.
+DEFINE VARIABLE wgBOSC135 
+    AS WIDGET-HANDLE 
+    NO-UNDO.     
+Define Variable IDttwm-tarefa-docto 
+    As Rowid 
+    No-undo.

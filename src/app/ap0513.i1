@@ -1,0 +1,90 @@
+/*******************************************************************************
+**
+**  Include.: AP0513.I1
+**  Objetivo: Consistˆncia das contas cont beis
+**
+*******************************************************************************/
+
+{utp/ut-liter.i Consistindo * L}
+assign c-liter-1 = trim(return-value) + ": ".
+
+do da-transacao = tt-param.dt-transac-ini to tt-param.dt-transac-fim:
+   for each diario-ap no-lock
+        where diario-ap.ep-codigo     = tt-param.i-ep-codigo
+        and   diario-ap.dt-transacao  = da-transacao
+        and   diario-ap.cod-estabel  >= tt-param.estab-ini
+        and   diario-ap.cod-estabel  <= tt-param.estab-fim
+        and   diario-ap.cod-esp      >= tt-param.espec-ini
+        and   diario-ap.cod-esp      <= tt-param.espec-fim
+        and   diario-ap.referencia   >= tt-param.refer-ini
+        and   diario-ap.referencia   <= tt-param.refer-fim
+        break by diario-ap.ct-conta
+              by diario-ap.sc-conta:
+    
+        assign i-cont = i-cont + 1.
+    
+        if  last-of(diario-ap.ct-conta)
+        or  last-of(diario-ap.sc-conta) then do:
+            find tt-conta-contab
+                where tt-conta-contab.ep-codigo = tt-param.i-ep-codigo
+                and   tt-conta-contab.ct-codigo = diario-ap.ct-conta
+                and   tt-conta-contab.sc-codigo = diario-ap.sc-conta
+                no-lock no-error.
+            if  not avail tt-conta-contab then do:
+                find conta-contab
+                    where conta-contab.ep-codigo = tt-param.i-ep-codigo
+                    and   conta-contab.ct-codigo = diario-ap.ct-conta
+                    and   conta-contab.sc-codigo = diario-ap.sc-conta
+                    no-lock no-error.
+                if  avail conta-contab then do:
+                    create tt-conta-contab.
+                    buffer-copy conta-contab to tt-conta-contab.
+                end.    
+            end.
+            
+            if  not avail tt-conta-contab then do:
+                {utp/ut-table.i mgadm conta-contab 1}
+                run utp/ut-msgs.p (input "msg",
+                                   input 56,
+                                   input return-value).
+                assign c-mensagem = return-value.
+                display diario-ap.conta-contabil
+                        c-mensagem
+                        with frame f-erros.
+                down with frame f-erros.
+                assign l-desfaz = yes.
+            end.
+            else do:
+                if  tt-conta-contab.contas-pagar = 1 then do:
+                    run utp/ut-msgs.p (input "msg",
+                                       input 905,
+                                       input " ").
+                    assign c-mensagem = return-value.
+                    display diario-ap.conta-contabil
+                            c-mensagem
+                            with frame f-erros.
+                    down with frame f-erros.
+                    assign l-desfaz = yes.
+                end.
+            end.
+        end.
+    end.
+end.
+
+{utp/ut-liter.i Contabiliza‡Æo_do_Contas_a_Pagar * C}
+assign c-titulo-relat = trim(return-value).
+
+if  l-desfaz = yes then do:
+    put skip(1).
+    run utp/ut-msgs.p (input "msg",
+                       input 2539,
+                       input " ").
+    assign c-mensagem = return-value.
+    display " " @ diario-ap.conta-contabil
+            c-mensagem
+            with frame f-erros.
+    down with frame f-erros.
+    undo main-block, leave main-block.
+end.
+
+/* AP0513.I1 */

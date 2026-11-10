@@ -1,0 +1,37 @@
+
+define temp-table tt-filtro no-undo
+    field ano-ini                   as character
+    field ano-fim                   as character
+    field periodo-ini               as character format "x(10)"
+    field periodo-fim               as character format "x(10)"
+    field cod-estabel-ini           like af-contr-indice.cod-estabel        initial ""
+    field cod-estabel-fim           like af-contr-indice.cod-estabel        initial "ZZZ"
+    field cod-emitente-ini          like af-contr-indice.cod-emitente       initial 0
+    field cod-emitente-fim          like af-contr-indice.cod-emitente       initial 999999999
+    field nr-controle-ini           like af-contr-indice.nr-controle        initial 0         
+    field nr-controle-fim           like af-contr-indice.nr-controle        initial 999999 
+    field it-codigo-ini             like af-contr-indice.it-codigo          initial ""
+    field it-codigo-fim             like af-contr-indice.it-codigo          initial "ZZZZZZZZZZZZZZZZ"
+    field cod-grp-aval-ini          like af-grp-avaliacao.cod-grp-avaliacao initial ""         
+    field cod-grp-aval-fim          like af-grp-avaliacao.cod-grp-avaliacao initial "ZZZZZZZZ" 
+    field cod-grp-resp-ini          like af-grp-responsavel.cod-grp-resp    initial ""         
+    field cod-grp-resp-fim          like af-grp-responsavel.cod-grp-resp    initial "ZZZZZZZZ" 
+    field cod-gr-forn-ini           like emitente.cod-gr-forn               initial 0
+    field cod-gr-forn-fim           like emitente.cod-gr-forn               initial 99
+    field fm-codigo-ini             like af-familia-contr.fm-codigo         initial ""         
+    field fm-codigo-fim             like af-familia-contr.fm-codigo         initial "ZZZZZZZZ" 
+    field ge-codigo-ini             like item.ge-codigo                     initial 0
+    field ge-codigo-fim             like item.ge-codigo                     initial 99
+    field classif                   as integer                              initial 1
+    field indice-nao-digitado       as logical                              initial yes  
+    field indice-digitado-calculado as logical              
+    field indice-por-item           as logical                              initial yes
+    field l-narrativa               as logical  FORMAT "Sim/NÆo"  
+    field l-descricao-item          as logical  FORMAT "Sim/NÆo"      
+    field l-detalha-itens           as logical  FORMAT "Sim/NÆo"      
+    field l-pula-linha              as logical  FORMAT "Sim/NÆo"   
+    field l-email                   as logical  FORMAT "Sim/NÆo"
+    field i-mensagem                as INTEGER.
+
+
+          

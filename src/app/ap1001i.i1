@@ -1,0 +1,42 @@
+/**************************************************************************
+**
+**  AP1001I.I1 - Registros header do banco de Boston
+**
+**************************************************************************/
+
+find first empresa where empresa.ep-codigo   = i-empresa no-lock no-error.
+assign c-cgc-emp = "".
+
+do i-cont = 1 to 19:
+   if  substr(empresa.cgc,i-cont,1) >= "0" 
+   and substr(empresa.cgc,i-cont,1) <= "9" then
+       assign c-cgc-emp = c-cgc-emp + substr(empresa.cgc,i-cont,1).
+end.
+
+/*---- Zeros a esquerda no campo CGC ----*/
+do  i-cont = 1 to 14:
+    IF  LENGTH(c-cgc-emp, "CHARACTER") < 14 THEN do:
+        assign c-cgc-emp = "0" + c-cgc-emp.
+    end.
+end.
+
+put stream relat
+    "0"                                                       at 001
+    "1"                                                       at 002
+    "REMESSA"                                                 at 003
+    "11"                                                      at 010
+    "PAGAMENTOS"                                              at 012
+    tt-param.i-conta-bos                                      at 027
+    tt-param.i-agenc-bos                                      at 038
+    fn-free-accent(caps(empresa.razao-social)) format "x(30)" at 047
+    "479"                                                     at 077
+    "BANCO DE BOSTON"                                         at 080
+    day(today)                                    format "99" at 095
+    month(today)                                  format "99" at 097
+    substr(string(year(today),"9999"),3,2)        format "99" at 099
+    tt-param.i-sequencia                      format "999999" at 389    
+    i-num-reg                                 format "999999" at 395.
+
+put stream relat skip.
+
+/* AP1001I.I1 */

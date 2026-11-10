@@ -1,0 +1,51 @@
+/***************************************************************************
+** ap1001e.i5
+** Objetivo: Gerar registro Trailer do Lote para o banco Itau.
+***************************************************************************/
+
+/* Trailer do lote */
+
+if  i-tipo-pag = 04 
+or  i-tipo-pag = 01
+or  i-tipo-pag = 03
+or  i-tipo-pag = 41
+or  i-tipo-pag = 43 
+or  i-tipo-pag = 06     
+or  i-tipo-pag = 07 then 
+   i-hea-qua = i-hea-qua * 2.
+
+assign i-lote = 1.
+
+put stream relat
+    "341"                                                             at 001
+    i-lote                                                            at 004
+    "5"                                                               at 008
+    (i-hea-qua + 2)          format "999999"                          at 018.
+    if  c-oco = "OCO" then 
+        put stream relat
+            0   format "999999999999999999"                           at 024.
+    else                
+       put stream relat
+           de-hea-val       format "999999999999999999"               at 024.
+       put stream relat
+           0                format "999999999999999999"               at 042
+            " "                                                       at 240
+           skip.
+
+
+/* Trailer do Arquivo */
+
+put stream relat
+    "341"                                                             at 001
+    "9999"                                                            at 004
+    "9"                                                               at 008
+    "000001"                                                          at 018
+    (i-hea-qua + 4)   format "999999"                                 at 024
+    " "                                                               at 240
+    skip.
+    
+
+
+/* Fim da Include */
+
+

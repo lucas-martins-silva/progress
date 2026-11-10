@@ -1,0 +1,105 @@
+define temp-table tt-param no-undo
+    FIELD l-tg-gerar-cabecalho AS LOG
+    field destino            as integer
+    field arquivo            as char format "x(35)"
+    field usuario            as char format "x(12)"
+    field data-exec          as date
+    field hora-exec          as integer
+    field todos              as integer  /** 1 = Todos / 2 = Rejeitados **/
+    field execucao           as integer
+    field dir-entrada        as char format "x(80)"
+    field arq-destino        as char format "x(80)"
+    field i-origem           as INTEGER  /** 1 = Exportação **/
+    FIELD l-atualiza         AS LOG
+    /*pag 1*/
+    field l-mab-marca               AS LOG
+    field l-mab-model               AS LOG
+    field l-mab-consu-model         AS LOG
+    field l-mmv-tempo-padr          AS LOG
+    field l-mab-ativid              AS LOG
+    field l-mab-trajeto             AS LOG
+    FIELD l-mab-caract              AS LOG
+    FIELD l-mab-comptmento          AS LOG
+    FIELD l-mab-estrut-mec          AS LOG
+    field l-mab-sist                AS LOG 
+    field l-mab-sub-sist            AS LOG 
+    field l-mab-sit-eqpto           AS LOG 
+    field l-mab-grp-eqpto           AS LOG 
+    field l-mab-eqpto-sub-sist      AS LOG 
+    field l-mab-posto               AS LOG 
+    field l-mab-bomba               AS LOG 
+    field l-mab-tip-mater           AS LOG 
+    field l-mab-tip-mater-item      AS LOG 
+    field l-mab-grp-event           AS LOG 
+    field l-mab-event               AS LOG 
+    FIELD l-mab-motoris             AS LOG
+    FIELD l-mab-motoris-model       AS LOG
+    FIELD l-mab-integr-cargo        AS LOG
+    /*pag 2*/                      
+    field l-mmv-param               AS LOG 
+    field l-mmv-ofici               AS LOG 
+    field l-mmv-setor-ofici         AS LOG 
+    field l-mmv-func-ofici          AS LOG 
+    field l-mmv-plandor             AS LOG 
+    field l-mmv-plano-prevent       AS LOG 
+    field l-mmv-tar-plano           AS LOG 
+    field l-mmv-tar-plano-item      AS LOG 
+    field l-mmv-tar-plano-epi       AS LOG 
+    field l-mmv-tar-plano-ferram    AS LOG 
+    FIELD l-mmv-tar-plano-ficha     AS LOG
+    field l-mmv-tar-plano-esp       AS LOG 
+    field l-mmv-tar-plano-esp-curso AS LOG 
+    field l-mi-espec                AS LOG
+    field l-mi-curso-trein          AS LOG
+    field l-mi-turno                AS LOG
+    field l-mi-turno-ciclo          AS LOG
+    field l-mmv-func-turno          AS LOG
+    field l-mmv-func-curso-trein    AS LOG
+    field l-mmv-func-especialid     AS LOG
+    /*pag 3*/                      
+    field l-mpn-param               AS LOG 
+    field l-mpn-tip-borracha        AS LOG 
+    field l-mpn-medid               AS LOG 
+    field l-mpn-pos-pneu            AS LOG 
+    field l-mpn-layout              AS LOG 
+    field l-mpn-layout-eixo-pos     AS LOG 
+    field l-mpn-ambien-trab         AS LOG 
+    field l-mpn-serv                AS LOG  
+    field l-mpn-tip-serv            AS LOG  
+    field l-mpn-desen               AS LOG  
+    FIELD l-mpn-km-esperad          AS LOG  
+    field l-mpn-model               AS LOG 
+    field l-mpn-pneu                AS LOG 
+    field l-mpn-histor-vida         AS LOG 
+    /*pag 4*/                       
+    field l-mco-compon              AS LOG 
+    field l-mco-histor-vida         AS LOG 
+    field l-mco-plano-compon        AS LOG 
+    field l-mab-tab-restdo          AS LOG
+    field l-mab-restdo-tab          AS LOG
+    field l-mao-ensaio              AS LOG
+    field l-mao-ensaio-padr         AS LOG
+    field l-mab-usuar-frota         AS LOG
+    field l-mab-usuar-estab         AS LOG
+    FIELD l-mnd-proces-administ     AS LOG
+    field l-mgf-param               AS LOG
+    FIELD l-mgf-event-param         AS LOG 
+    field l-mgf-event-grp-eqpto     AS LOG 
+    field l-mgf-grp-estoq           AS LOG 
+    /*pag 5*/                      
+    field l-mab-eqpto               AS LOG
+    field l-mab-histor-ativid       AS LOG 
+    field l-mab-histor-combust      AS LOG 
+    field l-mab-eqpto-caract        AS LOG 
+    field l-mab-comptmento-eqpto    AS LOG 
+    field l-mab-period-manut        AS LOG 
+    field l-mab-configur-eixo       AS LOG 
+    field l-mab-programac-event     AS LOG 
+    field l-mmv-eqpto-plano         AS LOG 
+    field l-mgf-eqpto-implto        AS LOG 
+    FIELD l-mpn-histor-layout-eixo  AS LOG 
+    field l-mpn-eqpto-serv          AS LOG 
+    field l-mpn-hora-estimad        AS LOG 
+    FIELD l-mmv-grp-eqpto           AS LOG 
+    FIELD l-mmv-eqpto-grp-eqpto     AS LOG
+    FIELD l-mab-relac-eqpto-sub-sist AS LOG.

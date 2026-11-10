@@ -1,0 +1,54 @@
+/************************************************************** 
+* AF0502.i2 Impress∆o das notas para Excel
+*
+**************************************************************/
+
+/* Inicio -- Projeto Internacional */
+{utp/ut-liter.i "Tipo;Est;Data_÷ndice;Fornecedor;Nome_Fornecedor;Item;Descriá∆o_Item;Ponto_Controle;Descriá∆o_Ponto_Controle" *}
+put unformatted RETURN-VALUE + ";".
+/* Inicio -- Projeto Internacional */
+{utp/ut-liter.i "÷ndice;Percentual;Nota" *}
+put unformatted RETURN-VALUE skip.      
+
+FOR EACH tt-notas where
+         tt-notas.tipo = "TF"
+   break by tt-notas.cod-estabel
+         by tt-notas.dt-indice-fim
+         {1}
+         {2}:
+
+    {afp/af0502.i3 "tt-notas"}
+      
+    /* Detalhamento dos pontos de controle do fornecedor*/
+    if tt-param.l-detalha-controle-fornecedor then do:
+        for each b-tt-notas
+           where b-tt-notas.dt-indice-fim = tt-notas.dt-indice-fim
+             and b-tt-notas.cod-estabel = tt-notas.cod-estabel
+             and b-tt-notas.cod-emitente = tt-notas.cod-emitente
+             and b-tt-notas.tipo = "DF":
+            {afp/af0502.i3 "b-tt-notas"}
+        end.
+    end.
+    /* Itens dos pontos de controle do fornecedor */
+    if tt-param.l-detalha-itens then do:
+        for each b-tt-notas
+           where b-tt-notas.dt-indice-fim = tt-notas.dt-indice-fim
+             and b-tt-notas.cod-estabel = tt-notas.cod-estabel
+             and b-tt-notas.cod-emitente = tt-notas.cod-emitente
+             and b-tt-notas.tipo = "TI":
+            {afp/af0502.i3 "b-tt-notas"}
+        
+            /* ÷ndices detalhados */
+            if tt-param.l-detalha-controle-item then do:
+                for each b1-tt-notas
+                   where b1-tt-notas.dt-indice-fim = b-tt-notas.dt-indice-fim
+                     and b1-tt-notas.cod-estabel = b-tt-notas.cod-estabel
+                     and b1-tt-notas.cod-emitente = b-tt-notas.cod-emitente
+                     and b1-tt-notas.it-codigo = b-tt-notas.it-codigo
+                     and b1-tt-notas.tipo = "DE":
+                    {afp/af0502.i3 "b1-tt-notas"}
+                end.
+            end.
+         end.
+    end.
+end.

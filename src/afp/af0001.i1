@@ -1,0 +1,79 @@
+/******************************************************************************** 
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/******************************************************************************
+**
+** Include: af0001.i - Defini‡äes das Temp table para gera‡Æo dos
+**    relacionamentos: af-familia-contr af-item-contr af-item-contr-estab            
+**
+*******************************************************************************/
+
+/******************************Defini‡Æo de Temp Table ****************************/
+
+    DEF TEMP-TABLE tt-param
+        FIELD destino              AS INTEGER
+        FIELD arquivo              AS CHAR
+        FIELD usuario              AS CHAR FORMAT "x(12)"
+        FIELD data-exec            AS DATE
+        FIELD hora-exec            AS INTEGER
+        FIELD dDemerito            LIKE af-familia-contr.demerito
+        FIELD dVarMin              LIKE af-familia-contr.nr-dia-min
+        FIELD dVarMax              LIKE af-familia-contr.nr-dia-max
+        FIELD cIniFamilia          LIKE af-familia-contr.fm-codigo
+        FIELD cEndFamilia          LIKE af-familia-contr.fm-codigo
+        FIELD cIniItem             LIKE af-item-contr.it-codigo
+        FIELD cEndItem             LIKE af-item-contr.it-codigo
+        FIELD dtIniImplantItem     LIKE item.data-implant
+        FIELD dtEndImplantItem     LIKE item.data-implant
+        FIELD cIniEstab            LIKE af-item-contr-estab.cod-estabel
+        FIELD cEndEstab            LIKE af-item-contr-estab.cod-estabel
+        FIELD cIniFornec           LIKE af-familia-contr.cod-emitente
+        FIELD cEndFornec           LIKE af-familia-contr.cod-emitente
+        FIELD dtIniImplantForn     LIKE emitente.data-implant
+        FIELD dtEndImplantForn     LIKE emitente.data-implant
+        FIELD lFamilia             AS LOG
+        FIELD lItem                AS LOG
+        FIELD lItemEstab           AS LOG
+        FIELD lQualidade           AS LOG
+        FIELD lQuantidade          AS LOG
+        FIELD lPreco               AS LOG
+        FIELD lDataEntrega         AS LOG
+        FIELD log-considera-qtd-receb like af-familia-contr.log-considera-qtd-receb
+        FIELD log-considera-val-receb like af-familia-contr.log-considera-val-receb
+        FIELD pct-qtd-min          like af-familia-contr.pct-qtd-min
+        FIELD pct-qtd-max          like af-familia-contr.pct-qtd-max
+        FIELD pct-val-min          like af-familia-contr.pct-val-min
+        FIELD pct-val-max          like af-familia-contr.pct-val-max
+        FIELD i-ge-codigo-ini      like item.ge-codigo
+        FIELD i-ge-codigo-fim      like item.ge-codigo
+        FIELD i-cod-gr-forn-ini    like emitente.cod-gr-forn
+        FIELD i-cod-gr-forn-fim    like emitente.cod-gr-forn
+        FIELD lapenasitemfornec    as log
+        FIELD lapenasordemcompra   as log
+        FIELD l-item-ativo         as log
+        FIELD l-fornecedor-ativo   as log
+        FIELD da-oc-ini            as DATE FORMAT "99/99/9999"
+        FIELD da-oc-fin            as DATE FORMAT "99/99/9999"
+        field cod-grp-aval         as character format "x(8)"
+        field assume-grp-aval      as logical
+        field nr-versao-grp-avaliacao like af-familia-contr.nr-versao-grp-avaliacao
+        field l-cria-versao        as logical
+        field nr-versao          like af-familia-contr.nr-versao.
+        
+        
+    DEF TEMP-TABLE tt-digita
+        FIELD nr-controle               LIKE af-item-contr-form.nr-controle
+        FIELD descricao                 LIKE af-controle.descricao
+        FIELD percentual                LIKE af-item-contr-form.percentual
+        FIELD cod-grp-responsavel       LIKE Af-grp-avaliacao.cod-grp-avaliacao.
+                                       
+    def temp-table tt-raw-digita
+       field raw-digita      as raw.
+    
+/* Fim da include */
+

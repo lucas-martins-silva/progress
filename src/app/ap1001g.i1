@@ -1,0 +1,103 @@
+/**************************************************************************
+**
+**  AP1001G.I1
+**  Objetivo : Registro Header de Arquivo - Tipo "0" (BANRISUL).
+**
+**************************************************************************/
+
+find first empresa 
+     where empresa.ep-codigo = i-ep-codigo-usuario 
+     no-lock no-error.
+
+find first portador 
+     where portador.ep-codigo    = i-ep-codigo-usuario 
+     and   portador.cod-portador = i-portador 
+     and   portador.modalidade   = 1
+     no-lock no-error.
+
+find first cta-corrente
+     where cta-corrente.cod-banco    = portador.cod-banco
+     and   cta-corrente.agencia      = portador.agencia
+     and   cta-corrente.conta-corren = portador.conta-corren
+     no-lock no-error.
+
+find first banco 
+     where banco.cod-banco = portador.cod-banco 
+     no-lock no-error.
+
+assign c-cgc-emp = "".
+
+do i-cont = 1 to 19:
+   if  substr(empresa.cgc,i-cont,1) >= "0" and
+       substr(empresa.cgc,i-cont,1) <= "9" then
+       assign c-cgc-emp = c-cgc-emp + substr(empresa.cgc,i-cont,1).
+end.
+
+
+/*----------------- Registro Header de Arquivo - Tipo "0" ------------------*/
+put stream relat
+    "041"                                                               at 001
+    "0000"                                                              at 004
+    "0"                                                                 at 008
+    "2"                                                                 at 018
+    dec(c-cgc-emp)                              format "99999999999999" at 019
+    dec(substr(string(tt-param.i-convenio,"999999"), 02,5))   
+                                                format "99999"          at 033
+    "00"                                                                at 053
+    substr(cta-corrente.agencia-extrato,  04,3) format "999"            at 055
+    "0000"                                                              at 058    
+    substr(trim(cta-corrente.conta-corren-extr), length(trim(cta-corrente.conta-corren-extr)) - 9, 10) 
+                                                format "9999999999"     at 062
+    "0"                                                                 at 072
+    fn-free-accent(caps(empresa.razao-social))  format "x(30)"          at 073    
+    fn-free-accent(caps(banco.nome-banco))      format "x(30)"          at 103
+    "1"                                                                 at 143
+    day(today)                                  format "99"             at 144
+    month(today)                                format "99"             at 146
+    year(today)                                 format "9999"           at 148
+    substr(string(time,"HH:MM:SS"),1,2)         format "99"             at 152
+    substr(string(time,"HH:MM:SS"),4,2)         format "99"             at 154
+    substr(string(time,"HH:MM:SS"),7,2)         format "99"             at 156
+    tt-param.i-sequencia                        format "999999"         at 158
+    "020"                                                               at 164
+    "01600"                                                             at 167
+    c-branco                                    format "x(69)"          at 172
+    skip.    
+
+/*------------------- Registro Header de Lote - Tipo "1" --------------------*/
+put stream relat
+    "041"                                                               at 001
+    "0001"                                                              at 004
+    "1"                                                                 at 008
+    "C"                                                                 at 009.
+
+    if  tt-param.i-tipo-pag = 83 then
+        put stream relat
+            "12"                                                          at 010
+            03                                          format "99"       at 012.
+    else 
+        put stream relat
+            "20"                                                          at 010
+            tt-param.i-tipo-pag                         format "99"       at 012.
+
+put stream relat
+    "020"                                                               at 014
+    "2"                                                                 at 018
+    dec(c-cgc-emp)                              format "99999999999999" at 019
+    dec(substr(string(tt-param.i-convenio,"999999"), 02,5))   
+                                                format "99999"          at 033
+    "00"                                                                at 053  
+    substr(cta-corrente.agencia-extrato,  04,3) format "999"            at 055
+    "0000"                                                              at 058
+    substr(trim(cta-corrente.conta-corren-extr), length(trim(cta-corrente.conta-corren-extr)) - 9, 10) 
+                                                format "9999999999"     at 062    
+    fn-free-accent(caps(empresa.razao-social))  format "x(30)"          at 073        
+    fn-free-accent(caps(empresa.endereco))      format "x(30)"          at 143
+    "00000"                                                             at 173
+    fn-free-accent(caps(empresa.cidade))        format "x(20)"          at 193
+    empresa.cep                                 format "99999999"       at 213
+    empresa.uf                                  format "!!"             at 221
+    c-branco                                    format "x(18)"          at 223
+    skip.
+
+/* ap1001g.i1 */

@@ -1,0 +1,38 @@
+if i-cod-fornec-ini = i-cod-fornec-fim then
+    open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+               where {&TABLE-NAME}.ep-codigo     = i-empresa         and
+                     {&TABLE-NAME}.cod-fornec    = i-cod-fornec-ini  AND 
+                     {&TABLE-NAME}.dt-vencimen  >= d-dt-vencimen-ini AND
+                     {&TABLE-NAME}.dt-vencimen  <= d-dt-vencimen-fim AND
+                     {&TABLE-NAME}.nr-docto     >= c-nr-docto-ini    AND
+                     {&TABLE-NAME}.nr-docto     <= c-nr-docto-fim    and
+                     mov-ap.transacao            = 2                 and
+                     mov-ap.contabilizou         = no                          
+                     by {&TABLE-NAME}.{1} INDEXED-REPOSITION.
+else do:
+    if d-dt-vencimen-ini = d-dt-vencimen-fim then
+        open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+                   where {&TABLE-NAME}.ep-codigo     = i-empresa         AND
+                         {&TABLE-NAME}.dt-vencimen   = d-dt-vencimen-ini AND
+                         {&TABLE-NAME}.cod-fornec   >= i-cod-fornec-ini  AND 
+                         {&TABLE-NAME}.cod-fornec   <= i-cod-fornec-fim  AND
+                         {&TABLE-NAME}.nr-docto     >= c-nr-docto-ini    AND
+                         {&TABLE-NAME}.nr-docto     <= c-nr-docto-fim    AND
+                         mov-ap.transacao            = 2                 AND
+                         mov-ap.contabilizou         = no                          
+                         by {&TABLE-NAME}.{1} INDEXED-REPOSITION.
+    else
+        open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock 
+                   where {&TABLE-NAME}.ep-codigo     = i-empresa         and
+                         {&TABLE-NAME}.cod-fornec   >= i-cod-fornec-ini  AND 
+                         {&TABLE-NAME}.cod-fornec   <= i-cod-fornec-fim  AND
+                         {&TABLE-NAME}.dt-vencimen  >= d-dt-vencimen-ini AND
+                         {&TABLE-NAME}.dt-vencimen  <= d-dt-vencimen-fim AND
+                         {&TABLE-NAME}.nr-docto     >= c-nr-docto-ini    AND
+                         {&TABLE-NAME}.nr-docto     <= c-nr-docto-fim    and
+                         mov-ap.transacao            = 2                 and
+                         mov-ap.contabilizou         = no                          
+                         by {&TABLE-NAME}.{1} INDEXED-REPOSITION.
+end.
+
+

@@ -1,0 +1,93 @@
+/*******************************************************************************
+**
+**  Include.: AP0511.I1
+**  Objetivo: ImpressÆo da parametriza‡Æo utilizada no relat¢rio
+**
+*******************************************************************************/
+
+{utp/ut-liter.i SELE€ÇO * C}
+assign c-text-6 = trim(return-value).
+{utp/ut-liter.i PAR¶METROS * C}
+assign c-text-8 = trim(return-value).
+{utp/ut-liter.i IMPRESSÇO * C}
+assign c-text-9 = trim(return-value).
+
+{utp/ut-field.i mgadm emite-ap cod-fornec 1}
+assign tt-param.for-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm che-emit nr-docto 1}
+assign tt-param.num-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm che-emit dt-emissao 1}
+assign tt-param.dat-ini:label in frame f-parametros = return-value.
+{utp/ut-field.i mgadm che-emit nr-cheque 1}
+assign tt-param.cheque-ini:label in frame f-parametros = return-value. 
+
+       
+{utp/ut-liter.i Portador * C}
+assign tt-param.portador:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Lay_out * C}
+assign tt-param.banco:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i ReemissÆo * C}
+assign tt-param.reemissao:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Testa_formul rio * C}
+assign tt-param.formulario:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Gera_c¢pia_de_cheques * C}
+assign tt-param.gerar:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Imprime_Hist¢rico * C}
+assign tt-param.imp-hist:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i C¢pias_por_p ginas * C}
+assign tt-param.text-quant:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Arquivo_para_c¢pia * C}
+assign tt-param.copia:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Listar_cidade * C}
+assign tt-param.list-text:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Impressora * C}
+assign tt-param.text-colum:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Formul rio * C}
+assign tt-param.text-imp:label in frame f-parametros  = trim(return-value).
+
+{utp/ut-liter.i Usu rio * C}
+assign tt-param.usuario:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Destino * C}
+assign c-destino:label in frame f-parametros = trim(return-value)
+       c-destino = {varinc/var00002.i 04 tt-param.destino}.
+
+if  page-number > 0 then page.
+
+display c-text-6
+        tt-param.for-ini
+        tt-param.for-fim 
+        tt-param.num-ini
+        tt-param.num-fim
+        tt-param.dat-ini
+        tt-param.dat-fim
+        tt-param.cheque-ini
+        tt-param.cheque-fim
+        c-text-8
+        tt-param.portador
+        tt-param.banco
+        tt-param.text-quant
+        tt-param.copia
+        tt-param.list-text
+        tt-param.text-colum
+        tt-param.text-imp
+        c-text-9
+        c-destino
+        " - ":U
+        tt-param.arquivo
+        tt-param.usuario
+        with frame f-parametros.
+
+do  with frame f-parametros:
+    if  tt-param.reemissao = yes then {utp/ut-liter.i Sim * C} else {utp/ut-liter.i NÆo * C}.
+    disp trim(return-value) @ tt-param.reemissao.
+    if  tt-param.formulario = yes then {utp/ut-liter.i Sim * C} else {utp/ut-liter.i NÆo * C}.
+    disp trim(return-value) @ tt-param.formulario.
+    if  tt-param.gerar = yes then {utp/ut-liter.i Sim * C} else {utp/ut-liter.i NÆo * C}.
+    disp trim(return-value) @ tt-param.gerar.
+    if  tt-param.imp-hist = yes then {utp/ut-liter.i Sim * C} else {utp/ut-liter.i NÆo * C}.
+    disp trim(return-value) @ tt-param.imp-hist.
+end.
+
+down with frame f-parametros.
+
+/* AP0509.I2 */

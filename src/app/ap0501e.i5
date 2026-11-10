@@ -1,0 +1,99 @@
+/*****************************************************************************
+**
+** app/ap0501e.i5 - Estat¡stica
+**
+*****************************************************************************/
+            
+if  avail lin-i-ap then do:
+            
+    if  espec-ap.atual-estat = yes then do:
+                    
+        find first tit-ap use-index codigo
+             where tit-ap.ep-codigo   = lin-i-ap.ep-codigo
+             and   tit-ap.cod-estabel = lin-i-ap.cod-estabel
+             and   tit-ap.cod-esp     = lin-i-ap.cod-esp
+             and   tit-ap.serie       = lin-i-ap.serie
+             and   tit-ap.nr-docto    = lin-i-ap.nr-docto
+             and   tit-ap.parcela     = lin-i-ap.parcela
+             and   tit-ap.cod-fornec  = lin-i-ap.cod-fornec 
+             no-lock no-error. 
+                    
+        if  avail tit-ap then do:
+               
+            find est-ap where est-ap.cod-fornec = tit-ap.cod-fornec exclusive-lock no-error.
+            if  not avail est-ap then do:                      
+                create est-ap.
+                assign est-ap.cod-fornec   = tit-ap.cod-fornec
+                       est-ap.vl-maior-doc = tit-ap.vl-original
+                       est-ap.dt-maior-doc = tit-ap.dt-emissao
+                       est-ap.vl-ult-docto = tit-ap.vl-original
+                       est-ap.dt-ult-doc   = tit-ap.dt-emissao.
+            end.
+            else do:
+                       
+                assign de-tit-ap    = tit-ap.vl-original 
+                       de-maior-tit = est-ap.vl-maior-doc.
+                       
+                if  de-tit-ap >= de-maior-tit then
+                    assign est-ap.vl-maior-doc = tit-ap.vl-original
+                           est-ap.dt-maior-doc = tit-ap.dt-emissao.
+                        
+                if  tit-ap.dt-emissao >= est-ap.dt-ult-doc then
+                    assign est-ap.vl-ult-docto = tit-ap.vl-original
+                           est-ap.dt-ult-doc   = tit-ap.dt-emissao.
+            end.
+                    
+            run pi-create.
+                
+        end.
+    end.
+end.
+
+Procedure pi-create.
+
+    if  not avail emitente then         
+        find first emitente no-lock
+             where emitente.identific <> 1
+             and   emitente.cod-emite  = lin-i-ap.cod-fornec no-error.
+            
+    if  avail emitente then do:
+            
+        assign da-estat = date(month(tit-ap.dt-transacao),1, year(tit-ap.dt-transacao)).
+            
+        find first emit-estat
+             where emit-estat.cod-gr-emit   = emitente.cod-gr-forn
+             and   emit-estat.cod-emitente  = emitente.cod-emitente
+             and   emit-estat.data          = da-estat
+             exclusive-lock no-error.
+    
+        if  not avail emit-estat then do:                      
+            create emit-estat.
+            assign emit-estat.cod-gr-emit  = emitente.cod-gr-for
+                   emit-estat.cod-emitente = emitente.cod-emiten
+                   emit-estat.data         = da-estat.                        
+        end.
+            
+        assign emit-estat.vl-compras = emit-estat.vl-compras + tit-ap.vl-original.
+                
+        if  de-soma > tit-ap.vl-original then do:
+            assign emit-estat.vl-tot-pago =
+                   emit-estat.vl-tot-pago + tit-ap.vl-original.
+            assign emit-estat.valor-pago  =
+                   emit-estat.valor-pago  + fn_ajust_dec((((lin-i-ap.dt-emissao
+                                          - tit-ap.dt-vencimen)
+                                          *  tit-ap.vl-original)),0).    
+        end.                                                       
+        else do:
+            assign emit-estat.vl-tot-pago =
+                   emit-estat.vl-tot-pago + de-soma.
+            assign emit-estat.valor-pago  = emit-estat.valor-pago
+                                          + fn_ajust_dec((((lin-i-ap.dt-emissao
+                                          - tit-ap.dt-vencimen)
+                                          *  de-soma)),0).
+        end.  
+        
+        release emit-estat no-error.
+            
+    end.
+            
+end procedure.

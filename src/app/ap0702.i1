@@ -1,0 +1,187 @@
+/**********************************************************************
+**
+**  AP0702.I1 - FOR EACH CHE-EMIT com BREAK BY NOS CAMPOS {1}
+**
+**********************************************************************/
+
+for each  portador no-lock
+    where portador.ep-codigo     = tt-param.i-ep-codigo
+    and   portador.cod-portador >= tt-param.i-ini-portador
+    and   portador.cod-portador <= tt-param.i-fim-portador
+    and   portador.modalidade    = 1:
+    
+    for each  che-emit 
+        where che-emit.ep-codigo    = portador.ep-codigo
+        and   che-emit.portador     = portador.cod-portador
+        and   che-emit.cod-estab   >= tt-param.c-ini-estabel
+        and   che-emit.cod-estab   <= tt-param.c-fim-estabel
+        and   che-emit.dt-emissao  >= tt-param.dt-ini-emissao
+        and   che-emit.dt-emissao  <= tt-param.dt-fim-emissao
+        and   che-emit.dt-vencto   >= tt-param.dt-ini-vencto
+        and   che-emit.dt-vencto   <= tt-param.dt-fim-vencto
+        and   che-emit.nr-cheque   >= tt-param.de-ini-cheque
+        and   che-emit.nr-cheque   <= tt-param.de-fim-cheque
+        and   che-emit.referencia  >= tt-param.c-ini-referencia
+        and   che-emit.referencia  <= tt-param.c-fim-referencia
+        and   che-emit.nr-cheque   <> 0 
+        no-lock
+        break by che-emit.ep-codigo  
+              by che-emit.portador
+              by che-emit.nr-cheque  
+              {1}
+              by che-emit.cod-fornec 
+              by che-emit.cod-estabel
+              by che-emit.cod-esp    
+              by che-emit.serie
+              by che-emit.nr-docto   
+              by che-emit.parcela:
+                  
+                  
+        assign i-cont = i-cont + 1.
+    
+        if  i-cont mod 100 = 0 then
+            run pi-acompanhar in h-acomp (input string(i-cont)).
+        
+        if  first-of(che-emit.portador) then do:
+            disp c-portador
+                 che-emit.portador
+                 portador.nome-abrev
+                 with frame f-port.
+            find first cta-corrente of portador no-lock no-error.
+            if  avail cta-corrente then do:
+                assign ct-conta = cta-corrente.conta-saldo.     
+            end.
+        end.
+        
+        if  che-emit.transacao = 3 then
+            assign c-transacao = "PEF".
+        else 
+            if  che-emit.transacao = 4 then
+                assign c-transacao = "PEC".
+             else 
+                if  che-emit.transacao = 2 then
+                    assign c-transacao = "BND".
+                  else 
+                      if  che-emit.transacao = 1
+                          then assign c-transacao = "IMD".     
+         
+         
+        find tt-emitente
+            where tt-emitente.t-cod-emit = che-emit.cod-fornec
+            and   tt-emitente.t-identific <> 1 no-lock no-error.
+        if  not avail tt-emitente then do:
+            find emitente
+                where emitente.cod-emit   = che-emit.cod-fornec
+                and   emitente.identific <> 1 no-lock no-error.
+            if avail emitente then do:    
+                    create tt-emitente.
+                    assign tt-emitente.t-cod-emit   = che-emit.cod-fornec
+                           tt-emitente.t-identific  = emitente.identific
+                           tt-emitente.t-nome-abrev = emitente.nome-abrev.
+            end.               
+        end.
+        
+        if  avail tt-emitente then
+            disp tt-emitente.t-nome-abrev @ emitente.nome-abrev with frame f-cab-lista.
+        else    
+            disp c-nao-cad format "x(15)" @ emitente.nome-abrev with frame f-cab-lista. 
+                        
+        assign c-lanca = (if che-emit.transacao = 4 then "CR" else "DB").
+                
+        disp c-transacao     
+             che-emit.referencia  
+             che-emit.cod-fornec  
+             che-emit.cod-estabel 
+             che-emit.cod-esp  
+             che-emit.serie    
+             che-emit.nr-docto 
+             che-emit.parcela  
+             che-emit.nr-cheque
+             che-emit.dt-emissao
+             che-emit.dt-vencto
+             che-emit.literal
+             che-emit.valor-docto
+             c-lanca   
+             che-emit.conta-debito
+             ct-conta
+             che-emit.cancelado
+             with frame f-cab-lista.
+        down with frame f-cab-lista.
+    
+        if  l-lista
+        and che-emit.transacao <> 2
+        and che-emit.transacao <> 1 then do:
+            if  che-emit.historico = "" then do:
+                find first mov-ap 
+                    where mov-ap.ep-codigo    = tt-param.i-ep-codigo
+                    and   mov-ap.dt-transacao = che-emit.dt-emissao
+                    and   mov-ap.cod-estabel  = che-emit.cod-estabel
+                    and   mov-ap.cod-esp      = che-emit.cod-esp
+                    and   mov-ap.serie        = che-emit.serie
+                    and   mov-ap.nr-docto     = che-emit.nr-docto
+                    and   mov-ap.parcela      = che-emit.parcela
+                    and   mov-ap.cod-fornec   = che-emit.cod-fornec
+                    and   mov-ap.ct-conta     = che-emit.ct-conta
+                    and   mov-ap.sc-conta     = che-emit.sc-conta
+                    and  (mov-ap.transacao    = 3
+                    or    mov-ap.transacao    = 4)
+                    and   mov-ap.portador     = che-emit.portador
+                    and   mov-ap.nr-cheque    = che-emit.nr-cheque
+                    and   mov-ap.valor-mov    = che-emit.valor-docto
+                    and   mov-ap.referencia   = che-emit.referencia
+                    no-lock no-error.
+                
+                if  avail mov-ap and mov-ap.historico <> " " then do:
+                    disp mov-ap.historico 
+                         with frame f-historico.
+                    down with frame f-historico.
+                end.
+                else do:
+                    disp che-emit.historico @ mov-ap.historico
+                         with frame f-historico.
+                end.
+            end.
+            else do:
+                disp che-emit.historico @ mov-ap.historico
+                with frame f-historico.
+            end.    
+        end.
+        
+        if  che-emit.cancelado = no then do:
+            assign de-tot-che = if  che-emit.transacao = 4 then
+                                    de-tot-che - che-emit.valor-docto
+                                else 
+                                    de-tot-che + che-emit.valor-docto
+    
+                   de-tot-por = if  che-emit.transacao = 4 then
+                                    de-tot-por - che-emit.valor-docto
+                                else 
+                                    de-tot-por + che-emit.valor-docto
+                                    
+                   de-tot-ger = if  che-emit.transacao = 4 then
+                                    de-tot-ger - che-emit.valor-docto
+                                else 
+                                    de-tot-ger + che-emit.valor-docto.
+        end.
+        
+        assign l-imp-cheque = no.
+        
+        if  last-of(che-emit.portador) then do:
+            disp c-total-cheque
+                 de-tot-che     with frame f-tot-che.
+            disp c-total-portador
+                 de-tot-por with frame f-tot-por.
+            assign de-tot-che   = 0
+                   de-tot-por   = 0
+                   l-imp-cheque = yes.
+        end.
+
+        if  last-of(che-emit.nr-cheque) and l-imp-cheque = no then do:
+            disp c-total-cheque
+                 de-tot-che with frame f-tot-che.
+            assign de-tot-che = 0.
+        end.
+    end.
+end.
+
+/* AP0702.I1 */

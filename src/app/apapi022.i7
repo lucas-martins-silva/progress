@@ -1,0 +1,62 @@
+/*********************************************************************************
+***
+*** app/apapi022.i7 - Atualiza‡Æo de Previsäes.
+***
+*********************************************************************************/
+
+find first tt-log-tit-ap no-lock no-error.
+if not avail tt-log-tit-ap then do:
+
+   find mov-ap where rowid(mov-ap) = row-mov-ap no-lock no-error.
+   if avail mov-ap then do:
+   
+      assign l-tem-previsao = no. 
+      for each tt-previsao use-index codigo where
+               tt-previsao.ep-codigo  = tt-antecip.ep-codigo   and
+               tt-previsao.estab-ant  = tt-antecip.cod-estabel and
+               tt-previsao.cod-fornec = tt-antecip.cod-fornec  and
+               tt-previsao.esp-ant    = tt-antecip.cod-esp     and
+               tt-previsao.docto-ant  = tt-antecip.nr-docto    and
+               tt-previsao.parc-ant   = tt-antecip.parcela     and
+               tt-previsao.vl-utlzdo  <> 0 no-lock:
+          
+         find tit-ap use-index codigo where 
+              tit-ap.ep-codigo   = tt-previsao.ep-codigo   and 
+              tit-ap.cod-estabel = tt-previsao.cod-estabel and 
+              tit-ap.cod-esp     = tt-previsao.cod-esp     and 
+              tit-ap.serie       = tt-previsao.serie       and 
+              tit-ap.cod-fornec  = tt-previsao.cod-fornec  and 
+              tit-ap.nr-docto    = tt-previsao.nr-docto    and 
+              tit-ap.parcela     = tt-previsao.parcela no-lock no-error.
+              
+         if avail tit-ap then do:        
+            assign l-tem-previsao = yes.
+           
+            create l-pre-ap.
+            assign l-pre-ap.ep-codigo      = tt-antecip.ep-codigo   
+                   l-pre-ap.cod-estabel    = tt-antecip.cod-estabel 
+                   l-pre-ap.cod-fornec     = tt-antecip.cod-fornec  
+                   l-pre-ap.cod-esp        = tt-antecip.cod-esp     
+                   l-pre-ap.serie          = tt-antecip.serie       
+                   l-pre-ap.nr-docto       = tt-antecip.nr-docto    
+                   l-pre-ap.parcela        = tt-antecip.parcela 
+                   l-pre-ap.cod-est-pre    = tt-previsao.cod-estabel
+                   l-pre-ap.cod-esp-pre    = tt-previsao.cod-esp    
+                   l-pre-ap.serie-pre      = tt-previsao.serie      
+                   l-pre-ap.nr-docto-pre   = tt-previsao.nr-docto   
+                   l-pre-ap.parcela-pre    = tt-previsao.parcela.
+            assign l-pre-ap.vl-previsao    = fn_ajust_dec((tt-previsao.vl-utlzdo * tit-ap.cotacao-dia), tt-antecip.moeda)
+                   l-pre-ap.vl-previsao-me = fn_ajust_dec(tt-previsao.vl-utlzdo, tt-antecip.moeda)
+                   l-pre-ap.log-1          = no. /* Zera saldo da Previsao? */
+            release l-pre-ap.       
+
+            run app/ap0502d.p (input  row-mov-ap,
+                               output r-row-ava-prev,      
+                               output r-row-ava-prev-zera).
+   
+         end.            
+      end.
+   end.
+end.
+
+/* fim app/apapi022.i7 */

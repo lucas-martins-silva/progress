@@ -1,0 +1,59 @@
+PROCEDURE pi-cria-ttAdi:
+
+    /*
+    === ttAdi ===
+    nDI            AS CHARACTER INITIAL ?  /*campo para ligaá∆o com a ttDI*/
+    cFabricante    AS CHARACTER INITIAL ?  /*C¢digo do fabricante estrangeiro (usado nos sistemas internos de informaá∆o do emitente da NF-e)*/
+    nAdicao        AS CHARACTER INITIAL ?  /*N£mero da Adiá∆o*/
+    nSeqAdic       AS CHARACTER INITIAL ?  /*N£mero seqÅencial do item dentro da Adiá∆o*/
+    vDescDI        AS DECIMAL   INITIAL ?  /*Valor do desconto do item da DI - adiá∆o*/
+    nDraw          AS CHARACTER INITIAL ?  /*N£mero do ato concess¢rio de Drawback*/
+    */
+
+    /*
+    PENDENCIA COMEX - CAMPO item-docto-estoq-nfe-imp.cod-livre-1 NAO E ALIMENTADO NO IM7777 QDO A NOTA DE IMPORTAÄ«O E PROVENIENTE DO MODULO DE IMPORTACAO
+    */
+
+    FOR FIRST docto-estoq-nfe-imp NO-LOCK
+        WHERE docto-estoq-nfe-imp.cod-ser-docto    = nota-fiscal.serie 
+        AND   docto-estoq-nfe-imp.cod-docto        = nota-fiscal.nr-nota-ant
+        AND   docto-estoq-nfe-imp.cdn-emitente     = nota-fiscal.cod-emitente
+        AND   docto-estoq-nfe-imp.cod-natur-operac = nota-fiscal.nat-operacao:
+
+        FOR EACH  item-docto-estoq-nfe-imp NO-LOCK 
+            WHERE item-docto-estoq-nfe-imp.cdn-emitente     = docto-estoq-nfe-imp.cdn-emitente     
+            AND   item-docto-estoq-nfe-imp.cod-docto        = docto-estoq-nfe-imp.cod-docto        
+            AND   item-docto-estoq-nfe-imp.cod-ser-docto    = docto-estoq-nfe-imp.cod-ser-docto    
+            AND   item-docto-estoq-nfe-imp.cod-natur-operac = docto-estoq-nfe-imp.cod-natur-operac
+            and   item-docto-estoq-nfe-imp.num-seq          = it-nota-fisc.nr-seq-ped : /*na leitura deve usar o seq-ped, pois o recebimento pode estar de 1 em 1 a seq do item*/
+            
+            /* Chave EMS */
+            CREATE ttAdi.
+            ASSIGN ttAdi.CodEstabelNF = nota-fiscal.cod-estabel
+                   ttAdi.SerieNF      = nota-fiscal.serie
+                   ttAdi.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                   ttAdi.ItCodigoNF   = it-nota-fisc.it-codigo    
+                   ttAdi.NrSeqFatNF   = it-nota-fisc.nr-seq-fat /*para criar a ttII ele deve usar o seq-fat */ .              
+    
+           
+            /* Chave para a ttDI */
+            ASSIGN ttAdi.nDI          = docto-estoq-nfe-imp.des-decla-import.
+    
+            ASSIGN ttAdi.nAdicao      = string(item-docto-estoq-nfe-imp.num-adic)
+                   ttAdi.nSeqAdic     = string(item-docto-estoq-nfe-imp.num-seq-import)
+                   ttAdi.cFabricante  = string(item-docto-estoq-nfe-imp.cdn-expdor)
+                   ttAdi.vDescDI      = item-docto-estoq-nfe-imp.val-desc
+                   ttAdi.nDraw        = TRIM(item-docto-estoq-nfe-imp.cod-livre-1).
+
+            ASSIGN ttAdi.nDI = REPLACE(ttAdi.nDI,"-","")
+                   ttAdi.nDI = REPLACE(ttAdi.nDI,".","")
+                   ttAdi.nDI = REPLACE(ttAdi.nDI,"/","")
+                   ttAdi.nDI = REPLACE(ttAdi.nDI,"~\","")
+                   ttAdi.nDI = REPLACE(ttAdi.nDI,",","").
+
+            RUN pi-cria-NVE. /*por DI e adicao*/
+
+        END. /* fim FOR EACH  item-docto-estoq-nfe-imp */
+    END.
+    
+END PROCEDURE.

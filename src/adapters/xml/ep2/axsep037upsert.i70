@@ -1,0 +1,8 @@
+PROCEDURE pi-elimina-handles:
+
+    IF  VALID-HANDLE(h-cdapi704) THEN DO:
+        DELETE PROCEDURE h-cdapi704.
+        ASSIGN h-cdapi704 = ?.
+    END.
+
+END PROCEDURE.

@@ -1,0 +1,9 @@
+/*************************************************************************
+**
+** Include: ap8100.i8 - Defini‡Æo da temp-table 
+**
+*************************************************************************/
+
+define new global shared temp-table tt-erro-contab no-undo 
+    field cod-msg     as integer    
+    field mensagem    as char.

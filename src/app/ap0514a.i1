@@ -1,0 +1,66 @@
+/********************************************************************************
+***
+*** app/ap0514a.i1 - Impostos referente desconto/juros e Multa/Abatimento(2.03)
+***
+********************************************************************************/
+
+{cdp/cdcfgfin.i}
+
+find first impto-tit-ap use-index codigo
+   where impto-tit-ap.ep-codigo    = tit-ap.ep-codigo
+     and impto-tit-ap.cod-estabel  = tit-ap.cod-estabel
+     and impto-tit-ap.cod-esp      = tit-ap.cod-esp
+     and impto-tit-ap.serie        = tit-ap.serie
+     and impto-tit-ap.nr-docto     = tit-ap.nr-docto
+     and impto-tit-ap.parcela      = tit-ap.parcela
+     and impto-tit-ap.cod-fornec   = tit-ap.cod-fornec
+     and impto-tit-ap.tipo         = 2 
+     and impto-tit-ap.origem-impto = 1  /* Implanta‡Æo */
+     no-lock no-error.
+             
+if  avail impto-tit-ap then do:
+                
+    if  mov-ap.vl-desconto > 0 then do:
+        {app/ap0514a.i2 "2"                     
+                        "mov-ap.vl-desconto"    
+                        "mov-ap.vl-desconto-me" 
+                        "l-desconto"            
+                        "3"}                   
+    end.
+
+    if  mov-ap.valor-juros > 0 then do:
+        {app/ap0514a.i2 "2" 
+                        "mov-ap.valor-juros" 
+                        "mov-ap.valor-juros-me"
+                        "l-juros"
+                        "4"}
+    end.
+    
+    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+    if  mov-ap.vl-abatimento > 0 then do:
+        {app/ap0514a.i2 "2"
+                        "mov-ap.vl-abatimento"
+                        "mov-ap.vl-abatimento-me"
+                        "l-abatimento"
+                        "3"}
+    end.
+
+    if  mov-ap.vl-multa > 0 then do:
+        {app/ap0514a.i2 "2" 
+                        "mov-ap.vl-multa" 
+                        "mov-ap.vl-multa-me"
+                        "l-multa"
+                        "4"}
+    end.
+    &endif
+
+    /*1 - lan‡amento*/
+    /*2 - valor base*/
+    /*3 - valor base me*/
+    /*4 - indicardor var monet*/
+    /*5 - origem imposto*/
+    
+end.
+
+/* Fim de Include */
+

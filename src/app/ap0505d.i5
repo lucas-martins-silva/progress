@@ -1,0 +1,33 @@
+/*************************************************************************
+**
+**  app/ap0505d.i5 - Faz ajuste para recomposi‡Æo de saldo.
+**
+*************************************************************************/
+
+if  {1}.valor-saldo = 0 and {1}.moeda <> 0 then do:
+    assign de-calc-var = 0.
+    for each b-mov-ap-var-camb use-index codigo
+       where b-mov-ap-var-camb.ep-codigo   = {1}.ep-codigo
+         and b-mov-ap-var-camb.cod-estabel = {1}.cod-estabel
+         and b-mov-ap-var-camb.serie       = {1}.serie
+         and b-mov-ap-var-camb.cod-esp     = {1}.cod-esp
+         and b-mov-ap-var-camb.nr-docto    = {1}.nr-docto
+         and b-mov-ap-var-camb.parcela     = {1}.parcela
+         and b-mov-ap-var-camb.cod-fornec  = {1}.cod-fornec
+         and (b-mov-ap-var-camb.transacao   = 2
+          or b-mov-ap-var-camb.transacao  = 5):
+
+        assign de-calc-var = de-calc-var
+                           + b-mov-ap-var-camb.valor-mov
+                           - b-mov-ap-var-camb.{2}.
+    end.
+
+    if  de-calc-var <> 0 and
+        de-calc-var <> {1}.vl-original then do:
+        assign de-diferenca = {1}.vl-original - de-calc-var
+               mov-ap.{2}   = mov-ap.{2}      - de-diferenca.
+    end.
+
+end.        
+
+/* Fim de Include */

@@ -1,0 +1,41 @@
+/*considerar negoc-coletiv*/
+IF AVAIL tt-regra-form-preco THEN DO:
+    IF l-negoc-coletiv THEN DO:
+        /* 1 - aplica ao total 2 - aplica ao excedente */
+        ASSIGN d-qtd-aplicar-bonus = IF tt-regra-form-preco.cdn-aplic = 1 THEN tt-negoc-coletiv.grp-qtd-coleta
+                                                                          ELSE tt-negoc-coletiv.grp-qtd-coleta - tt-regra-form-preco.val-faixa-inic.
+
+        IF tt-regra-form-preco.val-faixa-inic <= tt-negoc-coletiv.grp-qtd-coleta AND      /*volume entregue encaixa na regra cadastrada*/
+           tt-regra-form-preco.val-faixa-fim  >= tt-negoc-coletiv.grp-qtd-coleta THEN DO:
+        
+            ASSIGN fechto-produt-period.val-var-volum       = (tt-regra-form-preco.val-unit * d-qtd-aplicar-bonus) / tt-negoc-coletiv.grp-qtd-coleta
+                   fechto-produt-period.val-preco-final-inf = fechto-produt-period.val-preco-final-inf + fechto-produt-period.val-var-volum /*bìnus fixo s∆o somados posteriormente*/
+                   l-achou = TRUE. 
+
+        END.            
+    END.
+    ELSE DO:
+        /* 1 - aplica ao total 2 - aplica ao excedente */
+        ASSIGN d-qtd-aplicar-bonus = IF tt-regra-form-preco.cdn-aplic = 1 THEN fechto-produt-period.qtd-period
+                                                                          ELSE fechto-produt-period.qtd-period - tt-regra-form-preco.val-faixa-inic.
+    
+        IF tt-regra-form-preco.val-faixa-inic <= fechto-produt-period.qtd-period AND      /*volume entregue encaixa na regra cadastrada*/
+           tt-regra-form-preco.val-faixa-fim  >= fechto-produt-period.qtd-period THEN DO:
+        
+            ASSIGN fechto-produt-period.val-var-volum       = (tt-regra-form-preco.val-unit * d-qtd-aplicar-bonus) / fechto-produt-period.qtd-period
+                   fechto-produt-period.val-preco-final-inf = fechto-produt-period.val-preco-final-inf + fechto-produt-period.val-var-volum /*bìnus fixo s∆o somados posteriormente*/
+                   l-achou = TRUE.
+
+        END.
+    END.
+    if l-achou then do:
+        LOG-MANAGER:WRITE-MESSAGE ('###') NO-ERROR.
+        LOG-MANAGER:WRITE-MESSAGE ('l-negoc-coletiv:                       ' + string(l-negoc-coletiv)) NO-ERROR.
+        LOG-MANAGER:WRITE-MESSAGE ('fechto-produt-period.cdn-produt-rural: ' + string(fechto-produt-period.cdn-produt-rural)) NO-ERROR.
+        LOG-MANAGER:WRITE-MESSAGE ('fechto-produt-period.qtd-period:       ' + string(fechto-produt-period.qtd-period)) NO-ERROR.
+        LOG-MANAGER:WRITE-MESSAGE ('tt-regra-form-preco.cdn-abrangen:      ' + string(tt-regra-form-preco.cdn-abrangen)) NO-ERROR.
+        LOG-MANAGER:WRITE-MESSAGE ('tt-regra-form-preco.val-faixa-inic:    ' + string(tt-regra-form-preco.val-faixa-inic)) NO-ERROR.
+        LOG-MANAGER:WRITE-MESSAGE ('tt-regra-form-preco.val-faixa-fim:     ' + string(tt-regra-form-preco.val-faixa-fim )) NO-ERROR.
+        LOG-MANAGER:WRITE-MESSAGE ('###') NO-ERROR.
+    end.
+END.

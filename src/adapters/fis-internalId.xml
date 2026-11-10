@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<internalId xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<internalIdRow>
+		<Code>CostCenterInternalId</Code>
+		<FieldList>cod_ccusto</FieldList>
+		<File>ccusto</File>
+	</internalIdRow>
+	<internalIdRow>
+		<Code>FiscalClassificationInternalId</Code>
+		<FieldList>class-fiscal</FieldList>
+		<File>classif-fisc</File>
+	</internalIdRow>  
+	<internalIdRow>
+		<Code>OperationCode</Code>
+		<FieldList>nat-operacao</FieldList>
+		<File>natur-oper</File>
+	</internalIdRow>	 
+</internalId>

@@ -1,0 +1,91 @@
+/******************************************************************************
+***                         
+*** app/ap0004.i2 - Geraá∆o Autom†tica de Impostos - AP.
+***                             
+******************************************************************************/
+find first impto-tit-ap no-lock
+     where impto-tit-ap.ep-codigo    = tt-impto-tit-ap.ep-codigo
+     and   impto-tit-ap.cod-estabel  = tt-impto-tit-ap.cod-estabel
+     and   impto-tit-ap.cod-fornec   = tt-impto-tit-ap.cod-fornec
+     and   impto-tit-ap.cod-esp      = tt-impto-tit-ap.cod-esp
+     and   impto-tit-ap.serie        = tt-impto-tit-ap.serie
+     and   impto-tit-ap.nr-docto     = tt-impto-tit-ap.nr-docto
+     and   impto-tit-ap.parcela      = tt-impto-tit-ap.parcela
+     and   impto-tit-ap.origem-impto = 1
+     and   impto-tit-ap.tipo         = 2 no-error.
+     
+if  avail impto-tit-ap then do:
+            
+    assign l-gera-aut = no.
+            
+    /*NOTAS DE DêBITO/CRêDITO*/
+    if  (tt-impto-tit-ap.trans-impto-ap = 5 
+    and  tt-impto-tit-ap.origem-impto   = 10) then do:
+        assign l-gera-aut = yes.        
+    end.
+    else do: /*VARIAÄ«O CAMBIAL*/
+        if (tt-impto-tit-ap.trans-impto-ap = 17 or
+            tt-impto-tit-ap.trans-impto-ap = 18) then do:
+            assign l-gera-aut = yes.        
+        end.
+        else do:
+                    
+            run utp/ut-msgs.p (input "show",
+                               input 15890,
+                               input "").
+                    
+            if  return-value = 'yes' then
+                assign l-gera-aut = yes.
+                    
+        end.
+    end.
+            
+    if  l-gera-aut = yes then do:
+        for each  impto-tit-ap no-lock
+            where impto-tit-ap.ep-codigo       = tt-impto-tit-ap.ep-codigo
+            and   impto-tit-ap.cod-estabel     = tt-impto-tit-ap.cod-estabel
+            and   impto-tit-ap.cod-fornec      = tt-impto-tit-ap.cod-fornec
+            and   impto-tit-ap.cod-esp         = tt-impto-tit-ap.cod-esp
+            and   impto-tit-ap.serie           = tt-impto-tit-ap.serie
+            and   impto-tit-ap.nr-docto        = tt-impto-tit-ap.nr-docto
+            and   impto-tit-ap.parcela         = tt-impto-tit-ap.parcela
+            and   impto-tit-ap.origem-impto    = 1
+            and   impto-tit-ap.tipo            = 2
+            and   impto-tit-ap.trans-impto-ap <> 17
+            and   impto-tit-ap.trans-impto-ap <> 18:
+                    
+            find tit-ap use-index codigo no-lock
+                 where tit-ap.ep-codigo   = impto-tit-ap.ep-codigo
+                 and   tit-ap.cod-estabel = impto-tit-ap.cod-estabel
+                 and   tit-ap.cod-fornec  = impto-tit-ap.cod-fornec
+                 and   tit-ap.cod-esp     = impto-tit-ap.cod-esp
+                 and   tit-ap.serie       = impto-tit-ap.serie
+                 and   tit-ap.nr-docto    = impto-tit-ap.nr-docto
+                 and   tit-ap.parcela     = impto-tit-ap.parcela no-error.
+                    
+            if  avail tit-ap then do:
+                assign de-perc-base = (impto-tit-ap.vl-base / tit-ap.vl-original) * 100.
+                assign de-vl-propor = fn_ajust_dec(((de-vl-base * de-perc-base) / 100),0).
+            end.           
+            else
+                assign de-vl-propor = de-vl-base.
+                
+            if  tt-impto-tit-ap.log-pendente = no then do:
+                {app/ap0004.i3 "impto-tit-ap" 
+                               "impto-tit-ap"
+                               "de-vl-propor"}
+                            
+                if  avail b-impto-tit-ap then
+                    assign b-impto-tit-ap.num-id-mov-ap = tt-impto-tit-ap.num-id-mov-ap.
+                                
+            end.
+            else do:
+                {app/ap0004.i3 "impto-tit-pend-ap" 
+                               "impto-tit-ap"
+                               "de-vl-propor"}
+            end.
+        end.
+    end.
+end.
+
+/* Fim de Include */

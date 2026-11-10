@@ -1,0 +1,174 @@
+PROCEDURE pi-cria-ttEmit:
+
+    /*
+    === ttEmit ===
+    CEP            AS CHARACTER INITIAL ?  /*CEP*/
+    cMun           AS INT       INITIAL ?  /*C¢digo do munic¡pio (utilizar a tabela do IBGE), informar 9999999 para opera‡äes com o exterior    .*/
+    CNAE           AS CHARACTER INITIAL ?  /*CNAE Fiscal*/
+    CNPJ           AS CHARACTER INITIAL ?  /*N£mero do CNPJ do emitente*/
+    cPais          AS INT       INITIAL ?  /*C¢digo do pa¡s*/
+    CPF            AS CHARACTER INITIAL ?  /*N£mero do CPF do emitente*/
+    fone           AS CHARACTER INITIAL ?  /*Telefone*/
+    IE             AS CHARACTER INITIAL ?  /*Inscri‡Æo Estadual*/
+    IEST           AS CHARACTER INITIAL ?  /*Inscricao Estadual do Substituto Tribut rio*/
+    IM             AS CHARACTER INITIAL ?  /*Inscri‡Æo Municipal*/
+    nro            AS CHARACTER INITIAL ?  /*N£mero*/
+    UF             AS CHARACTER INITIAL ?  /*Sigla da UF, , informar EX para opera‡äes com o exterior.*/
+    xBairro        AS CHARACTER INITIAL ?  /*Bairro*/
+    xCpl           AS CHARACTER INITIAL ?  /*Complemento*/
+    xFant          AS CHARACTER INITIAL ?  /*Nome fantasia*/
+    xLgr           AS CHARACTER INITIAL ?  /*Logradouro*/
+    xMun           AS CHARACTER INITIAL ?  /*Nome do munic¡pio, , informar EXTERIOR para opera‡äes com o exterior.*/
+    xNome          AS CHARACTER INITIAL ?  /*RazÆo Social ou Nome do emitente*/
+    xPais          AS CHARACTER INITIAL ?  /*Nome do pa¡s*/
+    VersaoLayout   AS CHARACTER INITIAL ?  /*VersÆo do Emissor*/
+    CRT            AS CHARACTER INITIAL ?  /*C¢digo Regime Tribut rio*/
+    */
+
+
+    ASSIGN c-endereco = estabelec.endereco
+           c-rua      = ""
+           c-nro      = ""
+           c-comp     = "".
+
+    IF  INDEX(c-endereco,CHR(ASC("§"))) > 0 THEN /* Retirar caracter especial */
+        ASSIGN c-endereco = REPLACE(c-endereco,CHR(ASC("§")),"").
+
+    RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco,
+                                         OUTPUT c-rua, 
+                                         OUTPUT c-nro, 
+                                         OUTPUT c-comp).
+
+    IF  c-nro = "" THEN
+        ASSIGN c-nro = "S/N".
+
+    /*--- TRATAMENTO FONE - Sefaz aceita somente n£meros, e apenas 11 caracters -> DDD12345678 ---*/
+
+    ASSIGN c-fone = "".
+
+    DO  i-cont = 1 TO LENGTH(bf-emitente-est.telefone[1]):
+
+        /* Nao considerar o primeiro zero do telefone, caso inicie com 0 (DDD iniciando com 0 ou nro de telefone incorreto) */
+        IF  i-cont = 1
+        AND LOOKUP(SUBSTRING(bf-emitente-est.telefone[1],i-cont,1),"0") > 0 THEN NEXT.
+
+        IF  LOOKUP(SUBSTRING(bf-emitente-est.telefone[1],i-cont,1),"0,1,2,3,4,5,6,7,8,9") > 0 THEN
+            ASSIGN c-fone = c-fone + SUBSTRING(bf-emitente-est.telefone[1],i-cont,1).
+    END.
+    /*---*/
+
+    /* COD CNAE */
+    FOR FIRST reg-inf-compl NO-LOCK
+        WHERE reg-inf-compl.cod-tab-inform   = "estabelec":U
+          AND reg-inf-compl.cod-campo-inform = "cod-cnae":U,
+        FIRST inf-compl NO-LOCK
+        WHERE inf-compl.cdn-identif = reg-inf-compl.cdn-identif
+          AND inf-compl.cod-indice  = estabelec.cod-estabel:
+        
+    END. 
+    /* FIM - COD CNAE */
+    
+    /* Nome Fantasia do programa CD0403 */
+    FOR FIRST estab-compl NO-LOCK
+        WHERE estab-compl.cod-estabel = estabelec.cod-estabel: END.
+    /* FIM - nome fantasia do programa CD0403 */
+
+    CREATE ttEmit.
+    ASSIGN ttEmit.CEP        = STRING(estabelec.cep,"99999999")
+           ttEmit.cMun       = STRING(IF  estabelec.pais = "Brasil":U
+                                      THEN (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                                            &then IF AVAIL bf-cidade-est THEN bf-cidade-est.cdn-munpio-ibge ELSE 0
+                                            &else IF AVAIL bf-cidade-est THEN bf-cidade-est.int-2           ELSE 0 &endif)
+                                      ELSE 9999999)
+           ttEmit.CNAE       = IF AVAIL inf-compl THEN STRING(INTEGER(inf-compl.des-campo),">>>>>>>") ELSE ""
+           ttEmit.CNAE       = (IF ttEmit.CNAE <> ?
+                                 THEN ttEmit.CNAE
+                                ELSE "")
+           ttEmit.CNPJ       = estabelec.cgc
+           ttEmit.cPais      = &IF '{&bf_dis_versao_ems}' >= "2.06" &then
+                                    pais.cod-pais-siscomex
+                               &ELSE
+                                    substring(pais.char-1,1,5)
+                               &ENDIF
+           ttEmit.CPF        = (IF ttEmit.CPF <> ?
+                                 THEN ttEmit.CPF
+                                ELSE "")
+           ttEmit.fone       = c-fone
+           ttEmit.IE         = TRIM(estabelec.ins-estadual)
+           ttEmit.IE         = fn-ajusta-campo-IE(ttEmit.IE)
+           ttEmit.IM         = estabelec.ins-municipal
+           ttEmit.IM         = REPLACE(ttEmit.IM,"-","")
+           ttEmit.IM         = REPLACE(ttEmit.IM,".","")
+           ttEmit.IM         = REPLACE(ttEmit.IM,"/","")
+           ttEmit.IM         = REPLACE(ttEmit.IM,"~\","")
+           ttEmit.IM         = REPLACE(ttEmit.IM,",","")
+           ttEmit.IM         = (IF ttEmit.IM <> ?
+                                 THEN ttEmit.IM
+                                ELSE "")
+           ttEmit.nro        = c-nro
+           ttEmit.UF         = estabelec.estado
+           ttEmit.UF         = (IF ttEmit.UF <> ?
+                                THEN ttEmit.UF
+                                ELSE "")
+           ttEmit.xBairro    = (IF estabelec.bairro <> ""
+                                THEN estabelec.bairro
+                                ELSE "Nao Informado")
+           ttEmit.xCpl       = c-comp
+           ttEmit.xFant      = (IF AVAIL estab-compl AND estab-compl.nom-fantasia <> ""
+                                THEN estab-compl.nom-fantasia 
+                                ELSE 
+                                    IF AVAIL bf-emitente-est 
+                                    THEN bf-emitente-est.nome-abrev 
+                                    ELSE "")
+           ttEmit.xLgr       = c-rua
+           ttEmit.xMun       = (IF estabelec.pais <> "Brasil":U
+                                THEN "Exterior"
+                                ELSE estabelec.cidade)
+           ttEmit.xNome      = estabelec.nome
+           ttEmit.xPais      = estabelec.pais
+           ttEmit.VersaoLayout = "1.02" /* layout TXT */
+           .
+
+    /* C¢digo Regime Tribut rio */
+    FOR FIRST reg-inf-compl NO-LOCK
+        WHERE reg-inf-compl.cod-tab-inform   = "estabelec"
+        AND   reg-inf-compl.cod-campo-inform = "cdn-regim-tribut",
+        FIRST inf-compl     NO-LOCK
+        WHERE inf-compl.cdn-identif = reg-inf-compl.cdn-identif
+        AND   inf-compl.cod-indice  = estabelec.cod-estabel:
+
+    END.
+    ASSIGN ttEmit.CRT = IF AVAIL inf-compl THEN STRING(inf-compl.num-campo) ELSE "0". /*1 Î Simples Nacional; 
+                                                                                        2 Î Simples Nacional Î excesso de sublimite de receita bruta;
+                                                                                        3 Î Regime Normal. (v2.0).*/
+
+    /* Chave EMS */
+    IF  AVAIL nota-fiscal THEN
+        ASSIGN ttEmit.CodEstabelNF = nota-fiscal.cod-estabel
+               ttEmit.SerieNF      = nota-fiscal.serie
+               ttEmit.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttEmit THEN
+        ASSIGN ttEmit.CEP        = fn-ajusta-tamanho-campo(ttEmit.CEP    , 8)
+               ttEmit.cMun       = fn-ajusta-tamanho-campo(ttEmit.cMun   , 7)
+               ttEmit.CNAE       = fn-ajusta-tamanho-campo(ttEmit.CNAE   , 7)
+               ttEmit.CNPJ       = fn-ajusta-tamanho-campo(ttEmit.CNPJ   ,14)
+               ttEmit.cPais      = fn-ajusta-tamanho-campo(ttEmit.cPais  , 4)
+               ttEmit.CPF        = fn-ajusta-tamanho-campo(ttEmit.CPF    ,14)
+               ttEmit.fone       = fn-ajusta-tamanho-campo(ttEmit.fone   ,14)
+               ttEmit.IE         = fn-ajusta-tamanho-campo(ttEmit.IE     ,14)
+               ttEmit.IEST       = fn-ajusta-tamanho-campo(ttEmit.IEST   ,14)
+               ttEmit.IM         = fn-ajusta-tamanho-campo(ttEmit.IM     ,15)
+               ttEmit.nro        = fn-ajusta-tamanho-campo(ttEmit.nro    ,60)
+               ttEmit.UF         = fn-ajusta-tamanho-campo(ttEmit.UF     , 2)
+               ttEmit.xBairro    = fn-ajusta-tamanho-campo(ttEmit.xBairro,60)
+               ttEmit.xCpl       = fn-ajusta-tamanho-campo(ttEmit.xCpl   ,60)
+               ttEmit.xFant      = fn-ajusta-tamanho-campo(ttEmit.xFant  ,60)
+               ttEmit.xLgr       = fn-ajusta-tamanho-campo(ttEmit.xLgr   ,60)
+               ttEmit.xMun       = fn-ajusta-tamanho-campo(ttEmit.xMun   ,60)
+               ttEmit.xNome      = fn-ajusta-tamanho-campo(ttEmit.xNome  ,60)
+               ttEmit.xPais      = fn-ajusta-tamanho-campo(ttEmit.xPais  ,60)
+               ttEmit.CRT        = fn-ajusta-tamanho-campo(ttEmit.CRT    , 1).
+
+END PROCEDURE.

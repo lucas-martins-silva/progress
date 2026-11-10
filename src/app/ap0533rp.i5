@@ -1,0 +1,143 @@
+/*******************************************************************************
+***
+***  app/ap0533rp.i5 - PI-REEMISSAO
+***
+*******************************************************************************/                    
+                
+    assign i-cont   = 0
+           de-valor = 0
+           c-cidade = fill(" ",(25 - length(empresa.cidade))) + empresa.cidade
+           i-ind-e1 = 0.
+                    
+    code-block:
+    for each  che-emit
+        where che-emit.ep-codigo   = tt-param.i-ep-codigo
+        and   che-emit.portador    = tt-param.portador
+        and   che-emit.nr-cheque  >= tt-param.cheque-ini
+        and   che-emit.nr-cheque  <= tt-param.cheque-fim
+        and   che-emit.dt-emissao >= tt-param.dat-ini
+        and   che-emit.dt-emissao <= tt-param.dat-fim
+        and   che-emit.emitiu      = yes
+        and   che-emit.cancelado   = no exclusive-lock
+        break by  che-emit.portador
+              by  che-emit.nr-cheque:
+                        
+        if  tt-param.list-tipo = 2 then do:
+            find estabelec
+                  where estabelec.cod-estabel = che-emit.cod-estabel no-lock no-error.
+            assign c-cidade = fill(" ",(25 - length(estabelec.cidade))) + estabelec.cidade.
+        end.
+        else
+            assign c-cidade = fill(" ",(25 - length(empresa.cidade))) + empresa.cidade.
+                       
+        if  first-of(che-emit.nr-cheque) then do:
+            assign i-dia    = day(che-emit.dt-emissao)
+                   i-mes    = month(che-emit.dt-emissao)
+                   c-ano1   = substring(string(che-emit.dt-emissao,"99/99/9999"),7,4).
+
+        end.
+        
+        if  first-of(che-emit.nr-cheque) or last-of(che-emit.nr-cheque) then do:
+            assign i-num9100  = 2
+                   i-tam9100  = (if  tt-param.imp = 2 then 55
+                                 else if  int(substr(tt-param.layout,1,3)) = 1
+                                      or  int(substr(tt-param.layout,1,3)) = 237 then 59
+                                      else if  int(substr(tt-param.layout,1,3)) = 33 then 55
+                                           else if  int(substr(tt-param.layout,1,3)) = 341
+                                                or  int(substr(tt-param.layout,1,3)) = 347
+                                                or  int(substr(tt-param.layout,1,3)) = 399 then 57
+                                                else 53)
+                   i-aux1 = i-tam9100
+                   i-aux2 = (if  tt-param.imp = 2 then 64
+                                 else if  int(substr(tt-param.layout,1,3)) = 1
+                                      or  int(substr(tt-param.layout,1,3)) = 33
+                                      or  int(substr(tt-param.layout,1,3)) = 237
+                                      or  int(substr(tt-param.layout,1,3)) = 409
+                                      or  int(substr(tt-param.layout,1,3)) = 745 then 66
+                                      else if int(substr(tt-param.layout,1,3)) then 67
+                                           else 68).
+        end.
+                        
+        assign de-valor = if  che-emit.transacao = 4 then
+                              de-valor - che-emit.valor-docto
+                           else
+                              de-valor + che-emit.valor-docto.
+                            
+        if  first-of(che-emit.nr-cheque) and last-of(che-emit.nr-cheque) then do:
+            assign de-valor   = che-emit.valor-docto
+                   de-val9100 = de-valor.           
+            run cdp/cd9100.p.
+        end.
+        else do:
+            if  last-of(che-emit.nr-cheque) then do:
+                assign de-val9100 = de-valor.                
+                run cdp/cd9100.p.
+            end.
+        end.
+                        
+        if  last-of(che-emit.nr-cheque) then do:
+            assign i-ind-e1 = i-ind-e1 + 1.
+                        
+            if  i-ind-e1 = 1 then
+                create w-cheque.
+            else
+                find last w-cheque exclusive-lock no-error.
+            find first tit-ap
+                 where tit-ap.ep-codigo   = che-emit.ep-codigo
+                 and   tit-ap.cod-estabel = che-emit.cod-estabel
+                 and   tit-ap.cod-esp     = che-emit.cod-esp
+                 and   tit-ap.serie       = che-emit.serie
+                 and   tit-ap.nr-docto    = che-emit.nr-docto
+                 and   tit-ap.parcela     = che-emit.parcela
+                 and   tit-ap.cod-fornec  = che-emit.cod-fornec no-lock no-error.
+                             
+            if  avail tit-ap then do:
+                assign c-hist1 = substring(tit-ap.observacao,1,40)
+                       c-hist2 = substring(tit-ap.observacao,41,80).
+            end.
+            else do:
+                assign c-hist1 = substring(che-emit.historico,1,40)
+                       c-hist2 = substring(che-emit.historico,41,80).
+            end.
+            
+                                
+            if  avail w-cheque then do:
+                assign w-valor[i-ind-e1]             = de-valor
+                       w-ext9100[(i-ind-e1 * 2) - 1] = c-ext9100[1]
+                       w-ext9100[i-ind-e1 * 2]       = c-ext9100[2]
+                       w-nominal[i-ind-e1]           = che-emit.literal
+                       w-dia[i-ind-e1]               = i-dia
+                       w-mes[i-ind-e1]               = i-mes
+                       w-ano1[i-ind-e1]              = c-ano1
+                       w-cidade[i-ind-e1]            = c-cidade
+                       w-hist1[i-ind-e1]             = c-hist1
+                       w-hist2[i-ind-e1]             = c-hist2
+                       w-data[i-ind-e1]              = che-emit.dt-emissao.
+            end. 
+            
+            if  tt-param.imp = 1 then do:
+                assign i-ind-e1 = 2.
+            end.
+                                
+            if  i-ind-e1 = 2 then do:
+                assign i-ind-e1 = 0.
+            end.
+                                
+            if  tt-param.gerar = yes then do:
+                find first talonario exclusive-lock
+                     where talonario.ep-codigo    = che-emit.ep-codigo
+                     and   talonario.cod-port     = che-emit.portador
+                     and   talonario.nr-talonario = che-emit.nr-talonario no-error.
+                {app/ap0533.i}
+            end.
+            
+            assign de-valor = 0.
+            
+        end.
+                    
+        assign i-cont = i-cont + 1.
+        run pi-acompanhar in h-acomp(input "ReemissÆo: " + string(i-cont)).
+        
+    end.
+                                                    
+/* Fim de Include */

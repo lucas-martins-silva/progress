@@ -1,0 +1,173 @@
+/*****************************************************************************
+***
+*** app/apapi018.i1 - Variaveis, Form's, etc...
+*** 
+*****************************************************************************/
+
+def buffer b-tit-ap       for tit-ap.
+def buffer b-tit-conta-ap for tit-conta-ap.
+def buffer b-emite-ap     for emite-ap.
+def buffer b-mov-ap       for mov-ap.
+def buffer b-baixa-mov-ap for mov-ap.
+
+def var l-elim-ir    as log no-undo.
+def var l-elim-iss   as log no-undo.
+def var l-emitido    as log no-undo.
+
+def var da-ini-validac  like empresa.data-inicio  no-undo.
+def var da-fim-validac  like empresa.data-fim     no-undo.
+def var c-selecao       as char                   no-undo.
+def var c-parametro     as char format "x(12)":U  no-undo.
+def var l-erro          as logical                no-undo. 
+def var c-impressao     as char format "x(12)":U  no-undo.
+def var c-destino       as char                   no-undo.
+def var c-titulo        as char                   no-undo.
+def var c-reg-proc      as char                   no-undo.
+def var de-saldo-ant    like tit-ap.valor-saldo   no-undo.
+def var de-perc-faixa   as decimal                no-undo.
+def var de-valor-baixado like mov-ap.valor-mov    no-undo.
+def var i-baixou        as integer format "9"     no-undo.
+def var i-sequencia     as integer                no-undo.
+def var i-num-seq       as int  init 0            no-undo.
+def var r-invest        as rowid                  no-undo.
+def var c-invest        as character              no-undo.
+
+def var c-cod-estabel  like tit-ap.cod-estabel  no-undo.
+def var c-cod-esp      like tit-ap.cod-esp      no-undo.
+def var c-serie        like tit-ap.serie        no-undo.
+def var c-nr-docto     like tit-ap.nr-docto     no-undo.
+def var c-parcela      like tit-ap.parcela      no-undo.
+def var c-titulo-banco like tit-ap.titulo-banco no-undo.
+def var i-cod-fornec   like tit-ap.cod-fornec   no-undo.
+def var c-referencia   like tit-ap.referencia   no-undo.
+def var d-dt-emissao   like tit-ap.dt-emissao   no-undo.
+def var d-dt-vencimen  like tit-ap.dt-vencimen  no-undo.
+def var i-tp-codigo    like tit-ap.tp-codigo    no-undo.
+def var n-valor-mov    like tit-ap.vl-original  no-undo.
+def var c-pedido       like tit-ap.titulo-banco no-undo.
+def var i-portador     like tit-ap.portador     no-undo.
+def var l-cancela      as logical               no-undo.
+def var h-acomp        as handle                no-undo.
+def var i-num-erro        as integer               no-undo.
+def var c-desc-erro-pagto as character             no-undo.
+
+/*** Defini‡äes a serem utilizadas pelo MEC ***/
+def var h-boad342       as handle no-undo.
+def var p-cod-estabel   as char   no-undo.
+def var p-referencia    as char   no-undo.
+def var p-dt-referencia as date   no-undo.
+
+/******miniflexibiliza»’o ems 2.04*******/
+{cdp/cdcfgfin.i}
+
+form
+   tt-tit-ap.ep-codigo   
+   tt-tit-ap.cod-estabel 
+   tt-tit-ap.cod-esp     
+   tt-tit-ap.serie       
+   tt-tit-ap.nr-docto   
+   tt-tit-ap.parcela
+   tt-tit-ap.cod-fornec
+   tt-tit-ap.vl-original
+   tt-tit-ap.valor-saldo
+   with stream-io no-box no-attr-space width 300 down frame f-titulo.
+run utp/ut-trfrrp.p (input frame f-titulo:handle).
+
+form
+   tt-retorno-erro.ep-codigo
+   tt-retorno-erro.cod-estabel 
+   tt-retorno-erro.cod-esp     
+   tt-retorno-erro.serie       
+   tt-retorno-erro.nr-docto   
+   tt-retorno-erro.parcela
+   tt-retorno-erro.cod-fornec
+   tt-retorno-erro.cod-erro
+   tt-retorno-erro.desc-erro format "x(57)" view-as editor max-chars 2000 
+                                 scrollbar-vertical size 70 by 2
+   with stream-io no-box no-attr-space width 300 down frame f-erro.
+run utp/ut-trfrrp.p (input frame f-erro:handle).   
+
+form 
+   c-selecao           no-label at 01 skip(1)
+   tt-param.serie-ini           colon 32 space(12) "|> <|"     
+   tt-param.serie-fim  no-label colon 63 skip 
+   tt-param.docto-ini                    colon 32 space(1)  "|> <|"    
+   tt-param.docto-fim           no-label colon 63 skip
+   tt-param.parc-ini                     colon 32 space(15) "|> <|"
+   tt-param.parc-fim            no-label colon 63 skip
+   tt-param.forn-ini format ">>>>>>>>9"  colon 32 space(08) "|> <|"
+   tt-param.forn-fim format ">>>>>>>>9"  no-label colon 63 skip
+   tt-param.emis-ini                     colon 32 space(7)  "|> <|"
+   tt-param.emis-fim            no-label colon 63 skip
+   tt-param.ref-ini                      colon 32 space(7)  "|> <|"
+   tt-param.ref-fim             no-label colon 63 skip (1)
+   c-parametro                  no-label at 01 skip(1)
+   tt-param.estabel             colon 32      skip
+   tt-param.espec               colon 32      skip
+   tt-param.elimina-ir          colon 32 format "sim/nÆo" skip 
+   tt-param.elimina-estoque     colon 32 format "sim/nÆo" skip
+   tt-param.elimina-movto       colon 32 format "sim/nÆo" skip(1)
+   c-impressao         no-label at 01 skip(1) 
+   c-destino                    colon 32
+   " - " 
+   tt-param.arquivo    no-label format "x(60)":U skip
+   tt-param.usuario             colon 32 skip(2)
+   with stream-io side-labels no-box width 132 frame f-selecao.
+run utp/ut-trfrrp.p (input frame f-selecao:handle).
+
+{utp/ut-liter.i Estabel * C}
+assign tt-param.estabel:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Esp‚cie * C}  
+assign tt-param.espec:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i S‚rie * C}  
+assign tt-param.serie-ini:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Documento * C}  
+assign tt-param.docto-ini:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Parcela * C}  
+assign tt-param.parc-ini:label in frame f-selecao = trim(return-value). 
+
+{utp/ut-liter.i Fornecedor * C}  
+assign tt-param.forn-ini:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Data * C}  
+assign tt-param.emis-ini:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Referˆncia * C}  
+assign tt-param.ref-ini:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Elimina_Doc_Reten‡Æo? * C}
+assign tt-param.elimina-ir:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Elimina_Doc_Ori_Estoque? * C}
+assign tt-param.elimina-estoque:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Elimina_Doc_Com_Movimen? * C}
+assign tt-param.elimina-movto:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Destino * C}
+assign c-destino:label in frame f-selecao = trim(return-value).
+
+{utp/ut-liter.i Sele‡Æo * C}
+assign c-selecao = trim(return-value).
+
+{utp/ut-liter.i Parƒmetros * C}
+assign c-parametro = trim(return-value).
+
+{utp/ut-liter.i ImpressÆo * C}
+assign c-impressao = trim(return-value).                  
+
+{utp/ut-liter.i Registros_processados * C}
+assign c-reg-proc = trim (trim(return-value)) + ": ".
+
+{utp/ut-liter.i Erro * C}
+assign tt-retorno-erro.cod-erro:label = trim (trim(return-value)).
+
+{utp/ut-liter.i Descri‡Æo_Erro * C}
+assign tt-retorno-erro.desc-erro:label = trim (trim(return-value)).
+
+
+/* Fim de Include */

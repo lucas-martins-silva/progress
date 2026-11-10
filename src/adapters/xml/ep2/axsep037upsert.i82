@@ -1,0 +1,208 @@
+PROCEDURE pi-cria-ttRetirada:
+
+    /*
+    === ttRetirada ===
+    CNPJ           AS CHARACTER INITIAL ?    /*CNPJ*/
+    CPF            AS CHARACTER INITIAL ?    /*CPF*/
+    xNome          AS CHARACTER INITIAL ?    /*Raz∆o Social ou Nome do Recebedor*/
+    xLgr           AS CHARACTER INITIAL ?    /*Logradouro*/
+    nro            AS CHARACTER INITIAL ?    /*N£mero*/
+    xCpl           AS CHARACTER INITIAL ?    /*Complemento*/
+    xBairro        AS CHARACTER INITIAL ?    /*Bairro*/
+    cMun           AS CHARACTER INITIAL ?    /*C¢digo do munic°pio (utilizar a tabela do IBGE)*/
+    xMun           AS CHARACTER INITIAL ?    /*Nome do munic°pio*/
+    UF             AS CHARACTER INITIAL ?    /*Sigla da UF*/
+    CEP            AS CHARACTER INITIAL ?    /*C¢digo do CEP*/
+    cPais          AS CHARACTER INITIAL ?    /*C¢digo do Pa°s*/
+    xPais          AS CHARACTER INITIAL ?    /*Nome do Pa°s*/
+    fone           AS CHARACTER INITIAL ?    /*Telefone*/
+    email          AS CHARACTER INITIAL ?    /*Endereáo de e-mail do Recebedor*/
+    IE             AS CHARACTER INITIAL ?    /*Inscriá∆o Estadual do Estabelecimento Recebedor*/
+    */
+
+    DEFINE VARIABLE c-emitente-retirada   AS CHARACTER FORMAT "X(12)":U NO-UNDO.
+    DEFINE VARIABLE c-cnpj-cpf-retirada   AS CHARACTER FORMAT "X(14)":U NO-UNDO.
+    DEFINE VARIABLE c-nome-razao-retirada AS CHARACTER FORMAT "X(60)":U NO-UNDO.
+    DEFINE VARIABLE c-endereco-retirada   AS CHARACTER FORMAT "X(40)":U NO-UNDO.
+    DEFINE VARIABLE c-estado-retirada     AS CHARACTER FORMAT "X(2)":U  NO-UNDO.   
+    DEFINE VARIABLE c-bairro-retirada     AS CHARACTER FORMAT "X(30)":U NO-UNDO.
+    DEFINE VARIABLE c-cidade-retirada     AS CHARACTER FORMAT "X(50)":U NO-UNDO.
+    DEFINE VARIABLE c-pais-retirada       AS CHARACTER FORMAT "X(20)":U NO-UNDO.
+    DEFINE VARIABLE c-cep-retirada        AS CHARACTER FORMAT "X(12)":U NO-UNDO.
+    DEFINE VARIABLE c-email-retirada      AS CHARACTER FORMAT "X(40)":U NO-UNDO.
+    DEFINE VARIABLE c-telefone-retirada   AS CHARACTER FORMAT "X(20)":U NO-UNDO.
+    DEFINE VARIABLE c-ie-retirada         AS CHARACTER FORMAT "X(19)":U NO-UNDO.
+
+    DEF BUFFER bf-emitente FOR emitente.    
+
+    FOR FIRST nota-fisc-adc NO-LOCK
+        WHERE nota-fisc-adc.cod-estab        = nota-fiscal.cod-estabel
+          AND nota-fisc-adc.cod-serie        = nota-fiscal.serie
+          AND nota-fisc-adc.cod-nota-fisc    = nota-fiscal.nr-nota-fis
+          AND nota-fisc-adc.cdn-emitente     = nota-fiscal.cod-emitente
+          AND nota-fisc-adc.cod-natur-operac = nota-fiscal.nat-operacao
+          AND nota-fisc-adc.idi-tip-dado     = 32:        
+        
+        IF  ENTRY(1,nota-fisc-adc.cod-livre-1,CHR(2)) <> "" 
+        AND ENTRY(2,nota-fisc-adc.cod-livre-1,CHR(2)) <> ""  THEN DO:
+            
+            ASSIGN c-emitente-retirada   = ENTRY(1,nota-fisc-adc.cod-livre-1,CHR(2))
+                   c-cnpj-cpf-retirada   = ENTRY(2,nota-fisc-adc.cod-livre-1,CHR(2)) 
+                   c-nome-razao-retirada = ENTRY(3,nota-fisc-adc.cod-livre-1,CHR(2))               
+                   c-endereco-retirada   = ENTRY(1,nota-fisc-adc.cod-livre-2,CHR(2)) 
+                   c-estado-retirada     = ENTRY(2,nota-fisc-adc.cod-livre-2,CHR(2)) 
+                   c-bairro-retirada     = ENTRY(3,nota-fisc-adc.cod-livre-2,CHR(2)) 
+                   c-cidade-retirada     = ENTRY(4,nota-fisc-adc.cod-livre-2,CHR(2)) 
+                   c-pais-retirada       = ENTRY(5,nota-fisc-adc.cod-livre-2,CHR(2)) 
+                   c-cep-retirada        = ENTRY(6,nota-fisc-adc.cod-livre-2,CHR(2))
+                   c-ie-retirada         = ENTRY(7,nota-fisc-adc.cod-livre-2,CHR(2))                   
+                   c-email-retirada      = ENTRY(1,nota-fisc-adc.cod-livre-3,CHR(2)) 
+                   c-telefone-retirada   = ENTRY(2,nota-fisc-adc.cod-livre-3,CHR(2)).
+                   
+            FOR FIRST bf-emitente NO-LOCK 
+                WHERE bf-emitente.nome-abrev = c-emitente-retirada:   
+            END.                    
+            IF c-emitente-retirada <> "" 
+            AND NOT AVAIL bf-emitente THEN 
+                FOR FIRST bf-emitente
+                    WHERE bf-emitente.cod-emitente = INT(c-emitente-retirada) NO-LOCK:
+                END.    
+                
+            IF AVAIL bf-emitente THEN DO:    
+                    
+                ASSIGN c-rua  = ""
+                       c-nro  = ""
+                       c-comp = "".
+
+                IF  INDEX(c-endereco-retirada,CHR(ASC("ß"))) > 0 THEN /* Retirar caracter especial */
+                    ASSIGN c-endereco-retirada = REPLACE(c-endereco-retirada,CHR(ASC("ß")),"").
+
+                RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco-retirada,
+                                                     OUTPUT c-rua, 
+                                                     OUTPUT c-nro, 
+                                                     OUTPUT c-comp).
+
+                IF  c-nro = "" THEN
+                    ASSIGN c-nro = "S/N".
+
+                CREATE ttRetirada.
+                ASSIGN ttRetirada.CNPJ    = (IF ( c-pais-retirada <> "Brasil":U OR bf-emitente.natureza = 1) AND lLayoutXML  /* Pessoa F≠sica */
+                                             THEN ""
+                                             ELSE IF ( c-pais-retirada <> "Brasil":U OR bf-emitente.natureza = 1) AND lLayoutTXT
+                                                  THEN ""
+                                                  ELSE c-cnpj-cpf-retirada)
+                       ttRetirada.CPF     = (IF bf-emitente.natureza = 1 /* Pessoa Fisica */
+                                             THEN c-cnpj-cpf-retirada
+                                             ELSE "")
+                       ttRetirada.CPF     = (IF   ttRetirada.CPF <> ?
+                                             THEN ttRetirada.CPF
+                                             ELSE "").
+											
+                IF ttRetirada.CNPJ = "" AND ttRetirada.CPF = "" THEN DO:
+                    DELETE ttRetirada.
+                    NEXT.
+                END.
+                            
+                ASSIGN ttRetirada.nro     = c-nro
+                       ttRetirada.UF      = (IF c-pais-retirada <> "Brasil":U
+                                             THEN "EX"
+                                             ELSE c-estado-retirada)
+		       ttRetirada.UF      = (IF   ttRetirada.UF <> ?
+                                             THEN ttRetirada.UF
+                                             ELSE "")
+                       ttRetirada.xBairro = (IF   c-bairro-retirada <> ""
+                                             THEN c-bairro-retirada
+                                             ELSE "Nao Informado")
+                       ttRetirada.xCpl    = c-comp
+                       ttRetirada.xLgr    = c-rua
+                       ttRetirada.xMun    = (IF c-pais-retirada <> "Brasil":U
+                                             THEN "Exterior"
+                                             ELSE c-cidade-retirada)
+                       ttRetirada.CEP     = c-cep-retirada
+                       ttRetirada.xPais   = c-pais-retirada
+                       /* Caso n∆o tenha IE no CD4035 continua pegando do cadastro do emitente */
+                       ttRetirada.IE      = IF   c-ie-retirada <> ""
+                                            THEN fn-ajusta-campo-IE(c-ie-retirada)
+                                            ELSE fn-ajusta-campo-IE(bf-emitente.ins-estadual)
+                       ttRetirada.email   = c-email-retirada
+                       ttRetirada.xNome   = c-nome-razao-retirada
+                       ttRetirada.xNomeRetirada = c-emitente-retirada
+                       ttRetirada.fone    = c-telefone-retirada.
+                                 
+                 ASSIGN ttRetirada.IE = (IF (ttRetirada.IE = "ISENTO":U OR ttRetirada.IE = "ISENTA":U)
+                                         THEN "":U
+                                         ELSE ttRetirada.IE).
+
+                 /*--- TRATAMENTO FONE - Sefaz aceita somente números, e apenas 11 caracters -> DDD12345678 ---*/
+                 ASSIGN c-fone = "".
+                
+                 DO  i-cont = 1 TO LENGTH(ttRetirada.fone):
+                
+                 /* Nao considerar o primeiro zero do telefone, caso inicie com 0 (DDD iniciando com 0 ou nro de telefone incorreto) */
+                 IF  i-cont = 1
+                 AND LOOKUP(SUBSTRING(ttRetirada.fone,i-cont,1),"0") > 0 THEN NEXT.
+                 
+                 IF  LOOKUP(SUBSTRING(ttRetirada.fone,i-cont,1),"0,1,2,3,4,5,6,7,8,9") > 0 THEN
+                     ASSIGN c-fone = c-fone + SUBSTRING(ttRetirada.fone,i-cont,1).
+                 END.
+                 /*---*/
+                
+                ASSIGN ttRetirada.fone = c-fone.
+                ASSIGN ttRetirada.CNPJ = REPLACE(ttRetirada.CNPJ,"-","")
+                       ttRetirada.CNPJ = REPLACE(ttRetirada.CNPJ,".","")
+                       ttRetirada.CNPJ = REPLACE(ttRetirada.CNPJ,"/","").
+
+                IF (ttRetirada.xMun <> "Exterior"
+                AND ttRetirada.xMun <> ""
+                AND ttRetirada.xMun <> ?) THEN DO:
+                    FOR FIRST bf-cidade-nf FIELDS(cdn-munpio-ibge)
+                        WHERE bf-cidade-nf.cidade = ttRetirada.xMun
+                          AND bf-cidade-nf.estado = ttRetirada.UF
+                          AND bf-cidade-nf.pais   = "Brasil"   NO-LOCK:
+                
+                        ASSIGN ttRetirada.cMun = STRING(bf-cidade-nf.cdn-munpio-ibge).
+                    END.
+                    IF  NOT AVAIL bf-cidade-nf THEN
+                        ASSIGN ttRetirada.cMun = "0".
+                END.
+                ELSE
+                    ASSIGN ttRetirada.cMun = "9999999".
+                    
+                IF  ttRetirada.xPais <> ""
+                AND ttRetirada.xPais <> ? THEN DO:
+                    FOR FIRST bf-pais NO-LOCK
+                        WHERE bf-pais.nome-pais = ttRetirada.xPais:
+                        ASSIGN ttRetirada.cPais = bf-pais.cod-pais-siscomex.
+                    END.
+                END.
+                ELSE
+                    ASSIGN ttRetirada.cPais = "0".
+
+                /* Chave EMS */
+                ASSIGN ttRetirada.CodEstabelNF = nota-fiscal.cod-estabel
+                       ttRetirada.SerieNF      = nota-fiscal.serie
+                       ttRetirada.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+                /* Ajusta Formatacao dos Campos */
+                IF  AVAIL  ttRetirada THEN
+                    ASSIGN ttRetirada.cMun    = fn-ajusta-tamanho-campo(ttRetirada.cMun   , 7)
+                           ttRetirada.CNPJ    = fn-ajusta-tamanho-campo(ttRetirada.CNPJ   ,14)
+                           ttRetirada.CPF     = fn-ajusta-tamanho-campo(ttRetirada.CPF    ,11)
+                           ttRetirada.nro     = fn-ajusta-tamanho-campo(ttRetirada.nro    ,60)
+                           ttRetirada.UF      = fn-ajusta-tamanho-campo(ttRetirada.UF     , 2)
+                           ttRetirada.xBairro = fn-ajusta-tamanho-campo(ttRetirada.xBairro,60)
+                           ttRetirada.xCpl    = fn-ajusta-tamanho-campo(ttRetirada.xCpl   ,60)
+                           ttRetirada.xLgr    = fn-ajusta-tamanho-campo(ttRetirada.xLgr   ,60)
+                           ttRetirada.xMun    = fn-ajusta-tamanho-campo(ttRetirada.xMun   ,60)
+                           ttRetirada.xNome   = fn-ajusta-tamanho-campo(ttRetirada.xNome  ,60)
+                           ttRetirada.CEP     = fn-ajusta-tamanho-campo(ttRetirada.CEP    , 8)
+                           ttRetirada.cPais   = fn-ajusta-tamanho-campo(ttRetirada.cPais  , 4)
+                           ttRetirada.xPais   = fn-ajusta-tamanho-campo(ttRetirada.xPais  ,60)
+                           ttRetirada.fone    = fn-ajusta-tamanho-campo(ttRetirada.fone   ,14)
+                           ttRetirada.email   = fn-ajusta-tamanho-campo(ttRetirada.email  ,60)
+                           ttRetirada.IE      = fn-ajusta-tamanho-campo(ttRetirada.IE     ,14).                
+            END.               
+        END.
+    END.
+ 
+END PROCEDURE.

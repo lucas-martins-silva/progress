@@ -1,0 +1,9 @@
+PROCEDURE pi-seta-nfcom:
+
+    DEFINE INPUT  PARAMETER pRowidNF AS ROWID       NO-UNDO.
+
+    FOR FIRST nota-fiscal NO-LOCK
+        WHERE ROWID(nota-fiscal) = pRowidNF:
+    END.
+
+END PROCEDURE.

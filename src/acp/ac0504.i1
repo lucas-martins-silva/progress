@@ -1,0 +1,70 @@
+/*******************************************************************************
+**
+** ac0504.i1  : Include do for each de cotas, com v rio break by.
+** Parƒmetros : {1} campo de break by.            
+********************************************************************************/
+
+/************************************************************ 
+*  Pr‚-Processador para o m¢dulo de Administra‡Æo de Cotas
+************************************************************/
+
+&if defined (bf_dis_adm_cotas) &then
+    for each cotas no-lock 
+           where   cotas.cod-estabel >= tt-param.cod-estab-ini
+         and   cotas.cod-estabel     <= tt-param.cod-estab-fim
+       and   ((cotas.cod-canal-venda >= tt-param.cod-canal-venda-ini
+         and   cotas.cod-canal-venda <= tt-param.cod-canal-venda-fim)
+         or    cotas.cod-canal-venda  = ? )
+       and   ((cotas.cod-gr-cli      >= tt-param.cod-gr-cli-ini
+         and   cotas.cod-gr-cli      <= tt-param.cod-gr-cli-fim)
+         or    cotas.cod-gr-cli       = ? )
+       and   ((cotas.nome-abrev      >= tt-param.nome-abrev-ini
+         and   cotas.nome-abrev      <= tt-param.nome-abrev-fim)
+         or    cotas.nome-abrev       = ? )          
+       and   ((cotas.nome-ab-reg     >= tt-param.nome-ab-reg-ini
+         and   cotas.nome-ab-reg     <= tt-param.nome-ab-reg-fim)
+         or    cotas.nome-ab-reg      = ? ) 
+       and   ((cotas.nome-mic-reg    >= tt-param.nome-mic-reg-ini
+         and   cotas.nome-mic-reg    <= tt-param.nome-mic-reg-fim)
+         or    cotas.nome-mic-reg     = ? )
+       and     cotas.cod-rep         >= tt-param.cod-rep-ini
+         and   cotas.cod-rep         <= tt-param.cod-rep-fim
+       and     cotas.cd-produto      >= tt-param.cd-produto-ini
+         and   cotas.cd-produto      <= tt-param.cd-produto-fim
+       and     cotas.dt-inicial      >= tt-param.dt-inicial
+         and   cotas.dt-inicial      <= tt-param.dt-final 
+       {1}        :
+&else
+    for each cotas no-lock 
+           where   cotas.cod-estabel >= tt-param.cod-estab-ini
+         and   cotas.cod-estabel     <= tt-param.cod-estab-fim
+       and   ((cotas.cod-canal-venda >= tt-param.cod-canal-venda-ini
+         and   cotas.cod-canal-venda <= tt-param.cod-canal-venda-fim)
+         or    cotas.cod-canal-venda  = ? )
+       and   ((cotas.cod-gr-cli      >= tt-param.cod-gr-cli-ini
+         and   cotas.cod-gr-cli      <= tt-param.cod-gr-cli-fim)
+         or    cotas.cod-gr-cli       = ? )
+       and   ((cotas.nome-abrev      >= tt-param.nome-abrev-ini
+         and   cotas.nome-abrev      <= tt-param.nome-abrev-fim)
+         or    cotas.nome-abrev       = ? )          
+       and   ((cotas.nome-ab-reg     >= tt-param.nome-ab-reg-ini
+         and   cotas.nome-ab-reg     <= tt-param.nome-ab-reg-fim)
+         or    cotas.nome-ab-reg      = ? ) 
+       and   ((cotas.nome-mic-reg    >= tt-param.nome-mic-reg-ini
+         and   cotas.nome-mic-reg    <= tt-param.nome-mic-reg-fim)
+         or    cotas.nome-mic-reg     = ? )
+       and   ((cotas.cod-rep         >= tt-param.cod-rep-ini
+         and   cotas.cod-rep         <= tt-param.cod-rep-fim)
+         or    cotas.cod-rep          = ? )
+       and     cotas.cd-produto      >= tt-param.cd-produto-ini
+         and   cotas.cd-produto      <= tt-param.cd-produto-fim
+       and     cotas.dt-inicial      >= tt-param.dt-inicial
+         and   cotas.dt-inicial      <= tt-param.dt-final 
+       {1}        :
+&endif
+
+   run pi-acompanhar in h-acomp ( input cotas.cod-rep ). 
+
+
+
+/* ac0504.i1 */

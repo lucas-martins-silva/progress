@@ -1,0 +1,101 @@
+PROCEDURE pi-grava-ttICMSSN500:
+
+    /*
+    === ttICMSSN500 === 
+    Orig           AS CHARACTER INITIAL ?                                      /*Origem da mercadoria*/
+    CSOSN          AS CHARACTER INITIAL ?                                      /*C¢digo de Situa‡Æo da Opera‡Æo - Simples Nacional*/
+    vBCSTRet       AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor da BC do ICMS ST retido*/
+    pST            AS DECIMAL   INITIAL ? FORMAT ">>9.9999"         DECIMALS 4 /*Aliquota suportada pelo Consumidor Final*/
+    vICMSSTRet     AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor do ICMS ST retido*/
+    vBCFCPST       AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor da BC do FCP ST*/ 
+    pFCPST         AS DECIMAL   INITIAL ? FORMAT ">>9.9999"         DECIMALS 4 /*Al¡quota do FCP ST*/
+    vFCPST         AS DECIMAL   INITIAL ? FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2 /*Valor do FCP ST*/       
+    */
+    
+    CREATE ttICMSSN500.
+    ASSIGN ttICMSSN500.orig       = STRING(i-codigo-orig)
+           ttICMSSN500.CSOSN      = c-cod-csosn
+           ttICMSSN500.vBCSTRet   = it-nota-fisc.vl-bsubs-it       /*Valor da BC do ICMS ST retido*/
+           ttICMSSN500.vICMSSTRet = it-nota-fisc.vl-icmsub-it      /*Valor do ICMS ST retido*/
+           .
+           
+    /* Al¡quota ICMS ST */
+    if  nota-fiscal.ind-tip-nota = 8 then do: /* Entrada */
+        FOR FIRST ext-item-doc-est NO-LOCK
+            WHERE ext-item-doc-est.serie-docto  = nota-fiscal.serie       
+              AND ext-item-doc-est.nro-docto    = nota-fiscal.nr-nota-ant  
+              AND ext-item-doc-est.cod-emitente = nota-fiscal.cod-emitente 
+              AND ext-item-doc-est.nat-operacao = nota-fiscal.nat-operacao
+              AND ext-item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped 
+              AND ext-item-doc-est.cod-param    = "icms-sta":U: END.
+        IF NOT AVAIL ext-item-doc-est THEN
+            FOR FIRST item-nf-adc NO-LOCK
+                WHERE item-nf-adc.cod-estab        = nota-fiscal.cod-estabel
+                  AND item-nf-adc.cod-serie        = nota-fiscal.serie       
+                  AND item-nf-adc.cod-nota-fisc    = nota-fiscal.nr-nota-ant  
+                  AND item-nf-adc.cdn-emitente     = nota-fiscal.cod-emitente 
+                  AND item-nf-adc.cod-natur-operac = nota-fiscal.nat-operacao
+                  AND item-nf-adc.idi-tip-dado     = 1
+                  AND item-nf-adc.num-seq          = 1
+                  AND item-nf-adc.num-seq-item-nf  = it-nota-fisc.nr-seq-ped
+                  AND item-nf-adc.cod-item         = it-nota-fisc.it-codigo: END.
+        IF AVAIL ext-item-doc-est THEN
+            ASSIGN ttICMSSN500.pST = DEC(TRIM(STRING(ext-item-doc-est.val-livre-1))).
+        ELSE IF AVAIL item-nf-adc THEN
+            ASSIGN ttICMSSN500.pST = DEC(TRIM(STRING(item-nf-adc.val-aliq-icms-st))).
+    end.
+    else
+        FOR FIRST item-nfs-st NO-LOCK
+            WHERE item-nfs-st.cod-estab-nfs = it-nota-fisc.cod-estabel
+            AND   item-nfs-st.cod-ser-nfs   = it-nota-fisc.serie
+            AND   item-nfs-st.cod-docto-nfs = it-nota-fisc.nr-nota-fis
+            AND   item-nfs-st.cod-item      = it-nota-fisc.it-codigo
+            AND   item-nfs-st.num-seq-nfs   = it-nota-fisc.nr-seq-fat:
+        
+            ASSIGN ttICMSSN500.pST = DEC(TRIM(SUBSTRING(item-nfs-st.cod-livre-1,1,8))).
+        END.
+
+    /*--- Valor do ICMS pr¢prio do Substituto */
+    ASSIGN ttICMSSN500.vICMSSubstituto = DEC(TRIM(SUBSTRING(it-nota-fisc.char-2,354,16))).
+    
+    /*--- Valores FCP ---*/
+    FOR FIRST item-nf-adc NO-LOCK
+        WHERE item-nf-adc.cod-estab         = nota-fiscal.cod-estabel
+        AND   item-nf-adc.cod-serie         = nota-fiscal.serie
+        AND   item-nf-adc.cod-nota-fisc     = (if nota-fiscal.ind-tip-nota <> 8 then nota-fiscal.nr-nota-fis else nota-fiscal.nr-nota-ant)
+        AND   item-nf-adc.idi-tip-dado      = 25
+        AND   item-nf-adc.cdn-emitente      = nota-fiscal.cod-emitente
+        AND   item-nf-adc.cod-natur-operac  = it-nota-fisc.nat-operacao
+        AND   item-nf-adc.num-seq-item-nf   = (if nota-fiscal.ind-tip-nota <> 8 then it-nota-fisc.nr-seq-fat else it-nota-fisc.nr-seq-ped)
+        AND   item-nf-adc.cod-item          = it-nota-fisc.it-codigo:
+       
+        IF (item-nf-adc.log-livre-2 = ? /* Nova gera‡Æo de FCP -> FCP e FCP ST juntos no mesmo item da nota */
+        AND (item-nf-adc.val-livre-1      > 0 OR /* Valores de FCP ST */
+             item-nf-adc.val-livre-2      > 0 OR
+             DEC(item-nf-adc.cod-livre-4) > 0))
+        OR  item-nf-adc.log-livre-1 = YES  /* NO = FCP Normal | YES = FCP ST */ /* Gera‡Æo de dados antiga FCP ou FCP ST */
+        THEN
+            ASSIGN ttICMSSN500.vBCFCPSTRet = item-nf-adc.val-livre-1
+                   ttICMSSN500.pFCPSTRet   = item-nf-adc.val-livre-2
+                   ttICMSSN500.vFCPSTRet   = DEC(item-nf-adc.cod-livre-4)
+                   d-total-vFCPSTRet       = d-total-vFCPSTRet + ttICMSSN500.vFCPSTRet.
+    END.
+    /*---*/
+    /* Majora ICMS ST com FCP ST fun‡Æo por estado - EX: MT */ 
+    IF  l-Majora-FCP = YES
+    AND ttICMSSN500.vFCPSTRet <> ? THEN DO:
+        ASSIGN ttICMSSN500.pST         = ttICMSSN500.pST        + ttICMSSN500.pFCPSTRet
+               ttICMSSN500.vICMSSTRet  = ttICMSSN500.vICMSSTRet + ttICMSSN500.vFCPSTRet
+               ttICMSSN500.vBCFCPSTRet = ?
+               ttICMSSN500.pFCPSTRet   = ?
+               ttICMSSN500.vFCPSTRet   = ?.
+    END.
+
+    /*Chave EMS*/
+    ASSIGN ttICMSSN500.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMSSN500.SerieNF      = nota-fiscal.serie
+           ttICMSSN500.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMSSN500.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMSSN500.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+     
+END PROCEDURE.

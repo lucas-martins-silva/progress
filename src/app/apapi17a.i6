@@ -1,0 +1,104 @@
+/*******************************************************************************
+***
+*** app/apapi17a.i6 - Verifica se deve informar novo documento.
+***
+*******************************************************************************/
+
+assign l-novo-docto = no
+       c-documento  = "".
+
+find espec-ap where espec-ap.cod-esp = tt-nota-debito-credito.cod-esp no-lock no-error.
+if  avail espec-ap then do:
+
+    if  espec-ap.tipo = 4 then
+        {utp/ut-liter.i normal}
+    else
+        {utp/ut-liter.i antecipaá∆o}
+
+    assign c-documento = trim(return-value).
+
+    find first tt-documento-original
+         where tt-documento-original.ep-codigo   = tt-nota-debito-credito.ep-codigo
+         and   tt-documento-original.cod-estabel = tt-nota-debito-credito.cod-estabel
+         and   tt-documento-original.cod-fornec  = tt-nota-debito-credito.cod-fornec
+         and   tt-documento-original.cod-esp     = tt-nota-debito-credito.cod-esp
+         and   tt-documento-original.serie       = tt-nota-debito-credito.serie
+         and   tt-documento-original.nr-docto    = tt-nota-debito-credito.nr-docto
+         and   tt-documento-original.parcela     = tt-nota-debito-credito.parcela no-error.
+
+    if  avail tt-documento-original then do:
+
+        /*--- NOTA DE DêBITO ---*/
+        if  espec-ap.tipo = 4 then do:
+
+            find first {1} no-lock
+                 where {1}.ep-codigo   = tt-documento-original.ep-codigo-orig
+                 and   {1}.cod-estabel = tt-documento-original.cod-estabel-orig
+                 and   {1}.cod-fornec  = tt-documento-original.cod-fornec-orig
+                 and   {1}.cod-esp     = tt-documento-original.cod-esp-orig
+                 and   {1}.serie       = tt-documento-original.serie-orig
+                 and   {1}.nr-docto    = tt-documento-original.nr-docto-orig
+                 and   {1}.parcela     = tt-documento-original.parcela-orig
+                 no-error.
+
+            if  avail {1} then do:    
+                if  {1}.vl-saldo-me <= 0 then do:
+                    assign l-novo-docto = yes.
+                end.                
+            end.
+            else do:
+                assign l-novo-docto = yes.
+            end.
+        end.    
+
+        /*--- NOTA DE CRêDITO ---*/
+        if  espec-ap.tipo = 5 then do:
+
+            assign vl-imposto-retido   = 0
+                   vl-imposto-agregado = 0.
+            if i-pais-impto-usuario = 4 then do:
+                for each tt-imposto no-lock:
+                    find first tipo-tax no-lock
+                        where tipo-tax.cod-tax = tt-imposto.cod-imposto no-error.  
+                    if tipo-tax.tipo = 1 then
+                       assign vl-imposto-retido = vl-imposto-retido + tt-imposto.vl-imposto-me.
+                    else
+                       assign vl-imposto-agregado = vl-imposto-agregado + tt-imposto.vl-imposto-me.       
+                end.
+            end.
+
+            find first {1} no-lock
+                 where {1}.ep-codigo   = tt-documento-original.ep-codigo-orig
+                 and   {1}.cod-estabel = tt-documento-original.cod-estabel-orig
+                 and   {1}.cod-fornec  = tt-documento-original.cod-fornec-orig
+                 and   {1}.cod-esp     = tt-documento-original.cod-esp-orig
+                 and   {1}.serie       = tt-documento-original.serie-orig
+                 and   {1}.nr-docto    = tt-documento-original.nr-docto-orig
+                 and   {1}.parcela     = tt-documento-original.parcela-orig
+                 no-error.
+
+            if  avail {1} then do:    
+                if  {1}.vl-saldo-me <= 0 then do:
+                    assign l-novo-docto = yes.
+                end.    
+                else do:
+
+                    if  (tt-nota-debito-credito.vl-orig-me - vl-imposto-retido + vl-imposto-agregado) >= {1}.vl-saldo-me then do:            
+                        assign l-novo-docto = yes.
+                    end.
+                    if (tt-nota-debito-credito.vl-orig-me - {1}.vl-saldo-me) = 0 then do:
+                        assign l-novo-docto = no.                       
+                    end.                     
+                end.                         
+            end.
+            else do:
+                assign l-novo-docto = yes.
+            end.
+        end.
+    end.
+    else do:
+        assign l-novo-docto = yes.
+    end.
+end.
+
+/* Fim de Include */

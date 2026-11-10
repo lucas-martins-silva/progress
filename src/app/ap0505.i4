@@ -1,0 +1,45 @@
+/******************************************************************************
+**
+**  Programa : AP0505.I4
+**  Objetivo.: Include de Atualizacao do Acumulado PIS/COFINS/CSLL.
+**
+******************************************************************************/    
+    /* --- Elimina tabela de Rela‡Æo Imposto-Pagto --- */   
+    for each  b-imposto-pagto           
+        where b-imposto-pagto.ep-codigo     = lin-b-ap.ep-codigo    
+        and   b-imposto-pagto.cod-fornec    = lin-b-ap.cod-fornec   
+        and   b-imposto-pagto.cod-estabel   = lin-b-ap.cod-estabel  
+        and   b-imposto-pagto.cod-esp       = lin-b-ap.cod-esp      
+        and   b-imposto-pagto.serie         = lin-b-ap.serie        
+        and   b-imposto-pagto.nr-docto      = lin-b-ap.nr-docto     
+        and   b-imposto-pagto.parcela       = lin-b-ap.parcela      
+        and   b-imposto-pagto.referencia    = lin-b-ap.referencia
+        and   b-imposto-pagto.num-id-mov-ap = 0 exclusive-lock.
+        /* --- atualiza‡Æo de Acumulados --- */
+        if  l-func-matriz-impto then 
+            find first acum-imposto-pagto 
+                where acum-imposto-pagto.ep-codigo   = lin-b-ap.ep-codigo
+                and   acum-imposto-pagto.cod-estabel = ""
+                and   acum-imposto-pagto.cod-fornec  =  &if "{&mgadm_version}" >= "2.07" &then
+                                                            b-imposto-pagto.cdn-fornec-matriz
+                                                        &else
+                                                            b-imposto-pagto.num-livre-1    
+                                                        &endif
+                and   acum-imposto-pagto.dat-refer   = date(month(lin-b-ap.dt-baixa),01,year(lin-b-ap.dt-baixa)) 
+                and   acum-imposto-pagto.cod-imposto = b-imposto-pagto.cod-imposto exclusive-lock no-error.
+        else
+            find first acum-imposto-pagto 
+                where acum-imposto-pagto.ep-codigo   = lin-b-ap.ep-codigo
+                and   acum-imposto-pagto.cod-estabel = ""
+                and   acum-imposto-pagto.cod-fornec  = lin-b-ap.cod-fornec
+                and   acum-imposto-pagto.dat-refer   = date(month(lin-b-ap.dt-baixa),01,year(lin-b-ap.dt-baixa))
+                and   acum-imposto-pagto.cod-imposto = b-imposto-pagto.cod-imposto exclusive-lock no-error.
+        if avail acum-imposto-pagto then do:   
+            assign acum-imposto-pagto.val-rendto-tribut           = acum-imposto-pagto.val-rendto-tribut - b-imposto-pagto.vl-base
+                   acum-imposto-pagto.val-acum-impto-retid-period = acum-imposto-pagto.val-acum-impto-retid-period - b-imposto-pagto.vl-imposto.
+            if  acum-imposto-pagto.val-rendto-tribut           = 0
+            and acum-imposto-pagto.val-acum-impto-retid-period = 0 then
+                delete acum-imposto-pagto.
+        end.
+        delete b-imposto-pagto. 
+    end.

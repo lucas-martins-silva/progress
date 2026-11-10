@@ -1,0 +1,134 @@
+PROCEDURE pi-cria-ttEmitDCe:
+
+    /*
+    === ttEmitDCe===
+    CNPJ           AS CHARACTER INITIAL ?  //Informar o CNPJ do usu rio emitente
+    CPF            AS CHARACTER INITIAL ?  //Informar o CPF do usu rio emitente
+    idOutros       AS CHARACTER INITIAL ?  //Identifica‡Æo do emitente outros
+    xNome          AS CHARACTER INITIAL ?  //RazÆo Social ou Nome do emitente
+    
+    //enderEmit
+    xLgr           AS CHARACTER INITIAL ?  //Logradouro
+    nro            AS CHARACTER INITIAL ?  //N£mero
+    xCpl           AS CHARACTER INITIAL ?  //Complemento
+    xBairro        AS CHARACTER INITIAL ?  //Bairro
+    cMun           AS INT       INITIAL ?  //C¢digo do munic¡pio (utilizar a tabela do IBGE)
+    xMun           AS CHARACTER INITIAL ?  //Nome do munic¡pio      
+    UF             AS CHARACTER INITIAL ?  //Sigla da UF
+    CEP            AS CHARACTER INITIAL ?  //CEP
+    cPais          AS CHARACTER INITIAL ?  //C¢digo do Pa¡s
+    xPais          AS CHARACTER INITIAL ?  //Nome do Pa¡s
+    fone           AS CHARACTER INITIAL ?  //Telefone
+    */
+        
+    ASSIGN c-endereco = dce-documento.endereco-emitente
+           c-rua      = ""
+           c-nro      = ""
+           c-comp     = "".
+
+    IF  INDEX(c-endereco,CHR(ASC("§"))) > 0 THEN /* Retirar caracter especial */
+        ASSIGN c-endereco = REPLACE(c-endereco,CHR(ASC("§")),"").
+
+    RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco,
+                                         OUTPUT c-rua, 
+                                         OUTPUT c-nro, 
+                                         OUTPUT c-comp).
+
+    IF  c-nro = "" THEN
+        ASSIGN c-nro = "S/N".
+        
+    ASSIGN c-cgc = REPLACE(REPLACE(REPLACE(REPLACE(dce-documento.cnpj-cpf-emitente, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U).        
+
+    /*--- TRATAMENTO FONE - Sefaz aceita somente n£meros, e apenas 11 caracters -> DDD12345678 ---*/
+
+    ASSIGN c-fone = "".
+
+    DO  i-cont = 1 TO LENGTH(dce-documento.telefone-emitente):
+
+        /* Nao considerar o primeiro zero do telefone, caso inicie com 0 (DDD iniciando com 0 ou nro de telefone incorreto) */
+        IF  i-cont = 1
+        AND LOOKUP(SUBSTRING(dce-documento.telefone-emitente,i-cont,1),"0") > 0 THEN NEXT.
+
+        IF  LOOKUP(SUBSTRING(dce-documento.telefone-emitente,i-cont,1),"0,1,2,3,4,5,6,7,8,9") > 0 THEN
+            ASSIGN c-fone = c-fone + SUBSTRING(dce-documento.telefone-emitente,i-cont,1).
+    END.
+    /*---*/
+    
+    FOR FIRST pais NO-LOCK
+        WHERE pais.nome-pais = dce-documento.pais-emitente:
+    END.
+    
+    CREATE ttEmitDCe.
+    ASSIGN /* Chave EMS */ 
+           ttEmitDCe.CodEstabelDCe = dce-documento.cod-estabel
+           ttEmitDCe.SerieDCe      = dce-documento.serie
+           ttEmitDCe.NrDCe         = dce-documento.nr-dce
+           /* Chave EMS */ 
+           
+           ttEmitDCe.CNPJ          = (IF dce-documento.pais-emitente <> "Brasil" OR length(c-cgc) = 11 /* Pessoa F¡sica */
+                                      THEN ""
+                                      ELSE trim(c-cgc) /* Pessoa Juridica */)
+           ttEmitDCe.CNPJ          =  REPLACE(ttEmitDCe.CNPJ,"-","")
+           ttEmitDCe.CNPJ          =  REPLACE(ttEmitDCe.CNPJ,".","")
+           ttEmitDCe.CNPJ          =  REPLACE(ttEmitDCe.CNPJ,"/","")
+           ttEmitDCe.CNPJ          =  (IF ttEmitDCe.CNPJ = "00000000000000" 
+                                        THEN ""
+                                        ELSE ttEmitDCe.CNPJ)
+           ttEmitDCe.CPF           = (IF ttEmitDCe.CNPJ = "" AND length(c-cgc) = 11 /* Pessoa Fisica */
+                                      THEN c-cgc
+                                      ELSE "")
+           ttEmitDCe.CPF           = (IF ttEmitDCe.CPF <> ? AND ttEmitDCe.CPF <> "00000000000"
+                                      THEN ttEmitDCe.CPF
+                                      ELSE "")
+           ttEmitDCe.idOutros      = (IF ttEmitDCe.CNPJ = "" AND ttEmitDCe.CPF = ""
+                                      THEN TRIM(dce-documento.id-outros-emitente)
+                                      ELSE "")
+           ttEmitDCe.xNome         = dce-documento.nome-emitente
+           ttEmitDCe.xLgr          = c-rua
+           ttEmitDCe.nro           = c-nro
+           ttEmitDCe.xCpl          = c-comp
+           ttEmitDCe.xBairro       = (IF dce-documento.bairro-emitente <> ""
+                                      THEN dce-documento.bairro-emitente
+                                      ELSE "Nao Informado")
+           ttEmitDCe.xMun          = (IF dce-documento.pais-emitente <> "Brasil":U
+                                      THEN "Exterior"
+                                      ELSE dce-documento.cidade-emitente)           
+           ttEmitDCe.UF            = (IF dce-documento.pais-emitente <> "Brasil":U
+                                      THEN "EX"
+                                      ELSE dce-documento.estado-emitente)
+           ttEmitDCe.CEP           = REPLACE(dce-documento.cep-emitente,"-","")
+           ttEmitDCe.CEP           = STRING(dce-documento.cep-emitente,"99999999")
+           ttEmitDCe.cPais         = (IF avail pais 
+                                      THEN pais.cod-pais-siscomex
+                                      ELSE "1058")
+           ttEmitDCe.xPais         = (IF dce-documento.pais-emitente <> "":U
+                                      THEN dce-documento.pais-emitente
+                                      ELSE "Brasil")
+           ttEmitDCe.cMun          = STRING(fn-retorna-codigo-cidade(ttEmitDCe.xMun, ttEmitDCe.UF, ttEmitDCe.xPais)) /*Fun‡Æo para retornar Codigo IBGE - Parametros de entrada CIDADE/ESTADO/PAIS*/
+           ttEmitDCe.fone          = c-fone.
+
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL  ttEmitDCe THEN
+        ASSIGN ttEmitDCe.CNPJ       = fn-ajusta-tamanho-campo(ttEmitDCe.CNPJ     ,14)
+               ttEmitDCe.CPF        = fn-ajusta-tamanho-campo(ttEmitDCe.CPF      ,11)
+               ttEmitDCe.idOutros   = fn-ajusta-tamanho-campo(ttEmitDCe.idOutros ,60)
+               ttEmitDCe.xNome      = fn-ajusta-tamanho-campo(ttEmitDCe.xNome    ,60)
+               ttEmitDCe.xLgr       = fn-ajusta-tamanho-campo(ttEmitDCe.xLgr     ,60)
+               ttEmitDCe.nro        = fn-ajusta-tamanho-campo(ttEmitDCe.nro      ,60)
+               ttEmitDCe.xCpl       = fn-ajusta-tamanho-campo(ttEmitDCe.xCpl     ,60)
+               ttEmitDCe.xBairro    = fn-ajusta-tamanho-campo(ttEmitDCe.xBairro  ,60)
+               ttEmitDCe.cMun       = fn-ajusta-tamanho-campo(ttEmitDCe.cMun     , 7)
+               ttEmitDCe.xMun       = fn-ajusta-tamanho-campo(ttEmitDCe.xMun     ,60)                     
+               ttEmitDCe.UF         = fn-ajusta-tamanho-campo(ttEmitDCe.UF       , 2)              
+               ttEmitDCe.CEP        = fn-ajusta-tamanho-campo(ttEmitDCe.CEP      , 8)
+               ttEmitDCe.cPais      = fn-ajusta-tamanho-campo(ttEmitDCe.cPais    , 4)
+               ttEmitDCe.xPais      = fn-ajusta-tamanho-campo(ttEmitDCe.xPais    ,60)
+               ttEmitDCe.fone       = fn-ajusta-tamanho-campo(ttEmitDCe.fone     ,14).                          
+
+END PROCEDURE.
+
+
+
+
+

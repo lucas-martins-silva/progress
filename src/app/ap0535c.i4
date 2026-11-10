@@ -1,0 +1,20 @@
+/**********************************************************************************
+***
+*** app/ap0535c.i4 - Calcula Varia‡Æo Cambial da Duplicata.
+***
+**********************************************************************************/
+
+for each tt-variacao-monetaria:
+    delete tt-variacao-monetaria.
+end.
+        
+run app/ap0570b.p (input rowid(b-tit-ap-dup),
+                   input p-da-transacao,
+                   input 0,
+                   output table tt-variacao-monetaria). 
+            
+run app/ap0570c.p (input rowid(b-tit-ap-dup),
+                   input table tt-variacao-monetaria). 
+    
+/* Fim de Include */
+

@@ -1,0 +1,58 @@
+/********************************************************************************
+***
+*** app/apapi036.i1 - Consistˆncias para Cancelamento de AVAs.
+***
+********************************************************************************/
+
+def temp-table tt-movto-ap no-undo
+    field ep-codigo        like empresa.ep-codigo
+    field cod-estabel      like mov-ap.cod-estabel
+    field cod-esp          like mov-ap.cod-esp
+    field serie            like mov-ap.serie
+    field nr-docto         like mov-ap.nr-docto
+    field parcela          like mov-ap.parcela
+    field cod-fornec       like mov-ap.cod-fornec
+    field transacao        like mov-ap.transacao
+    field lancamento       like mov-ap.lancamento /* D‚bito/Cr‚dito */
+    field valor-mov        like mov-ap.valor-mov
+    field dt-transacao     like mov-ap.dt-transacao
+    field conta-contabil   like mov-ap.conta-contabil
+    field referencia       like mov-ap.referencia
+    field i-opcao          as integer /* Por Documento ou Referˆncia */
+    field i-seq-enc-contas as integer /* Se diferente de zero identifica que programa foi chamado pelo CR */
+    field l-cancela-encont as log
+    INDEX codigo IS PRIMARY ep-codigo
+                            cod-fornec
+                            cod-estabel
+                            cod-esp
+                            serie
+                            nr-docto
+                            parcela.
+
+def temp-table tt-retorno-mov-ap no-undo
+    field ep-codigo         like mov-ap.ep-codigo
+    field cod-estabel       like mov-ap.cod-estabel
+    field cod-esp           like mov-ap.cod-esp
+    field serie             like mov-ap.serie
+    field cod-fornec        like mov-ap.cod-fornec
+    field nr-docto          like mov-ap.nr-docto
+    field parcela           like mov-ap.parcela
+    field conta-contabil    like mov-ap.conta-contabil
+    field transacao         like mov-ap.transacao
+    field lancamento        like mov-ap.lancamento
+    field valor-mov         like mov-ap.valor-mov
+    field cod-erro          as integer     format ">>>>>>>>9"
+    field desc-erro         as character   format "x(100)"
+    INDEX codigo IS PRIMARY ep-codigo
+                            cod-estabel
+                            cod-esp
+                            serie
+                            cod-fornec
+                            nr-docto
+                            parcela.
+
+def temp-table tt-param-entrada no-undo
+    field modulo-chamador as char format "x(05)"
+    field destino         as integer.
+
+/* Fim apapi036.i1 */

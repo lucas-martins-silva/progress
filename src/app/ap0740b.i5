@@ -1,0 +1,94 @@
+/*******************************************************************************
+***
+*** app/ap0740b.i5 - pi-documento-antecipacao.
+***
+*******************************************************************************/
+
+assign tt-tit-ap.lancamento  = c-debito
+       tt-tit-ap.lancamento1 = c-debito.
+    
+for each  mov-ap use-index ch-antecip
+    where mov-ap.ep-codigo    = tit-ap.ep-codigo
+    and   mov-ap.cod-est      = tit-ap.cod-est
+    and   mov-ap.esp-ant      = tit-ap.cod-esp
+    and   mov-ap.serie-ant    = tit-ap.serie
+    and   mov-ap.docto-ant    = tit-ap.nr-docto
+    and   mov-ap.parc-ant     = tit-ap.parcela
+    and   mov-ap.fornec-ant   = tit-ap.cod-fornec
+    and   mov-ap.dt-transacao > tt-param.da-corte no-lock:
+
+    if   (mov-ap.transacao   = 2
+    or    mov-ap.transacao   = 3)
+    and ((mov-ap.vl-antecip  > 0 and tt-param.i-opcao-moeda = 1)
+    or   (mov-ap.vl-ant-fasb > 0 and tt-param.i-opcao-moeda = 2)) then do:
+                
+        {app/ap0740b.i "mov-ap.vl-antecip"
+                       "mov-ap.vl-antecip-me"
+                       "mov-ap.vl-mov-fasb"
+                       "mov-ap.vl-mov-cmi"}
+            
+        assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo + de-valor-mov.
+            
+    end.
+    
+    if  mov-ap.transacao = 8 and tt-param.i-opcao-moeda = 2 then
+        assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo
+                                     + (mov-ap.valor-mov
+                                     + mov-ap.valor-juros).
+
+    if  mov-ap.transacao = 9 and tt-param.i-opcao-moeda = 3 then
+        assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo
+                                     + mov-ap.acerto-cmi.
+end.
+    
+for each mov-ap use-index codigo
+    where mov-ap.ep-codigo    = tit-ap.ep-codigo
+    and   mov-ap.cod-est      = tit-ap.cod-est
+    and   mov-ap.cod-esp      = tit-ap.cod-esp
+    and   mov-ap.serie        = tit-ap.serie
+    and   mov-ap.nr-docto     = tit-ap.nr-docto
+    and   mov-ap.parcela      = tit-ap.parcela
+    and   mov-ap.cod-fornec   = tit-ap.cod-fornec
+    and   (mov-ap.transacao   = 5
+    or    mov-ap.transacao    = 3
+    or    mov-ap.transacao    = 8
+    or    mov-ap.transacao    = 9)
+    and   mov-ap.dt-transacao > tt-param.da-corte no-lock:
+        
+    if  mov-ap.transacao = 5 then do:
+            
+        {app/ap0740b.i "mov-ap.valor-mov"
+                       "mov-ap.valor-mov-me"
+                       "mov-ap.vl-mov-fasb"
+                       "mov-ap.vl-mov-cmi"}
+            
+        if  mov-ap.lancamento = 1 then
+            assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo + de-valor-mov.
+        else
+            assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo - de-valor-mov.
+                
+    end.
+        
+    if  mov-ap.transacao = 3 and tt-param.i-opcao-moeda = 2 then do:
+            
+        {app/ap0740b.i "mov-ap.vl-antecip"
+                       "mov-ap.vl-antecip-me"
+                       "mov-ap.vl-mov-fasb"
+                       "mov-ap.vl-mov-cmi"}
+
+        assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo + de-valor-mov.
+
+    end.
+        
+    if  mov-ap.transacao = 8 and tt-param.i-opcao-moeda = 2 then
+        assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo 
+                                     - (mov-ap.valor-mov
+                                     + mov-ap.valor-juros).
+
+    if  mov-ap.transacao = 9 and tt-param.i-opcao-moeda = 3 then
+        assign tt-tit-ap.valor-saldo = tt-tit-ap.valor-saldo
+                                     - mov-ap.acerto-cmi.
+
+end.
+
+/* Fim de Include */

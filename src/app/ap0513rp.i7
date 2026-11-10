@@ -1,0 +1,40 @@
+/******************************************************************************
+***
+***  app/ap0513rp.i7 - UPC para altera‡Æo do Hist¢rico.
+***
+******************************************************************************/
+
+IF  c-nom-prog-upc-mg97  <> "" OR  
+    c-nom-prog-dpc-mg97  <> "" OR
+    c-nom-prog-appc-mg97 <> "" THEN DO:
+
+    for each tt-epc where tt-epc.cod-event = "Comments":
+        delete tt-epc.
+    end.
+            
+    create tt-epc. 
+    assign tt-epc.cod-event     = "Comments"
+           tt-epc.cod-parameter = "c-historico"
+           tt-epc.val-parameter = c-historico.
+           
+    create tt-epc.
+    assign tt-epc.cod-event     = "Comments"
+           tt-epc.cod-parameter = "rowid(diario-ap)"
+           tt-epc.val-parameter = string(rowid(diario-ap)).
+           
+    {include/i-epc201.i "Comments"}
+            
+    if  return-value = 'NOK' then do:
+        undo diario-block, leave diario-block.
+    end.       
+    else do:
+        find first tt-epc 
+             where tt-epc.cod-event     = "Comments" 
+             and   tt-epc.cod-parameter = "c-historico" no-error.
+                
+        if  avail tt-epc then
+            assign c-historico = tt-epc.val-parameter.          
+    end.
+end.
+
+/* Fim de Include */

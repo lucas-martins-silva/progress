@@ -1,0 +1,44 @@
+/******************************************************************************
+**
+** AP0703.i6 - Atualizacao das variaveis p/ impressao do resumo final.
+**
+******************************************************************************/
+
+
+assign i-venc-30    = tt-param.venc-31 - 1
+       i-venc-31    = tt-param.venc-31
+       i-venc-60    = tt-param.venc-60
+       i-venc-61    = tt-param.venc-61 
+       i-venc-90    = tt-param.venc-90 
+       i-venc-91    = i-venc-90 
+       i-a-venc-30  = tt-param.a-venc-31 - 1
+       i-a-venc-31  = tt-param.a-venc-31
+       i-a-venc-60  = tt-param.a-venc-60
+       i-a-venc-61  = tt-param.a-venc-61
+       i-a-venc-90  = tt-param.a-venc-90
+       i-a-venc-91  = tt-param.a-venc-91
+       i-a-venc-120 = tt-param.a-venc-120 
+       i-a-venc-121 = i-a-venc-120.
+
+
+
+       /* ----------------------Vencidos--------------------------------- */
+
+assign c-30-ven   = c-vencidas  + "  " + string(i-venc-30,">9")  + "  " + c-dias  
+       c-60-ven   = "       " + c-de + "  " + string(tt-param.venc-31,">9")
+                    + "  " + c-a  + " " + string(i-venc-60,">9")  + "  " + c-dias 
+       c-90-ven   = "       " + c-de   + "  " + string(i-venc-61,">9")
+                    + "  " + c-a  + " " + string(i-venc-90,">>9") + " " + c-dias 
+       c-91-ven   = "      " + c-mais + "  " + string(i-venc-91,">>9") + "  " + c-dias. 
+
+       /* ----------------------A vencer--------------------------------- */
+
+assign c-30-aven  = c-vencer + "   " + string(i-a-venc-30,">9") + "  " + c-dias 
+       c-60-aven  = "     " + c-de   + "  " + string(i-a-venc-31,">9")
+                    + "  " + c-a  + "   " + string(i-a-venc-60,">9") + "  " + c-dias 
+       c-90-aven  = "     " + c-de   + "  " + string(i-a-venc-61,">9")
+                    + "  " + c-a  + "   " + string(i-a-venc-90,">9") + "  " + c-dias 
+       c-120-aven = "     " + c-de   + "  " + string(i-a-venc-91,">9")
+                    + "  " + c-a  + "  " + string(i-a-venc-120,">>9") + "  " + c-dias 
+       c-121-aven = "    " + c-mais + "    " + string(i-a-venc-121,">>9") + "  " + c-dias. 
+

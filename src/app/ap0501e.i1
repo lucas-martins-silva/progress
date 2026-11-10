@@ -1,0 +1,113 @@
+/**************************************************************************
+***
+*** app/ap0501e.i1 - Vari veis Atualiza‡Æo 
+***
+**************************************************************************/
+
+{utp/ut-glob.i}       
+{app/ap9100.i}
+{app/ap9100.i1}
+                                
+def input param p-row-doc-i-ap as rowid no-undo.
+
+def buffer b-doc-i-ap        for doc-i-ap.
+def buffer b-l-ant-ap        for l-ant-ap.
+def buffer b-lin-i-ap        for lin-i-ap.            
+def buffer b-mov-ap-var-camb for mov-ap.
+def buffer b-tit-ap-impl     for tit-ap.
+def buffer b-tit-ap-ant      for tit-ap.
+def buffer b-tit-ap-dup      for tit-ap.
+def buffer b-tit-ap          for tit-ap.
+def buffer b-emitente        for emitente.
+def buffer b-espec-ap        for espec-ap.
+def buffer b-impto-tit-ap    for impto-tit-ap.
+def buffer b-tit-conta-ap    for tit-conta-ap.
+def buffer b-mov-ap-ava      for mov-ap.
+def buffer b-tit-ap-ava      for tit-ap.
+def buffer b-mov-ap-cambial  for mov-ap.
+
+def new global shared var i-emp      as integer format ">>9".
+def new shared var c-fluxo           as character.  
+def new shared var i-empresa         like empresa.ep-codigo.
+def new shared var l-elimina         as logical init yes no-undo. 
+/* usado nos m¢dulos integrados */
+def new shared var l-undo            as logical no-undo.
+def new shared var r-mov-ap          as rowid no-undo.
+def new shared var r-movapfa         as rowid no-undo.
+
+def new shared var r-gerencial       as rowid no-undo.
+def new shared var r-fluxo           as rowid no-undo.
+
+def shared var c-opcao               as character.
+
+/****************************************************************************
+**
+**      ATENCAO: Sempre que criar uma nova variavel SHARED nao esqueca de
+**               avisar a equipe de manutencao Industrial, pois este programa
+**               tambem e' chamado pelo CE0201.
+**
+*****************************************************************************/
+
+def shared var c-integra-ce-ap  as character format "x(2)" init "AP".
+
+def var c-consist-ap   as char format "x(12)".    
+def var c-ano-per-cot  as char format "x(4)".
+def var i-dia-cot      as int format "99".  
+def var i-origem       like lin-i-ap.origem.
+def var c-matriz       like emitente.nome-matriz.
+def var da-data        as date format "99/99/9999".
+def var de-atraso      as decimal.
+def var de-prev-conv   as decimal format ">>>,>>>,>>>,>>9.99" init 0.
+def var de-valor-prev  as decimal format ">>>,>>>,>>>,>>9.99" init 0.
+def var de-val-prev    as decimal format ">>>,>>>,>>>,>>9.99" init 0.
+def var de-soma        as decimal format ">>>,>>>,>>>,>>9.99" init 0.
+def var de-soma1       as decimal format ">>>,>>>,>>>,>>9.99" init 0.
+def var de-fator1      like cotacao.cotacao extent 0.
+def var de-fator2      like cotacao.cotacao extent 0.
+def var de-tit-ap      like tit-ap.vl-original.
+def var de-maior-tit   like tit-ap.vl-original.
+def var i-origem-cb    as integer no-undo.
+def var i-controla     as integer format 9 init 0.
+def var i-semana       as integer.
+def var i-cont         as integer.
+def var i-emitente     like tit-ap.cod-fornec.
+def var i-atraso       as integer.
+def var i-moeda        as inte format "9".
+def var l-zzztmp       as logical no-undo.
+def var l-lin-conta    as logical no-undo.
+def var l-transferencia as logical no-undo.
+def var de-taxa-prev   as decimal format "->>>,>>>,>>>,>>9.9999" init 1.
+def var de-cotacao     like tit-ap.cotacao-dia.
+def var r-reg-tit      as rowid  no-undo.
+def var de-calc-var    like mov-ap.vl-var-monet.
+def var de-diferenca   as dec format ">>,>>>,>>9.99" init 0.
+def var i-nr-docto-ret as integer                           no-undo.
+def var de-soma-ava-me like tit-ap.vl-original              no-undo.
+def var de-soma-ava    like tit-ap.vl-original              no-undo.
+def var i-sequencia    like impto-tit-pend-ap.num-seq-impto no-undo.
+def var row-mov-ap      as  rowid                           no-undo.
+def var l-ir as logical init no                             no-undo.
+def var r-tab-acum-emi  as rowid                            no-undo.
+def var de-valor-ir    like lin-i-ap.vl-original            no-undo.
+def var de-perc-faixa  like tab-progres-ir.perc-faixa       no-undo.
+def var de-total-docto like lin-conta-ap.vl-movto           no-undo.
+def var i-cod-impto-ir like empresa-ir.cod-impto-ir-pf      no-undo.
+def var i-tipo-movto    as integer                          no-undo.
+def var h-acomp         as handle                           no-undo.
+def var vl-total-docto  as decimal                          no-undo.
+def var c-historico     as char                             no-undo.
+def var i-seq-his       as int                              no-undo.
+def var de-saldo     as decimal initial 0                   no-undo.
+def var de-saldo-me  as decimal initial 0                   no-undo.
+def var de-saldo-dup as decimal initial 0                   no-undo.
+def var de-saldo-ant as decimal initial 0                   no-undo.
+def var c-lanc          as char format "x(1)"               no-undo.
+
+def temp-table tt-espec-ap no-undo like espec-ap.
+
+def temp-table tt-iva no-undo
+    field tt-row-impto-tit-ap as rowid. 
+
+def temp-table tt-mov-ap no-undo
+    field r-mov-ap-ava as rowid
+    field r-tit-ap-ava as rowid.

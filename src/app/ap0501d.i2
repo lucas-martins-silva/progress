@@ -1,0 +1,29 @@
+/******************************************************************************
+***
+***  app/ap0501d.i2 - Valida‡Æo Casas Decimais Moeda - doc-i-ap.
+***
+******************************************************************************/
+
+assign l-rejeita-dec  = no.
+assign de-tt-valor-valida = fn_vld_ajust_dec(doc-i-ap.total-movto,doc-i-ap.mo-codigo).
+
+if  l-rejeita-dec then do:
+    {utp/ut-field.i mgadm doc-i-ap total-movto 1}
+    run utp/ut-msgs.p(input "help", 
+                      input 18130, 
+                      input trim(return-value)).
+
+    create tt-retorno-lin-i-ap.
+    assign tt-retorno-lin-i-ap.desc-erro  = trim(return-value)
+           tt-retorno-lin-i-ap.cod-erro   = "18130"
+           tt-retorno-lin-i-ap.situacao   = no
+           tt-retorno-lin-i-ap.cod-chave  = doc-i-ap.referencia  + " , " 
+                                          + "  "                 + " , "
+                                          + doc-i-ap.referencia  + " , "
+                                          + doc-i-ap.cod-estabel + " , "
+                                          + " "                  + " , "
+                                          + " "                  + " , "
+                                          + " "                  + " , "
+                                          + " "                  + " , "
+                                          + " ".
+end.

@@ -1,0 +1,506 @@
+/********************************************************************************
+***
+*** app/apapi034.i2 - Validacao das Notas a serem Substituidas.
+***
+********************************************************************************/
+def var l-erro                      as logical      no-undo.
+
+def var p-cod-estabel               as char         no-undo.
+def var p-nr-referencia             as char         no-undo.
+def var p-dt-referencia             as date         no-undo.
+def var h-boad342                   as handle       no-undo.
+
+def buffer b-tt-notas               for tt-notas.
+
+assign l-contab-aux   = ?
+       i-tipo-aux     = ?
+       i-emitente-aux = ?
+       c-estabel-aux  = ?.
+
+
+for each tt-notas where tt-selecionado = yes no-lock:
+
+   /*---- Valida se nota existe -----*/
+   find first tit-ap no-lock 
+        where tit-ap.ep-codigo   = tt-notas.tt-ep-codigo
+        and   tit-ap.cod-fornec  = tt-notas.tt-cod-fornec
+        and   tit-ap.cod-estabel = tt-notas.tt-cod-estabel
+        and   tit-ap.cod-esp     = tt-notas.tt-cod-esp         
+        and   tit-ap.serie       = tt-notas.tt-serie
+        and   tit-ap.nr-docto    = tt-notas.tt-nr-docto
+        and   tit-ap.parcela     = tt-notas.tt-parcela                           
+        no-error.
+   if not avail tit-ap then do:
+      run utp/ut-msgs.p (Input "help", Input 1195, 
+                         input  tt-notas.tt-cod-estabel        + "~~" + 
+                                tt-notas.tt-cod-esp            + "~~" +
+                                tt-notas.tt-serie              + "~~" +
+                                tt-notas.tt-nr-docto           + "~~" +
+                                tt-notas.tt-parcela            + "~~" + 
+                                string(tt-notas.tt-cod-fornec)).
+      create tt-erro.
+      assign tt-erro.cd-erro  = 1195
+             tt-erro.mensagem = trim(return-value).
+      return "NOK":U.
+   end.
+
+
+   /*---- Verifica o tipo da esp‚cie ‚ normal ir ou iss ----*/
+   find first espec-ap no-lock where espec-ap.cod-esp = tt-notas.tt-cod-esp no-error.
+   if  espec-ap.tipo <> 1 and espec-ap.tipo <> 8 then do:
+       run utp/ut-msgs.p (Input "msg", Input 2583, Input "").
+       create tt-erro.
+       assign tt-erro.cd-erro  = 2583
+              tt-erro.mensagem = trim(return-value)            + " " +
+                                 tt-notas.tt-cod-estabel       + " " + 
+                                 tt-notas.tt-cod-esp           + " " +
+                                 tt-notas.tt-serie             + " " +
+                                 tt-notas.tt-nr-docto          + " " +
+                                 tt-notas.tt-parcela           + " " + 
+                                 string(tt-notas.tt-cod-fornec).
+       return "NOK":U.
+   end.
+
+   /*---- Todas as NF's tˆm que ser = contabiliza ou todas <> contabiliza ----*/
+   if  l-contab-aux = ? and i-tipo-aux = ? and i-emitente-aux = ? then do:
+       assign l-contab-aux   = espec-ap.contabiliza
+              i-tipo-aux     = espec-ap.tipo
+              i-emitente-aux = tt-notas.tt-cod-fornec
+              c-estabel-aux  = tt-notas.tt-cod-estabel.
+   end.
+   else do:
+       if  l-contab-aux <> espec-ap.contabiliza then do:
+           run utp/ut-msgs.p (Input "msg", Input 2588, Input "").
+           create tt-erro.
+           assign tt-erro.cd-erro  = 2588
+                  tt-erro.mensagem = trim(return-value).
+           return "NOK":U.
+       end.
+       if  i-tipo-aux <> espec-ap.tipo then do:
+           run utp/ut-msgs.p (Input "msg", Input 5794, Input "").
+           create tt-erro.
+           assign tt-erro.cd-erro  = 5794
+                  tt-erro.mensagem = trim(return-value).
+           return "NOK":U.
+       end.
+   end.
+
+   /*---- Valida Fornecedor ----*/
+   find first emitente no-lock
+        where emitente.cod-emitente = tt-notas.tt-cod-fornec
+          and emitente.identific   <> 1 no-error.
+
+   if  not avail emitente then do:
+       run utp/ut-msgs.p (Input "msg", Input 654, Input "").
+       create tt-erro.
+       assign tt-erro.cd-erro  = 654
+              tt-erro.mensagem = trim(return-value)             + " " + 
+                                 tt-notas.tt-cod-estabel        + " " + 
+                                 tt-notas.tt-cod-esp            + " " +
+                                 tt-notas.tt-serie              + " " +
+                                 tt-notas.tt-nr-docto           + " " +
+                                 tt-notas.tt-parcela            + " " + 
+                                 string(tt-notas.tt-cod-fornec).
+       return "NOK":U.
+   end.                  
+
+   /*---- Verifica a existˆncia do Documento -----*/
+   find first tit-ap
+       where tit-ap.ep-codigo    = tt-notas.tt-ep-codigo
+       and   tit-ap.cod-estabel  = tt-notas.tt-cod-estabel
+       and   tit-ap.cod-esp      = tt-notas.tt-cod-esp
+       and   tit-ap.serie        = tt-notas.tt-serie
+       and   tit-ap.nr-docto     = tt-notas.tt-nr-docto
+       and   tit-ap.parcela      = tt-notas.tt-parcela
+       and   tit-ap.cod-fornec   = tt-notas.tt-cod-fornec no-lock no-error.
+
+   if  not avail tit-ap then do: 
+       run utp/ut-msgs.p (Input "help",
+                          Input 1195,
+                          Input string(tt-notas.tt-ep-codigo) + "~~" +
+                                tt-notas.tt-cod-estabel       + "~~" +
+                                tt-notas.tt-cod-esp           + "~~" +
+                                tt-notas.tt-serie             + "~~" +
+                                tt-notas.tt-nr-docto          + "~~" +
+                                tt-notas.tt-parcela           + "~~" +
+                                string(tt-notas.tt-cod-fornec)).
+       create tt-erro.
+       assign tt-erro.cd-erro  = 1195
+              tt-erro.mensagem = trim(return-value).
+       return "NOK":U.
+   end.
+   else do:
+      if  tt-parametros.tt-gera-autoriza = yes then do:
+          /*--- Autoriza‡Æo Pagamento ---*/
+          run app/ap0001a.p (input rowid(tit-ap), 
+                            input c-seg-usuario, 
+                            output l-erro).
+
+          if  l-erro = yes then do:
+              run utp/ut-msgs.p (Input "help",
+                                 Input 8127,
+                                 Input "").
+              create tt-erro.
+              assign tt-erro.cd-erro  = 8127
+                     tt-erro.mensagem = trim(return-value)             + " " + 
+                                        tt-notas.tt-cod-estabel        + " " + 
+                                        tt-notas.tt-cod-esp            + " " +
+                                        tt-notas.tt-serie              + " " +
+                                        tt-notas.tt-nr-docto           + " " +
+                                        tt-notas.tt-parcela            + " " + 
+                                        string(tt-notas.tt-cod-fornec).
+              return "NOK":U.
+          end.
+      end.
+      if  tit-ap.nr-bordero <> 0 then do:
+          run utp/ut-msgs.p (Input "help", Input 157, Input "").
+          create tt-erro.
+          assign tt-erro.cd-erro  = 157
+                 tt-erro.mensagem = trim(return-value)              + " " + 
+                                    tt-notas.tt-cod-estabel         + " " + 
+                                    tt-notas.tt-cod-esp             + " " +
+                                    tt-notas.tt-serie               + " " +
+                                    tt-notas.tt-nr-docto            + " " +
+                                    tt-notas.tt-parcela             + " " + 
+                                    string(tt-notas.tt-cod-fornec).
+          return "NOK":U.
+      end.
+
+      /*---- Valida moeda ----*/
+      if  tit-ap.moeda <> tt-parametros.tt-mo-codigo then do:
+          run utp/ut-msgs.p (Input "msg", Input 6549, Input "").
+          create tt-erro.
+          assign tt-erro.cd-erro  = 6549
+                 tt-erro.mensagem = trim(return-value)              + " " + 
+                                    tt-notas.tt-cod-estabel         + " " + 
+                                    tt-notas.tt-cod-esp             + " " +
+                                    tt-notas.tt-serie               + " " +
+                                    tt-notas.tt-nr-docto            + " " +
+                                    tt-notas.tt-parcela             + " " + 
+                                    string(tt-notas.tt-cod-fornec).      
+          return "NOK":U.      
+      end.
+
+      /*---- Verifica se o t¡tulo possui saldo ----*/
+      if  tit-ap.valor-saldo = 0 then do:
+          run utp/ut-msgs.p (Input "msg", Input 2591, Input "").
+          create tt-erro.
+          assign tt-erro.cd-erro  = 2591
+                 tt-erro.mensagem = trim(return-value)              + " " + 
+                                    tt-notas.tt-cod-estabel         + " " + 
+                                    tt-notas.tt-cod-esp             + " " +
+                                    tt-notas.tt-serie               + " " +
+                                    tt-notas.tt-nr-docto            + " " +
+                                    tt-notas.tt-parcela             + " " + 
+                                    string(tt-notas.tt-cod-fornec).      
+          return "NOK":U.      
+      end.
+
+      /*---- Data de transa‡Æo do t¡tulo tˆm que ser menor que data substitui‡Æo ----*/
+      if  tit-ap.dt-transacao > tt-parametros.tt-da-transacao then do:
+
+          run utp/ut-msgs.p (Input "help",
+                             Input 2592,
+                             Input string(tit-ap.dt-transacao) + "~~" +
+                                   string(tt-parametros.tt-da-transacao)).
+          create tt-erro.
+          assign tt-erro.cd-erro  = 2592
+                 tt-erro.mensagem = trim(return-value)              + " " + 
+                                    tt-notas.tt-cod-estabel         + " " + 
+                                    tt-notas.tt-cod-esp             + " " +
+                                    tt-notas.tt-serie               + " " +
+                                    tt-notas.tt-nr-docto            + " " +
+                                    tt-notas.tt-parcela             + " " + 
+                                    string(tt-notas.tt-cod-fornec)  + " ".      
+          return "NOK":U.      
+      end.
+
+      /*--- Data informada deve ser maior que o £ltimo c lculo efetuado ---*/
+      if  tit-ap.moeda > 0 then do:
+          if  tt-parametros.tt-da-transacao < tit-ap.data-2 then do:
+              run utp/ut-msgs.p (input "help",
+                                 input 17721,
+                                 input string(tt-parametros.tt-da-transacao, "99/99/9999") + "~~" +
+                                       string(tit-ap.data-2, "99/99/9999")).
+              create tt-erro.
+              assign tt-erro.cd-erro  = 17721
+                     tt-erro.mensagem = trim(return-value)              + " " + 
+                                        tt-notas.tt-cod-estabel         + " " + 
+                                        tt-notas.tt-cod-esp             + " " +
+                                        tt-notas.tt-serie               + " " +
+                                        tt-notas.tt-nr-docto            + " " +
+                                        tt-notas.tt-parcela             + " " + 
+                                        string(tt-notas.tt-cod-fornec).      
+              return "NOK":U.      
+          end.
+      end.    
+
+      find first mov-ap
+           where mov-ap.ep-codigo   = tit-ap.ep-codigo
+           and   mov-ap.cod-estabel = tit-ap.cod-estabel
+           and   mov-ap.cod-esp     = tit-ap.cod-esp
+           and   mov-ap.serie       = tit-ap.serie
+           and   mov-ap.nr-docto    = tit-ap.nr-docto
+           and   mov-ap.parcela     = tit-ap.parcela
+           and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+           and   mov-ap.emit-fita   = yes
+           and  (mov-ap.transacao   = 1
+           or    mov-ap.transacao   = 6
+           and   mov-ap.lancamento  = 2) no-lock no-error.
+
+      if  avail mov-ap then do:
+          run utp/ut-msgs.p (input "help",
+                             input 3033,
+                             input " ").
+          create tt-erro.
+          assign tt-erro.cd-erro  = 3033
+                 tt-erro.mensagem = trim(return-value)              + " " + 
+                                    tt-notas.tt-cod-estabel         + " " + 
+                                    tt-notas.tt-cod-esp             + " " +
+                                    tt-notas.tt-serie               + " " +
+                                    tt-notas.tt-nr-docto            + " " +
+                                    tt-notas.tt-parcela             + " " + 
+                                    string(tt-notas.tt-cod-fornec).      
+          return "NOK":U.      
+      end.
+   end.
+
+   find first param-ap where param-ap.ep-codigo = tt-notas.tt-ep-codigo no-lock no-error.
+   if  param-ap.cont-baixa then do:
+       find first bordero-ap
+          where bordero-ap.ep-codigo    = tt-notas.tt-ep-codigo
+            and bordero-ap.cod-fornec   = tt-notas.tt-cod-fornec
+            and bordero-ap.cod-estabel  = tt-notas.tt-cod-estabel
+            and bordero-ap.cod-esp      = tt-notas.tt-cod-esp
+            and bordero-ap.serie        = tt-notas.tt-serie
+            and bordero-ap.nr-docto     = tt-notas.tt-nr-docto
+            and bordero-ap.parcela      = tt-notas.tt-parcela
+            and bordero-ap.tp-transacao = 2 no-lock no-error.
+       if  avail bordero-ap then do:
+           run utp/ut-msgs.p (Input "help", Input 405, Input "").
+           create tt-erro.
+           assign tt-erro.cd-erro  = 405
+                  tt-erro.mensagem = trim(return-value)             + " " + 
+                                     tt-notas.tt-cod-estabel        + " " + 
+                                     tt-notas.tt-cod-esp            + " " +
+                                     tt-notas.tt-serie              + " " +
+                                     tt-notas.tt-nr-docto           + " " +
+                                     tt-notas.tt-parcela            + " " + 
+                                     string(tt-notas.tt-cod-fornec).      
+           return "NOK":U.      
+       end.         
+   end.         
+
+   find first bord-tit
+        where bord-tit.ep-codigo    = tt-notas.tt-ep-codigo 
+        and   bord-tit.cod-estabel  = tt-notas.tt-cod-estabel
+        and   bord-tit.cod-esp      = tt-notas.tt-cod-esp
+        and   bord-tit.serie        = tt-notas.tt-serie
+        and   bord-tit.nr-docto     = tt-notas.tt-nr-docto
+        and   bord-tit.parcela      = tt-notas.tt-parcela
+        and   bord-tit.cod-fornec   = tt-notas.tt-cod-fornec no-lock no-error.
+   if  avail bord-tit then do:
+       run utp/ut-msgs.p (Input "help", Input 1712, Input string(bord-tit.nr-bordero)).
+       create tt-erro.
+       assign tt-erro.cd-erro  = 1712
+              tt-erro.mensagem = trim(return-value)             + " " + 
+                                 tt-notas.tt-cod-estabel        + " " + 
+                                 tt-notas.tt-cod-esp            + " " +
+                                 tt-notas.tt-serie              + " " +
+                                 tt-notas.tt-nr-docto           + " " +
+                                 tt-notas.tt-parcela            + " " + 
+                                 string(tt-notas.tt-cod-fornec).      
+       return "NOK":U.      
+   end.                    
+
+   find first  lin-b-ap 
+        where  lin-b-ap.ep-codigo   = tt-notas.tt-ep-codigo
+        and    lin-b-ap.cod-estabel = tt-notas.tt-cod-estabel
+        and    lin-b-ap.cod-esp     = tt-notas.tt-cod-esp
+        and    lin-b-ap.serie       = tt-notas.tt-serie
+        and    lin-b-ap.nr-docto    = tt-notas.tt-nr-docto
+        and    lin-b-ap.parcela     = tt-notas.tt-parcela
+        and    lin-b-ap.cod-fornec  = tt-notas.tt-cod-fornec
+        no-lock no-error.
+   if avail lin-b-ap then do:                 
+       run utp/ut-msgs.p (Input "help", Input 398, Input lin-b-ap.referencia).
+       create tt-erro.
+       assign tt-erro.cd-erro  = 398
+              tt-erro.mensagem = trim(return-value)             + " " + 
+                                 tt-notas.tt-cod-estabel        + " " + 
+                                 tt-notas.tt-cod-esp            + " " +
+                                 tt-notas.tt-serie              + " " +
+                                 tt-notas.tt-nr-docto           + " " +
+                                 tt-notas.tt-parcela            + " " + 
+                                 string(tt-notas.tt-cod-fornec).      
+       return "NOK":U.      
+   end.
+
+   /*---- Verifica se o t¡tulo j  foi digitado ----*/
+   find first b-tt-notas no-lock
+        where b-tt-notas.tt-ep-codigo    = tt-notas.tt-ep-codigo
+          and b-tt-notas.tt-cod-estabel  = tt-notas.tt-cod-estabel
+          and b-tt-notas.tt-cod-esp      = tt-notas.tt-cod-esp
+          and b-tt-notas.tt-serie        = tt-notas.tt-serie
+          and b-tt-notas.tt-nr-docto     = tt-notas.tt-nr-docto
+          and b-tt-notas.tt-parcela      = tt-notas.tt-parcela
+          and b-tt-notas.tt-cod-fornec   = tt-notas.tt-cod-fornec
+          and rowid(b-tt-notas)         <> rowid(tt-notas) no-error.
+
+   if  avail b-tt-notas then do:
+
+       run utp/ut-msgs.p (input "help", 
+                          input 277,
+                          input string(tt-notas.tt-ep-codigo) + "~~" +
+                                tt-notas.tt-cod-estabel       + "~~" +
+                                tt-notas.tt-cod-esp           + "~~" +
+                                tt-notas.tt-serie             + "~~" +
+                                tt-notas.tt-nr-docto          + "~~" +
+                                tt-notas.tt-parcela).   
+       create tt-erro.
+       assign tt-erro.cd-erro  = 277
+              tt-erro.mensagem = trim(return-value).      
+       return "NOK":U.      
+   end.            
+
+   if tt-parametros.tt-tp-subst <> 3 then do:
+        if  tit-ap.tipo <> 8    /*Reten‡Æo*/
+        and tit-ap.cod-esp <> param-ap.cod-esp-inss then do: 
+
+            /*--- Verifica se o cliente pertence a mesma matriz ----*/
+            find first emitente no-lock
+                 where emitente.cod-emitente = i-emitente-aux
+                   and emitente.identific   <> 1 no-error.
+
+            assign c-matriz = emitente.nome-matriz.           
+
+            find first emitente no-lock
+                 where emitente.cod-emitente = tit-ap.cod-fornec
+                   and emitente.identific   <> 1 no-error.
+
+
+            if  not avail emitente then do:
+                run utp/ut-msgs.p (Input "msg", Input 654, Input "").
+                create tt-erro.
+                assign tt-erro.cd-erro  = 654
+                       tt-erro.mensagem = trim(return-value)             + " " + 
+                                          tt-notas.tt-cod-estabel        + " " + 
+                                          tt-notas.tt-cod-esp            + " " +
+                                          tt-notas.tt-serie              + " " +
+                                          tt-notas.tt-nr-docto           + " " +
+                                          tt-notas.tt-parcela            + " " + 
+                                          string(tt-notas.tt-cod-fornec).
+                return "NOK":U.
+            end.                
+            if  c-matriz <> emitente.nome-matriz then do:
+                 run utp/ut-msgs.p (Input "help",
+                                    Input 3035,
+                                    Input string(tit-ap.cod-fornec) + "~~" + c-matriz).
+                create tt-erro.
+                assign tt-erro.cd-erro  = 3035
+                       tt-erro.mensagem = trim(return-value).
+                return "NOK":U.
+            end.
+
+        end.                    
+   end.
+
+   /*--- Para pagamento centralizado, somente ser  permitido a substitui‡Æo
+         de documentos do mesmo estabelecimento ---*/
+   run cdp/cd0006b.p (input  "AP",
+                      input  i-ep-codigo-usuario,
+                      output v-log-centr,
+                      output v-log-estab-centr,
+                      output v-cod-estab-centr).
+
+   if  v-log-centr = yes then do:
+        if  c-estabel-aux <> tt-notas.tt-cod-estabel then do:
+            {utp/ut-liter.i Substitui‡äes}
+            run utp/ut-msgs.p (input "help", input 17030, input trim(return-value)).
+            create tt-erro.
+            assign tt-erro.cd-erro  = 17030
+                   tt-erro.mensagem = trim(return-value).
+            return "NOK":U.
+        end.
+   end.
+
+   /* -- Cƒmbio - NÆo incluir t¡tulos vinculados a contrato de cƒmbio */
+   &IF defined(BF_FIN_MODUL_CAMBIO) &THEN
+       find first param-global no-lock no-error.
+       if  not avail param-global then do:
+           run utp/ut-msgs.p (input "msg",
+                              input 16,
+                              input "").
+           create tt-erro.
+           assign tt-erro.cd-erro  = 16
+                  tt-erro.mensagem = trim(return-value).
+           return "NOK":U.
+       end.
+       if  param-global.modulo-mec = yes then do:
+           find tit-ap no-lock
+                where tit-ap.ep-codigo   = tt-notas.tt-ep-codigo
+                and   tit-ap.cod-fornec  = tt-notas.tt-cod-fornec
+                and   tit-ap.cod-estabel = tt-notas.tt-cod-estabel
+                and   tit-ap.cod-esp     = tt-notas.tt-cod-esp
+                and   tit-ap.serie       = tt-notas.tt-serie
+                and   tit-ap.nr-docto    = tt-notas.tt-nr-docto
+                and   tit-ap.parcela     = tt-notas.tt-parcela no-error.
+
+           if avail tit-ap then do:
+
+               find first emitente no-lock
+                    where emitente.cod-emitente = tit-ap.cod-fornec no-error.
+               if tit-ap.moeda <> 0 and emitente.natureza = 3 then do:
+
+                   run adbo/boad342.p persistent set h-boad342.
+                   run pi-vld-subst-titulo-ap in h-boad342 (input  tit-ap.ep-codigo,
+                                                            input  tit-ap.cod-fornec,
+                                                            input  tit-ap.cod-estabel,
+                                                            input  tit-ap.cod-esp,
+                                                            input  tit-ap.serie,
+                                                            input  tit-ap.nr-docto,
+                                                            input  tit-ap.parcela,
+                                                            output p-cod-estabel,
+                                                            output p-nr-referencia,
+                                                            output p-dt-referencia).
+
+                   if  valid-handle(h-boad342) then
+                       delete procedure h-boad342.
+
+                   if  p-nr-referencia <> "" then do:
+                       run utp/ut-msgs.p (input "help", 
+                                          input 25324,  
+                                          input "").
+                       create tt-erro.
+                       assign tt-erro.cd-erro  = 25324
+                              tt-erro.mensagem = trim(return-value)             + " " + 
+                                                 tt-notas.tt-cod-estabel        + " " + 
+                                                 tt-notas.tt-cod-esp            + " " +
+                                                 tt-notas.tt-serie              + " " +
+                                                 tt-notas.tt-nr-docto           + " " +
+                                                 tt-notas.tt-parcela            + " " + 
+                                                 string(tt-notas.tt-cod-fornec).
+                       return "NOK":U.
+                   end.               
+               end.
+           end.
+       end.
+   &ENDIF /* Cƒmbio */
+
+end.
+return "OK".
+
+/* fim include */
+
+
+
+
+
+
+
+
+
+
+
+
+

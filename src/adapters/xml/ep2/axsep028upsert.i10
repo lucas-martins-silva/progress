@@ -1,0 +1,159 @@
+PROCEDURE pi-cria-ttIdeNFCom:
+
+    DEFINE VARIABLE p-dh-formatada AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE p-dh-servidor  AS CHARACTER  NO-UNDO.
+    /*
+    === ttIdeNFCom ===       
+    cUF                 AS INT       INITIAL ?  /*Código da UF de emissão e autorização do Documento Fiscal. Utilizar a Tabela do IBGE de código de unidades da federação. */
+    tpAmb               AS CHARACTER INITIAL ?  /*Identificação do Ambiente: 1 - Produção 2 - Homologação*/
+    mod                 AS CHARACTER INITIAL ?  /*C¢digo do modelo do Documento Fiscal. Utilizar o código 62 para identificação da NFCom */
+    serie               AS CHARACTER INITIAL ?  /*S‚rie do Documento Fiscal - Informar zero para série única */ 
+    nNF                 AS CHARACTER INITIAL ?  /*Número que identifica o documento fiscal 1 a 999999999*/
+    cNF                 AS CHARACTER INITIAL ?  /*Código aleatório gerado pelo emitente, com o objetivo de evitar acessos indevidos ao documento.*/ 
+    cDV                 AS CHARACTER INITIAL ?  /*Informar o dígito de controle da chave de acesso documento fiscal, que deve ser calculado com a aplicação do algoritmo módulo 11 (base 2,9) da chave de acesso.*/
+    dhEmi               AS CHARACTER INITIAL ?  /*Data e Hora de emissÆo do Documento Fiscal (Formato AAAA-MM-DDThh:mm:ssTZD (UTC - Universal Coordinated Time))*/
+    tpEmis              AS CHARACTER INITIAL ?  /*Forma de emissão da NFCom (1=Emissão normal (não em contingência); 2=Contingência*/
+    **nSiteAutoriz        AS CHARACTER INITIAL ?  /*Se o autorizador da NFCom possuir apenas um site deverá ser informado com Zero (0), em caso de autorizador trabalhar com múltiplos sites indicar o número do site para qual foi endereçada a NFCOM (1 a 9).*/
+    cMunFG              AS INT       INITIAL ?  /*C¢digo do Município de Ocorrência do Fato Gerador (utilizar a tabela do IBGE)*/
+    finNFCom            AS CHARACTER INITIAL ?  /*Finalidade da emissÆo da NFCom: 0 - NFe Normal 3 - NFe de Substituição 4 - NFe de Ajuste de Débito*/
+    tpFat               AS INT       INITIAL ?  /*Tipo de Faturamento da NFCom. 0 - Faturamento Normal / 1 - Faturamento Centralizado / 2 - Cofaturamento*/
+    verProc             AS CHARACTER INITIAL ?  /*Versão do aplicativo utilizado no processo de emissão*/
+    indPrePago          AS INT       INITIAL ?  /*Indicador de Serviço Pré-Pago - 1 – Serviço pré-pago - informar a tag somente se a nota for referente a um serviço exclusivamente pré-pago*/
+    indCessaoMeiosRede  AS INT       INITIAL ?  /*Uma vez informado (valor = 1), essa tag dispensa geração do grupo Fatura. Apenas para notas dos tipos Normal e Substituição com tipo de faturamento normal */
+    dhCont              AS CHARACTER INITIAL ?  /*Data/hora entrada em contingencia (Formato AAAA-MM-DDThh:mm:ssTZD (UTC - Universal Coordinated Time))*/
+    xJust               AS CHARACTER INITIAL ?  /*Justificada entrada em contingencia*/   
+    cUFCSRT             AS CHARACTER INITIAL ?
+    
+    */
+
+    FOR FIRST param-nf-estab NO-LOCK
+        WHERE param-nf-estab.cod-estabel = nota-fiscal.cod-estabel: END.
+        
+    CREATE ttIdeNFCom.
+    ASSIGN ttIdeNFCom.cUF       = STRING(IF  estabelec.pais = "Brasil":U 
+                                  THEN (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                                        &then IF AVAIL bf-unid-feder-est THEN INT(bf-unid-feder-est.cod-uf-ibge)           ELSE 0
+                                        &else IF AVAIL bf-unid-feder-est THEN INT(SUBSTRING(bf-unid-feder-est.char-1,1,2)) ELSE 0 &endif)
+                                  ELSE 99)
+            ttIdeNFCom.cDV      = SUBSTRING(SUBSTRING(nota-fiscal.char-2,292,60),44,1)
+            ttIdeNFCom.cMunFG   = STRING(IF  estabelec.pais = "Brasil":U
+                                         THEN (&if '{&bf_dis_versao_ems}' >= '2.07':U
+                                               &then IF AVAIL bf-cidade-est THEN bf-cidade-est.cdn-munpio-ibge ELSE 0
+                                               &else IF AVAIL bf-cidade-est THEN bf-cidade-est.int-2           ELSE 0 &endif)
+                                         ELSE 9999999)
+           ttIdeNFCom.cNF       = TRIM(SUBSTRING(SUBSTRING(nota-fiscal.char-2,292,60),37,7))
+           ttIdeNFCom.cUFCSRT   = estabelec.estado
+                                  .               
+    
+    IF (TRIM(SUBSTRING(nota-fiscal.char-1,282,25)) <> "") THEN
+        ASSIGN ttIdeNFCom.dhEmi = TRIM(SUBSTRING(nota-fiscal.char-1,282,25)).
+    ELSE DO:
+        RUN cdp/cd0591.p (INPUT nota-fiscal.cod-estabel,
+                          INPUT nota-fiscal.dt-emis-nota,
+                          INPUT nota-fiscal.hr-atualiza + ":00",
+                          INPUT NO, /* formatar hora sem aplicar o fuso */
+                          OUTPUT p-dh-formatada).
+    
+        ASSIGN ttIdeNFCom.dhEmi = trim(p-dh-formatada).
+    END.
+    
+    ASSIGN p-dh-formatada = "".
+    
+    /*IF (AVAIL bf-nota-fisc-adc-nfe AND bf-nota-fisc-adc-nfe.cod-livre-3 <> "") THEN
+        ASSIGN p-dh-formatada = bf-nota-fisc-adc-nfe.cod-livre-3.
+    
+    ELSE IF (AVAIL bf-nota-fisc-adc-nfe AND bf-nota-fisc-adc-nfe.dat-livre-1 <> ? AND bf-nota-fisc-adc-nfe.hra-saida <> "") THEN /*Foi informado no CD4035*/
+        RUN cdp/cd0591.p (INPUT bf-nota-fisc-adc-nfe.cod-estab,
+                          INPUT bf-nota-fisc-adc-nfe.dat-livre-1,
+                          INPUT STRING(bf-nota-fisc-adc-nfe.hra-saida,"99:99:99"),
+                          INPUT NO, /* formatar hora sem aplicar o fuso */
+                          OUTPUT p-dh-formatada).
+    ELSE IF nota-fiscal.dt-saida <> ? THEN /*Nao foi informado do CD4035, buscar do dt-saida, quando este possuir conteudo valido*/
+        RUN cdp/cd0591.p (INPUT nota-fiscal.cod-estabel,
+                          INPUT nota-fiscal.dt-saida,
+                          INPUT STRING(TIME,"HH:MM:SS"),
+                          INPUT NO, /* formatar hora sem aplicar o fuso */
+                          OUTPUT p-dh-formatada).*/      
+    
+    
+    ASSIGN ttIdeNFCom.finNFCom  = SUBSTRING(nota-fiscal.char-2,287,1)
+           ttIdeNFCom.tpFat     = SUBSTRING(nota-fiscal.char-2,286,1)
+           ttIdeNFCom.mod       = &if '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                                  bf-natur-oper-nf.cod-model-nf-eletro WHEN AVAIL bf-natur-oper-nf
+                                  &ELSE
+                                  SUBSTRING(bf-natur-oper-nf.char-2,120,2) WHEN AVAIL bf-natur-oper-nf
+                                  &endif
+           ttIdeNFCom.nNF      = STRING(DEC(nota-fiscal.nr-nota-fis))  /* Para retirar zeros … esquerda */
+           ttIdeNFCom.serie    = c-serie //nota-fiscal.serie - axsep028upsert.i2
+           ttIdeNFCom.tpPagAnt = SUBSTRING(nota-fiscal.char-2,375,1)   /* Antecipa‡Æo pagamento */  
+           .
+    
+    ASSIGN ttIdeNFCom.tpAmb    = SUBSTRING(param-nf-estab.cod-livre-1,846,1).
+    
+    ASSIGN ttIdeNFCom.nSiteAutoriz  = TRIM(SUBSTRING(param-nf-estab.cod-livre-1,865,2))
+           ttIdeNFCom.siteQRCode    = TRIM(SUBSTRING(param-nf-estab.cod-livre-1,1867,250)).
+    
+    IF ttIdeNFCom.nSiteAutoriz = "" THEN
+        assign ttIdeNFCom.nSiteAutoriz = "0".
+    
+    ASSIGN ttIdeNFCom.tpEmis   = SUBSTRING(param-nf-estab.cod-livre-1,847,1). //1 - Normal / 2 - Contingência
+           ttIdeNFCom.verProc  = TRIM(SUBSTRING(param-nf-estab.cod-livre-1,848,10)).
+           
+           
+    IF  ttIdeNFCom.tpEmis <> "1" THEN DO: //Lógica Contingência
+    
+        FIND FIRST mensagem NO-LOCK 
+             WHERE mensagem.cod-mensagem = INT(SUBSTRING(param-nf-estab.cod-livre-1,858,5)) NO-ERROR.
+        IF AVAIL mensagem THEN DO:
+        
+            IF  INDEX(nota-fiscal.observ-nota,"Data/Hora entrada em contingencia":U) = 0 THEN /* ainda nÆo gravou msg de contingencia na observa‡Æo */
+                ASSIGN cHoraContingencia = STRING(TIME,"HH:MM:SS"). /* pega hora do sistema */
+            ELSE
+                ASSIGN cHoraContingencia = SUBSTR(nota-fiscal.observ-nota, INDEX(nota-fiscal.observ-nota,"Data/Hora entrada em contingencia":U) + 46, 8).
+
+            RUN cdp/cd0591.p (INPUT nota-fiscal.cod-estabel,
+                              INPUT nota-fiscal.dt-emis-nota,
+                              INPUT cHoraContingencia,
+                              INPUT NO, /* formatar hora sem aplicar o fuso */
+                              OUTPUT p-dh-formatada).
+
+            ASSIGN ttIdeNFCom.dhCont = p-dh-formatada
+                   ttIdeNFCom.xJust  = "Justificativa entrada em contingencia: " + mensagem.texto-mensag.               
+        END.       
+    END.
+    ELSE
+        ASSIGN ttIdeNFCom.dhCont      = ""
+               ttIdeNFCom.xJust       = "".    
+      
+    IF substring(nota-fiscal.char-2,260,1) = "S" THEN   
+        ASSIGN ttIdeNFCom.indPrePago       = "1".
+        
+    IF substring(nota-fiscal.char-2,261,1) = "S" THEN    
+        ASSIGN ttIdeNFCom.indCessaoMeiosRede  = "1".
+
+    /* Chave EMS */
+    ASSIGN ttIdeNFCom.CodEstabel   = nota-fiscal.cod-estabel
+           ttIdeNFCom.SerieNFCom   = nota-fiscal.serie
+           ttIdeNFCom.NrNotaFis    = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttIdeNFCom THEN
+        ASSIGN ttIdeNFCom.cUF                 = fn-ajusta-tamanho-campo(ttIdeNFCom.cUF                ,  2)
+               ttIdeNFCom.tpAmb               = fn-ajusta-tamanho-campo(ttIdeNFCom.tpAmb              ,  1)
+               ttIdeNFCom.mod                 = fn-ajusta-tamanho-campo(ttIdeNFCom.mod                ,  2)
+               ttIdeNFCom.serie               = fn-ajusta-tamanho-campo(ttIdeNFCom.serie              ,  3) 
+               ttIdeNFCom.nNF                 = fn-ajusta-tamanho-campo(ttIdeNFCom.nNF                ,  9)
+               ttIdeNFCom.cNF                 = fn-ajusta-tamanho-campo(ttIdeNFCom.cNF                ,  7)               
+               ttIdeNFCom.cDV                 = fn-ajusta-tamanho-campo(ttIdeNFCom.cDV                ,  1)
+               ttIdeNFCom.tpEmis              = fn-ajusta-tamanho-campo(ttIdeNFCom.tpEmis             ,  1)
+               ttIdeNFCom.nSiteAutoriz        = fn-ajusta-tamanho-campo(ttIdeNFCom.nSiteAutoriz       ,  1)
+               ttIdeNFCom.cMunFG              = fn-ajusta-tamanho-campo(ttIdeNFCom.cMunFG             ,  7) 
+               ttIdeNFCom.finNFCom            = fn-ajusta-tamanho-campo(ttIdeNFCom.finNFCom           ,  1)                                         
+               ttIdeNFCom.tpFat               = fn-ajusta-tamanho-campo(ttIdeNFCom.tpFat              ,  1)  
+               ttIdeNFCom.verProc             = fn-ajusta-tamanho-campo(ttIdeNFCom.verProc            , 20)               
+               ttIdeNFCom.indPrePago          = fn-ajusta-tamanho-campo(ttIdeNFCom.indPrePago         ,  1)               
+               ttIdeNFCom.indCessaoMeiosRede  = fn-ajusta-tamanho-campo(ttIdeNFCom.indCessaoMeiosRede ,  1)
+               ttIdeNFCom.tpPagAnt            = fn-ajusta-tamanho-campo(ttIdeNFCom.tpPagAnt           ,  1)
+               .
+
+END PROCEDURE.

@@ -1,0 +1,78 @@
+PROCEDURE pi-calcula-valor-seguro-por-item:
+
+    DEFINE VARIABLE v-tot-vl-rateio-seg LIKE nota-fiscal.vl-seguro.
+    DEFINE VARIABLE h-bocx359           AS   HANDLE                NO-UNDO.
+    DEFINE VARIABLE l-fn-desp-exp-xml   AS   LOGICAL               NO-UNDO.
+
+    /*------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    RATEIO VALOR SEGURO
+    No EMS tem-se o valor total do seguro gravado na nota. ê necess†rio enviar o valor por item. Calcula-se ent∆o um rateio com base no percentual do valor do item em relaá∆o ao total da nota.
+    ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    EMPTY TEMP-TABLE tt-rateio-seguro.
+    
+    IF NOT AVAIL param-global THEN
+       FIND FIRST param-global NO-LOCK NO-ERROR.
+
+    ASSIGN v-tot-vl-rateio-seg = 0
+           l-fn-desp-exp-xml   = CAN-FIND(FIRST funcao 
+                                          WHERE funcao.cd-funcao = "spp-desp-export-xml":U 
+                                            AND funcao.ativo).
+                                            
+    FOR EACH bf-it-nota-fisc-rat NO-LOCK
+       WHERE bf-it-nota-fisc-rat.cod-estabel = nota-fiscal.cod-estabel
+         AND bf-it-nota-fisc-rat.serie       = nota-fiscal.serie
+         AND bf-it-nota-fisc-rat.nr-nota-fis = nota-fiscal.nr-nota-fis
+        BREAK BY bf-it-nota-fisc-rat.cod-estabel
+              BY bf-it-nota-fisc-rat.serie
+              BY bf-it-nota-fisc-rat.nr-nota-fis
+              BY bf-it-nota-fisc-rat.nr-seq-fat
+              BY bf-it-nota-fisc-rat.vl-tot-item:
+              
+        IF v-tot-vl-rateio-seg < nota-fiscal.vl-seguro THEN DO:
+            CREATE tt-rateio-seguro.
+            ASSIGN tt-rateio-seguro.nr-seq-fat = bf-it-nota-fisc-rat.nr-seq-fat
+                   tt-rateio-seguro.it-codigo  = bf-it-nota-fisc-rat.it-codigo
+                   tt-rateio-seguro.percentual = ((bf-it-nota-fisc-rat.vl-tot-item * 100) / nota-fiscal.vl-tot-nota)
+                   tt-rateio-seguro.valor      = IF bf-it-nota-fisc-rat.vl-merc-liq > 0 
+                                                 THEN trunc(bf-it-nota-fisc-rat.vl-merc-liq / nota-fiscal.vl-mercad   * nota-fiscal.vl-seguro, 2) 
+                                                 ELSE trunc(bf-it-nota-fisc-rat.vl-tot-item / nota-fiscal.vl-tot-nota * nota-fiscal.vl-seguro, 2) 
+                   v-tot-vl-rateio-seg         = v-tot-vl-rateio-seg + tt-rateio-seguro.valor.
+    
+            IF  LAST-OF (bf-it-nota-fisc-rat.cod-estabel) THEN DO:
+                IF  v-tot-vl-rateio-seg <> nota-fiscal.vl-seguro THEN
+                    ASSIGN tt-rateio-seguro.valor = tt-rateio-seguro.valor + (nota-fiscal.vl-seguro - v-tot-vl-rateio-seg).
+            END.
+        END.
+    END.
+        
+    /* MODULO DE EXPORTAÄ«O IMPLANTADO */
+    IF  l-fn-desp-exp-xml
+    AND CONNECTED("mgcex":U)
+    AND param-global.modulo-ex THEN DO:
+        IF  nota-fiscal.nat-operacao BEGINS "7" 
+        AND nota-fiscal.nr-proc-exp <> "" 
+        AND (    AVAIL emitente 
+             AND (emitente.natureza = 3 OR emitente.natureza = 4)) THEN DO:
+        
+            IF NOT VALID-HANDLE(h-bocx359) THEN 
+                RUN cxbo/bocx359.p PERSISTENT SET h-bocx359.
+                
+            /* Para notas avulsas entrava na procedure e como n∆o h† tabela proc-it-nota-desp o temporaria do rateio ficava zerada, ocasionando erros nas tags vSeg */
+            IF CAN-FIND(FIRST proc-it-nota-desp NO-LOCK
+                        WHERE proc-it-nota-desp.cod-estab-faturam = nota-fiscal.cod-estabel
+                        AND   proc-it-nota-desp.serie             = nota-fiscal.serie
+                        AND   proc-it-nota-desp.nr-nota-fis       = nota-fiscal.nr-nota-fis) THEN DO:
+                        
+                RUN piRateioDespesasExportacaoXML IN h-bocx359 (INPUT rowid(nota-fiscal),
+                                                                INPUT 3, /*despesas do tipo Seguro*/
+                                                                OUTPUT TABLE tt-rateio-seguro).
+            END.
+                                                           
+            IF VALID-HANDLE(h-bocx359) THEN DO:
+                DELETE PROCEDURE h-bocx359.
+                ASSIGN h-bocx359 = ?.
+            END.
+        END.
+    END.
+END PROCEDURE.

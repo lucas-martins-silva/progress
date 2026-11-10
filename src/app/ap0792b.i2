@@ -1,0 +1,226 @@
+/********************************************************************************
+**
+**  AP0792B.I2
+**
+**  Defini‡Æo de frames.
+**
+********************************************************************************/
+
+form
+    c-texto[9]  format "x(10)" at 1   /*dta.trans*/
+    c-texto[7]  format "x(15)" at 12   /**/
+    c-texto[8]  format "x(6)"  at 29   /*titulo*/
+    c-texto[10] format "x(5)"  at 58   /*trans*/
+    c-texto[11] format "x(10)" at 64   /*ref*/
+    c-texto[12] format "x(9)"  to 84   /*vend*/
+    c-texto[13] format "x(3)"  at 86   /*est*/
+    c-texto[14] format "x(4)"  at 91   /*esp*/
+    c-texto[15] format "x(10)" at 99   /*nrdocto/p*/
+    c-texto[17] format "x(5)"  to 132  /*banco*/
+    c-texto[18] format "x(9)"  at 29   /*hist*/
+    c-texto[16] format "x(6)"  at 96  /*cheque*/
+    c-texto[19] format "x(5)"  to 132  /*value*/  
+    skip 
+    '----------------------------------------'
+    '----------------------------------------' at 41
+    '----------------------------------------' at 81
+    '------------'                             at 121
+    with stream-io overlay width 132 no-labels no-box row 1 column 1 Page-Top
+         FRAME f-cab.
+run utp/ut-trfrrp.p (input frame f-cab:handle).             
+form
+    c-texto[1] format "x(26)"  at 50
+    de-diferenca               at 79
+    with stream-io overlay width 132 no-labels no-box row 1 column 1 
+         FRAME f-diferenca.
+run utp/ut-trfrrp.p (input frame f-diferenca:handle).       
+form
+    skip(1)
+    c-selecao         no-label  skip
+    tt-param.ini-esp            colon 40
+    "|<  >|"                    colon 60
+    tt-param.fim-esp  no-label  colon 67
+    tt-param.ini-per            colon 40
+    "|<  >|"                    colon 60
+    tt-param.fim-per  no-label  colon 67
+    tt-param.ini-con            colon 40
+    "|<  >|"                    colon 60
+    tt-param.fim-con  no-label  colon 67
+    with stream-io overlay width 132 side-labels no-box row 1 column 1 
+         FRAME f-per.
+run utp/ut-trfrrp.p (input frame f-per:handle).             
+form
+    c-imp     no-label skip
+    c-destino colon 40
+    c-arquivo colon 40
+    c-usuario colon 40
+    skip(2)
+    with no-box side-labels width 132 stream-io frame f-imp.
+run utp/ut-trfrrp.p (input frame f-imp:handle).             
+form
+    skip(1)
+    c-texto[2] format "x(26)" at 50
+    de-geral-debito           at 79
+    c-texto[3] format "x(8)"  at 105
+    de-geral-credito          at 113
+    '---------------------------------' at 01 space(0)
+    '---------------------------------' space(0)
+    '---------------------------------' space(0)
+    '---------------------------------' skip
+    with stream-io overlay width 132 no-labels no-box row 1 column 1 
+         FRAME f-geral.
+run utp/ut-trfrrp.p (input frame f-geral:handle).           
+form
+    skip(1)
+    c-texto[4] format "x(26)"  at 50
+    de-total-debito            at 79
+    c-texto[3] format "x(8)"   at 105
+    de-total-credito           at 113 skip
+    '---------------------------------' at 01 space(0)
+    '---------------------------------' space(0)
+    '---------------------------------' space(0)
+    '---------------------------------' skip
+    with stream-io overlay width 132 no-labels no-box row 1 column 1 
+         FRAME f-total.
+run utp/ut-trfrrp.p (input frame f-total:handle).           
+form
+    skip(1)
+    c-texto[5] format "x(26)" at 50
+    de-deb-doc                at 79
+    c-texto[3] format "x(8)"  at 105
+    de-cre-doc                at 113 skip(1) 
+    /*'---------------------------------' at 01 space(0)
+ *     '---------------------------------' space(0)
+ *     '---------------------------------' space(0)
+ *     '---------------------------------' skip*/
+    with stream-io overlay width 132 no-labels no-box row 1 column 1 
+         FRAME f-tot-doc.
+run utp/ut-trfrrp.p (input frame f-tot-doc:handle).         
+form
+    skip(1)
+    c-texto[6] format "x(26)" at 50
+    de-db-refer               at 79
+    c-texto[3] format "x(8)"  at 105
+    de-cr-refer               at 113 skip
+    '---------------------------------------------------' at 46 space(0)
+    '-----------------------------------' skip
+    with stream-io overlay width 132 no-labels no-box row 1 column 1 
+         FRAME f-total-refer.
+run utp/ut-trfrrp.p (input frame f-total-refer:handle).
+form
+    diario-ap.dt-transacao at 01
+    c-conta                at 12
+    diario-ap.titulo       at 29
+    diario-ap.transacao    at 58
+    diario-ap.referencia   at 64
+    diario-ap.cod-fornec   at 76
+    diario-ap.cod-estabel  at 86
+    diario-ap.cod-esp      at 91
+    diario-ap.nr-docto     format "xxxxxxxxxxxxxxxx/" at 99
+    diario-ap.parcela      at 116
+    diario-ap.portador     to 132
+    c-historico            format "x(66)" at 29
+    diario-ap.nr-cheque    at 96
+    de-valor               at 113   
+    c-tipo                 at 131 
+    with stream-io overlay width 132 no-labels no-box row 1 column 1 
+         FRAME f-sumar.
+run utp/ut-trfrrp.p (input frame f-sumar:handle).
+
+{utp/ut-liter.i "Diferen‡a_DB/CR"}
+assign c-texto[1] = fill(" ", 27 - length(return-value)) +
+		    trim(return-value) + ":".
+
+{utp/ut-liter.i "Total_geral"}
+assign c-texto[2] = trim(return-value).
+{utp/ut-liter.i "D‚bito"}
+assign c-texto[2] = c-texto[2] + 
+		   fill(" ", 26 - length(c-texto[2]) - length(return-value)) +
+		   trim(return-value) + ":".
+
+{utp/ut-liter.i "Cr‚dito"}
+assign c-texto[3] = trim(return-value) + ":".
+
+{utp/ut-liter.i "Total_dia"}
+assign c-texto[4] = trim(return-value).
+{utp/ut-liter.i "D‚bito"}
+assign c-texto[4] = c-texto[4] + 
+		   fill(" ", 27 - length(c-texto[4]) - length(return-value)) +
+		   trim(return-value) + ":".
+
+{utp/ut-liter.i "Total_docto"}
+assign c-texto[5] = trim(return-value).
+{utp/ut-liter.i "D‚bito"}
+assign c-texto[5] = c-texto[5] + 
+		   fill(" ", 27 - length(c-texto[5]) - length(return-value)) +
+		   trim(return-value) + ":".
+
+{utp/ut-liter.i "Total_referencia"}
+assign c-texto[6] = trim(return-value).
+{utp/ut-liter.i "D‚bito"}
+assign c-texto[6] = c-texto[6] + 
+		   fill(" ", 27 - length(c-texto[6]) - length(return-value)) +
+		   trim(return-value) + ":".
+
+{utp/ut-liter.i "Contas_a_pagar"}
+assign c-texto[7] = trim(return-value).
+
+{utp/ut-liter.i "T¡tulo"}
+assign c-texto[8] = trim(return-value).
+
+{utp/ut-liter.i "Data_Trans"}
+assign c-texto[9] = trim(return-value).
+
+{utp/ut-liter.i "Trans"}
+assign c-texto[10] = trim(return-value).
+
+{utp/ut-liter.i "Referencia"}
+assign c-texto[11] = trim(return-value).
+
+{utp/ut-liter.i "Fornec"}
+assign c-texto[12] = trim(return-value).
+
+{utp/ut-liter.i "Est"}
+assign c-texto[13] = trim(return-value).
+
+{utp/ut-liter.i "Esp"}
+assign c-texto[14] = trim(return-value).
+
+{utp/ut-liter.i "Nr.Doc./P"}
+assign c-texto[15] = trim(return-value).
+
+{utp/ut-liter.i "Cheque"}
+assign c-texto[16] = trim(return-value).
+
+{utp/ut-liter.i "Banco"}
+assign c-texto[17] = trim(return-value).
+
+{utp/ut-liter.i "H¡storico"}
+assign c-texto[18] = trim(return-value).
+
+{utp/ut-liter.i "Valor"}
+assign c-texto[19] = trim(return-value).
+
+{utp/ut-liter.i SELE€ÇO * C}
+assign c-selecao = return-value.
+
+{utp/ut-liter.i Especie * L}
+assign tt-param.ini-esp:label in frame f-per = return-value.
+
+{utp/ut-liter.i Per¡odo * L}
+assign tt-param.ini-per:label in frame f-per = return-value.
+
+{utp/ut-liter.i Conta_Cont bil * L}
+assign tt-param.ini-con:label in frame f-per = return-value.
+
+{utp/ut-liter.i IMPRESSÇ0 * C}
+assign c-imp = return-value.
+
+{utp/ut-liter.i Destino mcr c}
+assign c-destino:label in frame f-imp = return-value.
+
+{utp/ut-liter.i Arquivo mcr c}
+assign c-arquivo:label in frame f-imp = return-value.
+
+{utp/ut-liter.i Usu rio mcr c}
+assign c-usuario:label in frame f-imp = return-value.

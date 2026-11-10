@@ -1,0 +1,72 @@
+PROCEDURE pi-cria-ttCobr:
+
+    /*
+    === ttCobr ===
+    nFat           AS CHARACTER INITIAL ?  /*N£mero da fatura*/
+    vDesc          AS DECIMAL   INITIAL ?  /*Valor do desconto da fatura*/
+    vLiq           AS DECIMAL   INITIAL ?  /*Valor l¡quido da fatura*/
+    vOrig          AS DECIMAL   INITIAL ?  /*Valor original da fatura*/
+    
+    === ttDup ===
+    dVenc          AS DATE      INITIAL ?  /*Data de vencimento da duplicata (AAAA-MM-DD)*/
+    nDup           AS CHARACTER INITIAL ?  /*N£mero da duplicata*/
+    vDup           AS DECIMAL   INITIAL ?  /*Valor da duplicata*/
+    */
+    
+    DEF VAR d-tot-vDup      LIKE fat-duplic.vl-parcela INITIAL 0 NO-UNDO.
+    DEF VAR i-cont-parcelas AS INTEGER                           NO-UNDO.
+    DEF VAR d-dt-venciment  LIKE fat-duplic.dt-venciment         NO-UNDO.
+    
+    ASSIGN i-cont-parcelas = 1
+           d-dt-venciment  = ?.
+
+    FOR EACH fat-duplic NO-LOCK
+       WHERE fat-duplic.cod-estabel = nota-fiscal.cod-estabel 
+         AND fat-duplic.serie       = nota-fiscal.serie       
+         AND fat-duplic.nr-fatura   = nota-fiscal.nr-fatura
+    BREAK BY fat-duplic.dt-venciment:
+
+        /* ttDup of ttCobr */
+        CREATE ttDup.
+        ASSIGN ttDup.dVenc        = fat-duplic.dt-venciment
+               ttDup.nDup         = STRING(DEC(i-cont-parcelas),"999")
+               ttDup.vDup         = fat-duplic.vl-parcela.
+
+        ASSIGN d-tot-vDup = d-tot-vDup + ttDup.vDup.
+
+        ASSIGN ttDup.CodEstabelNF = nota-fiscal.cod-estabel
+               ttDup.SerieNF      = nota-fiscal.serie
+               ttDup.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+        ASSIGN i-cont-parcelas = i-cont-parcelas + 1
+               d-dt-venciment  = fat-duplic.dt-venciment.
+
+    END.
+    
+    IF (i-cont-parcelas - 1) = 1 AND d-dt-venciment = nota-fiscal.dt-emis-nota THEN
+    DO:
+        EMPTY TEMP-TABLE ttDup. 
+    END.
+
+    IF  CAN-FIND (FIRST fat-duplic NO-LOCK
+                  WHERE fat-duplic.cod-estabel = nota-fiscal.cod-estabel
+                    AND fat-duplic.serie       = nota-fiscal.serie
+                    AND fat-duplic.nr-fatura   = nota-fiscal.nr-fatura) THEN DO:
+
+        CREATE ttCobr.
+        ASSIGN ttCobr.nFat         = nota-fiscal.nr-fatura
+               ttCobr.vLiq         = d-tot-vDup
+               ttCobr.vDesc        = 0.
+
+        ASSIGN ttCobr.vDesc        = (IF nota-fiscal.vl-tot-nota > d-tot-vDup
+                                      THEN (nota-fiscal.vl-tot-nota - d-tot-vDup)
+                                      ELSE 0).
+
+        ASSIGN ttCobr.vOrig        = (ttCobr.vLiq + ttCobr.vDesc).
+
+        ASSIGN ttCobr.CodEstabelNF = nota-fiscal.cod-estabel
+               ttCobr.SerieNF      = nota-fiscal.serie
+               ttCobr.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+    END.
+
+END PROCEDURE.

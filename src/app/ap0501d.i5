@@ -1,0 +1,75 @@
+/******************************************************************************
+***
+***  app/ap0501d.i5 - Valida‡Æo Casas Decimais Moeda - l-ant-ap.
+***
+***  ***** NÆo foram validados os atributos 
+***  ***** vl-ant-fasb
+******************************************************************************/
+
+/* Verifica Decimais para vl-antecip */
+assign l-rejeita-dec  = no.
+assign de-tt-valor-valida = fn_vld_ajust_dec(l-ant-ap.vl-antecip,0).
+if  l-rejeita-dec then do:
+    {utp/ut-field.i mgadm l-ant-ap vl-antecip 1}
+    run utp/ut-msgs.p(input "help", 
+                      input 18130, 
+                      input trim(return-value)).
+    assign l-situacao = no
+           i-num-erro = 18130
+           c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                        string(lin-i-ap.referencia) + " , " +
+                        string(lin-i-ap.sequencia)  + " , " +
+                        string(lin-i-ap.seq-import).       
+    {app/ap0501d.i "18130"}
+end.
+
+/* Verifica Decimais para vl-var-monet */
+assign l-rejeita-dec  = no.
+assign de-tt-valor-valida = fn_vld_ajust_dec(l-ant-ap.vl-var-monet,0).
+if  l-rejeita-dec then do:
+    {utp/ut-field.i mgadm l-ant-ap vl-var-monet 1}
+    run utp/ut-msgs.p(input "help", 
+                      input 18130, 
+                      input trim(return-value)).
+    assign l-situacao = no
+           i-num-erro = 18130
+           c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                        string(lin-i-ap.referencia) + " , " +
+                        string(lin-i-ap.sequencia)  + " , " +
+                        string(lin-i-ap.seq-import).       
+    {app/ap0501d.i "18130"}
+end.
+
+/* Verifica Decimais para vl-var-monet-antecip */
+assign l-rejeita-dec  = no.
+assign de-tt-valor-valida = fn_vld_ajust_dec(l-ant-ap.vl-var-monet-antecip,0).
+if  l-rejeita-dec then do:
+    {utp/ut-field.i mgadm l-ant-ap vl-var-monet-antecip 1}
+    run utp/ut-msgs.p(input "help", 
+                      input 18130, 
+                      input trim(return-value)).
+    assign l-situacao = no
+           i-num-erro = 18130
+           c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                        string(lin-i-ap.referencia) + " , " +
+                        string(lin-i-ap.sequencia)  + " , " +
+                        string(lin-i-ap.seq-import).       
+    {app/ap0501d.i "18130"}
+end.
+
+/* Verifica Decimais para vl-antecip-me */
+assign l-rejeita-dec  = no.
+assign de-tt-valor-valida = fn_vld_ajust_dec(l-ant-ap.vl-antecip-me,l-ant-ap.mo-codigo).
+if  l-rejeita-dec then do:
+    {utp/ut-field.i mgadm l-ant-ap vl-antecip-me 1}
+    run utp/ut-msgs.p(input "help", 
+                      input 18130, 
+                      input trim(return-value)).
+    assign l-situacao = no
+           i-num-erro = 18130
+           c-cod-msg  = string(lin-i-ap.ep-codigo)  + " , " +
+                        string(lin-i-ap.referencia) + " , " +
+                        string(lin-i-ap.sequencia)  + " , " +
+                        string(lin-i-ap.seq-import).       
+    {app/ap0501d.i "18130"}
+end.

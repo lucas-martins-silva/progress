@@ -1,0 +1,78 @@
+PROCEDURE pi-cria-ttIBSCBS:
+
+    /*
+    === ttIBSCBS ===
+    FIELD CST            AS INTEGER   INITIAL ?   /*C¢digo de Situa‡Æo Tribut ria do IBS e CBS*/
+    FIELD cClassTrib     AS CHARACTER INITIAL ?   /*C¢digo de Classifica‡Æo Tribut ria do IBS e CBS*/  
+
+    === ttgIBSCBS ===
+    FIELD vBC            AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Base de c lculo do IBS e CBS*/
+    */  
+
+    IF it-nota-fisc-trib.tip-tributo < 4 THEN DO: /* Considera o primeiro tributo que nÆo seja o IS */
+    
+        IF NOT CAN-FIND(FIRST ttIBSCBS 
+                        WHERE ttIBSCBS.CodEstabelNF = it-nota-fisc-trib.cod-estabel 
+                        AND   ttIBSCBS.SerieNF      = it-nota-fisc-trib.serie       
+                        AND   ttIBSCBS.NrNotaFisNF  = it-nota-fisc-trib.nr-nota-fis 
+                        AND   ttIBSCBS.ItCodigoNF   = it-nota-fisc-trib.it-codigo   
+                        AND   ttIBSCBS.NrSeqFatNF   = it-nota-fisc-trib.nr-seq-fat) THEN DO:
+                        
+            ASSIGN l-imunidade = NO.
+            IF it-nota-fisc-trib.cod-cst = "410" THEN
+               ASSIGN l-imunidade = YES.    
+            
+            ASSIGN l-monofasico = NO.		
+            IF it-nota-fisc-trib.cod-cst = "620" THEN
+                ASSIGN l-monofasico = YES.
+                
+            CREATE ttIBSCBS. 
+            ASSIGN ttIBSCBS.CST          = it-nota-fisc-trib.cod-cst
+                   ttIBSCBS.cClassTrib   = it-nota-fisc-trib.cod-class-trib
+                   ttIBSCBS.vBC          = IF it-nota-fisc-trib.log-mono = NO AND l-imunidade = NO
+                                           THEN it-nota-fisc-trib.valor-base 
+                                           ELSE 0
+                /* Chave EMS */
+                   ttIBSCBS.CodEstabelNF = it-nota-fisc-trib.cod-estabel
+                   ttIBSCBS.SerieNF      = it-nota-fisc-trib.serie      
+                   ttIBSCBS.NrNotaFisNF  = it-nota-fisc-trib.nr-nota-fis
+                   ttIBSCBS.ItCodigoNF   = it-nota-fisc-trib.it-codigo 
+                   ttIBSCBS.NrSeqFatNF   = it-nota-fisc-trib.nr-seq-fat
+                   ttIBSCBS.TipTributo   = it-nota-fisc-trib.tip-tributo /* Tipo de tributo porque NT2025.002 difere IS dos demais tributos (CBS, IBS UF e IBS Mun) */
+                   d-total-vBCIBSCBS     = d-total-vBCIBSCBS + ttIBSCBS.vBC.
+                   
+            IF it-nota-fisc-trib.doacao THEN
+                ASSIGN ttIBSCBS.indDoacao = '1'.
+        END.
+    END.
+   
+END PROCEDURE.
+
+PROCEDURE pi-cria-ttgALCZFMCBS:
+  
+   /*
+    FIELD tpALCZFMCBS         AS CHARACTER INITIAL ?                                        /* Tipo de aplicação da alíquota zero da CBS */
+    FIELD nProcSuframa        AS CHARACTER INITIAL ?                                        /* Número do processo na Suframa para o item comercializado */
+    FIELD pAliqEfetRegCBS     AS DECIMAL   INITIAL 0  FORMAT ">>9.9999"         DECIMALS 4  /* Percentual efetivo sem a redução */ 
+    FIELD vTribRegCBS         AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2  /* Valor efetivo sem a redução */
+   */                 
+    
+    CREATE ttgALCZFMCBS.                                                   
+    ASSIGN ttgALCZFMCBS.nProcSuframa    = it-nota-fisc-trib.proces-suframa
+            ttgALCZFMCBS.pAliqEfetRegCBS = it-nota-fisc-trib.perc-efet-alczfm
+            ttgALCZFMCBS.vTribRegCBS     = it-nota-fisc-trib.valor-efet-alczfm
+            /* Chave EMS */
+            ttgALCZFMCBS.CodEstabelNF = it-nota-fisc-trib.cod-estabel
+            ttgALCZFMCBS.SerieNF      = it-nota-fisc-trib.serie     
+            ttgALCZFMCBS.NrNotaFisNF  = it-nota-fisc-trib.nr-nota-fis
+            ttgALCZFMCBS.ItCodigoNF   = it-nota-fisc-trib.it-codigo
+            ttgALCZFMCBS.NrSeqFatNF   = it-nota-fisc-trib.nr-seq-fat.    
+
+    IF it-nota-fisc-trib.proces-suframa = "" THEN            
+        ASSIGN ttgALCZFMCBS.tpALCZFMCBS = "1". 
+    ELSE
+        ASSIGN ttgALCZFMCBS.tpALCZFMCBS = "2".          
+    
+                                      
+END PROCEDURE.
+

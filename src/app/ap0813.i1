@@ -1,0 +1,13 @@
+/*Inicio include*/
+
+    &IF DEFINED(BF_FIN_CONSULTBAIXA) &THEN
+        assign l-val-tot-consult-baixa = yes.
+    &ELSE
+        if can-find(first funcao where 
+                          funcao.cd-funcao = "spp-consultBaixa" and
+                          funcao.ativo     = yes) then do:
+            assign l-val-tot-consult-baixa = yes.
+        end.
+    &ENDIF.
+
+/*fin include*/  

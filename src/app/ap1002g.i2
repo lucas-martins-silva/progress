@@ -1,0 +1,22 @@
+/***************************************************************************
+***
+***  app/ap1002g.i2 - 
+***
+***************************************************************************/
+
+disp {1}.cod-fornec   @ tit-ap.cod-fornec
+     {1}.cod-estabel  @ tit-ap.cod-estabel
+     {1}.cod-esp      @ tit-ap.cod-esp
+     {1}.serie        @ tit-ap.serie
+     {1}.nr-docto     @ tit-ap.nr-docto
+     {1}.parcela      @ tit-ap.parcela
+     if l-antecipacao = yes then bordero-ap.dt-transacao else tit-ap.dt-emissao  @ tit-ap.dt-emissao
+     if l-antecipacao = yes then bordero-ap.dt-vencto    else tit-ap.dt-vencimen @ tit-ap.dt-vencimen
+     {1}.nr-bordero   @ tit-ap.nr-bordero
+     da-data
+     de-valor-liq     @ de-valor
+     c-transacao
+     with frame f-detalhe1.
+down with frame f-detalhe1.
+    
+/* Fim de Include */

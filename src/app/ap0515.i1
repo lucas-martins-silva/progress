@@ -1,0 +1,24 @@
+/**************************************************************************
+**
+** AP0515.I1 - Display do Layout
+**
+**************************************************************************/
+
+
+
+assign  i-ordem-rel = int(entry(1,c-layout-rg{2}[{1}]))
+        c-descricao =     entry(2,c-layout-rg{2}[{1}])
+        i-tamanho   = int(entry(3,c-layout-rg{2}[{1}]))   
+        c-formato   =     entry(4,c-layout-rg{2}[{1}])
+        i-decimais  = int(entry(5,c-layout-rg{2}[{1}])) 
+        c-inicial   =     entry(6,c-layout-rg{2}[{1}])       
+        c-obrigat   =     entry(7,c-layout-rg{2}[{1}]).
+
+display i-ordem-rel
+        c-descricao
+        i-tamanho     
+        c-formato  
+        i-decimais                                     
+        c-inicial
+        c-obrigat  with frame f-dados-1.
+down with frame f-dados-1. 

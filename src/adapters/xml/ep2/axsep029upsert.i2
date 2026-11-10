@@ -1,0 +1,29 @@
+PROCEDURE pi-prepara-dados-DCe:
+
+    RUN cdp/cdapi704.p PERSISTENT SET h-cdapi704.
+    RUN pi-limpa-temp-tables.
+    RUN pi-localiza-tabelas.
+    
+    ASSIGN lLayoutXML = (IF  tp-integ <> "Manual":U AND
+                             tp-integ <> "Nenhum":U
+                         THEN YES /* Aplicativo de Transmissão */
+                         ELSE NO)
+           c-serie    = dce-documento.serie
+           c-serie    = IF  c-serie = ""
+                        THEN "0"
+                        ELSE c-serie
+                        
+           /* setando data e hora para a data e hora do envio e nao da criacao do registro na tela */
+           dce-documento.dt-emissao = TODAY
+           dce-documento.hr-emissao = STRING(TIME, "hh:mm:ss").
+                        
+    RUN pi-grava-temp-tables.
+
+    ASSIGN d-total-vProd = 0.
+    
+    IF  VALID-HANDLE(h-cdapi704) THEN DO:
+        DELETE PROCEDURE h-cdapi704.
+        ASSIGN h-cdapi704 = ?.
+    END.
+
+END PROCEDURE.

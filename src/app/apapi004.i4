@@ -1,0 +1,60 @@
+/********************************************************************************
+***
+*** app/apapi004.i4 - Calculo Data Fluxo.
+***
+********************************************************************************/
+            
+assign da-fluxo = tit-ap.dt-fluxo.
+        
+find first calen-coml
+     where calen-coml.ep-codigo   = tit-ap.ep-codigo
+     and   calen-coml.cod-estabel = tit-ap.cod-estabel
+     and   calen-coml.data        = da-fluxo
+     no-lock no-error.
+        
+if  avail calen-coml then do:
+        
+    assign i-semana = weekday(da-fluxo).
+            
+    if  calen-coml.tipo-dia <> 1 then do:
+        if  (i-semana = 7 and emitente.ven-sabado  = 1)
+        or  (i-semana = 1 and emitente.ven-domingo = 1)
+        or  (i-semana > 1 and i-semana < 7
+        and emitente.ven-feriado = 1) then 
+        repeat:
+                    
+            assign da-fluxo = da-fluxo + 1.
+                    
+            find first calen-coml
+                 where calen-coml.ep-codigo   = tit-ap.ep-codigo
+                 and   calen-coml.cod-estabel = tit-ap.cod-estabel
+                 and   calen-coml.data        = da-fluxo 
+                 no-lock no-error.
+                 
+            if  calen-coml.tipo-dia = 1 then 
+                leave.
+        end.
+        
+        if  (i-semana = 7 and emitente.ven-sabado  = 2)
+        or  (i-semana = 1 and emitente.ven-domingo = 2)
+        or  (i-semana > 1 and i-semana < 7
+        and emitente.ven-feriado = 2) then 
+        repeat:
+                    
+            assign da-fluxo = da-fluxo - 1.
+                    
+            find first calen-coml
+                 where calen-coml.ep-codigo   = tit-ap.ep-codigo
+                 and   calen-coml.cod-estabel = tit-ap.cod-estabel
+                 and   calen-coml.data        = da-fluxo 
+                 no-lock no-error.
+                    
+            if  calen-coml.tipo-dia = 1 then 
+                leave.
+        end.
+    end.
+end.
+
+assign tit-ap.dt-fluxo = da-fluxo.
+
+/* Fim de Include */

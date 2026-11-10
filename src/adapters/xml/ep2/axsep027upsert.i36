@@ -1,0 +1,80 @@
+PROCEDURE pi-grava-ttICMS51:
+
+    /*
+    === ttICMS51 ===
+    CST            AS CHARACTER INITIAL ?  /*Tribut‡Æo pelo ICMS 20 - Com redu‡Æo de base de c lculo*/
+    modBC          AS CHARACTER INITIAL ?  /*Modalidade de determina‡Æo da BC do ICMS: 0 - Margem Valor Agregado (%); 1 - Pauta (valor); 2 - Pre‡o Tabelado M ximo (valor); 3 - Valor da Opera‡Æo.*/
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importa‡Æo direta 2 - Estrangeira - Adquirida no mercado interno */
+    pICMS          AS DECIMAL   INITIAL ?  /*Al¡quota do ICMS*/
+    pRedBC         AS DECIMAL   INITIAL ?  /*Percentual de redu‡Æo da BC*/
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS*/
+    vICMS          AS DECIMAL   INITIAL ?  /*Valor do ICMS*/
+    vICMSOp        AS DECIMAL   INITIAL ?  /*Valor do ICMS da Opera‡Æo*/
+    pDif           AS DECIMAL   INITIAL ?  /*Percentual do diferimento*/
+    vICMSDif       AS DECIMAL   INITIAL ?  /*Valor do ICMS da diferido*/
+    */
+    
+    DEF VAR de-perc-diferim-cfg-trib AS DECIMAL NO-UNDO.
+
+    CREATE ttICMS51.
+    ASSIGN ttICMS51.CST      = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS51.modBC    = (IF c-mod-base-icms = "2"
+                                THEN "1"
+                                ELSE IF c-mod-base-icms = "3"
+                                     THEN "2"
+                                     ELSE IF c-mod-base-icms = "4"
+                                          THEN "3"
+                                          ELSE "0")
+           ttICMS51.orig     = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS51.pICMS    = (IF  it-nota-fisc.cd-trib-icm <> 3
+                                OR (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                THEN d-aliquota-icms
+                                ELSE 0)
+           ttICMS51.pRedBC   = IF d-perc-redimp > 0 THEN d-perc-redimp  ELSE ? /*ELSE IF lLayoutXML THEN ? ELSE IF lLayoutTXT THEN 0 ELSE ?)*/
+           ttICMS51.vBC      = (IF (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                THEN d-vl-imp-icmsou
+                                ELSE d-vl-bicms-it)
+           ttICMS51.vICMS    = (IF  it-nota-fisc.cd-trib-icm <> 3
+                                OR (it-nota-fisc.cd-trib-icm  = 3 AND l-icms-outras-it)
+                                THEN d-vl-imp-icms
+                                ELSE 0)
+           .
+
+    /*DIFERIMENTO - SOMENTE PARA DATASUL 11*/
+    IF (DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,308,6 ))) > 0
+    AND DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,314,17))) > 0) THEN
+        ASSIGN ttICMS51.pDif     = DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,308,6 ))) /*val-perc-icms-diferim*/
+               ttICMS51.vICMSDif = DEC(TRIM(SUBSTRING(it-nota-fisc.char-1,314,17))) /*val-diferim-icms-item*/
+               ttICMS51.vICMSOp  = (ttICMS51.vICMS + ttICMS51.vICMSDif).
+    ELSE
+        ASSIGN ttICMS51.modBC = "".
+
+    ASSIGN de-perc-diferim-cfg-trib = 0.   
+    {dibo/bodi630.i5 "ICMS_PercDif" "de-perc-diferim-cfg-trib" "it-nota-fisc"} 
+   
+   IF de-perc-diferim-cfg-trib <> 0 THEN
+       ASSIGN ttICMS51.pDif = de-perc-diferim-cfg-trib.
+
+    /* Chave EMS */
+    ASSIGN ttICMS51.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS51.SerieNF      = nota-fiscal.serie
+           ttICMS51.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS51.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS51.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+    /*Ajusta Campos para Layout TXT*/
+    IF  lLayoutTXT
+    AND ttICMS51.pICMS = 0 THEN
+        ASSIGN ttICMS51.pICMS = ?.
+
+    /*Ajusta Campos para Layout TXT*/
+    IF  lLayoutTXT
+    AND ttICMS51.vBC = 0 THEN
+        ASSIGN ttICMS51.vBC = ?.
+
+    /*Ajusta Campos para Layout TXT*/
+    IF  lLayoutTXT
+    AND ttICMS51.vICMS = 0 THEN
+        ASSIGN ttICMS51.vICMS = ?.
+
+END PROCEDURE.

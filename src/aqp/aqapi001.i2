@@ -1,0 +1,29 @@
+/*criação da tt de regras para apuração de valores ou simulação preço final
+  será usada em diversos pontos para cálculo dos valores com base nas regras*/
+
+CREATE BUFFER bh FOR TABLE "regra-form-preco":U.
+CREATE QUERY qh .
+qh:SET-BUFFERS(bh). 
+
+qh:QUERY-PREPARE(cQuery).
+qh:FORWARD-ONLY.  
+qh:QUERY-OPEN().
+
+REPEAT:
+    qh:GET-NEXT().
+    IF qh:QUERY-OFF-END THEN LEAVE. 
+
+    IF cPrograma = 'aq0201' OR tt-param.cdn-tipo = 4 THEN /*tt-param.cdn-tipo = 4 -> bônus fixo, não irá somar 1 vez a cada carga e sim 1 vez no período*/
+        RUN cria-tt-regra-form-preco IN THIS-PROCEDURE.    
+    ELSE DO:
+        DO  da-data = tt-param.da-dat-ini to tt-param.da-dat-fim:    /*repete para cada dia de carga*/            
+            IF   da-data >= DATE(bh:BUFFER-FIELD("Dat-inic":U):BUFFER-VALUE) 
+             AND da-data <= DATE(bh:BUFFER-FIELD("Dat-fim":U):BUFFER-VALUE)  THEN DO:
+                    
+              RUN cria-tt-regra-form-preco IN THIS-PROCEDURE.
+                       
+            END.
+            
+        END.
+    END.             
+END. 

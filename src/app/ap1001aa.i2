@@ -1,0 +1,60 @@
+/***************************************************************************
+**
+**  AP1001AA.i2 - Padrao CNAB240
+**  Objetivo: Detalhe Banco do Brasil
+**
+***************************************************************************/
+
+if  l-antecipacao = no then do:
+    if  mov-ap.transacao = 15 then
+        assign i-tipo-mov  = 8.
+                
+    if  mov-ap.transacao = 10 or
+        mov-ap.transacao = 12 then
+        assign i-tipo-mov = 8.
+            
+    if  mov-ap.transacao = 1 or
+        mov-ap.transacao = 6 then
+        assign i-tipo-mov = 2.
+            
+    &if defined(BF_FIN_MULTA_ABATIMENTO) &then
+        assign de-desconto = tit-ap.vl-isr * 100
+               de-abatimen = tit-ap.vl-abatimento-tot * 100
+               de-juros    = tit-ap.dec-2 * 100
+               de-multa    = tit-ap.vl-multa-tot * 100.
+    &else
+        assign de-desconto = tit-ap.vl-isr * 100
+               de-juros    = tit-ap.dec-2  * 100.
+    &endif
+
+end.
+else 
+    assign i-tipo-mov  = 2
+           de-desconto = 0
+           de-juros    = 0.
+                                        
+if  l-antecipacao = no then do:
+    
+    {app/ap1001aa.i3 "tit-ap.dt-vencimen"
+                    "(tit-ap.valor-saldo - vl-tot-impto)"
+                    "tit-ap.cod-fornec"
+                    "mov-ap.num-id-mov-ap"}
+                    
+    if  mov-ap.transacao = 15 then do:
+            
+        assign i-tipo-mov  = 2.
+                        
+        {app/ap1001aa.i3 "tit-ap.dt-vencimen"
+                        "(tit-ap.valor-saldo - vl-tot-impto)"
+                        "tit-ap.cod-fornec"
+                        "mov-ap.num-id-mov-ap"}
+    end.
+end.
+else do:
+    {app/ap1001aa.i3 "bordero-ap.dt-vencto"
+                    "(bordero-ap.vl-docto - vl-tot-impto)"
+                    "bordero-ap.cod-fornec"
+                    "bordero-ap.char-2"}
+end.
+    
+/* Fim de Include */

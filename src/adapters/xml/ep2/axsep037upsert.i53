@@ -1,0 +1,117 @@
+PROCEDURE pi-cria-ttImpostoDevol:
+
+    /*
+    === ttImpostoDevol ===
+    pDevol         AS DECIMAL   INITIAL ?  FORMAT ">>9.99"            DECIMALS 2  /*Percentual de mercadoria devolvida*/ 
+    vIPIDevol      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99"  DECIMALS 2  /*Valor do IPI devolvido*/
+    */
+
+    DEFINE VARIABLE de-perc-ipi-devol  AS DECIMAL                  INITIAL 0 NO-UNDO.
+    DEFINE VARIABLE de-val-ipi-devol   LIKE it-nota-fisc.vl-ipi-it INITIAL 0 NO-UNDO.
+    DEFINE VARIABLE l-emit-contrib-IPI AS LOGICAL                            NO-UNDO.
+
+    /* Operaá‰es entre Contribuintes de IPI devem levar o valor de IPI Devoluá∆o no campo vOutro. O grupo IPIDevol deve ser utilizado apenas para N«O Contribuintes de IPI */
+    ASSIGN l-emit-contrib-IPI = NO
+           l-emit-contrib-IPI = (CAN-FIND (FIRST estab-distrib NO-LOCK
+                                           WHERE estab-distrib.cod-estab  = nota-fiscal.cod-estabel
+                                             AND estab-distrib.idi-ativid = 1)). /* 1 - Industrial ou Equiparado a Industrial */
+                                             
+    /* DEVOL FORNEC / DEVOL CLIENTE */
+    IF (nota-fiscal.esp-docto     = 20
+    AND it-nota-fisc.cd-trib-ipi <> 1 
+    AND it-nota-fisc.cd-trib-ipi <> 4    /* Se estiver como Tributado ou Reduzido, significa que o contribuinte quer devolver o IPI nas tag's pr¢prias, ent∆o n∆o deve gerar nas tag's de Devoluá∆o IPI */
+    AND NOT bf-natur-oper-it.log-2 )    /* NF de Comercio   */  THEN DO: 
+
+        /* Este conte£do deve estar coerente com o FT0604.i3, para estar de acordo com o que vai pra OF - campo it-doc-fisc.vl-ipi-devol [01/03/2018] */
+
+        ASSIGN de-perc-ipi-devol = 100.
+        
+        IF nota-fiscal.ind-tip-nota <> 8 THEN DO: 
+            /* DEVOL FORNEC */
+            FIND FIRST item-doc-est
+                 WHERE item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+                   AND item-doc-est.serie-docto  = it-nota-fisc.serie-docum
+                   AND item-doc-est.nro-docto    = it-nota-fisc.nr-docum
+                   AND item-doc-est.nat-operacao = it-nota-fisc.nat-docum
+                   AND item-doc-est.sequencia    = it-nota-fisc.int-1
+                   AND item-doc-est.it-codigo    = it-nota-fisc.it-codigo NO-LOCK NO-ERROR.
+           
+            IF  AVAIL item-doc-est THEN DO: 
+                IF  it-nota-fisc.cd-trib-ipi = 1 
+                OR  it-nota-fisc.cd-trib-ipi = 4 THEN
+                    ASSIGN de-val-ipi-devol = it-nota-fisc.vl-ipi-it.
+                ELSE 
+                    IF it-nota-fisc.cd-trib-ipi = 3 
+                    AND (   item-doc-est.cd-trib-ipi = 1 
+                         OR item-doc-est.cd-trib-ipi = 4) THEN
+                        ASSIGN de-val-ipi-devol = it-nota-fisc.vl-ipi-it.
+           
+                ASSIGN de-perc-ipi-devol = (it-nota-fisc.qt-faturada[1] * 100) / item-doc-est.quantidade. /* percentual da quantidade devolvida, para os casos de devol parcial */
+            END.
+        END.
+        ELSE DO:
+            /* DEVOL CLIENTE */
+            FOR FIRST item-doc-est NO-LOCK  /* Leitura item-doc-est partindo do item da nota no FT */
+                WHERE item-doc-est.serie-docto  = it-nota-fisc.serie
+                  AND item-doc-est.nro-docto    = nota-fiscal.nr-nota-ant 
+                  AND item-doc-est.cod-emitente = nota-fiscal.cod-emitente
+                  AND item-doc-est.nat-operacao = nota-fiscal.nat-operacao /*it-nota-fisc.nat-operacao*/
+                  AND item-doc-est.sequencia    = it-nota-fisc.nr-seq-ped:
+                  
+                ASSIGN de-val-ipi-devol  = it-nota-fisc.vl-ipi-it.  
+           
+                find FIRST bf-it-nota-fisc-dev NO-LOCK /*Verificar a quantidade original da nota origem para obter o percentual de mercadoria devolvida*/
+                WHERE bf-it-nota-fisc-dev.cod-estabel = nota-fiscal.cod-estabel
+                  AND bf-it-nota-fisc-dev.serie       = item-doc-est.serie-comp
+                  AND bf-it-nota-fisc-dev.nr-nota-fis = item-doc-est.nro-comp
+                  AND bf-it-nota-fisc-dev.nr-seq-fat  = item-doc-est.seq-comp
+                  AND bf-it-nota-fisc-dev.it-codigo   = item-doc-est.it-codigo no-error.
+                if avail   bf-it-nota-fisc-dev then 
+                    ASSIGN de-perc-ipi-devol = (it-nota-fisc.qt-faturada[1] * 100) / bf-it-nota-fisc-dev.qt-faturada[1] NO-ERROR. /* percentual da quantidade devolvida, para os casos de devol parcial */
+           
+                /* Se a nota que est† sendo gerada est† como Outros, mas N«O parametrizada para somar IPI ao total da nota, ent∆o desconsiderar o valor */
+                IF (it-nota-fisc.cd-trib-ipi = 3
+                AND TRIM(SUBSTRING(bf-natur-oper-it.char-2,16,1)) <> "1":U) THEN /* inclui outras total nota */
+                    ASSIGN de-val-ipi-devol  = 0
+                           de-perc-ipi-devol = 0.
+            END.
+        END.
+
+        /* Tratamento IPI Outros */
+        IF (it-nota-fisc.cd-trib-ipi = 3
+        AND TRIM(SUBSTRING(bf-natur-oper-it.char-2,16,1)) = "1":U /* inclui outras total nota */
+        AND it-nota-fisc.vl-ipi-it > 0) THEN
+            ASSIGN de-val-ipi-devol = it-nota-fisc.vl-ipi-it.
+            
+        IF  de-val-ipi-devol > 0 THEN DO:
+        
+            /* Devoluá∆o para N«O Contribuintes do IPI */
+            IF  NOT l-emit-contrib-IPI THEN DO:
+            
+                CREATE ttImpostoDevol.
+                ASSIGN ttImpostoDevol.pDevol    = de-perc-ipi-devol
+                       ttImpostoDevol.vIPIDevol = de-val-ipi-devol.
+                       
+                /* Totalizador */
+                ASSIGN d-total-vIPIDevol = d-total-vIPIDevol + de-val-ipi-devol.
+            
+                /* Chave EMS */
+                ASSIGN ttImpostoDevol.CodEstabelNF = nota-fiscal.cod-estabel
+                       ttImpostoDevol.SerieNF      = nota-fiscal.serie
+                       ttImpostoDevol.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+                       ttImpostoDevol.ItCodigoNF   = it-nota-fisc.it-codigo
+                       ttImpostoDevol.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+            END.
+            /* Devoluá∆o para Contribuintes do IPI, no vOutro (por item na ttDet e por total de nota, na ttICMSTot) */
+            ELSE DO:
+
+                ASSIGN ttDet.vOutro = ttDet.vOutro + de-val-ipi-devol.
+
+                /* Totalizador */
+                ASSIGN d-total-vIPIDevol-vOutro = d-total-vIPIDevol-vOutro + de-val-ipi-devol. /* Totalizador para o ttICMSTot.vOutro */
+
+            END.
+        END.
+    END.
+
+END PROCEDURE.

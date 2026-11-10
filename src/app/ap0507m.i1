@@ -1,0 +1,159 @@
+/* Cria AVA */
+
+/** {1} - ê AVA Maior? (Yes/No). **/
+    
+    for each tt-variacao-monetaria:
+        delete tt-variacao-monetaria.
+    end.
+    
+    /*--- Calcula Valor da Variaá∆o Monet†ria do Documento ---*/
+    run app/ap0570b.p (input rowid(tit-ap),
+                       input tt-tit-ap-ava.dt-transacao-acerto,
+                       input 0,
+                       output table tt-variacao-monetaria). 
+     
+    /*--- Atualizaá∆o Valor da Variaá∆o Monet†ria do Documento ---*/
+    run app/ap0570c.p (input rowid(tit-ap),
+                       input table tt-variacao-monetaria). 
+    
+    /*--- Buscar cotaá∆o da moeda informada ---*/
+    {app/ap0507b.i2 "tit-ap.moeda"
+                    "tt-tit-ap-ava.dt-transacao-acerto"
+                    "de-cotacao"}
+    
+    /*--- Cria AVA ---*/
+    create mov-ap.
+    assign mov-ap.ep-codigo       = tit-ap.ep-codigo
+           mov-ap.cod-estabel     = tit-ap.cod-estabel
+           mov-ap.cod-esp         = tit-ap.cod-esp
+           mov-ap.serie           = tit-ap.serie
+           mov-ap.nr-docto        = tit-ap.nr-docto
+           mov-ap.parcela         = tit-ap.parcela
+           mov-ap.tipo            = tit-ap.tipo
+           mov-ap.lancamento      = if {1} = yes then 
+                                       if tit-ap.tipo = 1 /*Normal*/
+                                       or tit-ap.tipo = 8 /*Retená∆o*/ 
+                                       or tit-ap.tipo = 10 /*Provis∆o*/ then 1
+                                       else 2 /*1=DB, 2=CR*/
+                                    else
+                                       if tit-ap.tipo = 1
+                                       or tit-ap.tipo = 8
+                                       or tit-ap.tipo = 10 then 2
+                                       else 1
+           mov-ap.vl-antecip      = 0
+           mov-ap.dt-vencimen     = tit-ap.dt-vencimen
+           mov-ap.transacao       = 5
+           mov-ap.nome-abrev      = tit-ap.nome-abrev
+           mov-ap.dt-emissao      = tit-ap.dt-emissao
+           mov-ap.dt-vencimen     = tit-ap.dt-vencimen
+           mov-ap.referencia      = tit-ap.referencia
+           mov-ap.tp-codigo       = tit-ap.tp-codigo
+           mov-ap.dt-transacao    = tt-tit-ap-ava.dt-transacao-acerto
+           mov-ap.cod-fornec      = tit-ap.cod-fornec
+           mov-ap.dt-today        = today
+           mov-ap.c-time          = string(time, "HH:MM")
+           mov-ap.usuario         = c-seg-usuario
+           mov-ap.portador        = tt-tit-ap-ava.portador-acerto
+          &if "{&mgdis_version}" >= "2.02" &then
+           mov-ap.titulo-banco    = tit-ap.pedido
+          &else
+           mov-ap.pedido          = tit-ap.pedido
+          &endif
+           mov-ap.moeda           = tit-ap.moeda
+           mov-ap.cotacao-dia     = de-cotacao
+           mov-ap.valor-mov-me    = de-movto-me
+           mov-ap.ind-tp-alter    = tt-tit-ap-ava.ind-tp-alter
+           mov-ap.tp-codigo       = mov-ap.tp-codigo
+           mov-ap.origem          = tit-ap.origem.
+    
+    /*** Divis∆o do assign  para evitar erros no Progress 9 ***/
+    assign mov-ap.valor-mov       = fn_ajust_dec(fn_conv_moedas (
+                                                        mov-ap.valor-mov-me,
+                                                        mov-ap.cotacao-dia,
+                                                        mov-ap.moeda,
+                                                        0),0).
+    
+    find first conta-contab
+         where conta-contab.ep-codigo      = tit-ap.ep-codigo
+         and   conta-contab.conta-contabil = tt-tit-ap-ava.conta-acerto 
+         no-lock no-error.
+                
+    if  avail conta-contab then do:
+        assign mov-ap.conta-contabil = conta-contab.conta-contabil
+               mov-ap.ct-conta       = conta-contab.ct-codigo
+               mov-ap.sc-conta       = conta-contab.sc-codigo.
+    end.
+    
+    if {1} = yes then
+       assign tit-ap.vl-saldo-me = tit-ap.vl-saldo-me + mov-ap.valor-mov-me
+              tit-ap.valor-saldo = tit-ap.valor-saldo + mov-ap.valor-mov.
+    else
+       assign tit-ap.vl-saldo-me = tit-ap.vl-saldo-me - mov-ap.valor-mov-me
+              tit-ap.valor-saldo = tit-ap.valor-saldo - mov-ap.valor-mov.
+    
+    if  tit-ap.tipo = 2 and tt-tit-ap-ava.portador-acerto <> 0 then do: /*Antecipaá∆o*/
+        find first portador
+             where portador.cod-portador = tt-tit-ap-ava.portador-acerto
+             and   portador.ep-codigo    = tit-ap.ep-codigo
+             and   portador.modalidade   = tt-tit-ap-ava.modalidade-acerto no-lock no-error.
+        if  avail portador then do:
+            assign mov-ap.banco        = portador.cod-banco
+                   mov-ap.agencia      = portador.agencia
+                   mov-ap.cta-corrente = portador.conta-corren
+                   mov-ap.modalidade   = portador.modalidade.
+        end.
+    end.
+    
+    find first mov-ap
+         where mov-ap.ep-codigo   = tit-ap.ep-codigo
+         and   mov-ap.cod-estabel = tit-ap.cod-estabel
+         and   mov-ap.cod-esp     = tit-ap.cod-esp
+         and   mov-ap.serie       = tit-ap.serie
+         and   mov-ap.nr-docto    = tit-ap.nr-docto
+         and   mov-ap.parcela     = tit-ap.parcela
+         and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+         and  (mov-ap.transacao   = 1
+         or    mov-ap.transacao   = 6
+         and   mov-ap.lancamento  = 2) no-error.
+                
+    if  avail mov-ap then do:
+        assign mov-ap.dt-emissao   = tit-ap.dt-emissao
+               mov-ap.dt-vencimen  = tit-ap.dt-vencimen
+               mov-ap.portador     = tit-ap.portador.
+    end.
+
+    find first emite-ap
+         where emite-ap.ep-codigo   = tit-ap.ep-codigo
+         and   emite-ap.cod-estabel = tit-ap.cod-estabel
+         and   emite-ap.cod-esp     = tit-ap.cod-esp
+         and   emite-ap.serie       = tit-ap.serie
+         and   emite-ap.nr-docto    = tit-ap.nr-docto
+         and   emite-ap.parcela     = tit-ap.parcela
+         and   emite-ap.cod-fornec  = tit-ap.cod-fornec
+         no-error.
+                    
+    if  avail emite-ap then do:
+        assign emite-ap.dt-vencimen  = tit-ap.dt-vencimen.
+        if {1} = yes then
+           emite-ap.valor-ap     = if tit-ap.tipo = 1
+                                   or tit-ap.tipo = 8 then /* Normal ou Retená∆o */
+                                      emite-ap.valor-ap + de-movto-me
+                                   else
+                                      emite-ap.valor-ap - de-movto-me.
+        else
+           emite-ap.valor-ap     = if tit-ap.tipo = 1
+                                   or tit-ap.tipo = 8 then /* Norma ou Retená∆o */
+                                      emite-ap.valor-ap - de-movto-me
+                                   else
+                                      emite-ap.valor-ap + de-movto-me.
+    end.
+    if {1} = no then do:
+       &if  "{&mgadm_version}" >= "2.03" &then
+            if  tit-ap.valor-saldo = 0
+            and tit-ap.nr-adiant-eec <> 0 then do:
+                {app/ap0507m.i3} /* integra-prestac-cta-ems5 */
+            end.
+       &endif
+    end.
+
+/* Fim ap0507m.i1 */

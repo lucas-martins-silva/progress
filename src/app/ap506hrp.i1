@@ -1,0 +1,101 @@
+/********************************************************************************
+***
+*** app/ap506hrp.i1 - Variaveis / Buffer's / Form's.
+***
+********************************************************************************/
+
+def buffer b-mov-ap for mov-ap.
+def buffer b-tit-ap for tit-ap.
+
+def var c-parametros   as char format "x(12)" no-undo.
+def var c-impressao    as char format "x(12)" no-undo.
+def var c-destino      as char format "x(16)" no-undo.
+def var c-trans        as char format "x(04)" no-undo.
+def var c-lancto       as char format "x(03)" no-undo.
+def var h-acomp        as handle              no-undo.
+def var c-desc-erro    as char format "x(22)" no-undo.
+
+form 
+    tt-retorno-mov-ap.cod-estabel at 02
+    tt-retorno-mov-ap.cod-esp
+    tt-retorno-mov-ap.serie
+    tt-retorno-mov-ap.nr-docto
+    tt-retorno-mov-ap.parcela
+    tt-retorno-mov-ap.cod-fornec
+    tt-retorno-mov-ap.conta-contabil
+    c-trans
+    c-lancto
+    tt-retorno-mov-ap.valor-mov
+    with stream-io down no-box no-attr-space width 132 frame f-impressao.
+
+form 
+    tt-retorno-mov-ap.cod-estabel
+    tt-retorno-mov-ap.cod-esp
+    tt-retorno-mov-ap.serie
+    tt-retorno-mov-ap.nr-docto
+    tt-retorno-mov-ap.parcela
+    tt-retorno-mov-ap.cod-fornec
+    tt-retorno-mov-ap.cod-erro
+    tt-editor.conteudo format "x(78)"  
+    with stream-io down no-box no-attr-space width 132 frame f-impressao-erro.
+
+form 
+    skip(1)
+    c-parametros no-label skip (1)
+    c-opcao                 colon 45
+    tt-param.cod-estabel    colon 45
+    tt-param.cod-esp        colon 45
+    tt-param.serie          colon 45
+    tt-param.nr-docto       colon 45
+    tt-param.parcela no-label
+    tt-param.cod-fornec     colon 45
+    c-lancto                colon 45
+    tt-param.valor-mov      colon 45
+    tt-param.dt-transacao   colon 45
+    tt-param.conta-contabil colon 45 
+    tt-param.referencia     colon 45 skip(1)
+    c-impressao no-label skip (1)
+    c-destino colon 45
+    " - "
+    tt-param.arquivo no-label format "x(60)":U
+    tt-param.usuario colon 45
+    with stream-io side-labels no-box width 132 frame f-parametros.
+run utp/ut-trfrrp.p (input frame f-impressao:handle).
+run utp/ut-trfrrp.p (input frame f-impressao-erro:handle).
+run utp/ut-trfrrp.p (input frame f-parametros:handle).
+
+/*form 
+ *     tt-editor.conteudo format "x(78)" no-label at 55
+ *     with stream-io side-labels no-box width 132 frame f-desc-erro. */   
+
+{utp/ut-field.i mgadm mov-ap transacao 2}
+assign c-trans:label in frame f-impressao = return-value.
+
+{utp/ut-field.i mgadm mov-ap lancamento 2}
+assign c-lancto:label in frame f-impressao = return-value.
+
+{utp/ut-liter.i Erro}
+assign tt-retorno-mov-ap.cod-erro:label in frame f-impressao-erro = return-value.
+
+{utp/ut-liter.i Descri‡Æo}
+assign tt-editor.conteudo:label in frame f-impressao-erro = return-value.
+
+{utp/ut-liter.i PAR¶METROS * R}
+assign c-parametros = trim(return-value).
+
+{utp/ut-liter.i IMPRESSÇO * R}
+assign c-impressao = trim(return-value).
+
+{utp/ut-field.i mgadm mov-ap lancamento 1}
+assign c-lancto:label in frame f-parametros = return-value
+       c-lancto = {adinc/i01ad059.i 04 tt-param.lancamento}.
+
+{utp/ut-liter.i Usu rio * L}
+assign tt-param.usuario:label in frame f-parametros = trim(return-value).
+
+{utp/ut-liter.i Destino * L}
+assign c-destino:label in frame f-parametros = trim(return-value)
+       c-destino = {varinc/var00002.i 04 tt-param.destino}.
+
+/* Fim de Include */
+

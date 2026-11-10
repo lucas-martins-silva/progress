@@ -1,0 +1,140 @@
+/*******************************************************************************
+**
+**   Programa: ap0855.i1
+**   Autor...: Datasul S/A.
+**   Objetivo: Include Display Valores
+**   Data....: Agosto de 1997
+**
+*********************************************************************************/
+
+for each impto-tit-ap where impto-tit-ap.ep-codigo     = tt-param.i-empresa and
+                            impto-tit-ap.mo-codigo     = tt-param.i-moeda and
+                            impto-tit-ap.cod-imposto  >= tt-param.i-impto-ini and
+                            impto-tit-ap.cod-imposto  <= tt-param.i-impto-fim and
+                            impto-tit-ap.cod-esp      >= tt-param.c-esp-ini and
+                            impto-tit-ap.cod-esp      <= tt-param.c-esp-fim and
+                            impto-tit-ap.cod-estabel  >= tt-param.c-estab-ini and
+                            impto-tit-ap.cod-estabel  <= tt-param.c-estab-fim and
+                            impto-tit-ap.cod-fornec   >= tt-param.i-fornec-ini and
+                            impto-tit-ap.cod-fornec   <= tt-param.i-fornec-fim and
+                            impto-tit-ap.dt-vencimen  >= tt-param.da-data-ini and
+                            impto-tit-ap.dt-vencimen  <= tt-param.da-data-fim and
+                            impto-tit-ap.nr-docto     >= tt-param.c-docto-ini and
+                            impto-tit-ap.nr-docto     <= tt-param.c-docto-fim
+                            no-lock
+                            break by {1}
+                                  by {2}
+                                  by {3}
+                                  by {4}
+                                  by {5}:                             
+
+   if tt-param.i-class-impto         <> 0 and
+      impto-tit-ap.cod-classificacao <> tt-param.i-class-impto then 
+      next. 
+   
+   {utp/ut-liter.i Documento/P MCT C} 
+   run pi-acompanhar in h-acomp (input return-value + ": ":U + 
+                                 impto-tit-ap.nr-docto + "/" + impto-tit-ap.parcela).                                                         
+
+    if  tt-param.l-contabilizados = no and
+        impto-tit-ap.contabilizou = yes then
+        next.
+       
+    if  first-of ({1}) or
+        first-of ({2}) or 
+        first-of ({3}) or
+        first-of ({4}) or
+        first-of ({5}) then do:    
+        if  page-number > 55 then 
+            page.
+        disp impto-tit-ap.cod-imposto
+             impto-tit-ap.cod-esp
+             impto-tit-ap.cod-estabel
+             impto-tit-ap.cod-fornec
+             impto-tit-ap.dt-vencimen
+             with frame f-quebra.
+    end.      
+  
+    disp impto-tit-ap.nr-docto
+         impto-tit-ap.parcela
+         impto-tit-ap.dt-emissao
+         impto-tit-ap.dt-transacao
+         impto-tit-ap.serie
+         {adinc/i01ad217.i 04 impto-tit-ap.tipo} @ 
+          c-tipo
+         {adinc/i01ad059.i 04 impto-tit-ap.lancamento} @ 
+          c-lancamento
+         impto-tit-ap.contabilizou
+         impto-tit-ap.tp-codigo
+/*         impto-tit-ap.historico*/
+         impto-tit-ap.cod-retencao
+         {adinc/i02ad166.i 04 impto-tit-ap.trans-impto-ap} @ 
+          c-transacao
+         {adinc/i01ad290.i 04 impto-tit-ap.origem-impto} @
+          c-origem
+          impto-tit-ap.perc-imposto
+          impto-tit-ap.perc-percepcao
+          impto-tit-ap.perc-retencao
+          impto-tit-ap.vl-base
+          impto-tit-ap.vl-imposto 
+          impto-tit-ap.vl-percepcao
+          impto-tit-ap.vl-retencao
+/*          impto-tit-ap.vl-imposto-fasb
+          impto-tit-ap.vl-imposto-cmcac
+          impto-tit-ap.vl-imposto-pres        
+          impto-tit-ap.vl-percepcao-fasb     
+          impto-tit-ap.vl-percepcao-cmcac    
+          impto-tit-ap.vl-percepcao-pres*/
+          with frame f-imposto.                                       
+    down with frame f-imposto.
+
+    assign  de-tot-base            = de-tot-base + impto-tit-ap.vl-base
+            de-tot-imposto         = de-tot-imposto + impto-tit-ap.vl-imposto
+            de-tot-imposto-fasb    = de-tot-imposto-fasb + impto-tit-ap.vl-imposto-fasb     
+            de-tot-imposto-cmcac   = de-tot-imposto-cmcac + impto-tit-ap.vl-imposto-cmcac 
+            de-tot-imposto-pres    = de-tot-imposto-pres + impto-tit-ap.vl-imposto-pres
+            de-tot-percepcao       = de-tot-percepcao + impto-tit-ap.vl-percepcao 
+            de-tot-percepcao-fasb  = de-tot-percepcao-fasb + impto-tit-ap.vl-percepcao-fasb       
+            de-tot-percepcao-cmcac = de-tot-percepcao-cmcac + impto-tit-ap.vl-percepcao-cmcac
+            de-tot-percepcao-pres  = de-tot-percepcao-pres + impto-tit-ap.vl-percepcao-pres
+            de-tot-retencao        = de-tot-retencao + impto-tit-ap.vl-retencao.            
+   
+    assign  de-tot-geral-base            = de-tot-geral-base + impto-tit-ap.vl-base
+            de-tot-geral-imposto         = de-tot-geral-imposto + impto-tit-ap.vl-imposto
+            de-tot-geral-imposto-fasb    = de-tot-geral-imposto-fasb + impto-tit-ap.vl-imposto-fasb     
+            de-tot-geral-imposto-cmcac   = de-tot-geral-imposto-cmcac + impto-tit-ap.vl-imposto-cmcac 
+            de-tot-geral-imposto-pres    = de-tot-geral-imposto-pres + impto-tit-ap.vl-imposto-pres
+            de-tot-geral-percepcao       = de-tot-geral-percepcao + impto-tit-ap.vl-percepcao 
+            de-tot-geral-percepcao-fasb  = de-tot-geral-percepcao-fasb + impto-tit-ap.vl-percepcao-fasb       
+            de-tot-geral-percepcao-cmcac = de-tot-geral-percepcao-cmcac + impto-tit-ap.vl-percepcao-cmcac
+            de-tot-geral-percepcao-pres  = de-tot-geral-percepcao-pres + impto-tit-ap.vl-percepcao-pres
+            de-tot-geral-retencao        = de-tot-geral-retencao + impto-tit-ap.vl-retencao.            
+
+    if  last-of({1}) then do:
+        disp de-tot-base                
+             de-tot-imposto         
+             de-tot-imposto-fasb        
+             de-tot-imposto-cmcac   
+             de-tot-imposto-pres    
+             de-tot-percepcao       
+             de-tot-percepcao-fasb        
+             de-tot-percepcao-cmcac 
+             de-tot-percepcao-pres  
+             de-tot-retencao        
+             with frame f-total.
+        assign  de-tot-base            = 0
+                de-tot-imposto         = 0
+                de-tot-imposto-fasb    = 0 
+                de-tot-imposto-cmcac   = 0
+                de-tot-imposto-pres    = 0
+                de-tot-percepcao       = 0
+                de-tot-percepcao-fasb  = 0
+                de-tot-percepcao-cmcac = 0
+                de-tot-percepcao-pres  = 0
+                de-tot-retencao        = 0.                  
+    end.
+
+assign l-encontrou = yes.
+end.
+
+/* Fim AP0855.i1 */

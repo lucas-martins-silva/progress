@@ -1,0 +1,108 @@
+/************************************************************************
+***
+***  app/ap1002m.i1 - Include usada no programa ap1002m.p.
+***
+************************************************************************/
+    
+if  {2} = 0 then do:
+            
+    assign c-transacao  = "Antecipaá∆o n∆o Atualizada !"
+           c-observacao = "Antecipaá∆o com saldo zero, cancelar com o banco !".
+            
+    disp {1}.cod-fornec   @ tit-ap.cod-fornec
+         {1}.cod-estabel  @ tit-ap.cod-estabel
+         {1}.cod-esp      @ tit-ap.cod-esp
+         {1}.serie        @ tit-ap.serie
+         {1}.nr-docto     @ tit-ap.nr-docto
+         {1}.parcela      @ tit-ap.parcela
+         {1}.dt-transacao @ tit-ap.dt-emissao
+         {1}.dt-vencto    @ tit-ap.dt-vencimen
+         {1}.nr-bordero   @ tit-ap.nr-bordero
+         da-data
+         de-valor
+         c-transacao
+         with frame f-detalhe1.
+    down with frame f-detalhe1.
+            
+    put "OBSERVAÄ«O: " c-observacao.
+    next.
+           
+end.
+
+find first portador 
+     where portador.ep-codigo    = {1}.ep-codigo 
+     and   portador.cod-portador = {1}.portador 
+     and   portador.modalidade   = {3}
+     no-lock no-error.
+
+if  avail portador then do:
+    if   portador.cod-febraban <> 275
+    and  portador.cod-febraban <> 356 then do:
+            
+        assign c-transacao  = "Antecipaá∆o n∆o Atualizada !"
+               c-observacao = "Antecipaá∆o n∆o est† no Unibanco".
+                        
+        disp {1}.cod-fornec   @ tit-ap.cod-fornec
+             {1}.cod-estabel  @ tit-ap.cod-estabel
+             {1}.cod-esp      @ tit-ap.cod-esp
+             {1}.serie        @ tit-ap.serie
+             {1}.nr-docto     @ tit-ap.nr-docto
+             {1}.parcela      @ tit-ap.parcela
+             {1}.dt-transacao @ tit-ap.dt-emissao
+             {1}.dt-vencto    @ tit-ap.dt-vencimen
+             {1}.nr-bordero   @ tit-ap.nr-bordero
+             da-data
+             de-valor
+             c-transacao
+             with frame f-detalhe1.
+        down with frame f-detalhe1.
+                    
+        put "OBSERVAÄ«O: " c-observacao.
+        next.
+            
+    end.
+end.
+
+if  l-antecipacao = no and
+    avail tit-ap then do: /* APENAS PARA DOCUMENTOS NORMAIS */
+    if  tit-ap.valor-saldo <> de-valor then do:
+        if  tit-ap.nr-bordero <> 0 then
+            assign de-desconto = tit-ap.vl-desc-fasb
+                   de-juros    = tit-ap.jur-dia-fasb.
+        else
+            assign de-desconto = tit-ap.vl-desconto.
+        
+        assign de-valor1 = de-valor + de-desconto
+                         - de-juros.
+    
+        if tit-ap.valor-saldo <> de-valor1 then do:
+           assign c-transacao  = "Antecipaá∆o n∆o Atualizada!"
+                  c-observacao = "Valor de Juros e Desconto enviado difere"
+                               + "do valor pago pelo Banco".
+    
+           disp {1}.cod-fornec   @ tit-ap.cod-fornec
+                {1}.cod-estabel  @ tit-ap.cod-estabel
+                {1}.cod-esp      @ tit-ap.cod-esp
+                {1}.serie        @ tit-ap.serie
+                {1}.nr-docto     @ tit-ap.nr-docto
+                {1}.parcela      @ tit-ap.parcela
+                {1}.dt-transacao @ tit-ap.dt-emissao
+                {1}.dt-vencto    @ tit-ap.dt-vencimen
+                {1}.nr-bordero   @ tit-ap.nr-bordero
+                da-data
+                de-valor
+                c-transacao
+                with frame f-detalhe1.
+           down with frame f-detalhe1.
+                        
+           put "OBSERVAÄ«O: " c-observacao.
+           next.
+        end.                      
+        else 
+           assign de-valor = de-valor1.
+    end.
+    else
+        assign de-desconto = tit-ap.vl-desconto.
+end.
+
+/* Fim de Include */

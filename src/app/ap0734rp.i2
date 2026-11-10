@@ -1,0 +1,25 @@
+/******************************************************************************
+***
+*** app/ap0734.i2 - Impress∆o Total Geral.
+***
+******************************************************************************/
+
+IF  tt-param.l-resumo = NO THEN DO:
+
+    DISP " --------------" @ tt-dirf-ap.de-rendto
+         " --------------" @ tt-dirf-ap.valor-ir
+         WITH FRAME {1}.
+        
+    DOWN WITH FRAME {1}.
+        
+    DISP " Total Geral:"    @ tt-dirf-ap.nr-docto
+         de-geral-tot-rend  @ tt-dirf-ap.de-rendto
+         de-geral-tot-impto @ tt-dirf-ap.valor-ir
+         WITH FRAME {1}.
+        
+    DOWN (3) WITH FRAME {1}.
+
+end.
+
+/* Fim de Include */
+

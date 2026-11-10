@@ -1,0 +1,217 @@
+PROCEDURE pi-cria-ttrefNf:
+
+    DEF BUFFER bf-nota-fiscal FOR nota-fiscal.
+    DEF VAR l-comp-imp   AS LOG NO-UNDO.
+    DEF VAR l-fat-triang AS LOG NO-UNDO.
+
+    IF  bf-natur-oper-nf.log-oper-triang      /* Opera‡Æo Triangular   */
+    AND nota-fiscal.nome-abrev-tri  <> "":U   /* Foi informado Cliente */
+    AND nota-fiscal.nome-abrev-tri  <> ?      /* beneficiador          */
+    AND it-nota-fisc.nr-docum       <> "":U   /* Possui documento      */
+    AND it-nota-fisc.nr-docum       <> ? THEN /* relacionado           */
+        ASSIGN l-fat-triang = YES.
+
+    /*--- Notas Fiscais Referenciadas Eletronicas - informado chave no CD4035 - campo cod-livre-2,1,60 ---*/
+	IF  NOT l-fat-triang THEN
+		FOR EACH nota-fisc-adc NO-LOCK
+		   WHERE nota-fisc-adc.cod-estab              = nota-fiscal.cod-estabel
+			AND  nota-fisc-adc.cod-serie              = nota-fiscal.serie
+			AND  nota-fisc-adc.cod-nota-fisc          = nota-fiscal.nr-nota-fis
+			AND  nota-fisc-adc.cdn-emitente           = nota-fiscal.cod-emitente
+			AND  nota-fisc-adc.cod-natur-operac       = nota-fiscal.nat-operacao
+			AND  nota-fisc-adc.idi-tip-dado           = 3
+			AND  TRIM(SUBSTRING(nota-fisc-adc.cod-livre-2,1,60)) <> "":U :
+
+			RUN pi-ttNRef-docum-NF (INPUT TRIM(SUBSTRING(nota-fisc-adc.cod-livre-2,1,60)),
+									INPUT nota-fiscal.cod-estabel,
+									INPUT nota-fiscal.serie,
+									INPUT nota-fisc-adc.dat-docto-referado,
+									INPUT nota-fisc-adc.cod-docto-referado,
+									INPUT nota-fisc-adc.cdn-emit-docto-referado,
+									INPUT nota-fisc-adc.cod-model-docto-referado,
+									INPUT "estab":U) NO-ERROR.
+		END.
+    /*---*/
+
+    /* IF  l-nota-compl-imp         */
+    /* OR  l-nota-dif-preco-RE THEN */
+    IF  NOT l-fat-triang THEN
+        FOR EACH nota-fisc-adc NO-LOCK
+           WHERE nota-fisc-adc.cod-estab               = nota-fiscal.cod-estabel
+            AND   nota-fisc-adc.cod-serie              = nota-fiscal.serie
+            AND   nota-fisc-adc.cod-nota-fisc          = nota-fiscal.nr-nota-fis
+            AND   nota-fisc-adc.cdn-emitente           = nota-fiscal.cod-emitente
+            AND   nota-fisc-adc.cod-natur-operac       = nota-fiscal.nat-operacao
+            AND   nota-fisc-adc.idi-tip-dado           = 3
+            AND (   nota-fisc-adc.idi-tip-docto-referado = 2 
+                 OR (    nota-fiscal.ind-tip-nota = 8 /* Entrada */
+                     AND nota-fisc-adc.idi-tip-docto-referado = 1))
+            AND  STRING(INT(nota-fisc-adc.cod-model-docto-referado),"99") <> "04"  /*Desconsiderar notas de modelo 04, que ‚ modelo para Produtor Rural [04 - Nota Fiscal de Produtor, modelo 4] (tags exlcusiveas refNFP)*/
+            AND  TRIM(SUBSTRING(nota-fisc-adc.cod-livre-2,1,60)) = "":U : /*nÆo foi informado chave de acesso no cd4035, entao nao ‚ eletronica*/
+
+            FOR FIRST bf-nota-fiscal NO-LOCK
+                WHERE bf-nota-fiscal.cod-estabel  = nota-fiscal.cod-estabel
+                  AND bf-nota-fiscal.serie        = nota-fisc-adc.cod-ser-docto-referado
+                  AND bf-nota-fiscal.nr-nota-fis  = nota-fisc-adc.cod-docto-referado
+                  AND bf-nota-fiscal.cod-emitente = nota-fisc-adc.cdn-emit-docto-referado:
+            END.
+
+            RUN pi-ttNRef-docum-NF (INPUT IF  AVAIL bf-nota-fiscal THEN 
+                                          &IF '{&bf_dis_versao_ems}' >= '2.07':U &THEN bf-nota-fiscal.cod-chave-aces-nf-eletro 
+                                          &ELSE SUBSTRING(bf-nota-fiscal.char-2,3,60) &ENDIF
+                                          ELSE "",
+                                    INPUT nota-fiscal.cod-estabel,
+                                    INPUT IF AVAIL bf-nota-fiscal THEN nota-fisc-adc.cod-ser-docto-referado ELSE nota-fiscal.serie,
+                                    INPUT nota-fisc-adc.dat-docto-referado,
+                                    INPUT nota-fisc-adc.cod-docto-referado,
+                                    INPUT nota-fisc-adc.cdn-emit-docto-referado,
+                                    INPUT nota-fisc-adc.cod-model-docto-referado,
+                                    INPUT "estab":U).
+            
+        END.
+    
+
+    FOR FIRST bf-nota-fiscal NO-LOCK
+        WHERE bf-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel
+          AND bf-nota-fiscal.serie       = nota-fiscal.serie-orig
+          AND bf-nota-fiscal.nr-nota-fis = nota-fiscal.nro-nota-orig:
+
+        
+        RUN pi-ttNRef-docum-NF (INPUT &IF '{&bf_dis_versao_ems}' >= '2.07':U &THEN bf-nota-fiscal.cod-chave-aces-nf-eletro &ELSE SUBSTRING(bf-nota-fiscal.char-2,3,60) &ENDIF ,
+                                INPUT bf-nota-fiscal.cod-estabel,
+                                INPUT bf-nota-fiscal.serie,
+                                INPUT bf-nota-fiscal.dt-emis-nota,
+                                INPUT bf-nota-fiscal.nr-nota-fis,
+                                INPUT bf-nota-fiscal.cod-emitente,
+                                INPUT "01",
+                                INPUT "estab":U).
+
+    END.
+
+    
+    FOR FIRST bf-nota-fiscal NO-LOCK
+        WHERE bf-nota-fiscal.cod-estabel  = nota-fiscal.cod-estabel
+          AND bf-nota-fiscal.serie        = it-nota-fisc.serie-docum
+          AND bf-nota-fiscal.nr-nota-fis  = it-nota-fisc.nr-docum
+          AND bf-nota-fiscal.cod-emitente = nota-fiscal.cod-emitente
+          AND bf-nota-fiscal.nat-operacao = it-nota-fisc.nat-docum:
+
+        
+        RUN pi-ttNRef-docum-NF (INPUT &IF '{&bf_dis_versao_ems}' >= '2.07':U &THEN bf-nota-fiscal.cod-chave-aces-nf-eletro &ELSE SUBSTRING(bf-nota-fiscal.char-2,3,60) &ENDIF ,
+                                INPUT bf-nota-fiscal.cod-estabel,
+                                INPUT bf-nota-fiscal.serie,
+                                INPUT bf-nota-fiscal.dt-emis-nota,
+                                INPUT bf-nota-fiscal.nr-nota-fis,
+                                INPUT bf-nota-fiscal.cod-emitente,
+                                INPUT "01",
+                                INPUT "estab":U).
+
+    END.
+
+    IF NOT AVAIL bf-nota-fiscal THEN DO:
+
+        /*outras operacoes */
+        FOR FIRST docum-est NO-LOCK
+            WHERE docum-est.serie-docto  = it-nota-fisc.serie-docum
+              AND docum-est.nro-docto    = it-nota-fisc.nr-docum
+              AND docum-est.cod-emitente = nota-fiscal.cod-emitente
+              AND docum-est.nat-operacao = it-nota-fisc.nat-docum:
+
+
+            ASSIGN l-comp-imp = NO.
+
+            /* Complementar de Importa‡Æo */
+            IF CONNECTED("mgcex") THEN DO:
+               IF CAN-FIND(FIRST docum-est-cex WHERE
+                                 docum-est-cex.serie-docto  = docum-est.serie-docto   AND
+                                 docum-est-cex.nro-docto    = docum-est.nro-docto     AND
+                                 docum-est-cex.cod-emitente = docum-est.cod-emitente  AND
+                                 docum-est-cex.nat-operacao = docum-est.nat-operacao) THEN DO:
+
+                  RUN pi-ttNRef-docum-NF (INPUT &IF '{&bf_dis_versao_ems}' >= '2.07':U &THEN docum-est.cod-chave-aces-nf-eletro &ELSE SUBSTRING(docum-est.char-1,93,60) &ENDIF ,
+                                          INPUT docum-est.cod-estabel,
+                                          INPUT docum-est.serie-docto,
+                                          INPUT docum-est.dt-emissao,
+                                          INPUT docum-est.nro-docto,
+                                          INPUT docum-est.cod-emitente,
+                                          INPUT "01",
+                                          INPUT "estab":U).
+                  ASSIGN l-comp-imp = YES.
+               END.
+            END.
+            
+           IF docum-est.nat-operacao BEGINS "3" THEN
+                RUN pi-ttNRef-docum-NF (INPUT &IF '{&bf_dis_versao_ems}' >= '2.07':U &THEN docum-est.cod-chave-aces-nf-eletro &ELSE SUBSTRING(docum-est.char-1,93,60) &ENDIF ,
+                                          INPUT docum-est.cod-estabel,
+                                          INPUT docum-est.serie-docto,
+                                          INPUT docum-est.dt-emissao,
+                                          INPUT docum-est.nro-docto,
+                                          INPUT docum-est.cod-emitente,
+                                          INPUT "01",
+                                          INPUT "estab":U).
+
+            ELSE IF NOT l-comp-imp THEN
+               RUN pi-ttNRef-docum-NF (INPUT &IF '{&bf_dis_versao_ems}' >= '2.07':U &THEN docum-est.cod-chave-aces-nf-eletro &ELSE SUBSTRING(docum-est.char-1,93,60) &ENDIF ,
+                                       INPUT docum-est.cod-estabel,
+                                       INPUT docum-est.serie-docto,
+                                       INPUT docum-est.dt-emissao,
+                                       INPUT docum-est.nro-docto,
+                                       INPUT docum-est.cod-emitente,
+                                       INPUT "01",
+                                       INPUT "emit":U).
+        END.
+
+        IF  NOT AVAIL docum-est
+        AND it-nota-fisc.nr-docum <> "" THEN DO:
+
+            FOR FIRST item-doc-est USE-INDEX terceiro
+                WHERE item-doc-est.cod-emit-terc  = nota-fiscal.cod-emitente
+                AND   item-doc-est.serie-terc     = it-nota-fisc.serie-docum   
+                AND   item-doc-est.nro-docto-terc = it-nota-fisc.nr-docum
+                AND   item-doc-est.nat-terc       = it-nota-fisc.nat-docum
+                AND   item-doc-est.seq-terc       = it-nota-fisc.int-1
+                AND   item-doc-est.it-codigo      = it-nota-fisc.it-codigo NO-LOCK,
+                FIRST docum-est NO-LOCK
+                WHERE docum-est.cod-emitente = item-doc-est.cod-emitente
+                AND   docum-est.serie-docto  = item-doc-est.serie-docto
+                AND   docum-est.nro-docto    = item-doc-est.nro-docto
+                AND   docum-est.nat-operacao = item-doc-est.nat-operacao : 
+
+                RUN pi-ttNRef-docum-NF (INPUT &IF '{&bf_dis_versao_ems}' >= '2.07':U &THEN docum-est.cod-chave-aces-nf-eletro &ELSE SUBSTRING(docum-est.char-1,93,60) &ENDIF ,
+                                        INPUT docum-est.cod-estabel,
+                                        INPUT docum-est.serie-docto,
+                                        INPUT docum-est.dt-emissao,
+                                        INPUT docum-est.nro-docto,
+                                        INPUT docum-est.cod-emitente,
+                                        INPUT "01",
+                                        INPUT "emit":U).
+            END.                                        
+        END.
+    END.
+     
+    VALIDATE ttrefNF.
+    /* Nao tem notas referenciadas, entao enviar finalidade da NF-e como 1 [Opcoes: 1- NF-e Normal / 2-NF-e Complementar / 3 Î NF-e de Ajuste] */
+    IF TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "" AND TRIM(SUBSTRING(nota-fiscal.char-2,211,2)) <> "0" THEN
+        ASSIGN ttIde.finNFe = TRIM(SUBSTRING(nota-fiscal.char-2,211,2)). /*Finalidade NF-e*/
+    ELSE
+        IF  NOT CAN-FIND (FIRST ttrefNF)
+        AND ttIde.finNFe = "2":U THEN DO: /*Manual do Contribuinte exige refNf para finalidade = 2*/
+            IF  NOT AVAIL ttIde THEN
+                FIND FIRST ttIde NO-ERROR.
+
+            ASSIGN ttIde.finNFe = "1":U.
+        END.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttrefNF THEN DO:
+        ASSIGN ttrefNF.refNFe = fn-ajusta-tamanho-campo(ttrefNF.refNFe,44).
+        ASSIGN ttrefNF.cUF    = fn-ajusta-tamanho-campo(ttrefNF.cUF   , 2)
+               ttrefNF.AAMM   = fn-ajusta-tamanho-campo(ttrefNF.AAMM  , 4)
+               ttrefNF.CNPJ   = fn-ajusta-tamanho-campo(ttrefNF.CNPJ  ,14)
+               ttrefNF.mod    = fn-ajusta-tamanho-campo(ttrefNF.mod   , 2)
+               ttrefNF.serie  = fn-ajusta-tamanho-campo(ttrefNF.serie , 3)
+               ttrefNF.nNF    = fn-ajusta-tamanho-campo(ttrefNF.nNF   , 9).
+    END.
+    
+        
+END PROCEDURE.

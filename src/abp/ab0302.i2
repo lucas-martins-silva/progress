@@ -1,0 +1,53 @@
+/*******************************************************************************
+** Copyright DATASUL S.A. (1999)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/** {1} = Nome da P gina **/
+
+/*------------------------------------------------------------------------------
+  Purpose:     piItemTerceiro
+  Parameters:  entrada pPosto = C¢digo Posto
+  Notes:       Verifica Atributos do item e habilita/desabilita campos em tela
+------------------------------------------------------------------------------*/
+procedure piItemTermino:
+
+define input parameter pPosto like mab-posto.cod-posto no-undo.
+define input parameter pEqpto like mab-eqpto.cod-eqpto no-undo.
+
+define variable iTpContEst  as   integer                no-undo.
+define variable lLocaliz    as   logical                no-undo.
+define variable cCodLocaliz like mab-item-abastec.cod-localiz  no-undo.
+define variable dePreco     like mmv-movto-mater.val-mater-1 no-undo.
+define variable cEstab      like mab-posto.cod-estabel  no-undo.
+define variable cEmpres     like mab-eqpto.ep-codigo    no-undo.
+
+define buffer bfItem for item.
+define buffer bfPosto for mab-posto.
+define buffer bfEqpto for mab-eqpto.
+
+/** Busca Atributos do Item **/
+for first bfItem fields(tipo-con-est loc-unica cod-localiz)
+    where bfItem.it-codigo = input frame {1} {&tttable}.it-codigo no-lock:
+    assign iTpContEst  = bfItem.tipo-con-est
+           lLocaliz    = bfItem.loc-unica
+           cCodLocaliz = bfItem.cod-localiz
+           dePreco     = bfItem.preco-ul-ent.
+end.
+/** Busca Estabelecimento **/
+for first bfPosto fields(cod-depos idi-posto cod-estab)
+    where bfPosto.cod-posto = pPosto no-lock:
+    assign cEstab           = bfPosto.cod-estabel.
+end.
+/** Busca Empresa e Equipamento **/
+for first bfEqpto fields(ep-codigo cod-eqpto)
+    where bfeqpto.cod-eqpto = peqpto no-lock:
+    assign cEmpres          = bfeqpto.ep-codigo.
+end.
+
+return "OK":U.
+
+end procedure.

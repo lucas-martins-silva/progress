@@ -1,0 +1,87 @@
+PROCEDURE pi-ean-item:
+
+    ASSIGN c-cod-ean      = "":U
+           c-cod-ean-trib = "":U.
+
+    /*
+    cEANTrib - Unidade Tribut vel
+    CD0903 (FT - un med do estoque) / CD0138 (RE - un med do estoque)
+    */
+
+    FOR FIRST item-mat FIELDS(cod-ean)
+        WHERE item-mat.it-codigo = it-nota-fisc.it-codigo NO-LOCK:
+    END.
+    IF  AVAIL item-mat THEN
+        ASSIGN c-cod-ean-trib = TRIM(SUBSTR(item-mat.cod-ean,1,14)). /* SEFAZ -> max 14 posicoes */
+        
+    /*
+    cEAN     - Unidade Comercial
+    CD0247 (FT - fatura em diferentes un med) | CD0138 (RE - mesma un med do estoq) | CD0867 (IM - diferentes unidades, para diferentes pa¡ses de importa‡Æo, para diferentes fornecedores)
+    */
+
+    /*Nota gerada no Recebimento (Importa‡Æo e outras)*/
+    IF  nota-fiscal.ind-tip-nota  = 8 THEN DO:
+
+        /*Importa‡Æo - via m¢dulo de Recebimento ou via m¢dulo de Importa‡Æo*/
+        FOR FIRST item-docto-estoq-nfe-imp NO-LOCK 
+            WHERE item-docto-estoq-nfe-imp.cdn-emitente     = nota-fiscal.cod-emitente
+              AND item-docto-estoq-nfe-imp.cod-docto        = nota-fiscal.nr-nota-ant
+              AND item-docto-estoq-nfe-imp.cod-ser-docto    = nota-fiscal.serie
+              AND item-docto-estoq-nfe-imp.cod-natur-operac = nota-fiscal.nat-operacao
+              AND item-docto-estoq-nfe-imp.num-seq          = it-nota-fisc.nr-seq-ped :
+
+            RUN pi-retorna-EAN (INPUT  it-nota-fisc.it-codigo,
+                                INPUT  (IF it-nota-fisc.ind-fat-qtfam = no
+                                        THEN trim(it-nota-fisc.un-fatur[1])
+                                        ELSE trim(it-nota-fisc.un-fatur[2])),
+                                INPUT  STRING(item-docto-estoq-nfe-imp.num-livre-1), /*Pa¡s Origem*/
+                                INPUT  nota-fiscal.cod-emitente,
+                                OUTPUT c-cod-ean).
+        END.
+        IF (NOT AVAIL item-docto-estoq-nfe-imp  /*‚ nota do Recebimento, mas NÇO ‚ Importa‡Æo*/
+        OR  c-cod-ean = "":U) THEN              /*nao encontrou informacao de EAN na tabela de relacionamento item-fornec-fabrican-umd (pi-retorna-EAN), grava-se o EAN Tributavel (CD0903/CD0138) */
+            ASSIGN c-cod-ean = c-cod-ean-trib.
+
+    END.
+    /*Nota gerada no Faturamento*/
+    ELSE DO:
+        /*Fatura em diferentes unidades de medida, do cliente, da familia, etc.*/
+        FOR FIRST item-unid-venda NO-LOCK
+            WHERE item-unid-venda.it-codigo = it-nota-fisc.it-codigo
+              AND item-unid-venda.un        = (IF it-nota-fisc.ind-fat-qtfam = no
+                                               THEN trim(it-nota-fisc.un-fatur[1])
+                                               ELSE trim(it-nota-fisc.un-fatur[2])):
+
+            ASSIGN c-cod-ean = TRIM(&IF '{&BF_DIS_VERSAO_EMS}' >= '2.09'
+                                    &THEN item-unid-venda.cod-ean
+                                    &ELSE SUBSTRING(item-unid-venda.char-1,1,200) &ENDIF).
+        END.
+        IF (NOT AVAIL item-unid-venda  /*nao encontrou informacao de EAN na tabela de relacionamento item-unid-venda, */
+        OR  c-cod-ean = "":U) THEN     /*ou encontrou registro mas sem EAN informado, grava-se o EAN Tributavel (CD0903) */                      
+            ASSIGN c-cod-ean = c-cod-ean-trib.
+    END.
+    
+
+    /*
+    cEANTrib - Unidade Tribut vel
+    CD0247 (GTIN na unidade tribut vel diferenciada - NT 2016.001 Exporta‡Æo ou interna)
+    */
+
+    IF  CAN-FIND(FIRST cfop-natur OF bf-natur-oper-it WHERE cfop-natur.log-livre-2)
+    AND (TRIM(SUBSTRING(it-nota-fisc.char-1,419,2)) <> "":U) /* unid tribut vel */
+    THEN
+        FOR FIRST item-unid-venda NO-LOCK
+            WHERE item-unid-venda.it-codigo = it-nota-fisc.it-codigo
+              AND item-unid-venda.un        = TRIM(SUBSTRING(it-nota-fisc.char-1,419,2)):
+
+            ASSIGN c-cod-ean-trib = TRIM(&IF '{&BF_DIS_VERSAO_EMS}' >= '2.09'
+                                         &THEN item-unid-venda.cod-ean
+                                         &ELSE SUBSTRING(item-unid-venda.char-1,1,200) &ENDIF).
+        END.
+
+    /* Nota Tecnica 2017.001 - GTIN */
+    /* Para produtos que nÆo possuem c¢digo de barras com GTIN, deve ser informado o literal "SEM GTIN" */
+    ASSIGN c-cod-ean      = (IF DEC(c-cod-ean)      > 0 THEN c-cod-ean      ELSE "SEM GTIN":U)
+           c-cod-ean-trib = (IF DEC(c-cod-ean-trib) > 0 THEN c-cod-ean-trib ELSE "SEM GTIN":U) NO-ERROR.
+
+END PROCEDURE.

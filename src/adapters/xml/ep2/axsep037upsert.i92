@@ -1,0 +1,347 @@
+PROCEDURE pi-cria-ttTribRT:
+  
+   /*
+   === ttTribRT ===
+   FIELD pAliq          AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /*Al¡quota do do Tributo IBS UF, IBS Mun ou CBS*/
+   FIELD pDif           AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /*Percentual do diferimento*/
+   FIELD vDif           AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do Diferimento*/
+   FIELD pDevTrib       AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /*Percentual de devolu‡Æo de IBS UF, IBS Mun ou CBS */
+   FIELD vDevTrib       AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do tributo devolvido*/
+   FIELD pRedAliq       AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /*Percentual da redu‡Æo de al¡quota*/
+   FIELD pAliqEfet      AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /*Al¡quota Efetiva do Tributo (IBS UF, IBS Mun ou CBS) que ser  aplicada a Base de C lculo*/
+   FIELD vTrib          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do Tributo IBS UF, IBS Mun ou CBS*/
+   */               
+                   
+      CREATE ttTribRT.              
+      ASSIGN ttTribRT.pAliq         = it-nota-fisc-trib.aliq-trib
+             ttTribRT.pDif          = it-nota-fisc-trib.perc-difer
+             ttTribRT.vDif          = it-nota-fisc-trib.valor-difer
+             ttTribRT.pDevTrib      = it-nota-fisc-trib.num-livre-1 //campo ser  criado na ISSUE DBACKRTDTS-9189
+             ttTribRT.vDevTrib      = it-nota-fisc-trib.valor-devol
+             ttTribRT.pRedAliq      = it-nota-fisc-trib.perc-red-aliq
+             ttTribRT.pAliqEfet     = it-nota-fisc-trib.aliq-efetiva
+             ttTribRT.vTrib         = it-nota-fisc-trib.valor-tributo
+      /* Chave EMS */
+             ttTribRT.CodEstabelNF  = it-nota-fisc-trib.cod-estabel
+             ttTribRT.SerieNF       = it-nota-fisc-trib.serie     
+             ttTribRT.NrNotaFisNF   = it-nota-fisc-trib.nr-nota-fis
+             ttTribRT.ItCodigoNF    = it-nota-fisc-trib.it-codigo
+             ttTribRT.NrSeqFatNF    = it-nota-fisc-trib.nr-seq-fat
+             ttTribRT.TipTributo    = it-nota-fisc-trib.tip-tributo.
+             
+        CASE it-nota-fisc-trib.tip-tributo:
+            // CBS
+            WHEN 1 THEN DO:
+                ASSIGN d-total-vDifCBS       = d-total-vDifCBS     + it-nota-fisc-trib.valor-difer
+                       d-total-vDevTribCBS   = d-total-vDevTribCBS + it-nota-fisc-trib.valor-devol
+                       d-total-vCBS          = d-total-vCBS        + it-nota-fisc-trib.valor-tributo.
+                       
+                IF AVAIL ttgCompraGov AND ttgCompraGov.tpEnteGov <> "1" AND YEAR(nota-fiscal.dt-emis-nota) = 2026 THEN 
+                    ASSIGN ttTribRT.pAliq         = it-nota-fisc-trib.aliq-cheia-regul
+                           ttTribRT.pAliqEfet     = it-nota-fisc-trib.aliq-regul.       
+            END.            
+            // IBS UF
+            WHEN 2 THEN DO:
+                ASSIGN d-total-vDifIBSUF     = d-total-vDifIBSUF     + it-nota-fisc-trib.valor-difer
+                       d-total-vDevTribIBSUF = d-total-vDevTribIBSUF + it-nota-fisc-trib.valor-devol
+                       d-total-vIBSUF        = d-total-vIBSUF        + it-nota-fisc-trib.valor-tributo
+                       d-total-vIBS          = d-total-vIBS          + it-nota-fisc-trib.valor-tributo
+                       ttIBSCBS.vIBS         = IF l-DeduzCredPres-ibs-uf THEN 
+                                                   ttIBSCBS.vIBS + it-nota-fisc-trib.valor-tributo - it-nota-fisc-trib.valor-cred-presum 
+                                               ELSE 
+                                                   ttIBSCBS.vIBS + it-nota-fisc-trib.valor-tributo.
+                                                   
+                IF AVAIL ttgCompraGov AND (ttgCompraGov.tpEnteGov <> "2" AND ttgCompraGov.tpEnteGov <> "3") AND YEAR(nota-fiscal.dt-emis-nota) = 2026  THEN 
+                    ASSIGN ttTribRT.pAliq         = it-nota-fisc-trib.aliq-cheia-regul
+                           ttTribRT.pAliqEfet     = it-nota-fisc-trib.aliq-regul.                                                          
+            END.                                                    
+                 
+            // IBS Mun
+            WHEN 3 THEN DO:
+                ASSIGN d-total-vDifIBSMun     = d-total-vDifIBSMun     + it-nota-fisc-trib.valor-difer
+                       d-total-vDevTribIBSMun = d-total-vDevTribIBSMun + it-nota-fisc-trib.valor-devol
+                       d-total-vIBSMun        = d-total-vIBSMun        + it-nota-fisc-trib.valor-tributo
+                       d-total-vIBS           = d-total-vIBS           + it-nota-fisc-trib.valor-tributo
+                       ttIBSCBS.vIBS          = ttIBSCBS.vIBS          + it-nota-fisc-trib.valor-tributo.
+
+                IF AVAIL ttgCompraGov AND ttgCompraGov.tpEnteGov <> "4" AND YEAR(nota-fiscal.dt-emis-nota) = 2026  THEN 
+                    ASSIGN ttTribRT.pAliq         = it-nota-fisc-trib.aliq-cheia-regul
+                           ttTribRT.pAliqEfet     = it-nota-fisc-trib.aliq-regul.                                                          
+                       
+            END. 
+            // IS
+            WHEN 4 THEN
+                ASSIGN ttTribRT.adRemIS      = it-nota-fisc-trib.aliq-unid-med-aprop
+                       ttTribRT.uTrib         = it-nota-fisc-trib.unid-med-tribut
+                       ttTribRT.qTrib         = it-nota-fisc-trib.qtde-tribut 
+                       ttTribRT.vTrib         = it-nota-fisc-trib.valor-tributo
+                       ttTribRT.CST           = it-nota-fisc-trib.cod-cst
+                       ttTribRT.cClassTribIS  = it-nota-fisc-trib.cod-class-trib
+                       ttTribRT.vBCIS         = it-nota-fisc-trib.valor-base
+                       d-total-vIS            = d-total-vIS       + it-nota-fisc-trib.valor-tributo.
+        END CASE.
+                                      
+END PROCEDURE.
+
+PROCEDURE pi-cria-ttVB:
+
+   /*
+   === ttVB ===
+   FIELD vItem          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor Total do Item da NF-e*/
+   */
+   
+   FIND FIRST ttVB WHERE 
+        ttVB.CodEstabelNF = ttDet.CodEstabelNF AND
+        ttVB.SerieNF      = ttDet.SerieNF      AND      
+        ttVB.NrNotaFisNF  = ttDet.NrNotaFisNF  AND
+        ttVB.ItCodigoNF   = ttDet.ItCodigoNF   AND
+        ttVB.NrSeqFatNF   = ttDet.NrSeqFatNF   NO-ERROR.
+
+   IF NOT AVAIL ttVB THEN DO:
+      
+      CREATE ttVB.
+      ASSIGN ttVB.vItem        = d-total-vItem
+             d-total-vNFTot    = d-total-vNFTot + ttVB.vItem  
+      /* Chave EMS */       
+             ttVB.CodEstabelNF = ttDet.CodEstabelNF
+             ttVB.SerieNF      = ttDet.SerieNF      
+             ttVB.NrNotaFisNF  = ttDet.NrNotaFisNF
+             ttVB.ItCodigoNF   = ttDet.ItCodigoNF   
+             ttVB.NrSeqFatNF   = ttDet.NrSeqFatNF.
+   END.
+   
+END PROCEDURE.
+
+  
+PROCEDURE pi-cria-ttPresumido:
+  
+   /*
+   === ttgCredPresOper ===
+   FIELD cCredPres           AS INTEGER   INITIAL ?                                         /*C¢digo de Classifica‡Æo do Cr‚dito Presumido*/   
+   FIELD vBCCredPres         AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do Cr‚dito Presumido*/   
+   */
+   
+   /*
+   === ttgIBSCBSCredPres ===   
+   FIELD pCredPres           AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /*Percentual do Cr‚dito Presumido*/
+   FIELD vCredPres           AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do Cr‚dito Presumido*/
+   FIELD vCredPresCondSus    AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /*Valor do Cr‚dito Presumido em condi‡Æo suspensiva*/
+   */   
+        
+   DEFINE VAR d-base-calc-cp LIKE it-nota-fisc-trib.valor-base NO-UNDO.
+        
+   IF  it-nota-fisc-trib.valor-cred-presum > 0 THEN do:
+       create ttgIBSCBSCredPres.
+       assign ttgIBSCBSCredPres.pCredPres        = it-nota-fisc-trib.perc-cred-presum
+              ttgIBSCBSCredPres.vCredPres        = it-nota-fisc-trib.valor-cred-presum
+              ttgIBSCBSCredPres.vCredPresCondSus = it-nota-fisc-trib.valor-cred-presum-susp
+      /* Chave EMS */
+              ttgIBSCBSCredPres.CodEstabelNF     = it-nota-fisc-trib.cod-estabel
+              ttgIBSCBSCredPres.SerieNF          = it-nota-fisc-trib.serie
+              ttgIBSCBSCredPres.NrNotaFisNF      = it-nota-fisc-trib.nr-nota-fis
+              ttgIBSCBSCredPres.ItCodigoNF       = it-nota-fisc-trib.it-codigo
+              ttgIBSCBSCredPres.NrSeqFatNF       = it-nota-fisc-trib.nr-seq-fat
+              ttgIBSCBSCredPres.TipTributo       = it-nota-fisc-trib.tip-tributo.
+              
+       IF  NOT CAN-FIND(FIRST ttgCredPresOper
+                        WHERE ttgCredPresOper.CodEstabelNF     = it-nota-fisc-trib.cod-estabel
+                        AND   ttgCredPresOper.SerieNF          = it-nota-fisc-trib.serie
+                        AND   ttgCredPresOper.NrNotaFisNF      = it-nota-fisc-trib.nr-nota-fis
+                        AND   ttgCredPresOper.ItCodigoNF       = it-nota-fisc-trib.it-codigo
+                        AND   ttgCredPresOper.NrSeqFatNF       = it-nota-fisc-trib.nr-seq-fat) THEN DO:
+                        
+            CREATE ttgCredPresOper.
+            ASSIGN ttgCredPresOper.CodEstabelNF = it-nota-fisc-trib.cod-estabel
+                   ttgCredPresOper.SerieNF      = it-nota-fisc-trib.serie
+                   ttgCredPresOper.NrNotaFisNF  = it-nota-fisc-trib.nr-nota-fis
+                   ttgCredPresOper.ItCodigoNF   = it-nota-fisc-trib.it-codigo
+                   ttgCredPresOper.NrSeqFatNF   = it-nota-fisc-trib.nr-seq-fat
+                   ttgCredPresOper.vBCCredPres  = it-nota-fisc-trib.valor-base
+                   ttgCredPresOper.cCredPres    = string(int(it-nota-fisc-trib.cod-clas-cred-presum),"99").
+                   
+            IF nota-fiscal.ind-tip-nota = 8 THEN DO:
+               ASSIGN d-base-calc-cp = 0.
+               
+               FOR EACH item-doc-est-tribut NO-LOCK
+                  WHERE item-doc-est-tribut.cod-serie-docto  = nota-fiscal.serie
+                    AND item-doc-est-tribut.cod-num-docto    = nota-fiscal.nr-nota-ant
+                    AND item-doc-est-tribut.cdn-emitente     = nota-fiscal.cod-emitente
+                    AND item-doc-est-tribut.cod-natur-operac = nota-fiscal.nat-operacao
+                    AND item-doc-est-tribut.num-seq          = it-nota-fisc.nr-seq-ped
+                    AND item-doc-est-tribut.cod-campo        = "BASE CP":
+                     
+                  IF item-doc-est-tribut.nom-trib = "CBS" OR 
+                     item-doc-est-tribut.nom-trib = "IBS UF" THEN DO:
+                      
+                     IF DECIMAL(REPLACE(item-doc-est-tribut.cod-conteudo,".",",")) > 0 THEN DO:
+                        ASSIGN d-base-calc-cp = DECIMAL(REPLACE(item-doc-est-tribut.cod-conteudo,".",",")).
+                        LEAVE.
+                     END.
+                  END.
+               END.
+                
+               IF d-base-calc-cp > 0 THEN
+                  ASSIGN ttgCredPresOper.vBCCredPres = d-base-calc-cp.
+                
+            END.
+       END.                   
+              
+       IF it-nota-fisc-trib.tip-tributo = 1 THEN // CBS 
+          ASSIGN d-total-vCredPresCBS        = d-total-vCredPresCBS        + it-nota-fisc-trib.valor-cred-presum
+                 d-total-vCredPresCondSusCBS = d-total-vCredPresCondSusCBS + it-nota-fisc-trib.valor-cred-presum-susp.
+                 
+       IF it-nota-fisc-trib.tip-tributo = 2 THEN // IBS UF 
+          ASSIGN d-total-vCredPresIBS        = d-total-vCredPresIBS        + it-nota-fisc-trib.valor-cred-presum
+                 d-total-vCredPresCondSusIBS = d-total-vCredPresCondSusIBS + it-nota-fisc-trib.valor-cred-presum-susp.
+   end.              
+                 
+
+END PROCEDURE.  
+
+PROCEDURE pi-cria-ttgIBSCBSMono:
+
+   /*   === ttgIBSCBSMono (Atualizada NT 2025.002) ===   */
+   /*
+   FIELD qBCMono          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>9.9999" DECIMALS 4   /* Quantidade tributada na monofasia */
+   FIELD adRemIBS         AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota ad rem do IBS */
+   FIELD adRemCBS         AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota ad rem da CBS */
+   FIELD vIBSMono         AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor do IBS monof sico */
+   FIELD vCBSMono         AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor da CBS monof sica */
+   FIELD qBCMonoReten     AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>9.9999" DECIMALS 4   /* Quantidade tributada sujeita … reten‡Æo na monofasia */
+   FIELD adRemIBSReten    AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota ad rem do IBS sujeito a reten‡Æo */
+   FIELD adRemCBSReten    AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota ad rem da CBS sujeito a reten‡Æo */
+   FIELD vIBSMonoReten    AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor do IBS/CBS monof sico sujeito a reten‡Æo */
+   FIELD vCBSMonoReten    AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor da CBS com reten‡Æo */
+   FIELD vIBSMonoRet      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor do IBS retido anteriormente */
+   FIELD vCBSMonoRet      AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor da CBS retida anteriormente */
+   FIELD vBCMono          AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Base de c lculo em valor monet rio (Ad Valorem) */
+   FIELD pAliqMonoUI      AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota ad valorem do IBS Estadual */
+   FIELD pAliqMonoMun     AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota ad valorem do IBS Municipal */
+   FIELD pAliqMonoCBS     AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota ad valorem da CBS */
+   FIELD vBCMonoReten     AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* BC reten‡Æo monet ria (Ad Valorem) */
+   FIELD pAliqMonoReten   AS DECIMAL   INITIAL ?  FORMAT ">>9.9999"         DECIMALS 4   /* Al¡quota % reten‡Æo (IBS e CBS Ad Valorem) */
+   FIELD qBCBioComb       AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>9.9999" DECIMALS 4   /* Qtde de Biocombust¡vel (LAC) a recolher/ressarcir */
+   FIELD vIBSDiferenca    AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor do IBS correspondente … diferen‡a */
+   FIELD vCBSDiferenca    AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Valor da CBS correspondente … diferen‡a */
+   FIELD vTotIBSMonoItem  AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Total de IBS Monof sico */
+   FIELD vTotCBSMonoItem  AS DECIMAL   INITIAL ?  FORMAT ">>>>>>>>>>>>9.99" DECIMALS 2   /* Total da CBS Monof sica */
+   */
+
+   FIND FIRST ttgIBSCBSMono 
+        WHERE ttgIBSCBSMono.CodEstabelNF  = it-nota-fisc-trib.cod-estabel
+          AND ttgIBSCBSMono.SerieNF       = it-nota-fisc-trib.serie     
+          AND ttgIBSCBSMono.NrNotaFisNF   = it-nota-fisc-trib.nr-nota-fis
+          AND ttgIBSCBSMono.ItCodigoNF    = it-nota-fisc-trib.it-codigo
+          AND ttgIBSCBSMono.NrSeqFatNF    = it-nota-fisc-trib.nr-seq-fat NO-ERROR.
+   
+   IF NOT AVAIL ttgIBSCBSMono THEN DO:
+       CREATE ttgIBSCBSMono.
+       ASSIGN ttgIBSCBSMono.CodEstabelNF  = it-nota-fisc-trib.cod-estabel
+              ttgIBSCBSMono.SerieNF       = it-nota-fisc-trib.serie      
+              ttgIBSCBSMono.NrNotaFisNF   = it-nota-fisc-trib.nr-nota-fis
+              ttgIBSCBSMono.ItCodigoNF    = it-nota-fisc-trib.it-codigo  
+              ttgIBSCBSMono.NrSeqFatNF    = it-nota-fisc-trib.nr-seq-fat.
+   END.
+   
+   IF l-mono-rt THEN DO:
+       IF it-nota-fisc-trib.tip-tributo = 1 THEN DO: // CBS
+
+           ASSIGN ttgIBSCBSMono.qBCMono       = it-nota-fisc-trib.valor-base    // gMonoPadrao gCBSMonoAdRem
+                  ttgIBSCBSMono.qBCMonoReten  = it-nota-fisc-trib.base-reten    // gMonoReten gCBSMonoAdRem
+                  ttgIBSCBSMono.vBCMono       = it-nota-fisc-trib.valor-base    // gMonoPadrao gCBSMonoAdValorem
+                  ttgIBSCBSMono.vBCMonoReten  = it-nota-fisc-trib.base-reten   // gMonoReten gCBSMonoAdValorem
+                  ttgIBSCBSMono.qBCBioComb    = it-nota-fisc-trib.base-difer-mono. // gpBioDiferenca
+
+           CASE it-nota-fisc-trib.tip-tribut-mono:
+                  WHEN 1 OR WHEN 3 THEN DO:
+                         ASSIGN ttgIBSCBSMono.adRemCBS          = it-nota-fisc-trib.aliq-adrem    // gMonoPadrao
+                                ttgIBSCBSMono.vCBSMono          = it-nota-fisc-trib.valor-tributo // gMonoPadrao
+                                ttgIBSCBSMono.adRemCBSReten     = it-nota-fisc-trib.aliq-reten    // gMonoReten
+                                ttgIBSCBSMono.vCBSMonoReten     = it-nota-fisc-trib.valor-reten   // gMonoReten
+                                ttgIBSCBSMono.pAliqMonoCBS      = it-nota-fisc-trib.aliq-trib     // gMonoPadrao
+                                ttgIBSCBSMono.pAliqMonoRetenCBS = it-nota-fisc-trib.aliq-reten.    // gMonoReten
+                         //Total CBS Mono
+                         ASSIGN d-total-vCBSMono      = d-total-vCBSMono      + it-nota-fisc-trib.valor-tributo
+                                d-total-vCBSMonoReten = d-total-vCBSMonoReten + it-nota-fisc-trib.valor-reten.
+                  END.
+                  WHEN 4 OR WHEN 5 THEN DO:
+                         ASSIGN ttgIBSCBSMono.vCBSMonoRet   = it-nota-fisc-trib.valor-tributo     // gMonoRet
+                                ttgIBSCBSMono.vCBSDiferenca = it-nota-fisc-trib.valor-difer-mono. // gpBioDiferenca
+                         //Total CBS Mono Ret
+                         ASSIGN d-total-vCBSMonoRet = d-total-vCBSMonoRet + it-nota-fisc-trib.valor-tributo.
+                  END.
+           END CASE.
+       END.
+
+       IF it-nota-fisc-trib.tip-tributo = 2 THEN DO: // IBS UF
+                     
+           CASE it-nota-fisc-trib.tip-tribut-mono:
+                  WHEN 1 OR WHEN 3 THEN DO:
+                         ASSIGN ttgIBSCBSMono.adRemIBS          = it-nota-fisc-trib.aliq-adrem    // gMonoPadrao
+                                ttgIBSCBSMono.vIBSMono          = it-nota-fisc-trib.valor-tributo // gMonoPadrao apenas para o gIBSMonoAdRem C lculo: qBCMono ž adRemIBS
+                                ttgIBSCBSMono.adRemIBSReten     = it-nota-fisc-trib.aliq-reten    // gMonoReten
+                                ttgIBSCBSMono.vIBSMonoReten     = it-nota-fisc-trib.valor-reten   // gMonoReten
+                                ttgIBSCBSMono.pAliqMonoUF       = it-nota-fisc-trib.aliq-trib     // gMonoPadrao
+                                ttgIBSCBSMono.vIBSMonoUF        = it-nota-fisc-trib.valor-tributo // gMonoPadrao
+                                ttgIBSCBSMono.pAliqMonoRetenIBS = it-nota-fisc-trib.aliq-reten.    // gMonoReten
+                         //Total IBS Mono
+                         ASSIGN d-total-vIBSMono      = d-total-vIBSMono      + it-nota-fisc-trib.valor-tributo
+                                d-total-vIBSMonoReten = d-total-vIBSMonoReten + it-nota-fisc-trib.valor-reten.
+
+                  END.
+                  WHEN 4 OR WHEN 5 THEN DO:
+                         ASSIGN ttgIBSCBSMono.vIBSMonoRet   = it-nota-fisc-trib.valor-tributo     // gMonoRet
+                                ttgIBSCBSMono.vIBSDiferenca = it-nota-fisc-trib.valor-difer-mono. // gpBioDiferenca
+                         //Total IBS Mono Ret
+                         ASSIGN d-total-vIBSMonoRet = d-total-vIBSMonoRet + it-nota-fisc-trib.valor-tributo.
+
+                  END.
+           END CASE.
+                     
+       END.
+
+       IF it-nota-fisc-trib.tip-tributo = 3 THEN DO: // IBS Mun
+           ASSIGN ttgIBSCBSMono.pAliqMonoMun = it-nota-fisc-trib.aliq-trib      // gMonoPadrao
+                  ttgIBSCBSMono.vIBSMonoMun  = it-nota-fisc-trib.valor-tributo. // gMonoPadrao
+                     
+           ASSIGN d-total-vIBSMono      = d-total-vIBSMono      + it-nota-fisc-trib.valor-tributo.
+                     
+       END.
+
+       //gIBSMonoAdValorem C lculo: vIBSMonoUF + vIBSMonoMun
+       ASSIGN ttgIBSCBSMono.vIBSMonoUFMun = ttgIBSCBSMono.vIBSMonoUF + ttgIBSCBSMono.vIBSMonoMun.
+
+       //Total IBS CBS Monof sico do item
+       ASSIGN ttgIBSCBSMono.vTotCBSMonoItem = ttgIBSCBSMono.vCBSMono + ttgIBSCBSMono.vCBSMonoReten
+              ttgIBSCBSMono.vTotIBSMonoItem = ttgIBSCBSMono.vIBSMonoUFMun + ttgIBSCBSMono.vIBSMonoReten.
+   END.
+   ELSE DO: 
+       ASSIGN ttgIBSCBSMono.qBCMono          = it-nota-fisc-trib.valor-base.
+
+       IF it-nota-fisc-trib.tip-tributo = 1 THEN DO: //CBS
+          ASSIGN ttgIBSCBSMono.adRemCBS         = it-nota-fisc-trib.aliq-efetiva
+                 ttgIBSCBSMono.vCBSMono         = it-nota-fisc-trib.valor-tributo + it-nota-fisc-trib.valor-difer // Valor total sem considerar o diferimento
+                 ttgIBSCBSMono.pDifCBS          = it-nota-fisc-trib.perc-difer
+                 ttgIBSCBSMono.vCBSMonoDif      = it-nota-fisc-trib.valor-difer
+                 ttgIBSCBSMono.adRemCBSReten    = it-nota-fisc-trib.aliq-reten 
+                 ttgIBSCBSMono.vCBSMonoReten    = it-nota-fisc-trib.valor-reten
+                 ttgIBSCBSMono.vTotCBSMonoItem  = (ttgIBSCBSMono.vCBSMono + ttgIBSCBSMono.vCBSMonoReten) - ttgIBSCBSMono.vCBSMonoDif
+                 d-total-vCBSMono               = d-total-vCBSMono        + it-nota-fisc-trib.valor-tributo // Totaliza valor l¡quido do tributo
+                 d-total-vCBSMonoReten          = d-total-vCBSMonoReten   + ttgIBSCBSMono.vCBSMonoReten. 
+       END.
+
+       IF it-nota-fisc-trib.tip-tributo = 2 THEN DO: //IBS
+          ASSIGN ttgIBSCBSMono.adRemIBS         = it-nota-fisc-trib.aliq-efetiva
+                 ttgIBSCBSMono.vIBSMono         = it-nota-fisc-trib.valor-tributo + it-nota-fisc-trib.valor-difer // Valor total sem considerar o diferimento
+                 ttgIBSCBSMono.pDifIBS          = it-nota-fisc-trib.perc-difer
+                 ttgIBSCBSMono.vIBSMonoDif      = it-nota-fisc-trib.valor-difer
+                 ttgIBSCBSMono.adRemIBSReten    = it-nota-fisc-trib.aliq-reten
+                 ttgIBSCBSMono.vIBSMonoReten    = it-nota-fisc-trib.valor-reten
+                 ttgIBSCBSMono.vTotIBSMonoItem  = (ttgIBSCBSMono.vIBSMono + ttgIBSCBSMono.vIBSMonoReten) - ttgIBSCBSMono.vIBSMonoDif
+                 d-total-vIBSMono               = d-total-vIBSMono        + it-nota-fisc-trib.valor-tributo // Totaliza valor l¡quido do tributo
+                 d-total-vIBSMonoReten          = d-total-vIBSMonoReten   + ttgIBSCBSMono.vIBSMonoReten.
+
+       END.
+   END.
+
+END PROCEDURE.

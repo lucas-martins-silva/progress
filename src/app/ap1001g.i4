@@ -1,0 +1,36 @@
+/***************************************************************************
+** 
+** app/ap1001g.i4
+** 
+***************************************************************************/
+
+if  l-antecipacao = no then do:
+
+    if  tit-ap.dt-vencimen < today then do:
+        put stream relat
+            day(tt-param.da-pagto)              format "99"   at {1}
+            month(tt-param.da-pagto)            format "99"   at {2}
+            year(tt-param.da-pagto)             format "9999" at {3}.
+    end.
+    else do:
+        put stream relat
+            day(tit-ap.dt-vencimen)         format "99"   at {1}
+            month(tit-ap.dt-vencimen)       format "99"   at {2}
+            year(tit-ap.dt-vencimen)        format "9999" at {3}.
+    end.
+end.
+else do:
+    if  bordero-ap.dt-vencto < today then do:
+        put stream relat
+            day(tt-param.da-pagto)              format "99"   at {1}
+            month(tt-param.da-pagto)            format "99"   at {2}
+            year(tt-param.da-pagto)             format "9999" at {3}.
+    end.
+    else do:
+        put stream relat
+            day(bordero-ap.dt-vencto)       format "99"   at {1}
+            month(bordero-ap.dt-vencto)     format "99"   at {2}
+            year(bordero-ap.dt-vencto)      format "9999" at {3}.
+    end.
+end.
+/* ap1001g.i4 */

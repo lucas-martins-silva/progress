@@ -1,0 +1,11 @@
+
+{utp/ut-liter.i "Resultado Padr∆o: " * R}
+CREATE TEXT wh-lbl-resp-padrao
+   ASSIGN FRAME          = p-wgh-frame
+          COLUMN         = 60
+          ROW            = 7.2
+          /*HEIGHT-CHARS   = 1 */
+          /*WIDTH-CHARS    = 10*/
+          VISIBLE        = YES 
+          FORMAT         = "x(18)"
+          SCREEN-VALUE   = return-value.

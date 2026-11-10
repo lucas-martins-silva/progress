@@ -1,0 +1,10 @@
+/********************************************
+*** AP0719rp.i8 - Tradu‡Æo da do campo Int-2
+*********************************************/
+
+   assign i-rend-tributavel = {1}.int-2.
+   &IF  DEFINED (BF_FIN_TAB_PROG_IR) &THEN
+        assign i-rend-tributavel = {1}.rend-tribut.
+   &ENDIF
+
+/*--- Fim Include ap0719rp.i8 ---*/

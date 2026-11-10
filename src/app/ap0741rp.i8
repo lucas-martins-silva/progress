@@ -1,0 +1,30 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i8 - pi-calculo-prazo-medio-compra.
+***
+*******************************************************************************/
+
+if  tt-mov-ap.transacao = 1 and
+    tt-mov-ap.tipo     <> 2 and
+   (tt-mov-ap.tipo     <> 3  or tt-param.log-prev-perfil = yes) then do:
+        
+    assign i-data = tt-mov-ap.dt-vencimen - tt-mov-ap.dt-emissao.
+        
+    /*--- C lculo Prazo M‚dio de Compra ---*/
+    if (tt-mov-ap.tipo = 1 or tt-mov-ap.tipo = 8) then do:
+        assign de-prazo    = de-prazo + (i-data * tt-mov-ap.valor-mov).
+               de-pr-total = de-pr-total + tt-mov-ap.valor-mov.
+    end.
+               
+    /*--- Somat¢ria Totais para Perfil de Distribui‡Æo de Compras ---*/
+    do  i-compra = 1 to 13:
+
+        if  i-data < (i-compra * 15) + 1 or i-compra = 13 then do:
+            assign de-vencimen[i-compra] = de-vencimen[i-compra] + tt-mov-ap.valor-mov
+                   de-vencimen[14]       = de-vencimen[14]       + tt-mov-ap.valor-mov.
+            leave.
+        end.
+    end.
+end.
+
+/* Fim de Include */

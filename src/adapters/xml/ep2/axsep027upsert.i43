@@ -1,0 +1,21 @@
+PROCEDURE pi-grava-ttICMSSN102:
+
+    /*
+    === ttICMSSN102 ===
+    Orig           AS CHARACTER INITIAL ?                                      /*Origem da mercadoria*/
+    CSOSN          AS CHARACTER INITIAL ?                                      /*C¢digo de Situa‡Æo da Opera‡Æo - Simples Nacional*/
+    */
+
+    CREATE ttICMSSN102.
+    ASSIGN ttICMSSN102.orig   = STRING(i-codigo-orig)
+           ttICMSSN102.CSOSN  = c-cod-csosn.
+           
+    /* Chave EMS */
+    ASSIGN ttICMSSN102.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMSSN102.SerieNF      = nota-fiscal.serie
+           ttICMSSN102.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMSSN102.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMSSN102.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+
+END PROCEDURE.

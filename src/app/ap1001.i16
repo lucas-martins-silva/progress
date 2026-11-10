@@ -1,0 +1,34 @@
+/******************************************************************************
+**
+**  Programa: ap1001.i16
+**
+**  Atualiza tt-digita atrav‚s do tt-tit-ap.
+**
+******************************************************************************/
+
+for each tt-tit-ap 
+    where tt-tit-ap.selecionado   = yes 
+    or    tt-tit-ap.i-tipo-pagto <> 0 
+    exclusive-lock:
+    
+    create tt-digita.
+    assign tt-digita.row-mov-ap    = tt-tit-ap.row-mov-ap
+           tt-digita.banco         = tt-tit-ap.banco
+           tt-digita.agencia       = tt-tit-ap.agencia
+           tt-digita.cta-corrente  = tt-tit-ap.cta-corrente
+           tt-digita.c-cod-barras  = tt-tit-ap.c-cod-barras
+           tt-digita.titulo-banco  = tt-tit-ap.titulo-banco
+           tt-digita.ita-aceite    = tt-tit-ap.ita-aceite
+           tt-digita.ita-carteira  = tt-tit-ap.ita-carteira
+           tt-digita.ita-uso-banco = tt-tit-ap.ita-uso-banco
+           tt-digita.c-moeda       = tt-tit-ap.c-moeda
+           tt-digita.log-leitora   = tt-tit-ap.log-leitora
+           tt-digita.c-cod-barras  = tt-tit-ap.c-cod-barras
+           tt-digita.i-tipo-pagto  = tt-tit-ap.i-tipo-pagto
+           tt-digita.dt-vencimen   = tt-tit-ap.dt-vencimen.
+                    
+    create tt-raw-digita.
+    raw-transfer tt-digita to tt-raw-digita.raw-digita.
+             
+end.
+        

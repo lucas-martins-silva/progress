@@ -1,0 +1,174 @@
+PROCEDURE pi-cria-ttDest-tp-pessoa:
+
+    DEFINE INPUT PARAMETER pc-cep          LIKE emitente.cgc           NO-UNDO. 
+    DEFINE INPUT PARAMETER pc-pais         LIKE emitente.pais          NO-UNDO.
+    DEFINE INPUT PARAMETER pc-cgc          LIKE emitente.cgc           NO-UNDO.
+    DEFINE INPUT PARAMETER pc-ins-estadual LIKE emitente.ins-estadual  NO-UNDO.
+    DEFINE INPUT PARAMETER pc-estado       LIKE emitente.estado        NO-UNDO.
+    DEFINE INPUT PARAMETER pc-bairro       LIKE emitente.bairro        NO-UNDO.
+    DEFINE INPUT PARAMETER pc-cidade       LIKE emitente.cidade        NO-UNDO.
+    DEFINE INPUT PARAMETER pc-endereco     AS   CHAR FORMAT "x(200)":U NO-UNDO.
+    DEFINE INPUT PARAMETER pc-nome         LIKE emitente.nome-emit     NO-UNDO.
+
+
+    ASSIGN c-endereco = TRIM(pc-endereco)
+           c-rua      = ""
+           c-nro      = ""
+           c-comp     = "".
+    
+    IF  INDEX(c-endereco,CHR(ASC("§"))) > 0 THEN /* Retirar caracter especial */
+        ASSIGN c-endereco = REPLACE(c-endereco,CHR(ASC("§")),"").
+    
+    RUN pi-trata-endereco IN h-cdapi704 (INPUT  c-endereco,
+                                         OUTPUT c-rua, 
+                                         OUTPUT c-nro, 
+                                         OUTPUT c-comp).
+    
+    IF  c-nro = "" THEN
+        ASSIGN c-nro = "S/N".
+    
+    
+    /*--- TRATAMENTO FONE - Sefaz aceita somente n£meros, e apenas 11 caracters -> DDD12345678 ---*/
+    
+    ASSIGN c-fone = "".
+    
+    DO  i-cont = 1 TO LENGTH(emitente.telefone[1]):
+    
+        /* Nao considerar o primeiro zero do telefone, caso inicie com 0 (DDD iniciando com 0 ou nro de telefone incorreto) */
+        IF  i-cont = 1
+        AND LOOKUP(SUBSTRING(emitente.telefone[1],i-cont,1),"0") > 0 THEN NEXT.
+    
+        IF  LOOKUP(SUBSTRING(emitente.telefone[1],i-cont,1),"0,1,2,3,4,5,6,7,8,9") > 0 THEN
+            ASSIGN c-fone = c-fone + SUBSTRING(emitente.telefone[1],i-cont,1).
+    END.
+    /*---*/
+    
+    CREATE ttDest.
+    ASSIGN ttDest.CEP           = REPLACE(pc-cep,"-","")
+           ttDest.CEP           = STRING (pc-cep,"99999999")
+           ttDest.cPais         = &IF '{&bf_dis_versao_ems}' >= "2.06" &then
+                                       bf-pais.cod-pais-siscomex
+                                  &ELSE
+                                       substring(bf-pais.char-1,1,5)
+                                  &ENDIF
+           ttDest.fone          = c-fone
+           ttDest.IE            = TRIM(pc-ins-estadual) /* FO 1958776 */
+           ttDest.IE            = IF emitente.contrib-icms AND 
+                                     i-natureza = 1 AND
+                                     ttDest.IE = "isento"  AND
+                                     lLayoutTXT THEN ""  /* Pessoa F¡sica, contribuinte ICMS -> Isento (no layout TXT, enviar branco) */
+                                  ELSE ttDest.IE 
+           ttDest.IE            = fn-ajusta-campo-IE(ttDest.IE)
+           ttDest.IE            = (IF (ttDest.IE = "ISENTO":U OR ttDest.IE = "ISENTA":U)
+                                   THEN "":U
+                                   ELSE ttDest.IE)
+           ttDest.ISUF          = emitente.cod-suframa
+           ttDest.ISUF          = REPLACE(ttDest.ISUF,"-","")
+           ttDest.ISUF          = REPLACE(ttDest.ISUF,".","")
+           ttDest.ISUF          = REPLACE(ttDest.ISUF,"/","")
+           ttDest.ISUF          = REPLACE(ttDest.ISUF,"~\","")
+           ttDest.ISUF          = REPLACE(ttDest.ISUF,",","")                                
+           ttDest.ISUF          = ttDest.ISUF 
+           ttDest.nro           = c-nro
+           ttDest.UF            = (IF pc-pais <> "Brasil":U
+                                   THEN "EX"
+                                   ELSE pc-estado)
+           ttDest.UF            = (IF ttDest.UF <> ?
+                                   THEN ttDest.UF
+                                   ELSE "")
+           ttDest.xBairro       = (IF pc-bairro <> ""
+                                   THEN pc-bairro
+                                   ELSE "Nao Informado")
+           ttDest.xCpl          = c-comp
+           ttDest.xLgr          = c-rua
+           ttDest.xMun          = (IF pc-pais <> "Brasil":U
+                                   THEN "Exterior"
+                                   ELSE pc-cidade)
+           ttDest.xNome         = pc-nome
+           ttDest.xPais         = pc-pais
+           .
+
+    IF i-natureza = emitente.natureza THEN
+        ASSIGN ttDest.CNPJ       = (IF  emitente.pais <> "Brasil" OR i-natureza = 1 /* Pessoa F¡sica */
+                                    THEN ""
+                                    ELSE emitente.cgc /* Pessoa Juridica */)
+               ttDest.CNPJ       =  REPLACE(ttDest.CNPJ,"-","")
+               ttDest.CNPJ       =  REPLACE(ttDest.CNPJ,".","")
+               ttDest.CNPJ       =  REPLACE(ttDest.CNPJ,"/","")
+               ttDest.CPF        = (IF i-natureza = 1 /* Pessoa Fisica */
+                                    THEN pc-cgc
+                                    ELSE "")
+               ttDest.CPF        = (IF ttDest.CPF <> ?
+                                     THEN ttDest.CPF
+                                    ELSE "")
+               ttDest.i-natureza = i-natureza /* 1 - Pessoa F¡sica | 2 - Pessoa Jur¡dica | 3 - Estrangeiro | 4 - Trading */
+               ttDest.cMun       = STRING(IF  pc-pais = "Brasil":U
+                                             THEN (IF  i-natureza = 1 /* Pessoa F¡sica */
+                                                   AND l-prod-rural 
+                                                   THEN &if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U
+                                                        &then IF AVAIL bf-cidade-entrega THEN bf-cidade-entrega.cdn-munpio-ibge ELSE 99
+                                                        &else IF AVAIL bf-cidade-entrega THEN bf-cidade-entrega.int-2           ELSE 99 &endif
+                                                   ELSE
+                                                        &if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U
+                                                        &then IF AVAIL bf-cidade-emit THEN bf-cidade-emit.cdn-munpio-ibge ELSE 99
+                                                        &else IF AVAIL bf-cidade-emit THEN bf-cidade-emit.int-2           ELSE 99 &endif )
+                                         ELSE 9999999).
+    ELSE
+        ASSIGN ttDest.CNPJ       = (IF  emitente.pais <> "Brasil" OR i-natureza = 1 /* Pessoa F¡sica */
+                                    THEN ""
+                                    ELSE pc-cgc /* Pessoa Juridica */)
+               ttDest.CNPJ       =  REPLACE(ttDest.CNPJ,"-","")
+               ttDest.CNPJ       =  REPLACE(ttDest.CNPJ,".","")
+               ttDest.CNPJ       =  REPLACE(ttDest.CNPJ,"/","")
+               ttDest.CPF        = (IF i-natureza = 1 /* Pessoa Fisica */
+                                    THEN pc-cgc
+                                    ELSE "")
+               ttDest.CPF        = (IF ttDest.CPF <> ?
+                                     THEN ttDest.CPF
+                                    ELSE "")
+               ttDest.i-natureza = i-natureza /* 1 - Pessoa F¡sica | 2 - Pessoa Jur¡dica | 3 - Estrangeiro | 4 - Trading */
+               ttDest.cMun       = STRING(IF  pc-pais = "Brasil":U
+                                      THEN (IF  i-natureza = 1 /* Pessoa F¡sica */
+                                            AND l-prod-rural
+                                            THEN &if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U
+                                                 &then IF AVAIL bf-cidade-entrega THEN bf-cidade-entrega.cdn-munpio-ibge ELSE 99
+                                                 &else IF AVAIL bf-cidade-entrega THEN bf-cidade-entrega.int-2           ELSE 99 &endif
+                                            ELSE
+                                                 &if '{&BF_DIS_VERSAO_EMS}' >= "2.07":U
+                                                 &then IF AVAIL bf-cidade-entrega THEN bf-cidade-entrega.cdn-munpio-ibge ELSE 99
+                                                 &else IF AVAIL bf-cidade-entrega THEN bf-cidade-entrega.int-2           ELSE 99 &endif )
+                                      ELSE 9999999).
+    RUN pi-buscaEmailDestTransp.
+
+    ASSIGN ttDest.email = "".
+    ASSIGN ttDest.email = fn-ajusta-tamanho-campo(cEmailDest, 60)
+           ttDest.email = REPLACE(ttDest.email, CHR(10), " ")
+           ttDest.email = REPLACE(ttDest.email, CHR(13), " ")
+           ttDest.email = REPLACE(ttDest.email, CHR(9), " ").
+
+    /*NF-e 3.10*/
+    ASSIGN ttDest.idEstrangeiro = (IF  TRIM(SUBSTRING(emitente.char-1,103,30)) <> "":U /*novo campo CD0704/CD0401 */
+                                   THEN TRIM(SUBSTRING(emitente.char-1,103,30))
+                                   ELSE "":U)
+           ttDest.indIEDest     = (IF NOT emitente.contrib-icms
+                                   THEN "9":U /*9 = NÆo Contribuinte*/
+                                   ELSE IF (emitente.contrib-icms AND TRIM(ttDest.IE) <> "":U)
+                                        THEN "1":U /*1 = Contribuinte ICMS*/
+                                        ELSE IF (emitente.contrib-icms AND TRIM(ttDest.IE) = "":U)
+                                             THEN "2":U /*2 = Contribuinte Isento*/
+                                             ELSE "1":U)
+           ttDest.IM            = TRIM(emitente.ins-municipal)
+           ttDest.IM            = REPLACE(ttDest.IM,"-","")
+           ttDest.IM            = REPLACE(ttDest.IM,".","")
+           ttDest.IM            = REPLACE(ttDest.IM,"/","")
+           ttDest.IM            = REPLACE(ttDest.IM,"~\","")
+           ttDest.IM            = REPLACE(ttDest.IM,",","")
+           . 
+
+    IF ttDest.idEstrangeiro = "" AND
+       ttDest.cPais <> "1058" AND
+       (SUBSTRING(c-cod-cfop,1,1) = "1":U OR 
+        SUBSTRING(c-cod-cfop,1,1) = "5":U) THEN
+       
+       ASSIGN ttDest.cPais = "".    
+END PROCEDURE.

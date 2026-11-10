@@ -1,0 +1,116 @@
+/*******************************************************************************
+***
+*** app/ap0741rp.i20 - 
+***
+*******************************************************************************/
+            
+if  tt-param.log-cons-mo-orig = no then do:
+    for each tt-mov-ap use-index {1} no-lock
+        break by tt-mov-ap.ep-codigo
+              by {2}
+              {4}
+              by tt-mov-ap.serie
+              by tt-mov-ap.nr-docto
+              by tt-mov-ap.parcela:
+                
+              
+        assign l-quebra = no.
+            
+        if  first-of({2}) then do:
+            run pi-primeira-quebra (input {3}).
+            assign l-quebra = yes.
+        end.
+                    
+        /*------ Relat¢rio Detalhado ------*/
+        if  tt-param.tp-relatorio = 1 then do:
+                
+            if  first-of(tt-mov-ap.cod-fornec) then do:
+                if  l-quebra = no then
+                    put skip(1).
+                
+                run pi-primeira-quebra (input 1).
+            end.    
+        end.
+                
+        run pi-display-detalhe (input {3}).
+            
+        if  last-of({2}) then
+            run pi-ultima-quebra (input {3}, 
+                                  input {2}, 
+                                  input tt-mov-ap.moeda,
+                                  input yes).
+                
+    end.
+            
+    if  tt-param.log-saldo-movto = yes then
+        run pi-listar-saldo-sem-movtos (input {3}).
+                
+    run pi-total-geral.
+            
+    run pi-ferfil-compras.
+            
+end.
+else do:
+    for each tt-mov-ap use-index {1}a no-lock
+        break by tt-mov-ap.ep-codigo
+              by tt-mov-ap.moeda
+              by {2}
+              {4}              
+              by tt-mov-ap.serie
+              by tt-mov-ap.nr-docto
+              by tt-mov-ap.parcela:
+            
+        if  first-of(tt-mov-ap.moeda) then do:
+                
+            find first moeda where moeda.mo-codigo = tt-mov-ap.moeda no-lock no-error.
+            if  avail moeda then do:
+                put trim(c-moeda) format "x(08)"
+                    " "
+                    tt-mov-ap.moeda
+                    " - "
+                    moeda.descricao format "x(20)"
+                    skip(1).
+            end.
+        end.
+            
+        assign l-quebra = no.
+                    
+        if  first-of({2}) then do:
+            run pi-primeira-quebra (input {3}).
+            assign l-quebra = yes.
+        end.
+                        
+        /*------ Relat¢rio Detalhado ------*/
+        if  tt-param.tp-relatorio = 1 then do:
+
+            if  first-of(tt-mov-ap.cod-fornec) then do:
+                if  l-quebra = no then
+                    put skip(1).
+                    
+                run pi-primeira-quebra (input 1).
+            end.
+        end.
+                        
+        run pi-display-detalhe (input {3}).
+                
+        if  last-of({2}) then
+            run pi-ultima-quebra (input {3}, 
+                                  input {2}, 
+                                  input tt-mov-ap.moeda,
+                                  input yes).
+            
+        if  last-of(tt-mov-ap.moeda) then do:
+                
+            if  tt-param.log-saldo-movto = yes then
+                run pi-listar-saldo-sem-movtos-moeda (input {3}).
+                
+            run pi-total-geral.
+                
+            run pi-ferfil-compras.
+                
+            page.
+        end.
+    end.
+end.
+
+/* Fim de Include */

@@ -1,0 +1,43 @@
+PROCEDURE pi-limpa-temp-tables:
+
+    EMPTY TEMP-TABLE ttIdeNFCom         NO-ERROR.
+    EMPTY TEMP-TABLE ttDestNFCom        NO-ERROR.
+    EMPTY TEMP-TABLE ttAssinante        NO-ERROR.
+    EMPTY TEMP-TABLE ttDetNFCom         NO-ERROR.
+    EMPTY TEMP-TABLE ttEmitNFCom        NO-ERROR.
+    EMPTY TEMP-TABLE ttICMSTotNFCom     NO-ERROR.
+    EMPTY TEMP-TABLE ttNFCom            NO-ERROR.
+    EMPTY TEMP-TABLE ttTotal            NO-ERROR.
+    EMPTY TEMP-TABLE ttRetTribTotNFCom  NO-ERROR.
+    EMPTY TEMP-TABLE ttFUST             NO-ERROR.
+    EMPTY TEMP-TABLE ttFUNTTEL          NO-ERROR.
+    EMPTY TEMP-TABLE ttICMSSN           NO-ERROR.
+    EMPTY TEMP-TABLE ttPISNFCom         NO-ERROR.
+    EMPTY TEMP-TABLE ttCOFINSNFCom      NO-ERROR.
+    EMPTY TEMP-TABLE ttICMS00           NO-ERROR.
+    EMPTY TEMP-TABLE ttICMS20           NO-ERROR.
+    EMPTY TEMP-TABLE ttICMS40           NO-ERROR.
+    EMPTY TEMP-TABLE ttICMS51           NO-ERROR.
+    EMPTY TEMP-TABLE ttICMS90           NO-ERROR.                 
+    EMPTY TEMP-TABLE ttgFatNFCom        NO-ERROR.
+    EMPTY TEMP-TABLE ttRetTrib          NO-ERROR.
+    EMPTY TEMP-TABLE ttInfAdicNFCom     NO-ERROR.
+    EMPTY TEMP-TABLE ttgCompraGov       NO-ERROR.
+    EMPTY TEMP-TABLE ttgPagAntecipado   NO-ERROR.
+    EMPTY TEMP-TABLE ttIBSCBS           NO-ERROR.
+    EMPTY TEMP-TABLE ttTribRT           NO-ERROR.
+    EMPTY TEMP-TABLE ttgTribRegular     NO-ERROR.
+    EMPTY TEMP-TABLE ttgCredPresOper    NO-ERROR.
+    EMPTY TEMP-TABLE ttgIBSCBSCredPres  NO-ERROR.
+    EMPTY TEMP-TABLE ttgTribCompraGov   NO-ERROR.
+    EMPTY TEMP-TABLE ttgIBSCBSMono      NO-ERROR.
+    EMPTY TEMP-TABLE ttgTransfCred      NO-ERROR.
+    EMPTY TEMP-TABLE ttgAjusteCompet    NO-ERROR.
+    EMPTY TEMP-TABLE ttgEstornoCred     NO-ERROR.
+    EMPTY TEMP-TABLE ttgCredPresIBSZFM  NO-ERROR.
+    EMPTY TEMP-TABLE ttVB               NO-ERROR.
+    EMPTY TEMP-TABLE ttDFeReferenciado  NO-ERROR.
+    EMPTY TEMP-TABLE ttTotIBSCBSIS      NO-ERROR.
+    EMPTY TEMP-TABLE ttgSub             NO-ERROR.
+
+END PROCEDURE.

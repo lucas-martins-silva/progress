@@ -1,0 +1,62 @@
+/******************************************************************************
+*** 
+*** app/ap0504c.i4 - C lculo Data Fluxo.
+*** 
+******************************************************************************/
+
+assign da-data1 = tit-ap.dt-fluxo.                          
+        
+find first emitente no-lock
+     where emitente.cod-emitente = tit-ap.cod-fornec
+     and   emitente.identific     <> 1   no-error.                  
+        
+find first calen-coml
+     where calen-coml.ep-codigo    = tit-ap.ep-codigo
+     and   calen-coml.cod-estabel  = tit-ap.cod-estabel
+     and   calen-coml.data         = tit-ap.dt-fluxo   no-lock no-error.
+    
+if  avail calen-coml then do:
+        
+    assign i-semana = weekday(tit-ap.dt-fluxo).
+        
+    if  calen-coml.tipo-dia <> 1 then do:
+   
+        if  (i-semana = 7 and emitente.ven-sabado  = 1) or 
+            (i-semana = 1 and emitente.ven-domingo = 1) or 
+            (i-semana > 1 and i-semana < 7             and 
+            emitente.ven-feriado = 1) then 
+        repeat:
+    
+            assign da-data1 = da-data1 + 1.
+        
+            find calen-coml
+                where calen-coml.ep-codigo   = tit-ap.ep-codigo
+                and   calen-coml.cod-estabel = tit-ap.cod-estabel
+                and   calen-coml.data        = da-data1 no-lock no-error.
+        
+            if  calen-coml.tipo-dia = 1 then
+                leave.
+        end.
+    
+        if  (i-semana = 7 and emitente.ven-sabado  = 2) or 
+            (i-semana = 1 and emitente.ven-domingo = 2) or  
+            (i-semana > 1 and i-semana < 7 and emitente.ven-feriado = 2) then 
+        repeat:
+        
+            assign da-data1 = da-data1 - 1.
+        
+            find calen-coml
+                where calen-coml.ep-codigo   = tit-ap.ep-codigo
+                and   calen-coml.cod-estabel = tit-ap.cod-estabel
+                and   calen-coml.data        = da-data1 no-lock no-error.
+        
+            if  calen-coml.tipo-dia = 1 then
+                leave.
+        end.
+    end.        
+end.          
+
+if  da-data1 <> tit-ap.dt-fluxo then 
+    assign tit-ap.dt-fluxo = da-data1.
+
+/* Fim Include */

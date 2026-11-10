@@ -1,0 +1,27 @@
+/*******************************************************************************
+***
+*** app/ap0740rp.i9 - first-of(tt-tit-ap.matriz)
+***
+*******************************************************************************/
+
+if  first-of(tt-tit-ap.matriz) then do:
+    if  tt-tit-ap.matriz = tt-tit-ap.cod-fornec then do:
+        put trim(c-matriz)
+            " "
+            tt-tit-ap.matriz
+            " - "
+            tt-tit-ap.nome-emit skip.
+    end.
+    else do:
+        find first emitente no-lock
+             where emitente.cod-emitente = tt-tit-ap.matriz no-error.
+                
+        put trim(c-matriz)
+            " "
+            tt-tit-ap.matriz
+            " - "
+            emitente.nome-emit skip.
+    end.
+end.
+
+/* Fim de Include */

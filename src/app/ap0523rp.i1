@@ -1,0 +1,36 @@
+/*******************************************************************************
+***
+***  app/ap0523rp.i1 - Testar Formul rio.
+***
+*******************************************************************************/
+                    
+create tt-cheque.
+assign tt-cheque.cod-impressora = tt-param.c-impressora
+       tt-cheque.cod-layout     = tt-param.c-layout
+       tt-cheque.cod-febraban   = portador.cod-febraban
+       tt-cheque.des-cidade     = empresa.cidade
+       tt-cheque.da-data        = today
+       tt-cheque.de-valor       = 999999999.99
+       tt-cheque.des-nominal    = "XXXXXXXXXXXXXXXXXXXXXXXXXX".
+                
+if  tt-param.l-endosso = yes then do:
+    assign tt-cheque.des-texto = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                               + "XXXXXXXXXXXXXXXXXXXX".
+end.
+            
+run utp/ut-msgs.p (input "show",
+                   input 15656,
+                   input "").
+
+if  return-value = 'yes' then do:
+    {app/ap0523rp.i5}
+end.
+                    
+/* Fim de Include */

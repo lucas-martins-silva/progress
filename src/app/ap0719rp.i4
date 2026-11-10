@@ -1,0 +1,52 @@
+/********************************************************************
+***
+***  app/ap0719rp.i4 - Antiga include "ap0719.i1" do Magnus I.
+***                    Rotina para pegar as oito primeiras
+***                    posicoes (numericas) do cgc
+***
+********************************************************************/
+
+if  tt-emitente.cgc = ? then
+    assign c-pos-cgc = "0".
+else do  i-cont = 1 to 19:
+    assign c-pos-cgc[i-cont] = substring(tt-emitente.cgc,i-cont,1).
+end.
+
+assign i-cont2 = 1.
+
+do  i-cont = 1 to 19:
+    if  lookup(c-pos-cgc[i-cont],"1,2,3,4,5,6,7,8,9,0") > 0 then
+        assign c-cgc-format[i-cont2] = c-pos-cgc[i-cont]
+               i-cont2 = i-cont2 + 1.
+end.
+
+if  tt-emitente.natureza = 2 then
+    assign c-cgc-arq = c-cgc-format[01]
+                     + c-cgc-format[02]
+                     + c-cgc-format[03]
+                     + c-cgc-format[04]
+                     + c-cgc-format[05]
+                     + c-cgc-format[06]
+                     + c-cgc-format[07]
+                     + c-cgc-format[08]
+                     + c-cgc-format[09]
+                     + c-cgc-format[10]
+                     + c-cgc-format[11]
+                     + c-cgc-format[12]
+                     + c-cgc-format[13]
+                     + c-cgc-format[14].
+else
+    assign c-cgc-arq = "000"
+                     + c-cgc-format[01]
+                     + c-cgc-format[02]
+                     + c-cgc-format[03]
+                     + c-cgc-format[04]
+                     + c-cgc-format[05]
+                     + c-cgc-format[06]
+                     + c-cgc-format[07]
+                     + c-cgc-format[08]
+                     + c-cgc-format[09]
+                     + c-cgc-format[10]
+                     + c-cgc-format[11].
+
+/*--- Fim da Include  AP0719RP.I4 ---*/

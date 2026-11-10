@@ -1,0 +1,85 @@
+PROCEDURE pi-cria-ttDestNFCom:
+
+    /*
+    === ttDestNFCom Destinatário/Assinante ===
+    xNome          AS CHARACTER INITIAL ?  /*Razão Social ou Nome do Destinatário*/
+    CNPJ           AS CHARACTER INITIAL ?  /*Em caso de empresa não estabelecida no Brasil, será informado o CNPJ com Zeros. Informar os zeros não significativos*/
+    CPF            AS CHARACTER INITIAL ?  /*Número do CPF - Informar os zeros não significativos*/
+    **idOutros     AS CHARACTER INITIAL ?  /*Identificação do destinatário outros - Identificação do destinatário não obrigado a inscrição do CPF tais como estrangeiro, indígena e quilombola;Em caso de não contar CPF do assinante, informar o RG */
+    indIEDest      AS CHARACTER INITIAL ?  /*Indicador da IE do destinat rio: 1=Contribuinte ICMS (informar a IE do destinat rio); 2=Contribuinte isento de Inscrição no cadastro de Contribuintes do ICMS; 9=Não Contribuinte, que pode ou não possuir Inscrição Estadual no Cadastro de Contribuintes do ICMS*/
+    IE             AS CHARACTER INITIAL ?  /*Inscriçãoo Estadual (obrigatório nas operações com contribuintes do ICMS)*/
+    IM             AS CHARACTER INITIAL ?  /*Inscrição Municipal do tomador do serviço*/
+   
+    === enderDest ===
+    xLgr           AS CHARACTER INITIAL ?  /*Logradouro*/
+    nro            AS CHARACTER INITIAL ?  /*Número*/
+    xCpl           AS CHARACTER INITIAL ?  /*Complemento*/
+    xBairro        AS CHARACTER INITIAL ?  /*Bairro*/
+    cMun           AS INT       INITIAL ?  /*Código do município - utilizar a tabela do IBGE, informar 9999999 para operações com o exterior.*/
+    xMun           AS CHARACTER INITIAL ?  /*Nome do município, informar EXTERIOR para operações com o exterior.*/
+    CEP            AS CHARACTER INITIAL ?  /*CEP - Informar os zeros não significativos*/
+    UF             AS CHARACTER INITIAL ?  /*Sigla da UF - informar EX para operações com o exterior.*/
+    cPais          AS CHARACTER INITIAL ?  /*Código do País */
+    xPais          AS CHARACTER INITIAL ?  /*Nome do País */
+    fone           AS CHARACTER INITIAL ?  /*Telefone*/
+    email          AS CHARACTER INITIAL ?  /*E-mail Destinatario*/            
+    */    
+
+	IF (i-natureza > 1 AND emitente.natureza = i-natureza) OR
+     (i-natureza = 1 AND l-prod-rural = NO) OR
+     (l-prod-rural AND i-natureza = 1 AND 
+     LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(nota-fiscal.cgc, ".":U, "":U), "/":U, "":U), "\":U, "":U), "-":U, "":U)) > 11 ) 
+  THEN  
+		RUN pi-cria-ttDest-tp-pessoa-NFCom  (INPUT emitente.cep,
+                                         INPUT emitente.pais,
+                                         INPUT emitente.cgc,
+                                         INPUT emitente.ins-estadual,
+                                         INPUT emitente.estado,
+                                         INPUT emitente.bairro,
+                                         INPUT emitente.cidade,
+                                         INPUT ( IF CAN-FIND(FIRST funcao 
+                                                             WHERE funcao.cd-funcao = "spp-nfe-end-completo" AND funcao.ativo = YES) 
+                                                 AND fn-trata-caracteres(emitente.endereco_text) > "" THEN
+                                                 fn-trata-caracteres(emitente.endereco_text)
+                                                 ELSE
+                                                 emitente.endereco
+                                               ),
+                                         INPUT emitente.nome-emit).
+	ELSE 
+    RUN pi-cria-ttDest-tp-pessoa-NFCom (INPUT nota-fiscal.cep,         
+                                        INPUT nota-fiscal.pais,        
+                                        INPUT nota-fiscal.cgc,         
+                                        INPUT nota-fiscal.ins-estadual,
+                                        INPUT nota-fiscal.estado,      
+                                        INPUT nota-fiscal.bairro,      
+                                        INPUT nota-fiscal.cidade,      
+                                        INPUT nota-fiscal.endereco,
+                                        INPUT emitente.nome-emit).
+
+    RUN pi-trata-homolog-NFCom.
+
+    /* Chave EMS */
+    ASSIGN ttDestNFCom.CodEstabelNF = nota-fiscal.cod-estabel
+           ttDestNFCom.SerieNF      = nota-fiscal.serie
+           ttDestNFCom.NrNotaFisNF  = nota-fiscal.nr-nota-fis.
+
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL  ttDestNFCom THEN
+        ASSIGN ttDestNFCom.CEP        = fn-ajusta-tamanho-campo(ttDestNFCom.CEP    , 8)
+               ttDestNFCom.cMun       = fn-ajusta-tamanho-campo(ttDestNFCom.cMun   , 7)
+               ttDestNFCom.CNPJ       = fn-ajusta-tamanho-campo(ttDestNFCom.CNPJ   ,14)
+               ttDestNFCom.cPais      = fn-ajusta-tamanho-campo(ttDestNFCom.cPais  , 4)
+               ttDestNFCom.CPF        = fn-ajusta-tamanho-campo(ttDestNFCom.CPF    ,14)
+               ttDestNFCom.fone       = fn-ajusta-tamanho-campo(ttDestNFCom.fone   ,14)
+               ttDestNFCom.IE         = fn-ajusta-tamanho-campo(ttDestNFCom.IE     ,14)
+               ttDestNFCom.nro        = fn-ajusta-tamanho-campo(ttDestNFCom.nro    ,60)
+               ttDestNFCom.UF         = fn-ajusta-tamanho-campo(ttDestNFCom.UF     , 2)
+               ttDestNFCom.xBairro    = fn-ajusta-tamanho-campo(ttDestNFCom.xBairro,60)
+               ttDestNFCom.xCpl       = fn-ajusta-tamanho-campo(ttDestNFCom.xCpl   ,60)
+               ttDestNFCom.xLgr       = fn-ajusta-tamanho-campo(ttDestNFCom.xLgr   ,60)
+               ttDestNFCom.xMun       = fn-ajusta-tamanho-campo(ttDestNFCom.xMun   ,60)
+               ttDestNFCom.xNome      = fn-ajusta-tamanho-campo(ttDestNFCom.xNome  ,60)
+               ttDestNFCom.xPais      = fn-ajusta-tamanho-campo(ttDestNFCom.xPais  ,60)
+               ttDestNFCom.email      = fn-ajusta-tamanho-campo(ttDestNFCom.email  ,60).
+
+END PROCEDURE.

@@ -1,0 +1,162 @@
+PROCEDURE pi-criar-temp-tables-titulo:
+        
+    /* Se o t°tulo j† foi exportado n∆o precisa prosseguir...*/
+    find first tt-tit-ap no-lock
+         where tt-tit-ap.r-rowid = rowid(tit-ap) no-error.
+                
+    if  avail tt-tit-ap then
+        return.        
+        
+    FOR EACH  mov-ap NO-LOCK
+        where mov-ap.ep-codigo  = tit-ap.ep-codigo
+        and   mov-ap.cod-estab  = tit-ap.cod-estab
+        and   mov-ap.fornec-ant = tit-ap.cod-fornec
+        and   mov-ap.esp-ant    = tit-ap.cod-esp
+        and   mov-ap.serie-ant  = tit-ap.serie
+        and   mov-ap.docto-ant  = tit-ap.nr-docto
+        and   mov-ap.parc-ant   = tit-ap.parcela:
+
+        FIND FIRST b-tit-ap OF mov-ap NO-LOCK NO-ERROR.
+        IF  AVAIL b-tit-ap THEN DO:
+            FIND FIRST tt-relacto NO-LOCK
+                 WHERE tt-relacto.row-relacto = ROWID(b-tit-ap) NO-ERROR.
+            IF  NOT AVAIL tt-relacto THEN DO:
+                CREATE tt-relacto.
+                ASSIGN tt-relacto.row-relacto = ROWID(b-tit-ap).
+            END.
+        END.
+    END.
+
+    {app/ap5000a.i3 tit-ap}
+
+    for each  tit-conta-ap no-lock
+        where tit-conta-ap.ep-codigo   = tit-ap.ep-codigo
+        and   tit-conta-ap.cod-estabel = tit-ap.cod-estabel
+        and   tit-conta-ap.cod-fornec  = tit-ap.cod-fornec
+        and   tit-conta-ap.cod-esp     = tit-ap.cod-esp
+        and   tit-conta-ap.serie       = tit-ap.serie
+        and   tit-conta-ap.nr-docto    = tit-ap.nr-docto
+        and   tit-conta-ap.parcela     = tit-ap.parcela:
+        {app/ap5000a.i3 tit-conta-ap}
+        RUN pi-criar-temp-table-conta (INPUT tit-conta-ap.conta-debito).
+    END.
+
+    for each  his-d-ap no-lock
+        where his-d-ap.ep-codigo   = tit-ap.ep-codigo
+        and   his-d-ap.cod-estabel = tit-ap.cod-estabel
+        and   his-d-ap.cod-fornec  = tit-ap.cod-fornec
+        and   his-d-ap.cod-esp     = tit-ap.cod-esp
+        and   his-d-ap.serie       = tit-ap.serie
+        and   his-d-ap.nr-docto    = tit-ap.nr-docto
+        and   his-d-ap.parcela     = tit-ap.parcela:
+        {app/ap5000a.i3 his-d-ap}
+    END.
+
+    for each  usuar-autoriza-tit no-lock
+        where usuar-autoriza-tit.ep-codigo    = tit-ap.ep-codigo
+        and   usuar-autoriza-tit.nr-bordero   = 0
+        and   usuar-autoriza-tit.cod-portador = 0
+        and   usuar-autoriza-tit.cod-estabel  = tit-ap.cod-estabel
+        and   usuar-autoriza-tit.cod-fornec   = tit-ap.cod-fornec
+        and   usuar-autoriza-tit.cod-esp      = tit-ap.cod-esp
+        and   usuar-autoriza-tit.serie        = tit-ap.serie
+        and   usuar-autoriza-tit.nr-docto     = tit-ap.nr-docto
+        and   usuar-autoriza-tit.parcela      = tit-ap.parcela:
+        {app/ap5000a.i3 usuar-autoriza-tit}
+    end.
+
+    for each  mov-ap use-index codigo no-lock
+        where mov-ap.ep-codigo   = tit-ap.ep-codigo
+        and   mov-ap.cod-estabel = tit-ap.cod-estabel
+        and   mov-ap.cod-fornec  = tit-ap.cod-fornec
+        and   mov-ap.cod-esp     = tit-ap.cod-esp
+        and   mov-ap.serie       = tit-ap.serie
+        and   mov-ap.nr-docto    = tit-ap.nr-docto
+        and   mov-ap.parcela     = tit-ap.parcela:
+        RUN pi-criar-temp-tables-movimentos.
+    END.
+
+    find first emite-ap NO-LOCK
+        where emite-ap.ep-codigo    = tit-ap.ep-codigo
+        and   emite-ap.cod-estabel  = tit-ap.cod-estabel
+        and   emite-ap.cod-esp      = tit-ap.cod-esp
+        and   emite-ap.serie        = tit-ap.serie
+        and   emite-ap.nr-docto     = tit-ap.nr-docto
+        and   emite-ap.parcela      = tit-ap.parcela
+        and   emite-ap.cod-fornec   = tit-ap.fornec no-error.
+    if  avail emite-ap then do:
+        {app/ap5000a.i3 emite-ap}
+    end.
+
+    /* P/ § desposicionar registros */    
+    if  v-cod-prog <> "ap5000ae" then do:
+        FOR EACH  bord-tit NO-LOCK
+            where bord-tit.ep-codigo     = tit-ap.ep-codigo
+            and   bord-tit.cod-estabel   = tit-ap.cod-estabel
+            and   bord-tit.cod-esp       = tit-ap.cod-esp
+            and   bord-tit.serie         = tit-ap.serie
+            and   bord-tit.nr-docto      = tit-ap.nr-docto
+            and   bord-tit.parcela       = tit-ap.parcela
+            and   bord-tit.cod-fornec    = tit-ap.cod-fornec:
+            {app/ap5000a.i3 bord-tit}
+            find first bord-rec 
+                 where bord-rec.ep-codigo  = bord-tit.ep-codigo 
+                 and   bord-rec.nr-bordero = bord-tit.nr-bordero
+                 NO-LOCK no-error.
+
+            if  avail bord-rec then do:   
+                {app/ap5000a.i3 bord-rec}
+            end.
+        end.
+
+        find first bord-rec 
+             where bord-rec.ep-codigo  = tit-ap.ep-codigo 
+             and   bord-rec.nr-bordero = tit-ap.nr-bordero
+             NO-LOCK no-error.
+
+        if  avail bord-rec then do:   
+            {app/ap5000a.i3 bord-rec}
+        end.
+    end.
+    
+    /* P/ § desposicionar registros */    
+    if  v-cod-prog <> "ap5000ad" then do:
+        FOR EACH  lin-b-ap NO-LOCK
+            where lin-b-ap.ep-codigo   = tit-ap.ep-codigo   
+            and   lin-b-ap.cod-estabel = tit-ap.cod-estabel 
+            and   lin-b-ap.cod-esp     = tit-ap.cod-esp     
+            and   lin-b-ap.serie       = tit-ap.serie       
+            and   lin-b-ap.nr-docto    = tit-ap.nr-docto    
+            and   lin-b-ap.parcela     = tit-ap.parcela     
+            and   lin-b-ap.cod-fornec  = tit-ap.cod-fornec:
+            {app/ap5000a.i3 lin-b-ap}
+            find first doc-b-ap no-lock
+                 where doc-b-ap.ep-codigo  = lin-b-ap.ep-codigo
+                 and   doc-b-ap.referencia = lin-b-ap.referencia no-error.
+            IF  AVAIL doc-b-ap THEN DO:
+                {app/ap5000a.i3 doc-b-ap}
+            END.
+        end.
+        
+        /* Exporta Antecipaá‰es/Previs‰es */
+        run app/ap5000ag.p (input table tt-param,
+                            input tit-ap.ep-codigo,
+                            input tit-ap.cod-estabel,            
+                            input tit-ap.cod-fornec,
+                            input tit-ap.serie,      
+                            input tit-ap.cod-esp,    
+                            input tit-ap.nr-docto,   
+                            input tit-ap.parcela).   
+    end.
+    
+    /* Exporta Dados Impostos */
+    run app/ap5000ah.p (input table tt-param,
+                        input tit-ap.ep-codigo,
+                        input tit-ap.cod-estabel,            
+                        input tit-ap.cod-fornec,
+                        input tit-ap.cod-esp,    
+                        input tit-ap.serie,      
+                        input tit-ap.nr-docto,   
+                        input tit-ap.parcela). 
+                            
+END PROCEDURE.

@@ -1,0 +1,227 @@
+/****************************************************************************
+***
+*** app/ap0505b.i10 - C lculo da Varia‡Æo Monet ria.
+***
+*****************************************************************************/
+
+if  lin-b-ap.cotacao-dia <> impto-tit-ap.cotacao-dia then do:
+    if  {1} = yes then do:
+
+        create b-impto-tit-pend-ap-vm.
+        assign b-impto-tit-pend-ap-vm.ep-codigo           = impto-tit-ap.ep-codigo
+               b-impto-tit-pend-ap-vm.cod-est             = impto-tit-ap.cod-est
+               b-impto-tit-pend-ap-vm.cod-esp             = impto-tit-ap.cod-esp
+               b-impto-tit-pend-ap-vm.serie               = impto-tit-ap.serie
+               b-impto-tit-pend-ap-vm.cod-fornec          = impto-tit-ap.cod-fornec
+               b-impto-tit-pend-ap-vm.nr-docto            = impto-tit-ap.nr-docto
+               b-impto-tit-pend-ap-vm.parcela             = impto-tit-ap.parcela
+               b-impto-tit-pend-ap-vm.dt-emissao          = lin-b-ap.dt-baixa
+               b-impto-tit-pend-ap-vm.dt-transacao        = lin-b-ap.dt-baixa
+               b-impto-tit-pend-ap-vm.tipo                = 2
+               b-impto-tit-pend-ap-vm.cod-classificacao   = impto-tit-ap.cod-classificacao
+               b-impto-tit-pend-ap-vm.contabilizou        = no
+               b-impto-tit-pend-ap-vm.ind-data-base       = impto-tit-ap.ind-data-base
+               b-impto-tit-pend-ap-vm.conta-imposto       = impto-tit-ap.conta-imposto
+               b-impto-tit-pend-ap-vm.ct-imposto          = impto-tit-ap.ct-imposto
+               b-impto-tit-pend-ap-vm.sc-imposto          = impto-tit-ap.sc-imposto
+               b-impto-tit-pend-ap-vm.conta-percepcao     = impto-tit-ap.conta-percepcao
+               b-impto-tit-pend-ap-vm.ct-percepcao        = impto-tit-ap.ct-percepcao
+               b-impto-tit-pend-ap-vm.sc-percepcao        = impto-tit-ap.sc-percepcao
+               b-impto-tit-pend-ap-vm.conta-retencao      = impto-tit-ap.conta-retencao
+               b-impto-tit-pend-ap-vm.ct-retencao         = impto-tit-ap.ct-retencao
+               b-impto-tit-pend-ap-vm.sc-retencao         = impto-tit-ap.sc-retencao
+               b-impto-tit-pend-ap-vm.conta-iva-liberado  = impto-tit-ap.conta-iva-liberado
+               b-impto-tit-pend-ap-vm.ct-iva-liberado     = impto-tit-ap.ct-iva-liberado
+               b-impto-tit-pend-ap-vm.sc-iva-liberado     = impto-tit-ap.sc-iva-liberado.
+                    
+        assign b-impto-tit-pend-ap-vm.num-seq-impto       = impto-tit-pend-ap.num-seq-impto + 10
+               b-impto-tit-pend-ap-vm.mo-codigo           = 0
+               b-impto-tit-pend-ap-vm.cotacao-dia         = 1
+               b-impto-tit-pend-ap-vm.cod-imposto         = impto-tit-ap.cod-imposto
+               b-impto-tit-pend-ap-vm.perc-imposto        = 0
+               b-impto-tit-pend-ap-vm.perc-percepcao      = impto-tit-ap.perc-percepcao
+               b-impto-tit-pend-ap-vm.perc-retencao       = impto-tit-ap.perc-retencao
+               b-impto-tit-pend-ap-vm.perc-iva-liberado   = impto-tit-ap.perc-iva-liberado
+               b-impto-tit-pend-ap-vm.vl-base             = 0
+               b-impto-tit-pend-ap-vm.vl-base-me          = 0.
+
+        if  l-soma = yes then do:
+            if  lin-b-ap.cotacao-dia > impto-tit-ap.cotacao-dia then do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 6
+                       b-impto-tit-pend-ap-vm.lancamento   = 1.
+
+                assign b-impto-tit-pend-ap-vm.vl-imposto   = fn_ajust_dec((impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia)
+                                                           -              (impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia),0).
+            end.
+            else do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 6
+                       b-impto-tit-pend-ap-vm.lancamento   = 2.
+
+                assign b-impto-tit-pend-ap-vm.vl-imposto   = fn_ajust_dec((impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia)
+                                                           -              (impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia),0).
+            end.
+        end.
+        else do:
+            if  lin-b-ap.cotacao-dia > impto-tit-ap.cotacao-dia then do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 5
+                       b-impto-tit-pend-ap-vm.lancamento   = 1.
+
+                assign b-impto-tit-pend-ap-vm.vl-imposto   = fn_ajust_dec((impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia)
+                                                           -              (impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia),0).
+            end.
+            else do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 5
+                       b-impto-tit-pend-ap-vm.lancamento   = 2.
+
+                assign b-impto-tit-pend-ap-vm.vl-imposto   = fn_ajust_dec((impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia)
+                                                           -              (impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia),0).
+            end.
+        end.        
+        
+        assign b-impto-tit-pend-ap-vm.vl-imposto-me       =  b-impto-tit-pend-ap-vm.vl-imposto
+               b-impto-tit-pend-ap-vm.vl-saldo-imposto    =  b-impto-tit-pend-ap-vm.vl-imposto
+               b-impto-tit-pend-ap-vm.vl-saldo-imposto-me =  b-impto-tit-pend-ap-vm.vl-saldo-imposto.
+
+        assign b-impto-tit-pend-ap-vm.vl-percepcao        =  fn_ajust_dec(((b-impto-tit-pend-ap-vm.vl-imposto 
+                                                                         * (b-impto-tit-pend-ap-vm.perc-percepcao / 100))),0).
+
+        assign b-impto-tit-pend-ap-vm.vl-percepcao-me     =  b-impto-tit-pend-ap-vm.vl-percepcao.
+               
+        assign b-impto-tit-pend-ap-vm.vl-retencao         =  fn_ajust_dec(((b-impto-tit-pend-ap-vm.vl-imposto 
+                                                                         * (b-impto-tit-pend-ap-vm.perc-retencao / 100))),0).
+
+        assign b-impto-tit-pend-ap-vm.vl-retencao-me      =  b-impto-tit-pend-ap-vm.vl-retencao.
+        
+        assign b-impto-tit-pend-ap-vm.vl-iva-liberado     =  fn_ajust_dec(((b-impto-tit-pend-ap-vm.vl-iva-liberado
+                                                                         * (b-impto-tit-pend-ap-vm.perc-iva-liberado / 100))),0).
+                                                                         
+        assign b-impto-tit-pend-ap-vm.vl-iva-liberado-me  =  b-impto-tit-pend-ap-vm.vl-iva-liberado.
+                        
+        if  b-impto-tit-pend-ap-vm.lancamento = 1 then do:
+            assign b-impto-tit-pend-ap-vm.obs = "( - ) - ".
+        end.
+        else do:
+            assign b-impto-tit-pend-ap-vm.obs = "( + ) - ".
+        end.    
+    
+        {utp/ut-liter.i Varia‡Æo_Monet ria * R}
+        assign b-impto-tit-pend-ap-vm.obs = b-impto-tit-pend-ap-vm.obs 
+                                          + trim(return-value)
+                                          + " "
+                                          + c-observacao.
+    
+    end.
+end.                    
+
+/* Fim de Include */
+
+/***** Original sem altera‡Æo de Tratamento de Casas Decimais
+
+/****************************************************************************
+***
+*** app/ap0505b.i10 - C lculo da Varia‡Æo Monet ria.
+***
+*****************************************************************************/
+
+if  lin-b-ap.cotacao-dia <> impto-tit-ap.cotacao-dia then do:
+    if  {1} = yes then do:
+
+        create b-impto-tit-pend-ap-vm.
+        assign b-impto-tit-pend-ap-vm.ep-codigo           = impto-tit-ap.ep-codigo
+               b-impto-tit-pend-ap-vm.cod-est             = impto-tit-ap.cod-est
+               b-impto-tit-pend-ap-vm.cod-esp             = impto-tit-ap.cod-esp
+               b-impto-tit-pend-ap-vm.serie               = impto-tit-ap.serie
+               b-impto-tit-pend-ap-vm.cod-fornec          = impto-tit-ap.cod-fornec
+               b-impto-tit-pend-ap-vm.nr-docto            = impto-tit-ap.nr-docto
+               b-impto-tit-pend-ap-vm.parcela             = impto-tit-ap.parcela
+               b-impto-tit-pend-ap-vm.dt-emissao          = lin-b-ap.dt-baixa
+               b-impto-tit-pend-ap-vm.dt-transacao        = lin-b-ap.dt-baixa
+               b-impto-tit-pend-ap-vm.tipo                = 2
+               b-impto-tit-pend-ap-vm.cod-classificacao   = impto-tit-ap.cod-classificacao
+               b-impto-tit-pend-ap-vm.contabilizou        = no
+               b-impto-tit-pend-ap-vm.ind-data-base       = impto-tit-ap.ind-data-base
+               b-impto-tit-pend-ap-vm.conta-imposto       = impto-tit-ap.conta-imposto
+               b-impto-tit-pend-ap-vm.ct-imposto          = impto-tit-ap.ct-imposto
+               b-impto-tit-pend-ap-vm.sc-imposto          = impto-tit-ap.sc-imposto
+               b-impto-tit-pend-ap-vm.conta-percepcao     = impto-tit-ap.conta-percepcao
+               b-impto-tit-pend-ap-vm.ct-percepcao        = impto-tit-ap.ct-percepcao
+               b-impto-tit-pend-ap-vm.sc-percepcao        = impto-tit-ap.sc-percepcao
+               b-impto-tit-pend-ap-vm.conta-retencao      = impto-tit-ap.conta-retencao
+               b-impto-tit-pend-ap-vm.ct-retencao         = impto-tit-ap.ct-retencao
+               b-impto-tit-pend-ap-vm.sc-retencao         = impto-tit-ap.sc-retencao
+               b-impto-tit-pend-ap-vm.conta-iva-liberado  = impto-tit-ap.conta-iva-liberado
+               b-impto-tit-pend-ap-vm.ct-iva-liberado     = impto-tit-ap.ct-iva-liberado
+               b-impto-tit-pend-ap-vm.sc-iva-liberado     = impto-tit-ap.sc-iva-liberado.
+                    
+        assign b-impto-tit-pend-ap-vm.num-seq-impto       = impto-tit-pend-ap.num-seq-impto + 10
+               b-impto-tit-pend-ap-vm.mo-codigo           = 0
+               b-impto-tit-pend-ap-vm.cotacao-dia         = 1
+               b-impto-tit-pend-ap-vm.cod-imposto         = impto-tit-ap.cod-imposto
+               b-impto-tit-pend-ap-vm.perc-imposto        = 0
+               b-impto-tit-pend-ap-vm.perc-percepcao      = impto-tit-ap.perc-percepcao
+               b-impto-tit-pend-ap-vm.perc-retencao       = impto-tit-ap.perc-retencao
+               b-impto-tit-pend-ap-vm.perc-iva-liberado   = impto-tit-ap.perc-iva-liberado
+               b-impto-tit-pend-ap-vm.vl-base             = 0
+               b-impto-tit-pend-ap-vm.vl-base-me          = 0.
+
+        if  l-soma = yes then do:
+            if  lin-b-ap.cotacao-dia > impto-tit-ap.cotacao-dia then do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 6
+                       b-impto-tit-pend-ap-vm.lancamento   = 1
+                       b-impto-tit-pend-ap-vm.vl-imposto   = ((impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia)
+                                                           -  (impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia)).
+            end.
+            else do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 6
+                       b-impto-tit-pend-ap-vm.lancamento   = 2
+                       b-impto-tit-pend-ap-vm.vl-imposto   = ((impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia)
+                                                           -  (impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia)).
+            end.
+        end.
+        else do:
+            if  lin-b-ap.cotacao-dia > impto-tit-ap.cotacao-dia then do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 5
+                       b-impto-tit-pend-ap-vm.lancamento   = 1
+                       b-impto-tit-pend-ap-vm.vl-imposto   = ((impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia)
+                                                           -  (impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia)).
+            end.
+            else do:
+                assign b-impto-tit-pend-ap-vm.origem-impto = 5
+                       b-impto-tit-pend-ap-vm.lancamento   = 2
+                       b-impto-tit-pend-ap-vm.vl-imposto   = ((impto-tit-pend-ap.vl-imposto-me * impto-tit-ap.cotacao-dia)
+                                                           -  (impto-tit-pend-ap.vl-imposto-me * lin-b-ap.cotacao-dia)).
+            end.
+        end.        
+        
+        assign b-impto-tit-pend-ap-vm.vl-imposto-me       =  b-impto-tit-pend-ap-vm.vl-imposto
+               b-impto-tit-pend-ap-vm.vl-saldo-imposto    =  b-impto-tit-pend-ap-vm.vl-imposto
+               b-impto-tit-pend-ap-vm.vl-saldo-imposto-me =  b-impto-tit-pend-ap-vm.vl-saldo-imposto
+               b-impto-tit-pend-ap-vm.vl-percepcao        = (b-impto-tit-pend-ap-vm.vl-imposto 
+                                                          * (b-impto-tit-pend-ap-vm.perc-percepcao / 100))
+               b-impto-tit-pend-ap-vm.vl-percepcao-me     =  b-impto-tit-pend-ap-vm.vl-percepcao
+               b-impto-tit-pend-ap-vm.vl-retencao         = (b-impto-tit-pend-ap-vm.vl-imposto 
+                                                          * (b-impto-tit-pend-ap-vm.perc-retencao  / 100))
+               b-impto-tit-pend-ap-vm.vl-retencao-me      =  b-impto-tit-pend-ap-vm.vl-retencao
+               b-impto-tit-pend-ap-vm.vl-iva-liberado     = (b-impto-tit-pend-ap-vm.vl-iva-liberado
+                                                          * (b-impto-tit-pend-ap-vm.perc-iva-liberado / 100))               
+               b-impto-tit-pend-ap-vm.vl-iva-liberado-me  =  b-impto-tit-pend-ap-vm.vl-iva-liberado.
+                        
+        if  b-impto-tit-pend-ap-vm.lancamento = 1 then do:
+            assign b-impto-tit-pend-ap-vm.obs = "( - ) - ".
+        end.
+        else do:
+            assign b-impto-tit-pend-ap-vm.obs = "( + ) - ".
+        end.    
+    
+        {utp/ut-liter.i Varia‡Æo_Monet ria * R}
+        assign b-impto-tit-pend-ap-vm.obs = b-impto-tit-pend-ap-vm.obs 
+                                          + trim(return-value)
+                                          + " "
+                                          + c-observacao.
+    
+    end.
+end.                    
+
+/* Fim de Include */
+
+*****/

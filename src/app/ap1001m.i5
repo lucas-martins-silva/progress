@@ -1,0 +1,14 @@
+/***************************************************************************
+** ap1001m.i5
+** Objetivo: Gerar registro Trailer do Lote para o banco Real.
+***************************************************************************/
+
+/* Trailer */
+put stream relat
+    "9"                                                               at 001
+    de-hea-val                               format "999999999999999" at 002
+    i-hea-qua + 1                            format "999999"          at 395
+    skip.
+
+/*-- ap1001m.i5 --*/
+

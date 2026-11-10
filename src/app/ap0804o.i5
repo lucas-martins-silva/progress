@@ -1,0 +1,17 @@
+disp c-div-banco 
+     with frame f-div-banco.
+
+disp tit-ap.enviado
+     tit-ap.titulo-banco
+     tit-ap.inst-banc
+     tit-ap.vl-isr
+     tit-ap.dec-2
+     with frame f-banco-1.
+
+&if "{&mgadm_version}" >= "2.02" &then
+    disp tit-ap.cod-banco-forn      @ i-banco
+         tit-ap.agencia-forn        @ c-agencia    
+         tit-ap.conta-corrente-forn @ c-cta-corren
+         with frame f-banco-2.
+&endif
+

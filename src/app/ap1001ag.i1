@@ -1,0 +1,50 @@
+/**************************************************************************
+** 
+** Include.: ap1001ag.i1
+**
+** Objetivo: Registro header do banco B.C.N.
+**
+**************************************************************************/
+
+find first empresa  
+     where empresa.ep-codigo = tt-param.i-empresa no-lock no-error.
+
+find first portador 
+     where portador.ep-codigo    = tt-param.i-empresa 
+       and portador.cod-portador = tt-param.i-portador no-lock no-error.
+
+find first cta-corrente
+     where cta-corrente.cod-banco    = portador.cod-banco
+     and   cta-corrente.agencia      = portador.agencia
+     and   cta-corrente.conta-corren = portador.conta-corren
+     no-lock no-error.
+
+assign c-aux = "".
+/*-- Rotina para pegar somente os numeros do CGC
+     quando o format for x(18) na empresa --*/
+do   i-con = 1 to length(empresa.cgc):
+     assign c-cgc = substr(empresa.cgc,i-con,1).
+     if  can-do("0,1,2,3,4,5,6,7,8,9",c-cgc) then
+         assign c-aux = c-aux + c-cgc.
+end.
+assign c-aux      = "0" + c-aux
+       de-inscric = dec(c-aux)
+       i-num-seq  = 1.
+
+put stream relat                       
+    "0"                                                               at 001
+    "1"                                                               at 002
+    "REMESSA"                                                         at 003
+    "11"                                                              at 010
+    "PAGTOS FORNECED"                                                 at 012
+    substring(cta-corrente.conta-corren-extr,5,7)    format "9999999" at 027
+    substring(cta-corrente.agencia-extrato,3,4)      format "9999"    at 043
+    empresa.razao-social                               format "x(30)" at 049
+    "291"                                                             at 079
+    "B.C.N."                                                          at 082
+    today                                           format "99999999" at 097
+    "04"                                                              at 375
+    tt-param.i-sequencia                              format "999999" at 383
+    "000001"                                                          at 395.
+  
+/* ap1001ag.i1 */

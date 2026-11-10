@@ -1,0 +1,83 @@
+PROCEDURE pi-grava-ttICMS20:
+
+    /*
+    === ttICMS20 ===
+    CST            AS CHARACTER INITIAL ?  /*Tributá∆o pelo ICMS 20 - Com reduá∆o de base de c†lculo*/
+    modBC          AS CHARACTER INITIAL ?  /*Modalidade de determinaá∆o da BC do ICMS: 0 - Margem Valor Agregado (%); 1 - Pauta (valor); 2 - Preáo Tabelado M†ximo (valor); 3 - Valor da Operaá∆o.*/
+    orig           AS CHARACTER INITIAL ?  /*origem da mercadoria: 0 - Nacional 1 - Estrangeira - Importaá∆o direta 2 - Estrangeira - Adquirida no mercado interno */
+    pICMS          AS DECIMAL   INITIAL ?  /*Al°quota do ICMS*/
+    pRedBC         AS DECIMAL   INITIAL ?  /*Percentual de reduá∆o da BC*/
+    vBC            AS DECIMAL   INITIAL ?  /*Valor da BC do ICMS*/
+    vICMS          AS DECIMAL   INITIAL ?  /*Valor do ICMS*/
+    vICMSDeson     AS DECIMAL   INITIAL ?  /*Valor do ICMS de desoneraá∆o*/ 
+    motDesICMS     AS CHARACTER INITIAL ?  /*Motivo da desoneraá∆o do ICMS:3-Uso na agropecu†ria;9-Outros;12-Fomento agropecu†rio*/
+    vBCFCP         AS DECIMAL   INITIAL ?  /*Valor da BC do FCP*/ 
+    pFCP           AS DECIMAL   INITIAL ?  /*Al°quota do FCP*/
+    vFCP           AS DECIMAL   INITIAL ?  /*Valor do FCP*/       
+    */
+
+    CREATE ttICMS20.
+    ASSIGN ttICMS20.CST        = SUBSTRING(c-niv-trib-icms,2,2)
+           ttICMS20.modBC      = (IF c-mod-base-icms = "2"
+                                  THEN "1"
+                                  ELSE IF c-mod-base-icms = "3"
+                                       THEN "2"
+                                       ELSE IF c-mod-base-icms = "4"
+                                            THEN "3"
+                                            ELSE "0")
+           ttICMS20.orig       = SUBSTRING(c-niv-trib-icms,1,1)
+           ttICMS20.pICMS      = (IF it-nota-fisc.cd-trib-icm <> 3
+                                  THEN d-aliquota-icms
+                                  ELSE 0)
+           ttICMS20.pRedBC     = IF d-perc-redimp > 0 THEN d-perc-redimp  ELSE ? /*ELSE IF lLayoutXML THEN ? ELSE IF lLayoutTXT THEN 0 ELSE ?)*/
+           ttICMS20.vBC        = d-vl-bicms-it
+           ttICMS20.vICMS      = (IF it-nota-fisc.cd-trib-icm <> 3
+                                  THEN d-vl-imp-icms
+                                  ELSE 0)
+           ttICMS20.vICMSDeson = d-vl-desc-icms
+           ttICMS20.motDesICMS = TRIM(SUBSTRING(bf-natur-oper-it.char-1,164,2))
+           ttICMS20.indDeduzDeson = IF l-indDeduzDeson = YES THEN "1" ELSE "0".
+           /*OBS.:
+           O CST 20 s¢ aceita os motivos de desoneraá∆o
+           3=Uso na agropecu†ria;
+           9=Outros;
+           12=‡rg∆o de fomento e desenvolvimento agropecu†rio.
+           */
+           
+    /*--- Valores FCP ---*/
+    FOR FIRST item-nf-adc NO-LOCK
+        WHERE item-nf-adc.cod-estab         = nota-fiscal.cod-estabel
+        AND   item-nf-adc.cod-serie         = nota-fiscal.serie
+        AND   item-nf-adc.cod-nota-fisc     = (if nota-fiscal.ind-tip-nota <> 8 then nota-fiscal.nr-nota-fis else nota-fiscal.nr-nota-ant)
+        AND   item-nf-adc.idi-tip-dado      = 25
+        AND   item-nf-adc.cdn-emitente      = nota-fiscal.cod-emitente
+        AND   item-nf-adc.cod-natur-operac  = it-nota-fisc.nat-operacao
+        AND   item-nf-adc.num-seq-item-nf   = (if nota-fiscal.ind-tip-nota <> 8 then it-nota-fisc.nr-seq-fat else it-nota-fisc.nr-seq-ped )
+        AND   item-nf-adc.cod-item          = it-nota-fisc.it-codigo:
+       
+        IF (item-nf-adc.log-livre-2 = ?  /* Nova geraá∆o de FCP -> FCP e FCP ST juntos no mesmo item da nota */
+        AND (item-nf-adc.val-livre-3      > 0 OR /* Valores de FCP */
+             item-nf-adc.val-livre-4      > 0 OR
+             DEC(item-nf-adc.cod-livre-3) > 0))
+        THEN     
+            ASSIGN ttICMS20.vBCFCP   = item-nf-adc.val-livre-3
+                   ttICMS20.pFCP     = item-nf-adc.val-livre-4
+                   ttICMS20.vFCP     = DEC(item-nf-adc.cod-livre-3)
+                   d-total-vFCP      = d-total-vFCP + ttICMS20.vFCP.
+        ELSE IF item-nf-adc.log-livre-1 = NO  /* NO = FCP Normal | YES = FCP ST */ /* Geraá∆o de dados antiga FCP ou FCP ST */
+        THEN
+            ASSIGN ttICMS20.vBCFCP   = item-nf-adc.val-livre-1
+                   ttICMS20.pFCP     = item-nf-adc.val-livre-2
+                   ttICMS20.vFCP     = DEC(item-nf-adc.cod-livre-4)
+                   d-total-vFCP      = d-total-vFCP + ttICMS20.vFCP.
+    END.
+    /*---*/
+           
+    /* Chave EMS */
+    ASSIGN ttICMS20.CodEstabelNF = nota-fiscal.cod-estabel
+           ttICMS20.SerieNF      = nota-fiscal.serie
+           ttICMS20.NrNotaFisNF  = nota-fiscal.nr-nota-fis
+           ttICMS20.ItCodigoNF   = it-nota-fisc.it-codigo
+           ttICMS20.NrSeqFatNF   = it-nota-fisc.nr-seq-fat.
+
+END PROCEDURE.

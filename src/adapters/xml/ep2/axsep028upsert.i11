@@ -1,0 +1,34 @@
+PROCEDURE pi-cria-ttAssinante:
+
+    /*
+    === ttAssinante ===
+    iCodAssinante   AS CHARACTER INITIAL ?  /*Código único de Identificação do Assinante*/
+    tpAssinante     AS INT       INITIAL ?  /*Tipo do Assinante*/
+    tpServUtil      AS INT       INITIAL ?  /*Tipo do Serviço Utilizado*/
+    nContrato       AS CHARACTER INITIAL ?  /*Número do Contrato do Assinante*/
+    dContratoIni    AS DATA      INITIAL ?  /*Data de início do Contrato - Formato AAAA-MM-DD*/
+    dContratoFim    AS DATA      INITIAL ?  /*Data de término do Contrato - Formato AAAA-MM-DD*/            
+    */
+
+    CREATE ttAssinante.
+    ASSIGN ttAssinante.iCodAssinante    = string(nota-fiscal.cod-emitente)
+           ttAssinante.tpAssinante      = SUBSTRING(nota-fiscal.char-2,288,2)
+           ttAssinante.tpServUtil       = substring(nota-fiscal.char-2,284,1)
+           ttAssinante.nContrato        = substring(nota-fiscal.char-2,263,20)
+           ttAssinante.dContratoIni     = contrato-nfcom.dt-ini-validade
+           ttAssinante.dContratoFim     = contrato-nfcom.dt-term-validade.
+    
+     /* Chave EMS */
+    ASSIGN ttAssinante.CodEstabelNFCom = nota-fiscal.cod-estabel
+           ttAssinante.SerieNFCom      = nota-fiscal.serie
+           ttAssinante.NrNotaFisNFCom  = nota-fiscal.nr-nota-fis.
+           
+           
+    /* Ajusta Formatacao dos Campos */
+    IF  AVAIL ttAssinante THEN
+        ASSIGN ttAssinante.iCodAssinante = fn-ajusta-tamanho-campo(ttAssinante.iCodAssinante ,15)
+               //ttAssinante.tpAssinante   = fn-ajusta-tamanho-campo(ttAssinante.tpAssinante   ,2)
+               ttAssinante.tpServUtil    = fn-ajusta-tamanho-campo(ttAssinante.tpServUtil    ,1).
+ 
+           
+END PROCEDURE.

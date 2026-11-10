@@ -1,0 +1,17 @@
+/*******************************************************************************
+***
+*** app/ap0740rp.i4 - first-of(tt-tit-ap.cod-fornec).
+***
+*******************************************************************************/
+
+if  first-of(tt-tit-ap.cod-fornec) then do:
+    put trim(c-fornecedor) format "x(15)"
+        " "
+        trim(string(tt-tit-ap.cod-fornec, "ZZZZZZZZ9"))
+        " ("
+        caps(trim(tt-tit-ap.nome-abrev)) format "x(12)"
+        ") - "
+        tt-tit-ap.nome-emit skip.
+end.
+
+/* Fim de Include */

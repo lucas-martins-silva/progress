@@ -1,0 +1,24 @@
+/************************************************************
+*** BH0102.I1 - Defini‡Æo do da tt-param bh0102
+*************************************************************/
+
+
+define temp-table tt-param
+    field destino          as integer
+    field arquivo          as char
+    field usuario          as char format "x(12)"
+    field data-exec        as date
+    field hora-exec        as integer
+    &IF "{&mguni_version}" >= "2.071" &THEN
+    field i-emp            like empresa.ep-codigo
+    &ELSE
+    field i-emp            as integer
+    &ENDIF
+    field c-per            as char format "9999/99"
+    field L-ap             as logical
+    field L-cr             as logical
+    field L-cb             as logical
+    field l-rac            as logical
+    field da-corte         as date.
+
+/*--- FIM INCLUDE BH0102.i1 ---*/

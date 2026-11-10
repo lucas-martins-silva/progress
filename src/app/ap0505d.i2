@@ -1,0 +1,17 @@
+/***************************************************************************
+**
+**   AP0505D.I2 - Cria tabela tempor ria tt-lin-b-ap.
+**
+***************************************************************************/
+
+create tt-lin-b-ap.
+assign tt-lin-b-ap.tta-sequencia     = lin-b-ap.sequencia
+       tt-lin-b-ap.tta-cod-estabel   = lin-b-ap.cod-estabel
+       tt-lin-b-ap.tta-cod-esp       = lin-b-ap.cod-esp
+       tt-lin-b-ap.tta-serie         = lin-b-ap.serie
+       tt-lin-b-ap.tta-nr-docto      = lin-b-ap.nr-docto
+       tt-lin-b-ap.tta-parcela       = lin-b-ap.parcela
+       tt-lin-b-ap.tta-cod-fornec    = lin-b-ap.cod-fornec
+       tt-lin-b-ap.ttv-des-mensagem  = v-des-mensagem.
+
+/* fim de include */

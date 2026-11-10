@@ -1,0 +1,50 @@
+/********************************************************************************
+***
+*** app/ap506crp.i1 - Variaveis e Buffer's.
+***
+********************************************************************************/
+
+def buffer b-mov-ap for mov-ap.
+
+def var c-conta                 as char format "x(17)"        no-undo.
+def var da-ini-validac          like tit-ap.dt-ult-pagto      no-undo.
+def var da-fim-validac          like tit-ap.dt-ult-pagto      no-undo.
+def var de-cotacao              like cotacao.cotacao extent 0 no-undo.
+def var de-saldo                like mov-ap.valor-mov         no-undo.
+def var de-val-pef              like mov-ap.valor-mov         no-undo.
+def var de-val-pec              like mov-ap.valor-mov         no-undo.
+def var de-valor                like mov-ap.valor-mov         no-undo.
+def var h-acomp                 as handle                     no-undo.
+
+def var c-com-imp               as character init ?           no-undo.
+def var c-invest                as character.
+def var r-invest                as rowid.
+def var c-pedido                as character.
+def var r-mov-ap                as rowid                      no-undo.
+def var r-reg-tit               as rowid                      no-undo.
+def var r-reg-mov               as rowid                      no-undo.
+def var r-tit-reg               as rowid                      no-undo.
+def var r-mov-reg               as rowid                      no-undo.
+def var l-antecip               as logical                    no-undo.
+def var l-resposta              as logical format "Sim/Nao"   no-undo.
+def var i-cont                  as integer format "999"       no-undo.
+def var i-linha                 as integer                    no-undo.
+def var r-primeiro              as rowid                      no-undo.
+def var r-ultimo                as rowid                      no-undo.
+def var c-des-mensagem          as char format "x(40)"        no-undo.
+def var l-erro                  as logical                    no-undo.
+def var c-processado            as char                       no-undo.
+def var c-titulo-tela           as char                       no-undo.
+def var c-text-6                as char format "x(10)":U      no-undo.
+def var c-text-7                as char format "x(17)":U      no-undo.
+def var c-text-8                as char format "x(11)":U      no-undo.
+def var c-text-9                as char format "x(12)":U      no-undo.
+def var c-destino               as char format "x(12)":U      no-undo.
+def var c-param                 as char format "x(10)":U      no-undo.
+def var i-conta                 as integer                    no-undo.
+def var c-mov                   as char format "x(10)":U      no-undo.
+def var it-cont                 as integer                    no-undo.
+
+/* Fim de Include */
+
+

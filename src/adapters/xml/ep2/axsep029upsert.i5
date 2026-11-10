@@ -1,0 +1,15 @@
+PROCEDURE pi-limpa-temp-tables:
+
+    EMPTY TEMP-TABLE ttDCe          NO-ERROR.
+    EMPTY TEMP-TABLE ttIdeDCe       NO-ERROR.
+    EMPTY TEMP-TABLE ttEmitDCe      NO-ERROR.
+    EMPTY TEMP-TABLE ttIDEmitDCe    NO-ERROR.
+    EMPTY TEMP-TABLE ttDestDCe      NO-ERROR.
+    EMPTY TEMP-TABLE ttDetDCe       NO-ERROR.
+    EMPTY TEMP-TABLE ttTransp       NO-ERROR.
+    EMPTY TEMP-TABLE ttinfAdic      NO-ERROR.
+    EMPTY TEMP-TABLE ttinfDec       NO-ERROR.
+    EMPTY TEMP-TABLE ttinfDCeSupl   NO-ERROR.
+    EMPTY TEMP-TABLE ttTotalDCe     NO-ERROR.
+		                                                                     
+END PROCEDURE.

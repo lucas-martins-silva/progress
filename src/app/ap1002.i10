@@ -1,0 +1,102 @@
+/************************************************************************
+***
+***  app/ap1002.i10 - Consistàncias.
+***
+************************************************************************/
+        
+assign i-fornec       = mov-ap.cod-fornec
+       c-cod-estabel  = mov-ap.cod-estabel
+       c-cod-esp      = mov-ap.cod-esp
+       c-serie        = mov-ap.serie
+       c-numero       = mov-ap.nr-docto
+       c-parcela      = mov-ap.parcela.
+            
+if  avail mov-ap then do:
+    find first tit-ap use-index codigo
+         where tit-ap.ep-codigo  = mov-ap.ep-codigo
+         and   tit-ap.cod-fornec = mov-ap.cod-fornec
+         and   tit-ap.cod-estab  = mov-ap.cod-estabel
+         and   tit-ap.cod-esp    = mov-ap.cod-esp
+         and   tit-ap.serie      = mov-ap.serie
+         and   tit-ap.nr-docto   = mov-ap.nr-docto
+         and   tit-ap.parcela    = mov-ap.parcela
+         exclusive-lock no-error.
+            
+     if  not avail tit-ap then do:
+         assign c-transacao = "Titulo n∆o existente !".
+         disp i-fornec      @ tit-ap.cod-fornec
+              c-cod-estabel @ tit-ap.cod-estabel
+              c-cod-esp     @ tit-ap.cod-esp
+              c-serie       @ tit-ap.serie
+              c-numero      @ tit-ap.nr-docto
+              c-parcela     @ tit-ap.parcela
+              0             @ tit-ap.nr-bordero
+              da-data
+              de-valor
+              c-transacao
+              with frame f-detalhe1.
+         down with frame f-detalhe1.
+         next.
+    end.
+end.
+        
+if  tit-ap.valor-saldo = 0 then do:
+            
+    assign c-transacao  = "Documento n∆o Atualizado !"
+           c-observacao = "Documento com saldo zero, cancelar com o banco".
+            
+    disp tit-ap.cod-fornec
+         tit-ap.cod-estabel
+         tit-ap.cod-esp
+         tit-ap.serie
+         tit-ap.nr-docto
+         tit-ap.parcela
+         tit-ap.dt-emissao
+         tit-ap.dt-vencimen
+         tit-ap.nr-bordero
+         da-data
+         de-valor
+         c-transacao
+         with frame f-detalhe1.
+    down with frame f-detalhe1.
+            
+    put "OBSERVAÄ«O: " c-observacao.
+    next.
+end.
+        
+find first portador 
+     where portador.ep-codigo    = tit-ap.ep-codigo 
+     and   portador.cod-portador = tit-ap.portador 
+     and   portador.modalidade   = tit-ap.modalidade no-lock no-error.
+        
+        
+if  avail portador then do:
+    if  portador.cod-febraban <> {1} then do:
+        if ({1} =  356 and  portador.cod-febraban <> 275 ) or ({1} <> 356) then do:
+               assign c-transacao  = "Documento n∆o Atualizado !"
+                      c-observacao = "T°tulo n∆o est† no Banco {2}".
+
+            disp tit-ap.cod-fornec
+                 tit-ap.cod-estabel
+                 tit-ap.cod-esp
+                 tit-ap.serie
+                 tit-ap.nr-docto
+                 tit-ap.parcela
+                 tit-ap.dt-emissao
+                 tit-ap.dt-vencimen
+                 tit-ap.nr-bordero
+                 da-data
+                 de-valor
+                 c-transacao
+                 with frame f-detalhe1.
+             down with frame f-detalhe1.
+                
+             put "OBSERVAÄ«O: " c-observacao.
+         next.
+           
+         end.
+     end.
+end.  
+  
+
+/* Fim de Include */
