@@ -1,0 +1,3940 @@
+/*
+**  BOCX190.i1
+**
+**  proc-ped-venda - 
+**
+**  Ultima alteraá∆o: 04/05/99 - GeraBO
+**  Ultima alteraá∆o: 06/05/99 - brv9586
+*/
+DEFINE var c-cod-estabel    like proc-ped-venda.cod-estabel no-undo.
+DEFINE var c-nr-proc-exp    like proc-ped-venda.nr-proc-exp no-undo. 
+DEFINE var c-nr-pedido      like proc-ped-venda.nr-pedido   no-undo.
+DEFINE VAR h-bocx195        as handle                       no-undo.
+DEFINE VAR h-bocx195a       as handle                       no-undo.
+DEFINE VAR h-bocx260        as handle                       no-undo.
+DEFINE VAR h-bocx205        as handle                       no-undo.
+define var l-recebe-bodi317efm04 as logical initial no no-undo.
+define var l-not-achou-proc-ped-venda as logical initial no no-undo.
+
+def var de-qtd-conver  as dec  no-undo.
+def var c-unid-conver  as char no-undo.
+def var c_mensagem_1   as char no-undo.
+def var c_mensagem_2   as char no-undo.
+def var c-return-msg   as char no-undo.
+def var c-un-medida    as char no-undo.
+define variable de-fator-conver as decimal no-undo.
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.001
+&scoped-define FIRST-TABLE-IN-QUERY proc-ped-venda
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME proc-ped-venda
+
+
+{cdp/cdcfgdis.i} /* Definicao de pre-processadores */
+{cdp/cdcfgcex.i} /* Definicao de pre-processadores */
+{include/i_dbtype.i}
+
+&IF DEFINED(bf_comex206b-1) &THEN
+def temp-table tt-proc-nota-fiscal no-undo like proc-nota-fiscal 
+    field r-rowid as rowid .
+def temp-table tt-proc-ped-venda no-undo like proc-ped-venda 
+    field r-rowid as rowid .    
+def temp-table tt-proc-ped-ent no-undo like proc-ped-ent 
+    field r-rowid as rowid .   
+def temp-table tt-proc-ped-ent-aux no-undo like proc-ped-ent 
+    field r-rowid as rowid .      
+def temp-table 
+    tt-proc-desp-itiner no-undo like proc-desp-itiner .
+def var c-notas as char no-undo. 
+def temp-table tt-proc-ped-ent-filho no-undo like tt-proc-ped-ent.    
+&ENDIF
+
+def new global shared var p-relaciona-nota-embarque-ex0190 as log initial "no" no-undo.
+def var pde-qt-proc-ext as decimal no-undo.
+DEF TEMP-TABLE tt-embarque NO-UNDO
+     FIELD cdd-embarq    LIKE embarque.cdd-embarq
+     FIELD dt-embarque   AS DATE FORMAT "99/99/9999"
+     FIELD identific     LIKE embarque.identific
+     FIELD situacao      AS CHAR FORMAT "x(15)"
+     FIELD tipo          AS char format "x(15)"
+     field r-rowid       as rowid
+     INDEX id IS PRIMARY cdd-embarq.
+
+&if defined(bf_dis_proc_ent) &then
+      /*&if '{&ems_dbtype}' = 'progress' &then */
+          /* Include i-epc200.i: Definicao Temp-Table tt-epc */
+          {include/i-epc200.i "bocx190"}
+      /*&endif*/
+&endif  
+
+def buffer bf_nota_fiscal for nota-fiscal.
+{include/boini.i}
+ 
+DEFINE TEMP-TABLE tt-bo-erro-aux no-undo
+                  field i-sequen as int
+                  field cd-erro  as int
+                  field mensagem as char format "x(255)"
+                  field parametros as char format "x(255)" init ""
+                  field errortype as char format "x(20)"
+                  field errorhelp as char format "x(20)"
+                  field errorsubtype as character.
+
+def temp-table tt-bo-erro-aux1 no-undo like tt-bo-erro.
+
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+{cxbo/bocx190.i RowObject}
+/*{cxbo/bocx190.i tt-proc-ped-venda}*/
+
+{cxbo/bocx190.i tt-proc-ped-venda-aux}
+    DEF VAR r-proc-ped-venda AS ROWID NO-UNDO.
+    
+&IF DEFINED (bf_comex206b-1) &THEN 
+    DEF VAR h-bocx362 AS HANDLE NO-UNDO.
+&ENDIF
+
+DEF VAR h-exapi        AS HANDLE NO-UNDO.
+DEF VAR h-bocx185      AS HANDLE NO-UNDO.
+&IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+    
+    DEF VAR de-tot-peso    AS DEC    NO-UNDO.
+    DEF VAR de-tot-val     AS DEC    NO-UNDO.
+    DEF VAR de-tot-qt      AS DEC    NO-UNDO.
+    DEF VAR de-tot-cub-ped AS DEC    NO-UNDO.
+    DEF VAR de-tot-cub-ent AS DEC    NO-UNDO.
+
+    DEF BUFFER b-ped-ent FOR ped-ent.
+
+    DEFINE TEMP-TABLE tt-ped-ent no-undo like ped-ent
+           USE-INDEX codigo
+           field r-rowid    as rowid
+           field log-select as logical init no.
+&ENDIF
+
+
+/*Convers∆o do valor do volume do item*/
+FOR FIRST para-dis NO-LOCK:
+   /*Unidade de Medida da Convers∆o 1 = Cent°metros 2 = Metros*/
+   IF para-dis.int-1 = 1 THEN
+      ASSIGN de-fator-conver = 0.000001.
+   ELSE
+      ASSIGN de-fator-conver = 1.
+END.
+
+procedure setConstraint1:
+
+end.
+
+PROCEDURE setConstraint2:
+    
+    def input parameter p-cod-estab like proc-ped-venda.cod-estabel no-undo. 
+    def input parameter p-proc-exp  like proc-ped-venda.nr-proc-exp no-undo.
+    def input parameter p-pedido    like proc-ped-venda.nr-pedido   no-undo.
+    assign c-cod-estabel    = p-cod-estab 
+           c-nr-proc-exp    = p-proc-exp
+           c-nr-pedido      = p-pedido.
+
+END PROCEDURE.
+
+
+PROCEDURE setConstraint3:
+    
+    def input parameter r-chave as rowid no-undo.
+    find processo-exp  no-lock
+         where rowid(processo-exp) = r-chave no-error.
+   
+END PROCEDURE.
+
+ 
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    assign i-bo-query = i-abertura.
+    assign l-query = yes.    
+    case i-abertura:
+        
+        when 1 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock. 
+     
+        when 2 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where proc-ped-venda.cod-estabel >= c-cod-estabel and ~     
+                                                                  proc-ped-venda.nr-proc-exp >= c-nr-proc-exp and ~
+                                                                  proc-ped-venda.nr-pedido   >= c-nr-pedido no-lock.
+        when 3 then                                               
+            open query {&QUERY-NAME} for each {&TABLE-NAME} of processo-exp no-lock
+                                     by proc-ped-venda.cod-estabel
+                                     by proc-ped-venda.nr-proc-exp
+                                     by proc-ped-venda.nr-pedido.
+
+
+    end case.
+end procedure.
+ 
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-dis-comex) &then    
+&else
+    {include/bocomver.i}
+    {include/bogetver.i}
+&endif
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+/*{include/boexecre.i}*/
+/*{include/boexeupt.i}*/
+{include/boexedel.i}
+{include/bovalupt.i}
+/*{include/bovaldel.i}*/
+
+
+PROCEDURE findCh_pedcli_proc:
+
+    /*  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.*/
+    def input parameter p-nome-abrev  like proc-ped-venda.nome-abrev  no-undo.
+    def input parameter p-nr-pedcli   like proc-ped-venda.nr-pedcli   no-undo.
+    def input parameter p-cod-estabel like proc-ped-venda.cod-estabel no-undo.
+    def input parameter p-nr-proc-exp like proc-ped-venda.nr-proc-exp no-undo.
+    def output parameter table for RowObject.
+ 
+    find first {&TABLE-NAME} 
+         where {&TABLE-NAME}.nome-abrev  = p-nome-abrev  
+         and   {&TABLE-NAME}.nr-pedcli   = p-nr-pedcli
+         and   {&TABLE-NAME}.cod-estabel = p-cod-estabel 
+         and   {&TABLE-NAME}.nr-proc-exp = p-nr-proc-exp no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex proc-ped-venda 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        return return-value.
+    end.
+    else do:
+        run setCurrent.
+        return "".
+    end.
+
+END PROCEDURE.
+
+
+PROCEDURE findCh_proc_exp:
+
+    /*  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.*/
+    def input parameter p-cod-estabel like proc-ped-venda.cod-estabel no-undo.
+    def input parameter p-nr-proc-exp like proc-ped-venda.nr-proc-exp no-undo.
+    def output parameter table for RowObject.
+ 
+    find first proc-ped-venda 
+         where proc-ped-venda.nr-proc-exp = p-nr-proc-exp         
+         and   proc-ped-venda.cod-estabel = p-cod-estabel no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex proc-ped-venda 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+    end.
+    else do:
+       run setCurrent.
+    end.
+
+END PROCEDURE.
+
+
+PROCEDURE findCh_proc_pedcli:
+
+    /*  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.*/
+    def input parameter p-cod-estabel like proc-ped-venda.cod-estabel no-undo.
+    def input parameter p-nr-proc-exp like proc-ped-venda.nr-proc-exp no-undo.
+    def input parameter p-nome-abrev  like proc-ped-venda.nome-abrev  no-undo.
+    def input parameter p-nr-pedcli   like proc-ped-venda.nr-pedcli   no-undo.
+    def output parameter table for RowObject.
+ 
+    find first proc-ped-venda 
+         where proc-ped-venda.cod-estabel = p-cod-estabel 
+         and   proc-ped-venda.nr-proc-exp = p-nr-proc-exp 
+         and   proc-ped-venda.nome-abrev  = p-nome-abrev  
+         and   proc-ped-venda.nr-pedcli   = p-nr-pedcli no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex proc-ped-venda 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+    end.
+    else do:
+       run setCurrent.
+    end.
+
+END PROCEDURE.
+
+
+PROCEDURE findpk_pro_pedvenda:
+
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    def input parameter p-cod-estabel like proc-ped-venda.cod-estabel  no-undo.
+    def input parameter p-nr-proc-exp like proc-ped-venda.nr-proc-exp  no-undo.
+    def input parameter p-nr-pedido   like proc-ped-venda.nr-pedido    no-undo.
+    def output parameter table for RowObject.
+ 
+    find proc-ped-venda 
+         where proc-ped-venda.cod-estabel = p-cod-estabel 
+         and   proc-ped-venda.nr-proc-exp = p-nr-proc-exp 
+         and   proc-ped-venda.nr-pedido   = p-nr-pedido no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+       /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+          pre-processador em chamada de includes */
+       {utp/ut-table.i mgcex proc-ped-venda 1}
+       /******************************************/
+       run utp/ut-msgs.p (input "msg",
+                          input 2,
+                          input return-value).
+    end.
+    else do:
+       run setCurrent.
+    end.
+
+END PROCEDURE.
+
+
+PROCEDURE validateDelete:
+
+    /* Valida Delete */
+
+    def input-output parameter r-chave as rowid.
+    def output parameter table for tt-bo-erro.
+
+    def var c-lista-re as char no-undo.
+    def var c-cod-estab-del like proc-ped-venda.cod-estabel no-undo.
+    def var c-proc-exp-del  like proc-ped-venda.nr-proc-exp no-undo.
+    &IF DEFINED(bf_comex206b-1) &THEN
+        DEFINE VARIABLE de-qt-atendida  AS   DECIMAL                    NO-UNDO.
+    &ENDIF
+    
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+
+    if not valid-handle(h-bocx195) then
+        run cxbo/bocx195.p persistent set h-bocx195.
+    
+    run InitializeValidate.
+     
+    find {&TABLE-NAME} 
+         where rowid({&TABLE-NAME}) = r-chave exclusive-lock no-error.
+    if avail {&TABLE-NAME} then do:
+        assign c-cod-estab-del = {&TABLE-NAME}.cod-estabel
+               c-proc-exp-del  = {&TABLE-NAME}.nr-proc-exp.
+        &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+            
+            for each tt-epc 
+               where tt-epc.cod-event = "VALIDA-ENTREGA": 
+                delete tt-epc. 
+            end. 
+            
+            {include/i-epc200.i2 &CodEvent='"VALIDA-ENTREGA"'
+                                 &CodParameter='"ENTREGA-FATURADA"'
+                                 &ValueParameter='"NO"'}
+                                 
+            {include/i-epc201.i "VALIDA-ENTREGA"}
+
+            /* Chamada EPC inserida para os clientes que necessitam vincular/desvincular do processo de exportaá∆o entregas j† faturadas*/
+            FIND FIRST tt-epc WHERE 
+                       tt-epc.cod-event = "VALIDA-ENTREGA" AND
+                       tt-epc.cod-parameter = "ENTREGA-FATURADA" AND
+                       tt-epc.val-parameter = "YES" NO-ERROR.
+            IF NOT AVAIL tt-epc THEN DO:
+                    /* pedido/entrega j† atendida */    
+                    &IF DEFINED(bf_comex206b-1) &THEN
+                        ASSIGN de-qt-atendida = 0.
+                    &ENDIF
+  
+                    for each proc-ped-ent NO-LOCK
+                         where proc-ped-ent.cod-estabel = {&TABLE-NAME}.cod-estabel
+                         and   proc-ped-ent.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp
+                         and   proc-ped-ent.nome-abrev  = {&TABLE-NAME}.nome-abrev
+                         and   proc-ped-ent.nr-pedcli   = {&TABLE-NAME}.nr-pedcli :
+        
+                         &IF DEFINED(bf_comex206b-1) &THEN
+                            run calculaQuantidadeAtendida IN h-bocx195 (INPUT  proc-ped-ent.cod-estabel,
+                                                                        INPUT  proc-ped-ent.nr-proc-exp,  
+                                                                        INPUT  proc-ped-ent.nome-abrev ,
+                                                                        INPUT  proc-ped-ent.nr-pedcli  ,
+                                                                        INPUT  proc-ped-ent.nr-sequencia ,
+                                                                        INPUT  proc-ped-ent.it-codigo    ,
+                                                                        INPUT  proc-ped-ent.cod-refer    ,
+                                                                        INPUT  proc-ped-ent.nr-entrega ,
+                                                                        OUTPUT de-qt-atendida). 
+        
+                            IF de-qt-atendida <> 0 THEN DO:
+                         &ELSE
+                            IF CAN-FIND (FIRST ped-ent 
+                                         WHERE ped-ent.nome-abrev    = proc-ped-ent.nome-abrev 
+                                           AND ped-ent.nr-pedcli     = proc-ped-ent.nr-pedcli 
+                                           AND ped-ent.nr-sequencia  = proc-ped-ent.nr-sequencia 
+                                           AND ped-ent.it-codigo     = proc-ped-ent.it-codigo 
+                                           AND ped-ent.cod-refer     = proc-ped-ent.cod-refer 
+                                           AND ped-ent.nr-entrega    = proc-ped-ent.nr-entrega
+                                           AND ped-ent.cod-sit-ent <> 1 ) THEN DO:
+                         &ENDIF
+                         
+                             assign i-seq-erro = i-seq-erro + 1.
+                             run utp/ut-msgs.p (input "msg",
+                                                input 28383,
+                                                input "").
+                             create tt-bo-erro.
+                             assign tt-bo-erro.i-sequen     = i-seq-erro
+                                    tt-bo-erro.cd-erro      = 28383
+                                    tt-bo-erro.mensagem     = return-value.
+                             LEAVE.
+                         END.
+                    END.
+            END.
+
+            &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+                assign c-lista-re = "".
+                for each  reg-export-item fields(nr-re-ems) no-lock
+                    where reg-export-item.cod-estabel = {&TABLE-NAME}.cod-estabel
+                      and reg-export-item.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp
+                      and reg-export-item.nome-abrev  = {&TABLE-NAME}.nome-abrev
+                      and reg-export-item.nr-pedcli   = {&TABLE-NAME}.nr-pedcli:
+                    if  lookup(string(reg-export-item.nr-re-ems),c-lista-re) = 0 then do:
+                        if  c-lista-re = "" then
+                            assign c-lista-re = string(reg-export-item.nr-re-ems).
+                        else
+                            assign c-lista-re = c-lista-re + " ," + string(reg-export-item.nr-re-ems).
+                    end.
+                end.
+
+                if  c-lista-re <> "" then do:
+                    assign i-seq-erro = i-seq-erro + 1.
+                    /* Inicio -- Projeto Internacional */
+                    {utp/ut-liter.i "pedido" *}
+                    run utp/ut-msgs.p (input "msg",
+                                       input 30557,
+                                       input RETURN-VALUE + "~~" + c-lista-re).
+                    create tt-bo-erro.
+                    /* Inicio -- Projeto Internacional */
+                    DEFINE VARIABLE c-lbl-liter AS CHARACTER NO-UNDO.
+                    ASSIGN c-lbl-liter = TRIM(RETURN-VALUE).
+                    DEFINE VARIABLE c-lbl-liter-pedido AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "pedido" *}
+                    ASSIGN c-lbl-liter-pedido = TRIM(RETURN-VALUE).
+                    assign tt-bo-erro.i-sequen     = i-seq-erro
+                           tt-bo-erro.cd-erro      = 30557
+                           tt-bo-erro.mensagem     = c-lbl-liter
+                           tt-bo-erro.parametro    = c-lbl-liter-pedido + "~~" + c-lista-re.
+                end.
+            &endif
+            
+            IF NOT CAN-FIND(FIRST tt-bo-erro) THEN DO:
+                ASSIGN de-tot-peso    = 0
+                       de-tot-val     = 0
+                       de-tot-qt      = 0
+                       de-tot-cub-ped = 0
+                       de-tot-cub-ent = 0.
+                       
+                if not valid-handle(h-exapi) then 
+                    RUN exp/exapi010.p PERSISTENT SET h-exapi.
+                    
+                for each proc-ped-ent NO-LOCK
+                   where proc-ped-ent.cod-estabel = {&TABLE-NAME}.cod-estabel
+                   and   proc-ped-ent.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp
+                   and   proc-ped-ent.nome-abrev  = {&TABLE-NAME}.nome-abrev
+                   and   proc-ped-ent.nr-pedcli   = {&TABLE-NAME}.nr-pedcli :
+
+                    FOR EACH tt-ped-ent EXCLUSIVE-LOCK.
+                        DELETE tt-ped-ent.
+                    END.
+
+                    find FIRST ped-ent 
+                         where ped-ent.nome-abrev    = proc-ped-ent.nome-abrev 
+                         AND   ped-ent.nr-pedcli     = proc-ped-ent.nr-pedcli 
+                         AND   ped-ent.nr-sequencia  = proc-ped-ent.nr-sequencia 
+                         AND   ped-ent.it-codigo     = proc-ped-ent.it-codigo 
+                         AND   ped-ent.cod-refer     = proc-ped-ent.cod-refer 
+                         AND   ped-ent.nr-entrega    = proc-ped-ent.nr-entrega NO-LOCK no-error.
+
+                    IF AVAIL ped-ent THEN DO:
+                        CREATE tt-ped-ent.
+                        BUFFER-COPY ped-ent TO tt-ped-ent.
+                    END.                   
+
+                    {exp/exapi010.i1 tt-ped-ent}
+                /*Para o ambiente h°dribo Ç superiores as despesas n∆o s∆o mais retiradas do processo de exportaá∆o,
+                pois as despesas do pedido ser∆o utilizadas somente como default para o processo*/
+                &if defined(bf_comex206b-1) &then
+                &else
+                    RUN RetiraProcdespItiner IN h-exapi (INPUT TABLE tt-ped-ent,
+                                                         INPUT de-tot-peso,
+                                                         INPUT de-tot-val,
+                                                         INPUT de-tot-qt,
+                                                         INPUT de-tot-cub-ped,
+                                                         INPUT de-tot-cub-ent,
+                                                         INPUT r-chave).
+                &ENDIF
+                END.
+       &ENDIF  
+               find ped-venda exclusive-lock
+                  where ped-venda.nome-abrev = {&TABLE-NAME}.nome-abrev
+                  and   ped-venda.nr-pedcli  = {&TABLE-NAME}.nr-pedcli no-error.
+               if avail ped-venda then do:
+                      &if defined(bf-dis-comex) &then
+                          assign ped-venda.nr-invoice  = 0.  
+                      &else            
+                          assign ped-venda.nr-invoice  = "".
+                      &endif
+                          
+                      &if defined(bf_dis_proc_ent) &then
+                          assign ped-venda.nr-proc-exp = "".                              
+                      &endif    
+               END.
+               
+               &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                    find first embarque exclusive-lock
+                         where embarque.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp no-error.
+                    if avail embarque then
+                       assign embarque.nr-proc-exp     = ""
+                              embarque.cdn-tip-relacto = 0.
+               &ELSE
+                    find first embarque exclusive-lock
+                         where trim(substring(embarque.char-1,2,12)) = {&TABLE-NAME}.nr-proc-exp no-error.
+                    if avail embarque then
+                         assign overlay(embarque.char-1,2,12) = ""
+                                embarque.int-1                = 0.
+               &ENDIF
+               release embarque.
+                
+               run deleteTable in h-bocx195 (input {&TABLE-NAME}.cod-estabel,
+                                             input {&TABLE-NAME}.nr-proc-exp,
+                                             input {&TABLE-NAME}.nome-abrev,
+                                             input {&TABLE-NAME}.nr-pedcli). 
+               &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+               run getTtBoErro in h-bocx195 (output table tt-bo-erro).
+               find first tt-bo-erro no-lock
+                    where tt-bo-erro.errorSubType <> "WARNING":U no-error.
+               if  not avail tt-bo-erro then do:
+               &endif
+               &if defined(bf_dis_proc_ent) &then
+                 run pi-chama-upc-ExcluiProcessoItiner.
+               &endif
+                 run executeDelete.
+                 
+                &IF DEFINED (bf_comex206b-1) &THEN
+                      find processo-exp where
+                           processo-exp.cod-estabel = c-cod-estab-del and
+                           processo-exp.nr-proc-exp = c-proc-exp-del  exclusive-lock no-error.
+                      if avail processo-exp then do:
+                         assign processo-exp.log-1 = no.
+                      end.
+                &ENDIF
+                 
+               &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+               end.
+               &endif
+       &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+         END.
+       &ENDIF
+
+    end.
+    
+    if l-query then
+       get next {&query-name} no-lock.
+    else       
+       find next {&TABLE-NAME} no-lock no-error.
+    if not avail {&TABLE-NAME} then
+       if l-query then
+          get prev {&query-name} no-lock.
+       else    
+          find prev {&TABLE-NAME} no-lock no-error.
+    assign r-chave = rowid({&TABLE-NAME}).
+
+    &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+        IF AVAIL {&TABLE-NAME} THEN DO:
+            if not valid-handle(h-bocx185) then 
+                RUN cxbo/bocx185.p PERSISTENT SET h-bocx185.
+            RUN AtualizaSituacaoProcesso IN h-bocx185 (INPUT {&TABLE-NAME}.cod-estabel,
+                                                       input {&TABLE-NAME}.nr-proc-exp).
+        END.
+    &ENDIF
+    
+    &IF DEFINED (bf_comex206b-1) &THEN 
+        IF  AVAIL {&TABLE-NAME} THEN DO:
+            if  not valid-handle(h-bocx362) then 
+                RUN cxbo/bocx362.p PERSISTENT SET h-bocx362.
+                
+            RUN VerificaLogPendente IN h-bocx362 (INPUT {&TABLE-NAME}.cod-estabel,
+                                                  input {&TABLE-NAME}.nr-proc-exp).
+            if  RETURN-VALUE = "NOK" THEN DO:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "Pedido_de_Venda" *}
+                run utp/ut-msgs.p (input "msg",
+                                   input 31546,
+                                   input RETURN-VALUE).
+                create tt-bo-erro.
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-2 AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-liter-2 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-pedido-de-venda AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Pedido_de_Venda" *}
+                ASSIGN c-lbl-liter-pedido-de-venda = TRIM(RETURN-VALUE).
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 31546
+                       tt-bo-erro.mensagem     = c-lbl-liter-2
+                       tt-bo-erro.parametro    = c-lbl-liter-pedido-de-venda.
+            END.                                                        
+            DELETE PROCEDURE h-bocx362.          
+        END.
+    &ENDIF
+        
+    return "".
+
+END PROCEDURE.
+ 
+procedure validateCreate:
+    /*
+    **  Valida criaá∆o da tabela/duplicidade de registro.
+    */
+    def input  parameter l-recebe as  logical.
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    def output parameter r-chave as rowid.
+    
+ 
+    run initializeValidate.
+    run startMethod ("validateCreate").
+  
+ 
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+ 
+    find first rowObject 
+        no-lock no-error.
+    
+    find ped-venda no-lock where 
+       ped-venda.nome-abrev = rowObject.nome-abrev and
+       ped-venda.nr-pedcli  = rowObject.nr-pedcli no-error.
+    if avail ped-venda then do:          
+       &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+            /* Pedido de Venda n∆o est† completo */
+            IF ped-venda.completo = NO THEN DO:
+                assign i-seq-erro = i-seq-erro + 1.
+                run utp/ut-msgs.p (input "msg",
+                                   input 7900,
+                                   input "").
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 7900
+                       tt-bo-erro.mensagem     = return-value.
+            END.
+            ELSE DO:
+                find processo-exp no-lock 
+                     where processo-exp.cod-estabel = rowobject.cod-estabel
+                     and   processo-exp.nr-proc-exp = rowobject.nr-proc-exp no-error.
+                FOR EACH  ped-venda-desp NO-LOCK
+                    WHERE ped-venda-desp.nome-abrev   = ped-venda.nome-abrev 
+                    AND   ped-venda-desp.nr-pedcli    = ped-venda.nr-pedcli,
+                    FIRST desp-imp NO-LOCK
+                    WHERE desp-imp.cod-desp = ped-venda-desp.cdn-despes
+                    AND   desp-imp.tipo     = 9:
+                    &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+                        IF processo-exp.volume-inf = 0 THEN DO:
+                    &else
+                        IF processo-exp.dec-1 = 0 THEN DO:
+                    &endif
+                            assign i-seq-erro = i-seq-erro + 1.
+                            /* Inicio -- Projeto Internacional */
+                            {utp/ut-liter.i "Volume_do_Processo_de_Exportaá∆o_n∆o_pode_estar_zerado" *}
+                            run utp/ut-msgs.p (input "msg",
+                                               input 25997,
+                                               input RETURN-VALUE).
+                            create tt-bo-erro.
+                            assign tt-bo-erro.i-sequen     = i-seq-erro
+                                   tt-bo-erro.cd-erro      = 25997
+                                   tt-bo-erro.mensagem     = return-value.
+                            LEAVE.
+                        END.
+                END.
+            END.
+            IF NOT CAN-FIND(FIRST tt-bo-erro NO-LOCK
+                            WHERE tt-bo-erro.errorSubType <> "WARNING":U) THEN
+       &ENDIF
+                assign rowObject.nr-pedido = ped-venda.nr-pedido.
+    end.
+    &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+    IF NOT CAN-FIND(FIRST tt-bo-erro where
+                          tt-bo-erro.errorsubtype <> "warning":U) THEN DO:
+    &ENDIF
+        run ValidateCriaRelacao (input l-recebe,
+                                 input  table RowObject,
+                                 output table tt-bo-erro,
+                                 output r-chave,
+                                 input  yes).
+        run endMethod ("validateCreate").
+    
+        /*
+        find first proc-ped-venda where proc-ped-venda.nr-pedido = rowObject.nr-pedido no-error.
+        */
+        find proc-ped-venda 
+             where proc-ped-venda.cod-estabel = rowObject.cod-estabel
+             and   proc-ped-venda.nr-proc-exp = rowObject.nr-proc-exp 
+             and   proc-ped-venda.nr-pedido   = rowObject.nr-pedido no-lock no-error.
+    &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+    END.
+    &ENDIF
+end procedure.
+
+PROCEDURE validarecebevariavelbodi317efm04:
+
+def input parameter p-recebe-bodi317efm04 as logical no-undo.
+
+assign l-recebe-bodi317efm04 = p-recebe-bodi317efm04.
+
+end procedure.
+
+PROCEDURE validateCriaRelacao.
+    def input  parameter l-recebe as  logical.
+    def input  parameter table    for RowObject. 
+    def output parameter table    for tt-bo-erro.
+    def output parameter r-chave  as  rowid.    
+    def input  parameter l-fields as  log.     
+    
+    def var r-chave-aux   as rowid   no-undo.
+    def var l-prim-pedido as logical no-undo.
+    def var i-idi-unid-fatur as int  no-undo.
+    def var c-un-fatur       as char no-undo.
+    def var de-quantidade    as dec  no-undo.
+
+    DEF VAR de-volume-inf  AS DEC    NO-UNDO.
+    
+    empty temp-table tt-bo-erro no-error.
+    find first rowObject exclusive-lock no-error.
+    if l-fields then do:
+        run validateFields.        
+    end. /* if l-fields ... */ 
+    
+    &if defined(bf_dis_proc_ent) &then
+        if not rowobject.log-1 then do:
+           for each tt-epc 
+               where tt-epc.cod-event = "VALID-PEDIDO": 
+               delete tt-epc. 
+           end. 
+           {include/i-epc200.i2 &CodEvent='"VALID-PEDIDO"'
+                                &CodParameter='"TABLE-FIELDS"'
+                                &ValueParameter=string(rowobject.nr-pedido) }
+           {include/i-epc201.i "VALID-PEDIDO"}
+           for each tt-epc no-lock 
+              where tt-epc.cod-event = "VALID-PARAMETER":
+              assign i-seq-erro = i-seq-erro + 1.
+              run utp/ut-msgs.p (input "msg",
+                                 input int(substring(tt-epc.val-parameter,1,5)),
+                                 input substring(tt-epc.val-parameter,6,11)).
+              create tt-bo-erro.
+              assign tt-bo-erro.i-sequen  = i-seq-erro
+                     tt-bo-erro.cd-erro   = int(substring(tt-epc.val-parameter,1,5))
+                     tt-bo-erro.mensagem  = return-value.
+           end.        
+           
+        end.
+        
+    &endif
+    
+    
+    &if defined(bf_dis_proc_ent) &then
+        assign c-cod-estabel = rowobject.cod-estabel
+               c-nr-proc-exp = rowobject.nr-proc-exp
+               c-nr-pedido   = rowobject.nr-pedido.
+        {cxbo/bocx190.i2}
+        find first tt-epc no-lock 
+             where tt-epc.cod-event = "VALID-PROCESS" 
+               AND tt-epc.cod-parameter = "NOT-VALIDATE" no-error.
+        if not avail tt-epc then do: 
+    &endif
+    
+
+    find proc-ped-venda 
+         where proc-ped-venda.cod-estabel = rowObject.cod-estabel
+         and   proc-ped-venda.nr-proc-exp = rowObject.nr-proc-exp 
+         and   proc-ped-venda.nr-pedido   = rowObject.nr-pedido no-lock no-error.
+    if avail proc-ped-venda then do:
+          if l-recebe-bodi317efm04 = no then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+                   pre-processador em chamada de includes */
+                {utp/ut-table.i mgcex proc-ped-venda 1}
+                /******************************************/
+                run utp/ut-msgs.p (input "msg",
+                                   input 8,
+                                   input return-value).
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 8
+                       tt-bo-erro.mensagem     = return-value.
+          end.     
+    end.
+    else
+       assign l-not-achou-proc-ped-venda = yes.
+    
+    &if defined(bf_dis_proc_ent) &then
+        end.       
+        
+    &endif
+
+    find processo-exp no-lock 
+         where processo-exp.cod-estabel = rowobject.cod-estabel
+         and   processo-exp.nr-proc-exp = rowobject.nr-proc-exp no-error.
+
+    &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+        assign l-prim-pedido = yes.
+        
+        find first param-exp
+             where param-exp.cod-estabel = rowObject.cod-estabel no-lock no-error.    
+        
+        find first proc-ped-venda no-lock
+             where proc-ped-venda.cod-estabel = rowObject.cod-estabel
+               and proc-ped-venda.nr-proc-exp = rowObject.nr-proc-exp no-error.
+        if  avail proc-ped-venda then do:
+            assign l-prim-pedido = no.
+            if  not avail ped-venda 
+                or  ped-venda.nome-abrev <> rowObject.nome-abrev
+                or  ped-venda.nr-pedcli  <> rowObject.nr-pedcli then
+                find FIRST ped-venda no-lock 
+                     where ped-venda.nome-abrev = rowObject.nome-abrev 
+                     AND   ped-venda.nr-pedcli  = rowObject.nr-pedcli no-error.
+            if  avail ped-venda then do:         
+                if  avail processo-exp and
+                    ped-venda.cod-cond-pag <> processo-exp.cod-cond-pagto then do:
+                    assign i-seq-erro = i-seq-erro + 1.
+                          
+                    if avail param-exp and 
+                       (SUBSTRING(param-exp.char-1,22,1) = "1" or SUBSTRING(param-exp.char-1,22,1) = "") then do: 
+                        run utp/ut-msgs.p (input "msg",
+                                           input 31611,
+                                           input "").
+                        create tt-bo-erro.
+                        assign tt-bo-erro.i-sequen     = i-seq-erro
+                               tt-bo-erro.cd-erro      = 31611
+                               tt-bo-erro.errorSubType = "WARNING":U
+                               tt-bo-erro.mensagem     = return-value.
+                    end.                   
+                    else do:
+                        run utp/ut-msgs.p (input "msg",
+                                           input 30333,
+                                           input "").
+                        create tt-bo-erro.
+                        assign tt-bo-erro.i-sequen = i-seq-erro                   
+                               tt-bo-erro.cd-erro  = 30333
+                               tt-bo-erro.mensagem = return-value.                                                                                       
+                    end.
+                end.
+                ELSE do: 
+                    IF  ped-venda.cod-cond-pag = 0 AND processo-exp.cod-cond-pagto = 0 THEN DO:
+                        
+                        if avail param-exp and SUBSTRING(param-exp.char-1,22,1) = "2" then do: 
+                            assign i-seq-erro = i-seq-erro + 1.
+                            run utp/ut-msgs.p (input "msg",
+                                               input 30334,
+                                               input "").
+                            create tt-bo-erro.
+                            assign tt-bo-erro.i-sequen     = i-seq-erro
+                                   tt-bo-erro.cd-erro      = 30334
+                                   tt-bo-erro.mensagem     = return-value.
+                        end.
+                    END.
+                end.    
+            end.
+        end.
+
+        if l-prim-pedido then do:
+            if  not avail ped-venda 
+                or  ped-venda.nome-abrev <> rowObject.nome-abrev
+                or  ped-venda.nr-pedcli  <> rowObject.nr-pedcli then
+                find FIRST ped-venda no-lock 
+                     where ped-venda.nome-abrev = rowObject.nome-abrev 
+                     AND   ped-venda.nr-pedcli  = rowObject.nr-pedcli no-error.
+            if  avail processo-exp and avail(ped-venda) and
+                ped-venda.cod-cond-pag <> processo-exp.cod-cond-pagto then do:
+                assign i-seq-erro = i-seq-erro + 1.
+
+                if avail param-exp and (SUBSTRING(param-exp.char-1,22,1) = "1" or SUBSTRING(param-exp.char-1,22,1) = "") then do: 
+                    run utp/ut-msgs.p (input "msg",
+                                       input 31611,
+                                       input "").
+                    create tt-bo-erro.
+                    assign tt-bo-erro.i-sequen     = i-seq-erro
+                           tt-bo-erro.cd-erro      = 31611
+                           tt-bo-erro.errorSubType = "WARNING":U
+                           tt-bo-erro.mensagem     = return-value.
+                end.                   
+                else do:
+                    run utp/ut-msgs.p (input "msg",
+                                       input 30333,
+                                       input "").
+                    create tt-bo-erro.
+                    assign tt-bo-erro.i-sequen = i-seq-erro                   
+                           tt-bo-erro.cd-erro  = 30333
+                           tt-bo-erro.mensagem = return-value.                                                                                       
+                end.
+            end. 
+        end.
+    &ENDIF
+
+    find first tt-bo-erro where
+               tt-bo-erro.errorsubtype <> "warning":U no-lock no-error.
+    if not avail tt-bo-erro then do:
+       run executeCreate (input  l-recebe, 
+                          output table tt-bo-erro-aux1,
+                          OUTPUT r-proc-ped-venda).
+
+    for each tt-bo-erro-aux1:
+        create tt-bo-erro.
+        buffer-copy tt-bo-erro-aux1 to tt-bo-erro.
+    end.
+    
+    &IF DEFINED (bf_comex206b-1) &THEN
+          find proc-ped-venda exclusive-lock 
+               where rowid(proc-ped-venda) = r-proc-ped-venda no-error.
+          if not avail proc-ped-venda then return.
+
+          find processo-exp where
+               processo-exp.cod-estabel = {&TABLE-NAME}.cod-estabel and
+               processo-exp.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp exclusive-lock no-error.
+          if avail processo-exp then
+             assign processo-exp.log-1 = no.
+    &ENDIF                          
+
+       assign r-chave = r-proc-ped-venda.
+       
+       &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+       IF NOT CAN-FIND(FIRST tt-bo-erro where
+                             tt-bo-erro.errorsubtype <> "warning":U) THEN DO:
+
+          IF l-recebe THEN DO:
+               find ped-venda no-lock 
+                    where ped-venda.nome-abrev = rowObject.nome-abrev 
+                    AND   ped-venda.nr-pedcli  = rowObject.nr-pedcli no-error.
+               IF AVAIL ped-venda THEN DO:
+                   ASSIGN de-tot-peso    = 0
+                          de-tot-val     = 0
+                          de-tot-qt      = 0
+                          de-tot-cub-ped = 0
+                          de-tot-cub-ent = 0.
+                   if not valid-handle(h-exapi) then 
+                       RUN exp/exapi010.p PERSISTENT SET h-exapi.
+                   FOR EACH  b-ped-ent 
+                       WHERE b-ped-ent.nome-abrev  = rowObject.nome-abrev
+                       AND   b-ped-ent.nr-pedcli   = rowObject.nr-pedcli                        
+                       &if defined(bf_comex206b-1) = 0 &then /* N∆o Ç ambiente hibrido COMEX200 */
+                       AND   b-ped-ent.nr-proc-exp = rowobject.nr-proc-exp  
+                       &endif
+                       NO-LOCK:
+                       
+                       FOR EACH tt-ped-ent EXCLUSIVE-LOCK.
+                           DELETE tt-ped-ent.
+                       END.
+                       CREATE tt-ped-ent.
+                       BUFFER-COPY b-ped-ent TO tt-ped-ent.
+
+                       &if defined(bf_comex206b-1) &then
+
+                           find first tt-ped-ent no-error.
+                           
+                           for first proc-ped-ent  
+                                where proc-ped-ent.cod-estabel  = {&TABLE-NAME}.cod-estabel
+                                  and proc-ped-ent.nr-proc-exp  = {&TABLE-NAME}.nr-proc-exp
+                                  and proc-ped-ent.nome-abrev   = b-ped-ent.nome-abrev
+                                  and proc-ped-ent.nr-pedcli    = b-ped-ent.nr-pedcli
+                                  and proc-ped-ent.nr-sequencia = b-ped-ent.nr-sequencia
+                                  and proc-ped-ent.it-codigo    = b-ped-ent.it-codigo
+                                  and proc-ped-ent.cod-refer    = b-ped-ent.cod-refer
+                                  and proc-ped-ent.nr-entrega   = b-ped-ent.nr-entrega no-lock : end.
+                           if avail proc-ped-ent then do:
+                                assign tt-ped-ent.qt-pedida = proc-ped-ent.quantidade[1].
+                                
+                                FOR FIRST ped-item  NO-LOCK
+                                    WHERE ped-item.nome-abrev    = proc-ped-ent.nome-abrev    
+                                      AND ped-item.nr-pedcli     = proc-ped-ent.nr-pedcli     
+                                      AND ped-item.nr-sequencia  = proc-ped-ent.nr-sequencia  
+                                      AND ped-item.it-codigo     = proc-ped-ent.it-codigo     
+                                      AND ped-item.cod-refer     = proc-ped-ent.cod-refer :  END.
+                                IF AVAIL ped-item THEN DO:
+                                    IF ped-item.ind-fat-qtfam THEN DO:                   
+                                        RUN converteQtdUnMedidaClienteFamilia IN h-bocx195 (INPUT  proc-ped-ent.it-codigo,
+                                                                                            INPUT  proc-ped-ent.nome-abrev,
+                                                                                            INPUT  proc-ped-ent.idi-unid-fatur,
+                                                                                            INPUT  proc-ped-ent.quantidade[1],
+                                                                                            &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN 
+                                                                                                input ped-item.des-un-medida,
+                                                                                            &endif
+                                                                                            OUTPUT de-quantidade,
+                                                                                            OUTPUT c-un-fatur).            
+                                        
+                                        ASSIGN tt-ped-ent.vl-tot-it = (de-quantidade * ped-item.vl-preuni).
+                                    END.    
+                                    ELSE                                 
+                                        ASSIGN tt-ped-ent.vl-tot-it = (proc-ped-ent.quantidade[1] * ped-item.vl-preuni).
+                                END.                                    
+                           end.
+
+                           {exp/exapi010.i2 tt-ped-ent} 
+                       &else
+                           {exp/exapi010.i1 tt-ped-ent}
+                       &endif
+
+                       assign de-volume-inf = de-tot-cub-ent.
+
+                       RUN AdicionaProcdespItiner IN h-exapi (INPUT TABLE tt-ped-ent,
+                                                              INPUT de-tot-peso,
+                                                              INPUT de-tot-val,
+                                                              INPUT de-tot-qt,
+                                                              INPUT de-tot-cub-ped,
+                                                              INPUT de-tot-cub-ent,
+                                                              INPUT r-chave).
+                                                              
+                   END.
+    
+                   FOR FIRST processo-exp WHERE
+                             processo-exp.cod-estabel = {&TABLE-NAME}.cod-estabel AND
+                             processo-exp.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp EXCLUSIVE-LOCK:
+                             
+                       FIND FIRST ped-venda-cex WHERE
+                                  ped-venda-cex.nome-abrev = ped-venda.nome-abrev AND
+                                  ped-venda-cex.nr-pedcli  = ped-venda.nr-pedcli NO-LOCK NO-ERROR.
+                                  
+                       IF  AVAIL ped-venda-cex THEN DO:
+                           &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+                               if  ped-venda-cex.volume = 0 then do:
+                                   if  processo-exp.volume-inf = 0 then
+                                       assign processo-exp.volume-inf = de-volume-inf.
+                               END.
+                           &ELSE
+                               if  ped-venda-cex.dec-1 = 0 then do:
+                                   if  processo-exp.dec-1 = 0 then
+                                       assign processo-exp.dec-1 = de-volume-inf.               
+                                   ASSIGN processo-exp.volume = processo-exp.dec-1.
+                               end.
+                               else do:
+                                   if  processo-exp.dec-1 = 0 then
+                                      assign processo-exp.dec-1 = ped-venda-cex.dec-1.
+                                   ASSIGN processo-exp.volume = processo-exp.dec-1.
+                               end.
+                           &ENDIF
+                       END.
+                   end.
+               END.
+          END.
+          
+          if not valid-handle(h-bocx185) then 
+              RUN cxbo/bocx185.p PERSISTENT SET h-bocx185.
+          RUN AtualizaSituacaoProcesso IN h-bocx185 (INPUT {&TABLE-NAME}.cod-estabel,
+                                                     INPUT {&TABLE-NAME}.nr-proc-exp).
+       END.
+       &ENDIF  
+
+
+       /****** retirado porque na exportaá∆o n∆o trata tabela de preáo ***]
+       if not valid-handle(h-bocx205) then 
+           run cxbo/bocx205.p persistent set h-bocx205.
+       run recalcula in h-bocx205 (input rowobject.cod-estabel, input rowobject.nr-proc-exp, input processo-exp.cod-itiner, output table tt-bo-erro).
+       **************/
+    end.
+   
+    
+END PROCEDURE.
+
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+    find first rowObject
+        no-lock no-error.
+
+    run startMethod ("validateFields").
+    if  p-relaciona-nota-embarque-ex0190 = no then do:
+        run exp/exapi005.p(input table rowObject, output table tt-bo-erro).
+    end.
+    else do:
+        run exp/exapi019.p(input table rowObject, output table tt-bo-erro).
+    end.
+    
+    if rowObject.cod-emitente = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex {&table-name} cod-emitente 1}
+        /******************************************/
+        assign c-return-msg = return-value.
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.parametros   = c-return-msg.
+    end.
+ 
+    if rowObject.cod-estabel = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-ped-venda cod-estabel 1}
+        /******************************************/
+        assign c-return-msg = return-value.
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.parametros   = c-return-msg.
+    end.
+ 
+    if rowObject.nr-pedcli = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-ped-venda nr-pedcli 1}
+        /******************************************/
+        assign c-return-msg = return-value.
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.parametros   = c-return-msg.
+    end.
+ 
+    if rowObject.nr-pedido = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-ped-venda nr-pedido 1}
+        /******************************************/
+        assign c-return-msg = return-value.
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.parametros   = c-return-msg.
+    end.
+ 
+    if rowObject.nr-proc-exp = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-ped-venda nr-proc-exp 1}
+        /******************************************/
+        assign c-return-msg = return-value.
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.parametros   = c-return-msg.
+    end.
+    
+
+    find first tt-bo-erro no-error.
+    if not avail tt-bo-erro then do:
+    &if defined(bf_dis_proc_ent) &then
+        assign c-cod-estabel = rowobject.cod-estabel
+               c-nr-proc-exp = rowobject.nr-proc-exp
+               c-nr-pedido   = rowobject.nr-pedido.
+        {cxbo/bocx190.i2}
+        find first tt-epc no-lock 
+             where (tt-epc.cod-event = "VALID-PROCESS"
+                or  tt-epc.cod-event = "VALID-PEDIDO")
+                AND tt-epc.cod-parameter = "NOT-VALIDATE" no-error.
+        if not avail tt-epc then do: 
+    &endif
+    if not l-recebe-bodi317efm04 then do:
+        find ped-venda no-lock where 
+             ped-venda.nome-abrev = RowObject.nome-abrev and
+             ped-venda.nr-pedcli  = RowObject.nr-pedcli no-error.
+        if avail ped-venda then do:
+           find first ped-ent no-lock where ped-ent.nr-pedcli = ped-venda.nr-pedcli and
+                      ped-ent.nome-abrev  = ped-venda.nome-abrev 
+                      &if defined(bf_dis_proc_ent) &then
+                         and ped-ent.nr-proc-exp = ""   
+                      &endif no-error. 
+           if not avail ped-ent then do:
+              assign i-seq-erro = i-seq-erro + 1.
+              run utp/ut-msgs.p (input "msg",
+                                 input 19073,
+                                 input string(rowObject.nr-pedido)).
+              create tt-bo-erro.
+              assign tt-bo-erro.i-sequen = i-seq-erro
+                     tt-bo-erro.cd-erro  = 19073
+                     tt-bo-erro.mensagem = return-value.
+           end.
+        end.     
+    end.    
+    &if defined(bf_dis_proc_ent) &then
+        end.
+    &endif
+     
+    end.       
+         
+    run endMethod ("validateFields").
+end procedure.
+
+PROCEDURE initializeFields:
+
+   /** Inicializa campos da tela **/
+      
+END PROCEDURE.
+
+PROCEDURE executeCreate:
+
+    /**  Cria registro na tabela.*/
+    def input parameter l-recebe as logical.          
+    def output parameter table for tt-bo-erro-aux.     
+    DEF OUTPUT PARAMETER pr-proc-ped-venda AS ROWID NO-UNDO.
+    
+    find ped-venda exclusive-lock 
+         where ped-venda.nome-abrev  = rowObject.nome-abrev
+         and   ped-venda.nr-pedcli   = rowObject.nr-pedcli no-error.
+    if avail ped-venda then  
+       assign rowObject.nr-pedido = ped-venda.nr-pedido.               
+    
+
+    &if defined(bf_dis_proc_ent) &then
+        assign c-cod-estabel = rowobject.cod-estabel
+               c-nr-proc-exp = rowobject.nr-proc-exp
+               c-nr-pedido   = rowobject.nr-pedido.
+        {cxbo/bocx190.i2}
+        find first tt-epc no-lock 
+             where  tt-epc.cod-event = "VALID-PEDIDO"
+                AND tt-epc.cod-parameter = "NOT-VALIDATE" no-error.
+        if not avail tt-epc then do: 
+    &endif 
+       if l-not-achou-proc-ped-venda then do:
+          create {&TABLE-NAME}.
+          buffer-copy RowObject except r-rowid to {&TABLE-NAME}.
+          ASSIGN pr-proc-ped-venda = ROWID({&TABLE-NAME}).
+       end.
+    &if defined(bf_dis_proc_ent) &then
+        END.
+        
+    &endif
+        
+    &IF '{&ems_dbtype}' <> 'progress' &THEN 
+        FIND FIRST proc-ped-venda WHERE 
+                   proc-ped-venda.cod-estabel = rowobject.cod-estabel AND
+                   proc-ped-venda.nr-proc-exp = rowobject.nr-proc-exp  AND
+                   proc-ped-venda.nr-pedido = rowobject.nr-pedido NO-LOCK NO-ERROR.
+        ASSIGN pr-proc-ped-venda = ROWID(proc-ped-venda).
+    &endif
+    if l-recebe then do:
+       if not valid-handle(h-bocx195) then
+           run cxbo/bocx195.p persistent set h-bocx195.
+       run GenerateTable in h-bocx195 (input table rowObject, output table tt-bo-erro-aux).
+    end.         
+    
+    &IF DEFINED(bf_comex206b-1) &THEN    
+        if not l-recebe then 
+            empty temp-table tt-bo-erro-aux.
+
+        /* Se ocorreu erros no procedimento anterior, devesse preservar a tt-bo-erro-aux */
+        if not can-find (first tt-bo-erro-aux) then 
+    &ENDIF
+    run exp/exapi007.p (input table rowObject, output table tt-bo-erro-aux).
+    
+    &if defined(bf_dis_proc_ent) &then
+      run pi-chama-upc-IncluiProcessoItiner.
+    &endif
+
+    return string(rowid({&TABLE-NAME})).
+    
+END PROCEDURE.
+
+PROCEDURE GenerateTable.
+    def input  parameter l-recebe as  logical.
+    def input  parameter table    for RowObject.
+    def output parameter table    for tt-bo-erro.
+    def output parameter r-chave  as rowid.
+
+ 
+    run initializeValidate.
+ 
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+    run ValidateCriaRelacao (input  l-recebe,
+                             input  table RowObject,
+                             output table tt-bo-erro,
+                             output r-chave,
+                             input  no).
+      
+    find first proc-ped-venda no-lock where 
+      proc-ped-venda.nr-proc-exp = rowObject.nr-proc-exp no-error.
+    
+END PROCEDURE.
+
+
+
+PROCEDURE executeUpdate:
+
+    /**  Executa Update*/
+    buffer-copy RowObject except r-rowid nr-proc-exp to {&TABLE-NAME}.
+
+END PROCEDURE.
+ 
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+ 
+    run startMethod ("initializeValidade").
+
+    run endMethod   ("initializeValidade").
+end procedure.
+
+
+PROCEDURE deleteTable:
+
+     def input parameter p-cod-estabel like proc-ped-venda.cod-estabel. 
+     def input parameter p-nr-proc-exp like proc-ped-venda.nr-proc-exp.
+     
+     def var r-rowid  as rowid no-undo.
+     
+     for each proc-ped-venda exclusive-lock
+         where proc-ped-venda.cod-estabel = p-cod-estabel
+         and   proc-ped-venda.nr-proc-exp = p-nr-proc-exp:
+         assign r-rowid = rowid(proc-ped-venda).
+         run validateDelete (input-output r-rowid, output table tt-bo-erro) .
+     end.
+
+END PROCEDURE.
+
+procedure findPk_proc_pedvenda:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter c-cod-estabel as char no-undo.
+    def input parameter c-nr-proc-exp as char no-undo.
+    def input parameter i-nr-pedido   as inte no-undo.
+    def output parameter c-return     as char no-undo.
+ 
+    find proc-ped-venda where
+        proc-ped-venda.cod-estabel = c-cod-estabel
+        and proc-ped-venda.nr-proc-exp = c-nr-proc-exp
+        and proc-ped-venda.nr-pedido = i-nr-pedido
+        no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex proc-ped-venda 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+end procedure.
+ 
+ 
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+ 
+    case c-field:
+        when "char-1"       then c-value = RowObject.char-1.
+        when "char-2"       then c-value = RowObject.char-2.
+        when "check-sum"    then c-value = RowObject.check-sum.
+        when "cod-estabel"  then c-value = RowObject.cod-estabel.
+        when "nome-abrev"   then c-value = RowObject.nome-abrev.
+        when "nr-pedcli"    then c-value = RowObject.nr-pedcli.
+        when "nr-proc-exp"  then c-value = RowObject.nr-proc-exp.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+ 
+    case c-field:
+        when "dec-1" then c-value = RowObject.dec-1.
+        when "dec-2" then c-value = RowObject.dec-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+ 
+    case c-field:
+        when "cod-emitente" then c-value = RowObject.cod-emitente.
+        when "int-1" then c-value = RowObject.int-1.
+        when "int-2" then c-value = RowObject.int-2.
+        when "nr-pedido" then c-value = RowObject.nr-pedido.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+ 
+    case c-field:
+        when "data-1" then c-value = RowObject.data-1.
+        when "data-2" then c-value = RowObject.data-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+ 
+    case c-field:
+        when "log-1" then c-value = RowObject.log-1.
+        when "log-2" then c-value = RowObject.log-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure posicionaPedVenda.
+/* procedimento criado para posicionar a tabela proc-ped-vend pelo rowid do processo 
+   e atualizar  a tt-proc-ped-venda-aux usada no programa ex0190b */
+  define input  parameter r-chave as rowid.
+  define output parameter table for tt-proc-ped-venda-aux.
+
+    find proc-ped-venda where rowid(proc-ped-venda) = r-chave no-lock no-error.
+    if avail proc-ped-venda then do:
+       find first tt-proc-ped-venda-aux where
+          tt-proc-ped-venda-aux.cod-estabel = proc-ped-venda.cod-estabel and
+          tt-proc-ped-venda-aux.nr-proc-exp = proc-ped-venda.nr-proc-exp and
+          tt-proc-ped-venda-aux.nr-pedido   = proc-ped-venda.nr-pedido
+          no-lock no-error.
+       if not avail tt-proc-ped-venda-aux then   
+          create tt-proc-ped-venda-aux.
+       assign tt-proc-ped-venda-aux.cod-estabel = proc-ped-venda.cod-estabel
+              tt-proc-ped-venda-aux.nr-proc-exp = proc-ped-venda.nr-proc-exp
+              tt-proc-ped-venda-aux.nr-pedido   = proc-ped-venda.nr-pedido
+              tt-proc-ped-venda-aux.r-rowid     = r-chave.
+        
+    end.        
+end.
+
+procedure validaPedVendaCex:
+   def input  param c-nome-abrev  as char no-undo.
+   def input  param c-nr-pedcli   as char no-undo.
+   def input  param c-nr-proc-exp as char no-undo.
+   def output param l-def as log no-undo.
+   def output param table for tt-bo-erro.
+   
+   for each tt-bo-erro:
+      delete tt-bo-erro.
+   end.
+   
+   assign l-def = no.
+   FIND FIRST ped-venda-cex 
+        WHERE ped-venda-cex.nome-abrev = c-nome-abrev 
+          AND ped-venda-cex.nr-pedcli  = c-nr-pedcli NO-LOCK NO-ERROR.
+
+   FIND FIRST ped-venda
+       WHERE ped-venda.nr-pedido = ped-venda-cex.nr-pedido NO-LOCK NO-ERROR.
+
+   FIND FIRST processo-exp 
+        WHERE processo-exp.nr-proc-exp = c-nr-proc-exp 
+          AND processo-exp.cod-estabel = ped-venda.cod-estabel NO-LOCK NO-ERROR.
+
+   IF  AVAIL processo-exp 
+   AND AVAIL ped-venda-cex THEN DO:
+      if (processo-exp.cod-idioma   <> ped-venda-cex.cod-idioma) or 
+         (processo-exp.cod-itiner   <> ped-venda-cex.cod-itiner) or
+         (processo-exp.cod-incoterm <> ped-venda-cex.cod-incoterm) then  do:
+          assign l-def      =  yes
+                 i-seq-erro =  i-seq-erro + 1.
+          run utp/ut-msgs.p (input "msg",
+                             input 26185,
+                             input return-value).
+          create tt-bo-erro.
+          assign tt-bo-erro.i-sequen = i-seq-erro
+                 tt-bo-erro.cd-erro  = 26185
+                 tt-bo-erro.mensagem = return-value.
+      end.   
+   end.      
+   
+   &if defined(bf-dis-comex) &then
+            find first proc-ped-venda where
+                       proc-ped-venda.nome-abrev = c-nome-abrev and
+                       proc-ped-venda.nr-pedcli  = c-nr-pedcli no-lock no-error.
+        
+            if avail proc-ped-venda then do:
+                  assign i-seq-erro =  i-seq-erro + 1.                 
+                  
+                  run utp/ut-msgs.p (input "msg",
+                                     input 27079,
+                                     input proc-ped-venda.nr-proc-exp).
+                  create tt-bo-erro.
+                  assign tt-bo-erro.i-sequen = i-seq-erro
+                         tt-bo-erro.cd-erro  = 27079
+                         tt-bo-erro.mensagem = return-value.                 
+            end.
+   &else 
+        &IF DEFINED(BF_DIS_VERSAO_EMS) &THEN                
+            &IF '{&BF_DIS_VERSAO_EMS}' >= '2.04' &THEN                
+            &else
+                 find first proc-ped-venda where
+                            proc-ped-venda.nome-abrev = c-nome-abrev and
+                            proc-ped-venda.nr-pedcli  = (c-nr-pedcli) no-lock no-error.
+             
+                 if avail proc-ped-venda then do:
+                       assign i-seq-erro =  i-seq-erro + 1.                 
+                       
+                       run utp/ut-msgs.p (input "msg",
+                                          input 27079,
+                                          input proc-ped-venda.nr-proc-exp).
+                       create tt-bo-erro.
+                       assign tt-bo-erro.i-sequen = i-seq-erro
+                              tt-bo-erro.cd-erro  = 27079
+                              tt-bo-erro.mensagem = return-value.                 
+                 end.
+            &endif
+        &endif
+   &endif
+end procedure.
+
+procedure pi-chama-upc-IncluiProcessoItiner:
+ &if defined(bf_dis_proc_ent) &then
+    /*&if '{&ems_dbtype}' = 'progress' &then */
+        /* Include i-epc200.i2: Criaªío de registro para temp-table tt-epc */
+        {include/i-epc200.i2 &CodEvent='"IncluiProcessoItiner"'
+                             &CodParameter='"rowid-proc-ped-venda"'
+                             &ValueParameter="string(rowid({&TABLE-NAME}))"}
+        
+        /* Include i-epc201.i: Chamada do programa de EPC */
+        {include/i-epc201.i "IncluiProcessoItiner"}
+    /*&endif.    */
+ &endif    
+end procedure.
+
+procedure pi-chama-upc-ExcluiProcessoItiner:
+  &if defined(bf_dis_proc_ent) &then
+    /*&if '{&ems_dbtype}' = 'progress' &then */
+        /* Include i-epc200.i2: Criaªío de registro para temp-table tt-epc */
+        {include/i-epc200.i2 &CodEvent='"ExcluiProcessoItiner"'
+                             &CodParameter='"rowid-proc-ped-venda"'
+                             &ValueParameter="string(rowid({&TABLE-NAME}))"}
+        
+        /* Include i-epc201.i: Chamada do programa de EPC */
+        {include/i-epc201.i "ExcluiProcessoItiner"}
+   /* &endif    */
+  &endif    
+end procedure.
+
+PROCEDURE verif-existe-proc-ped-venda:
+
+    &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+    /* Verifica se j† existe Processo de Exportaá∆o para o Pedido de Venda
+       Retornando a valor l¢gico e se existir e o N£mero do Processo */
+    def input parameter p-cod-estabel  like proc-ped-venda.cod-estabel no-undo.
+    DEF INPUT PARAMETER p-nr-pedido    LIKE proc-ped-venda.nr-pedido   NO-UNDO.
+    def OUTPUT parameter p-nr-proc-exp like proc-ped-venda.nr-proc-exp no-undo.
+    def output parameter p-existe-proc AS LOGICAL NO-UNDO.
+ 
+    find first proc-ped-venda 
+         where proc-ped-venda.nr-pedido   = p-nr-pedido
+         and   proc-ped-venda.cod-estabel = p-cod-estabel no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        ASSIGN p-existe-proc = NO
+               p-nr-proc-exp = "".
+    end.
+    ELSE DO:
+        ASSIGN p-existe-proc = YES
+               p-nr-proc-exp = proc-ped-venda.nr-proc-exp.
+    END.
+    &endif 
+   
+END PROCEDURE.
+
+PROCEDURE verif-existe-proc-ped-ent:
+
+    &IF "{&bf_dis_versao_ems}" >= "2.04" &THEN
+    
+    /* Verifica se j† existe Proc-ped-ent para o proc-ped-venda,
+       Caso n∆o exista o Pedido de venda Ç desvinculado do processo */
+    DEF input parameter r-chave   as rowid no-undo.
+ 
+    FIND FIRST {&TABLE-NAME} 
+         WHERE ROWID({&TABLE-NAME}) = r-chave EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAIL {&TABLE-NAME} THEN DO:
+        IF NOT CAN-FIND(FIRST proc-ped-ent NO-LOCK
+                        WHERE proc-ped-ent.cod-estabel = {&TABLE-NAME}.cod-estabel
+                        AND   proc-ped-ent.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp
+                        AND   proc-ped-ent.nome-abrev  = {&TABLE-NAME}.nome-abrev
+                        AND   proc-ped-ent.nr-pedcli   = {&TABLE-NAME}.nr-pedcli) THEN DO:
+            
+            find FIRST ped-venda exclusive-lock
+                 where ped-venda.nome-abrev = {&TABLE-NAME}.nome-abrev
+                 and   ped-venda.nr-pedcli  = {&TABLE-NAME}.nr-pedcli no-error.
+            if avail ped-venda THEN
+                assign ped-venda.nr-proc-exp = ""
+                       ped-venda.nr-invoice  = "".          
+            
+        END.
+    END.
+    &ENDIF
+END PROCEDURE.
+
+
+procedure destroy:
+
+    if valid-handle(h-bocx195) then do:
+        delete procedure h-bocx195.
+        assign h-bocx195 = ?.
+    end.
+    if valid-handle(h-exapi) then do:
+        delete procedure h-exapi.
+        assign h-exapi = ?.
+    end.
+    if valid-handle(h-bocx185) then do:
+        delete procedure h-bocx185.
+        assign h-bocx185 = ?.
+    end.
+    if valid-handle(h-bocx205) then do:
+        delete procedure h-bocx205.
+        assign h-bocx205 = ?.
+    end.
+
+    delete procedure this-procedure.
+    
+end procedure.
+
+PROCEDURE VerificaQtdeProcExp:
+   def input  param p-c-nome-abrev      like ped-ent.nome-abrev   no-undo.
+   def input  param p-c-nr-pedcli       like ped-ent.nr-pedcli    no-undo.
+   def output param i-cont-proc-exp-aux as   integer              no-undo.
+   
+
+   for each proc-ped-venda fields(log-1)
+      where proc-ped-venda.nome-abrev = p-c-nome-abrev
+        and proc-ped-venda.nr-pedcli  = p-c-nr-pedcli no-lock:
+        
+          assign i-cont-proc-exp-aux = i-cont-proc-exp-aux + 1.
+   end.
+
+
+END PROCEDURE.
+
+
+PROCEDURE ValidaProcExp:
+    /* Definiá∆o dos parÉmetros de Entrada/Sa°da */
+    def input  param p-c-nome-abrev      like ped-venda.nome-abrev  no-undo.
+    def input  param p-c-nr-pedcli       like ped-venda.nr-pedcli   no-undo.
+    def output param p-l-procedimento-ok as   log                  no-undo.
+    def input-output param table for tt-bo-erro.
+    
+    def var i-cont-proc-exp as integer no-undo. /*manuela*/
+
+    assign i-cont-proc-exp = 0.
+    if p-c-nr-pedcli <> ? then do:
+        for first ped-venda
+            where ped-venda.nome-abrev = p-c-nome-abrev
+              and ped-venda.nr-pedcli  = p-c-nr-pedcli no-lock:
+        end.
+
+        if avail ped-venda then do:
+            for each proc-ped-venda
+               where proc-ped-venda.nome-abrev = ped-venda.nome-abrev
+                 and proc-ped-venda.nr-pedcli  = ped-venda.nr-pedcli no-lock:
+            
+               find processo-exp
+                where processo-exp.cod-estabel = proc-ped-venda.cod-estabel
+                  and processo-exp.nr-proc-exp = proc-ped-venda.nr-proc-exp no-lock no-error.
+
+               if  avail processo-exp 
+               and processo-exp.cod-sit-proc <> 3 then /*considera somente os processos que nao estao faturados*/
+                   assign i-cont-proc-exp = i-cont-proc-exp + 1.
+            end.
+        end.
+            
+        if i-cont-proc-exp > 1 then do:
+            /* MENSAGEM: 31498 - H† mais de um processo de exportaá∆o no pedido a faturar */
+            assign i-seq-erro = i-seq-erro + 1.
+            run utp/ut-msgs.p (input "msg",
+                               input 31498,
+                               input "").
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 31498
+                   tt-bo-erro.errorSubType = "WARNING":U
+                   tt-bo-erro.mensagem     = return-value.
+        end.
+    end.
+
+    assign p-l-procedimento-ok = yes. 
+END PROCEDURE.
+
+
+procedure retornaControleFaturamento:
+    /*
+    ** procedure utilizada nas bo's do faturamento
+    ** para os registros da tabela proc-ped-venda
+    */
+
+    define input  parameter pc-cod-estabel    like processo-exp.cod-estabel no-undo.
+    define output parameter pi-rs-faturamento as integer                    no-undo.
+    
+    define variable h-bocx180 as handle               no-undo.
+    define variable c-char-1  as char format "x(100)" no-undo.
+    define variable c-return  as char                 no-undo.
+    
+    IF NOT VALID-HANDLE(h-bocx180) OR 
+          h-bocx180:TYPE      <> "PROCEDURE":U OR 
+          h-bocx180:FILE-NAME <> "cxbo/bocx180.p":U THEN 
+          run cxbo/bocx180.p persistent set h-bocx180.
+          
+    run findPk_estabel in h-bocx180 (input pc-cod-estabel,
+                                     output c-return).
+    if  c-return = "" then do:
+        run getcharfield in h-bocx180("char-1", output c-char-1).
+        assign pi-rs-faturamento = int(substring(c-char-1,20,1)).
+    end.
+    
+    if valid-handle(h-bocx180) then do:
+       delete procedure h-bocx180.
+       assign h-bocx180 = ?.
+    end.
+
+end procedure.
+
+procedure piValidaRelacionamentos:
+
+   &IF DEFINED(bf_comex206b-1) &THEN
+   
+   def input param p-estab      as char no-undo.
+   def input param p-serie      as char no-undo.
+   def input param p-nota       as char no-undo.
+   def input param p-embarque   as dec  no-undo.
+   def input param p-origem     as int  no-undo.
+   def input param p-processo   as char no-undo.
+   def input param p-estab-proc as char no-undo.
+   def input-output param table for tt-bo-erro.
+   
+   DEFINE VARIABLE c-mensagem AS CHARACTER FORMAT "X(100)" NO-UNDO.
+   DEFINE VARIABLE c-help     AS CHARACTER FORMAT "X(100)" NO-UNDO.
+   
+   find first processo-exp no-lock
+        where processo-exp.cod-estabel = p-estab-proc
+          and processo-exp.nr-proc-exp = p-processo no-error.
+          
+   
+   find first param-exp
+        where param-exp.cod-estabel = p-estab-proc no-lock no-error.    
+     
+        
+   if p-origem = 1 then do: /* Nota Fiscal */
+   
+      /* primeira validaá∆o */
+      if p-estab = "" then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Estabelecimento" *}
+         run utp/ut-msgs.p (input "msg",
+                            input 688,
+                            input RETURN-VALUE).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-3 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-3 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-estabelecimento AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Estabelecimento" *}
+         ASSIGN c-lbl-liter-estabelecimento = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 688
+                tt-bo-erro.mensagem     = c-lbl-liter-3
+                tt-bo-erro.parametros   = c-lbl-liter-estabelecimento.
+      end.
+      /* Retirada validaá∆o, pois pode existir serie com codigo em branco.
+      * if p-serie = "" then do:
+      *    assign i-seq-erro = i-seq-erro + 1.
+      *    run utp/ut-msgs.p (input "msg",
+      *                       input 688,
+      *                       input "SÇrie").
+      *    create tt-bo-erro.
+      *    assign tt-bo-erro.i-sequen     = i-seq-erro
+      *           tt-bo-erro.cd-erro      = 688
+      *           tt-bo-erro.mensagem     = return-value
+      *           tt-bo-erro.parametros   = "SÇrie".  
+      * end.
+      */
+      if p-nota = "" then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Nota_Fiscal" *}
+         run utp/ut-msgs.p (input "msg",
+                            input 688,
+                            input RETURN-VALUE).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-4 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-4 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-nota-fiscal AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Nota_Fiscal" *}
+         ASSIGN c-lbl-liter-nota-fiscal = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 688
+                tt-bo-erro.mensagem     = c-lbl-liter-4
+                tt-bo-erro.parametros   = c-lbl-liter-nota-fiscal.  
+      end.
+      /**********************/
+      /* segunda validaá∆o */
+      if not can-find(first nota-fiscal no-lock
+                 where nota-fiscal.cod-estabel = p-estab
+                   and nota-fiscal.serie       = p-serie
+                   and nota-fiscal.nr-nota-fis = p-nota) then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Nota_Fiscal" *}
+         run utp/ut-msgs.p (input "msg",
+                            input 2,
+                            input RETURN-VALUE).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-5 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-5 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-nota-fiscal-2 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Nota_Fiscal" *}
+         ASSIGN c-lbl-liter-nota-fiscal-2 = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 2
+                tt-bo-erro.mensagem     = c-lbl-liter-5
+                tt-bo-erro.parametros   = c-lbl-liter-nota-fiscal-2.  
+      end.
+      /***********************/
+      /* terceira validaá∆o */
+      if p-estab <> p-estab-proc then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-estabelecimento-da-nota-fiscal AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Estabelecimento_da_Nota_Fiscal" *}
+         ASSIGN c-lbl-liter-estabelecimento-da-nota-fiscal = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-diferente-do-estabelecimento-d AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "diferente_do_estabelecimento_do_processo_de_exportaá∆o" *}
+         ASSIGN c-lbl-liter-diferente-do-estabelecimento-d = TRIM(RETURN-VALUE).
+         run utp/ut-msgs.p (input "msg",
+                            input 7972,
+                            input c-lbl-liter-estabelecimento-da-nota-fiscal + "~~" + " " + c-lbl-liter-diferente-do-estabelecimento-d).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-6 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-6 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-estabelecimento-da-nota-fiscal-2 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Estabelecimento_da_Nota_Fiscal" *}
+         ASSIGN c-lbl-liter-estabelecimento-da-nota-fiscal-2 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-diferente-do-estabelecimento-d-2 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "diferente_do_estabelecimento_do_processo_de_exportaá∆o" *}
+         ASSIGN c-lbl-liter-diferente-do-estabelecimento-d-2 = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 7972
+                tt-bo-erro.mensagem     = c-lbl-liter-6
+                tt-bo-erro.parametros   = c-lbl-liter-estabelecimento-da-nota-fiscal-2 + "~~" + " " + c-lbl-liter-diferente-do-estabelecimento-d-2.  
+      end.
+      /*********************/
+      /* quarta validaá∆o */
+      find first nota-fiscal no-lock
+           where nota-fiscal.cod-estabel = p-estab
+             and nota-fiscal.serie       = p-serie
+             and nota-fiscal.nr-nota-fis = p-nota no-error.
+      if avail nota-fiscal then do:
+         if avail param-exp and
+                  SUBSTRING(param-exp.char-1,23,1) <> "1" THEN DO:
+         /*verificar se o parametro "atualiza valores processo" no ex0180 est† como "no"*/
+         
+             for each it-nota-fisc where 
+                 it-nota-fisc.cod-estabel  = nota-fiscal.cod-estabel and
+                 it-nota-fisc.serie        = nota-fiscal.serie and
+                 it-nota-fisc.nr-nota-fis  = nota-fiscal.nr-nota-fis no-lock:
+                 /*if avail it-nota-fisc then do:*/
+                 find first proc-ped-ent no-lock
+                      where proc-ped-ent.cod-estabel        = it-nota-fisc.cod-estabel
+                        and proc-ped-ent.nr-proc-exp        = p-processo
+                        and proc-ped-ent.nome-abrev         = it-nota-fisc.nome-ab-cli
+                        and proc-ped-ent.nr-pedcli          = it-nota-fisc.nr-pedcli
+                        and proc-ped-ent.nr-sequencia       = it-nota-fisc.nr-seq-ped
+                        and proc-ped-ent.it-codigo          = it-nota-fisc.it-codigo
+                        and proc-ped-ent.cod-refer          = it-nota-fisc.cod-refer
+                        and proc-ped-ent.nr-entrega         = it-nota-fisc.nr-entrega no-error.
+                 if not avail proc-ped-ent then do:
+                    assign c_mensagem_1 = "A entrega " + string(it-nota-fisc.nr-seq-ped) + " do pedido  " + it-nota-fisc.nr-pedcli + 
+                                          " item " + it-nota-fisc.it-codigo  + " referància " + it-nota-fisc.cod-refer
+                           c_mensagem_2 = "da nota fiscal".                
+                    assign i-seq-erro = i-seq-erro + 1.
+                    run utp/ut-msgs.p (input "msg",
+                                       input 32698,
+                                       input c_mensagem_1 + "~~" + c_mensagem_2).
+                    create tt-bo-erro.
+                    /* Inicio -- Projeto Internacional */
+                    DEFINE VARIABLE c-lbl-liter-7 AS CHARACTER NO-UNDO.
+                    ASSIGN c-lbl-liter-7 = TRIM(RETURN-VALUE).
+                    DEFINE VARIABLE c-lbl-liter-condicao-de-pagamento-da-nota AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "Condiá∆o_de_Pagamento_da_Nota_Fiscal" *}
+                    ASSIGN c-lbl-liter-condicao-de-pagamento-da-nota = TRIM(RETURN-VALUE).
+                    DEFINE VARIABLE c-lbl-liter-diferente-da-condicao-de-pagam AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "diferente_da_condiá∆o_de_pagamento_do_Processo_de_Exportaá∆o" *}
+                    ASSIGN c-lbl-liter-diferente-da-condicao-de-pagam = TRIM(RETURN-VALUE).
+                    assign tt-bo-erro.i-sequen = i-seq-erro
+                           tt-bo-erro.cd-erro      = 32698
+                           tt-bo-erro.mensagem     = c-lbl-liter-7
+                           tt-bo-erro.parametros   = c-lbl-liter-condicao-de-pagamento-da-nota + "~~" +
+                                                        c-lbl-liter-diferente-da-condicao-de-pagam
+                                    c_mensagem_1   = ""
+                                    c_mensagem_2   = "".              
+                                                        
+                 end.
+                 
+             end. /* for each it-nota-fisc */
+             
+         end. /* if avail param-exp */
+         
+         IF avail param-exp and 
+            SUBSTRING(param-exp.char-1,22,1) = "2" /* YES */ then do:
+            if nota-fiscal.cod-cond-pag <> processo-exp.cod-cond-pagto then do:
+               assign i-seq-erro = i-seq-erro + 1.
+               /* Inicio -- Projeto Internacional */
+               DEFINE VARIABLE c-lbl-liter-condicao-de-pagamento-da-nota-2 AS CHARACTER NO-UNDO.
+               {utp/ut-liter.i "Condiá∆o_de_Pagamento_da_Nota_Fiscal" *}
+               ASSIGN c-lbl-liter-condicao-de-pagamento-da-nota-2 = TRIM(RETURN-VALUE).
+               DEFINE VARIABLE c-lbl-liter-diferente-da-condicao-de-pagam-2 AS CHARACTER NO-UNDO.
+               {utp/ut-liter.i "diferente_da_condiá∆o_de_pagamento_do_Processo_de_Exportaá∆o" *}
+               ASSIGN c-lbl-liter-diferente-da-condicao-de-pagam-2 = TRIM(RETURN-VALUE).
+               run utp/ut-msgs.p (input "msg",
+                                  input 7972,
+                                  input c-lbl-liter-condicao-de-pagamento-da-nota-2 + "~~" +
+                                        c-lbl-liter-diferente-da-condicao-de-pagam-2).
+               create tt-bo-erro.
+               /* Inicio -- Projeto Internacional */
+               DEFINE VARIABLE c-lbl-liter-8 AS CHARACTER NO-UNDO.
+               ASSIGN c-lbl-liter-8 = TRIM(RETURN-VALUE).
+               DEFINE VARIABLE c-lbl-liter-condicao-de-pagamento-da-nota-3 AS CHARACTER NO-UNDO.
+               {utp/ut-liter.i "Condiá∆o_de_Pagamento_da_Nota_Fiscal" *}
+               ASSIGN c-lbl-liter-condicao-de-pagamento-da-nota-3 = TRIM(RETURN-VALUE).
+               DEFINE VARIABLE c-lbl-liter-diferente-da-condicao-de-pagam-3 AS CHARACTER NO-UNDO.
+               {utp/ut-liter.i "diferente_da_condiá∆o_de_pagamento_do_Processo_de_Exportaá∆o" *}
+               ASSIGN c-lbl-liter-diferente-da-condicao-de-pagam-3 = TRIM(RETURN-VALUE).
+               assign tt-bo-erro.i-sequen     = i-seq-erro
+                      tt-bo-erro.cd-erro      = 7972
+                      tt-bo-erro.mensagem     = c-lbl-liter-8
+                      tt-bo-erro.parametros   = c-lbl-liter-condicao-de-pagamento-da-nota-3 + "~~" +
+                                                c-lbl-liter-diferente-da-condicao-de-pagam-3.       
+            end.
+         end.
+         
+         /********************/
+        
+         /* quinta validaá∆o */
+         if not can-find(first ped-venda no-lock
+                         where ped-venda.nr-pedcli  = nota-fiscal.nr-pedcli
+                           and ped-venda.nome-abrev = nota-fiscal.nome-ab-cli) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            run utp/ut-msgs.p (input "msg",
+                               input 32629,
+                               input "").
+            create tt-bo-erro.
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-9 AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-liter-9 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-nota-fiscal-3 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Nota_Fiscal" *}
+            ASSIGN c-lbl-liter-nota-fiscal-3 = TRIM(RETURN-VALUE).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 32629
+                   tt-bo-erro.mensagem     = c-lbl-liter-9
+                   tt-bo-erro.parametros   = c-lbl-liter-nota-fiscal-3.  
+                   
+         end.
+        
+         /*******************/
+         /* sexta validaá∆o */
+         if nota-fiscal.dt-atual-cr <> ? then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "Nota_Fiscal" *}
+            run utp/ut-msgs.p (input "msg",
+                               input 32630,
+                               input RETURN-VALUE + "~~" +
+                                      nota-fiscal.nr-nota-fis).
+                 create tt-bo-erro.
+                 /* Inicio -- Projeto Internacional */
+                 DEFINE VARIABLE c-lbl-liter-10 AS CHARACTER NO-UNDO.
+                 ASSIGN c-lbl-liter-10 = TRIM(RETURN-VALUE).
+                 DEFINE VARIABLE c-lbl-liter-nota-fiscal-4 AS CHARACTER NO-UNDO.
+                 {utp/ut-liter.i "Nota_Fiscal" *}
+                 ASSIGN c-lbl-liter-nota-fiscal-4 = TRIM(RETURN-VALUE).
+                 assign tt-bo-erro.i-sequen     = i-seq-erro
+                        tt-bo-erro.cd-erro      = 32630
+                        tt-bo-erro.mensagem     = c-lbl-liter-10
+                        tt-bo-erro.errorsubtype = "warning":U
+                        tt-bo-erro.parametros   = c-lbl-liter-nota-fiscal-4 + "~~" + nota-fiscal.nr-nota-fis. 
+         end.                                              
+         /******************/
+         /* sÇtima validaá∆o   */
+         if nota-fiscal.cdd-embarq <> 0 then do:
+           find first embarque no-lock
+                where embarque.cdd-embarq = nota-fiscal.cdd-embarq no-error.
+           if avail embarque then do:
+              &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                   if embarque.nr-proc-exp  <> "" and
+                      embarque.nr-proc-exp  <> p-processo then do:
+                      assign i-seq-erro = i-seq-erro + 1.
+                      /* Inicio -- Projeto Internacional */
+                      {utp/ut-liter.i "Embarque_relacionado_Ö_Nota_Fiscal" *}
+                      run utp/ut-msgs.p (input "msg",
+                                         input 32631,
+                                         input RETURN-VALUE + "~~" +
+                                               embarque.nr-proc-exp).
+                      create tt-bo-erro.
+                      /* Inicio -- Projeto Internacional */
+                      DEFINE VARIABLE c-lbl-liter-11 AS CHARACTER NO-UNDO.
+                      ASSIGN c-lbl-liter-11 = TRIM(RETURN-VALUE).
+                      DEFINE VARIABLE c-lbl-liter-embarque-relacionado-a-nota-fi AS CHARACTER NO-UNDO.
+                      {utp/ut-liter.i "Embarque_relacionado_Ö_Nota_Fiscal" *}
+                      ASSIGN c-lbl-liter-embarque-relacionado-a-nota-fi = TRIM(RETURN-VALUE).
+                      assign tt-bo-erro.i-sequen     = i-seq-erro
+                             tt-bo-erro.cd-erro      = 32631
+                             tt-bo-erro.mensagem     = c-lbl-liter-11
+                             tt-bo-erro.parametros   = c-lbl-liter-embarque-relacionado-a-nota-fi + "~~" + embarque.nr-proc-exp. 
+                   end.
+              &ELSE 
+                  if trim(substring(embarque.char-1,2,12)) <> "" and
+                     trim(substring(embarque.char-1,2,12)) <> p-processo then do:
+                     assign i-seq-erro = i-seq-erro + 1.
+                     /* Inicio -- Projeto Internacional */
+                     {utp/ut-liter.i "Embarque_relacionado_Ö_Nota_Fiscal" *}
+                     run utp/ut-msgs.p (input "msg",
+                                        input 32631,
+                                        input RETURN-VALUE + "~~" +
+                                               trim(substring(embarque.char-1,2,12))).
+                     create tt-bo-erro.
+                     /* Inicio -- Projeto Internacional */
+                     DEFINE VARIABLE c-lbl-liter-12 AS CHARACTER NO-UNDO.
+                     ASSIGN c-lbl-liter-12 = TRIM(RETURN-VALUE).
+                     DEFINE VARIABLE c-lbl-liter-embarque-relacionado-a-nota-fi-2 AS CHARACTER NO-UNDO.
+                     {utp/ut-liter.i "Embarque_relacionado_Ö_Nota_Fiscal" *}
+                     ASSIGN c-lbl-liter-embarque-relacionado-a-nota-fi-2 = TRIM(RETURN-VALUE).
+                     assign tt-bo-erro.i-sequen     = i-seq-erro
+                            tt-bo-erro.cd-erro      = 32631
+                            tt-bo-erro.mensagem     = c-lbl-liter-12
+                            tt-bo-erro.parametros   = c-lbl-liter-embarque-relacionado-a-nota-fi-2 + "~~" +
+                                                       trim(substring(embarque.char-1,2,12)). 
+                  end.
+              &ENDIF  
+              
+           end. /* if avail embarque */
+           
+         end. /* if nota-fiscal.cdd-embarq */
+         
+      end. /* if avail nota-fiscal */ 
+      
+      /* sÇtima validaá∆o   */
+      find first proc-nota-fiscal no-lock
+           where proc-nota-fiscal.cod-estabel = p-estab
+             and proc-nota-fiscal.serie       = p-serie
+             and proc-nota-fiscal.nr-nota-fis = p-nota no-error.
+      if avail proc-nota-fiscal then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Nota_Fiscal" *}
+         run utp/ut-msgs.p (input "msg",
+                            input 32631,
+                            input RETURN-VALUE + "~~" + proc-nota-fiscal.nr-proc-exp).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-13 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-13 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-nota-fiscal-5 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Nota_Fiscal" *}
+         ASSIGN c-lbl-liter-nota-fiscal-5 = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 32631
+                tt-bo-erro.mensagem     = c-lbl-liter-13
+                tt-bo-erro.parametros   = c-lbl-liter-nota-fiscal-5 + "~~" + proc-nota-fiscal.nr-proc-exp.  
+      end.
+      /*********************/
+   
+   end.
+   else do: /* Embarque */
+        
+      /* primeira validaá∆o */
+      if p-embarque = 0 then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Embarque" *}
+         run utp/ut-msgs.p (input "msg",
+                            input 688,
+                            input RETURN-VALUE).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-14 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-14 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-embarque AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Embarque" *}
+         ASSIGN c-lbl-liter-embarque = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 688
+                tt-bo-erro.mensagem     = c-lbl-liter-14
+                tt-bo-erro.parametros   = c-lbl-liter-embarque.  
+                
+          return "NOK":U.
+      end.
+      /**********************/
+      /* segunda validaá∆o */
+      if not can-find(first embarque no-lock
+                      where embarque.cdd-embarq = p-embarque) then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Embarque" *}
+         run utp/ut-msgs.p (input "msg",
+                            input 2,
+                            input RETURN-VALUE).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-15 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-15 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-embarque-2 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Embarque" *}
+         ASSIGN c-lbl-liter-embarque-2 = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 2
+                tt-bo-erro.mensagem     = c-lbl-liter-15
+                tt-bo-erro.parametros   = c-lbl-liter-embarque-2.  
+                
+         return "NOK":U.             
+      end.
+      /********************/
+      /* terceira validaá∆o */
+      if can-find(first embarque no-lock
+                  where embarque.cdd-embarq     = p-embarque
+                    and embarque.cod-estab     <> p-estab-proc ) then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-estabelecimento-da-nota-fiscal-3 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Estabelecimento_da_Nota_Fiscal" *}
+         ASSIGN c-lbl-liter-estabelecimento-da-nota-fiscal-3 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-diferente-do-estabelecimento-d-3 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "diferente_do_estabelecimento_do_processo_de_exportaá∆o" *}
+         ASSIGN c-lbl-liter-diferente-do-estabelecimento-d-3 = TRIM(RETURN-VALUE).
+         run utp/ut-msgs.p (input "msg",
+                           input 7972,
+                           input c-lbl-liter-estabelecimento-da-nota-fiscal-3 + "~~" + " " + c-lbl-liter-diferente-do-estabelecimento-d-3).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-16 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-16 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-estabelecimento-da-nota-fiscal-4 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Estabelecimento_da_Nota_Fiscal" *}
+         ASSIGN c-lbl-liter-estabelecimento-da-nota-fiscal-4 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-diferente-do-estabelecimento-d-4 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "diferente_do_estabelecimento_do_processo_de_exportaá∆o" *}
+         ASSIGN c-lbl-liter-diferente-do-estabelecimento-d-4 = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 7972
+                tt-bo-erro.mensagem     = c-lbl-liter-16
+                tt-bo-erro.parametros   = c-lbl-liter-estabelecimento-da-nota-fiscal-4 + "~~" + " " + c-lbl-liter-diferente-do-estabelecimento-d-4.  
+      end.
+      /*********************/
+    
+      /* quarta validaá∆o */
+      IF avail param-exp and
+         SUBSTRING(param-exp.char-1,22,1) = "2" /* YES */ then do:
+        
+         for each res-cli no-lock
+            where res-cli.cdd-embarq = p-embarque:
+            if res-cli.cod-cond-pag <> processo-exp.cod-cond-pagto then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-condioo-de-pagamento-da-nota-f AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Condiá∆o_de_Pagamento_da_Nota_Fiscal" *}
+                ASSIGN c-lbl-liter-condioo-de-pagamento-da-nota-f = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-diferente-da-condioo-de-pagame AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "diferente_da_condiá∆o_de_pagamento_do_Processo_de_Exportaá∆o" *}
+                ASSIGN c-lbl-liter-diferente-da-condioo-de-pagame = TRIM(RETURN-VALUE).
+                run utp/ut-msgs.p (input "msg",
+                                   input 7972,
+                                   input c-lbl-liter-condioo-de-pagamento-da-nota-f + "~~" +
+                                         c-lbl-liter-diferente-da-condioo-de-pagame).
+                create tt-bo-erro.
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-17 AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-liter-17 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-condioo-de-pagamento-da-nota-f-2 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Condiá∆o_de_Pagamento_da_Nota_Fiscal" *}
+                ASSIGN c-lbl-liter-condioo-de-pagamento-da-nota-f-2 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-diferente-da-condioo-de-pagame-2 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "diferente_da_condiá∆o_de_pagamento_do_Processo_de_Exportaá∆o" *}
+                ASSIGN c-lbl-liter-diferente-da-condioo-de-pagame-2 = TRIM(RETURN-VALUE).
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 7972
+                       tt-bo-erro.mensagem     = c-lbl-liter-17
+                       tt-bo-erro.parametros   = c-lbl-liter-condioo-de-pagamento-da-nota-f-2 + "~~" +
+                                                c-lbl-liter-diferente-da-condioo-de-pagame-2.       
+                leave.            
+            end.
+         end.
+      end.
+      
+      /********************/     
+      /* quinta validaá∆o */    
+      
+      if not can-find(first it-pre-fat no-lock
+                      where it-pre-fat.cdd-embarq = p-embarque) then do:
+       
+         assign i-seq-erro = i-seq-erro + 1.
+         run utp/ut-msgs.p (input "msg",
+                            input 32629,
+                            input "").
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-18 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-18 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-embarque-3 AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Embarque" *}
+         ASSIGN c-lbl-liter-embarque-3 = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 32629
+                tt-bo-erro.mensagem     = c-lbl-liter-18
+                tt-bo-erro.parametros   = c-lbl-liter-embarque-3.
+               
+      end.
+   
+      /*******************/     
+      /* sexta validaá∆o */
+      assign c-notas = "".
+      for each nota-fiscal fields(nr-nota-fis dt-atual-cr) no-lock
+         where nota-fiscal.cdd-embarq  = p-embarque:
+         if nota-fiscal.dt-atual-cr <> ? then        
+             assign c-notas = c-notas + nota-fiscal.nr-nota-fis + ";".                          
+      end.
+      if c-notas <> "" then do:
+         assign i-seq-erro = i-seq-erro + 1.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Nota(s)_Fiscai(s)_relacionada(s)_ao_embarque" *}
+         run utp/ut-msgs.p (input "msg",
+                            input 32630,
+                            input RETURN-VALUE + "~~" +
+                                  c-notas).
+         create tt-bo-erro.
+         /* Inicio -- Projeto Internacional */
+         DEFINE VARIABLE c-lbl-liter-19 AS CHARACTER NO-UNDO.
+         ASSIGN c-lbl-liter-19 = TRIM(RETURN-VALUE).
+         DEFINE VARIABLE c-lbl-liter-notas-fiscais-relacionadas-ao AS CHARACTER NO-UNDO.
+         {utp/ut-liter.i "Nota(s)_Fiscai(s)_relacionada(s)_ao_embarque" *}
+         ASSIGN c-lbl-liter-notas-fiscais-relacionadas-ao = TRIM(RETURN-VALUE).
+         assign tt-bo-erro.i-sequen     = i-seq-erro
+                tt-bo-erro.cd-erro      = 32630
+                tt-bo-erro.mensagem     = c-lbl-liter-19
+                tt-bo-erro.errorsubtype = "warning":U
+                tt-bo-erro.parametros   = c-lbl-liter-notas-fiscais-relacionadas-ao + "~~" + c-notas. 
+      end.                                              
+      /******************/
+      /* sÇtima validaá∆o   */
+      find first embarque no-lock
+           where embarque.cdd-embarq = p-embarque no-error.
+      if avail embarque then do:
+      
+         &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+             if embarque.nr-proc-exp <> "" then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "Embarque" *}
+                run utp/ut-msgs.p (input "msg",
+                                   input 32631,
+                                   input RETURN-VALUE + "~~" + embarque.nr-proc-exp).
+                create tt-bo-erro.
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-20 AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-liter-20 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-embarque-4 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Embarque" *}
+                ASSIGN c-lbl-liter-embarque-4 = TRIM(RETURN-VALUE).
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 32631
+                       tt-bo-erro.mensagem     = c-lbl-liter-20
+                       tt-bo-erro.parametros   = c-lbl-liter-embarque-4 + "~~" + embarque.nr-proc-exp.  
+             end.
+         &ELSE 
+             if trim(substring(embarque.char-1,2,12)) <> "" then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "Embarque" *}
+                run utp/ut-msgs.p (input "msg",
+                                   input 32631,
+                                   input RETURN-VALUE + "~~" + trim(substring(embarque.char-1,2,12))).
+                create tt-bo-erro.
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-21 AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-liter-21 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-embarque-5 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Embarque" *}
+                ASSIGN c-lbl-liter-embarque-5 = TRIM(RETURN-VALUE).
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 32631
+                       tt-bo-erro.mensagem     = c-lbl-liter-21
+                       tt-bo-erro.parametros   = c-lbl-liter-embarque-5 + "~~" + trim(substring(embarque.char-1,2,12)).  
+             end.
+         &ENDIF  
+      end.       
+   
+     /*Validaá∆o de cliente do pedido e processo exportaá∆o*/
+     
+     FOR EACH  pre-fatur no-lock
+         where pre-fatur.cdd-embarq =  p-embarque:
+     
+             FOR FIRST ped-venda no-lock
+                 WHERE ped-venda.nr-pedcli  = pre-fatur.nr-pedcli
+                 AND   ped-venda.nome-abrev = pre-fatur.nome-abrev: END.
+             FIND FIRST emitente no-lock
+                  WHERE emitente.nome-abrev = ped-venda.nome-abrev NO-ERROR.
+             IF AVAIL emitente and avail processo-exp THEN 
+                IF /*CAN-FIND (FIRST processo-exp
+                             WHERE processo-exp.cod-estabel = processo-exp.cod-estabel
+                             AND   processo-exp.nr-proc-exp = processo-exp.nr-proc-exp
+                             AND*/   processo-exp.cod-emitente <> emitente.cod-emitente /*)*/ THEN DO:
+                   assign i-seq-erro = i-seq-erro + 1.
+                   
+                   {utp/ut-liter.i "Embarque n∆o pode ser vinculado" * R}
+                         ASSIGN c-mensagem = RETURN-VALUE.
+                   {utp/ut-liter.i "Cliente do pedido diferente do c¢digo do importador Processo de Exportaá∆o" * R}
+                         ASSIGN c-help = RETURN-VALUE.
+                         
+                   run utp/ut-msgs.p (input "msg",
+                                      input 15825,
+                                      input c-mensagem + "~~" +
+                                            c-help).
+                   create tt-bo-erro.
+                   assign tt-bo-erro.i-sequen     = i-seq-erro
+                          tt-bo-erro.cd-erro      = 15825
+                          tt-bo-erro.mensagem     = return-value
+                          tt-bo-erro.parametros   = c-mensagem + "~~" +
+                                                    c-help.       
+                   leave.            
+                end.    
+     END.
+   end.
+   return "OK":U.
+   &ENDIF  
+   
+end procedure.
+
+procedure piGeraRelacionamentos:
+
+&IF DEFINED(bf_comex206b-1) &THEN
+
+  def input param p-estab    as char no-undo.
+  def input param p-serie    as char no-undo.
+  def input param p-nota     as char no-undo.
+  def input param p-embarque as dec  no-undo.
+  def input param p-origem   as int  no-undo.
+  def input param p-processo as char no-undo.
+  def input-output param table for tt-bo-erro.
+
+  for each tt-proc-nota-fiscal:  delete tt-proc-nota-fiscal.  end.
+  for each tt-proc-ped-venda:    delete tt-proc-ped-venda.    end.
+  for each tt-proc-ped-ent:      delete tt-proc-ped-ent.      end.
+  for each tt-bo-erro:           delete tt-bo-erro.           end.
+  
+  if p-origem = 1 then do: /* Nota Fiscal */
+  
+     find first nota-fiscal no-lock
+          where nota-fiscal.cod-estabel = p-estab
+            and nota-fiscal.serie       = p-serie
+            and nota-fiscal.nr-nota-fis = p-nota no-error.
+     if not avail nota-fiscal then next.
+     
+     create tt-proc-nota-fiscal.
+     assign tt-proc-nota-fiscal.cod-estabel       = nota-fiscal.cod-estabel
+            tt-proc-nota-fiscal.nr-proc-exp       = p-processo
+            tt-proc-nota-fiscal.serie             = nota-fiscal.serie
+            tt-proc-nota-fiscal.nr-nota-fis       = nota-fiscal.nr-nota-fis
+                
+            tt-proc-nota-fiscal.check-sum         = nota-fiscal.check-sum       
+            tt-proc-nota-fiscal.log-nf-devolvid   = no.
+     
+     for each it-nota-fisc no-lock
+        where it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel 
+          and it-nota-fisc.serie       = nota-fiscal.serie       
+          and it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis :
+          
+          for first ped-item fields(ind-fat-qtfam ind-componen) no-lock
+             where ped-item.nome-abrev    = it-nota-fisc.nome-ab-cli  
+               and ped-item.nr-pedcli     = it-nota-fisc.nr-pedcli    
+               and ped-item.nr-sequencia  = it-nota-fisc.nr-seq-ped   
+               and ped-item.it-codigo     = it-nota-fisc.it-codigo    
+               and ped-item.cod-refer     = it-nota-fisc.cod-refer: end.  
+          
+          for first ped-venda fields(mo-codigo ) no-lock
+               where ped-venda.nr-pedido = it-nota-fisc.nr-pedido : end.
+  
+          find first tt-proc-ped-venda 
+               where tt-proc-ped-venda.cod-estabel  = it-nota-fisc.cod-estabel
+                 and tt-proc-ped-venda.nr-proc-exp  = p-processo
+                 and tt-proc-ped-venda.nr-pedido    = it-nota-fisc.nr-pedido no-error.
+          if not avail tt-proc-ped-venda then do:
+             create tt-proc-ped-venda.
+             assign tt-proc-ped-venda.cod-estabel  = it-nota-fisc.cod-estabel
+                    tt-proc-ped-venda.nr-proc-exp  = p-processo
+                    tt-proc-ped-venda.nr-pedido    = it-nota-fisc.nr-pedido
+                             
+                    tt-proc-ped-venda.check-sum    = it-nota-fisc.check-sum
+                    tt-proc-ped-venda.cod-emitente = it-nota-fisc.cd-emitente
+                    tt-proc-ped-venda.nome-abrev   = it-nota-fisc.nome-ab-cli
+                    tt-proc-ped-venda.nr-pedcli    = it-nota-fisc.nr-pedcli.
+          end.               
+                 
+          for first item fields(desc-item) no-lock
+               where item.it-codigo = it-nota-fisc.it-codigo : end.
+           
+          find first tt-proc-ped-ent
+               where tt-proc-ped-ent.cod-estabel        = it-nota-fisc.cod-estabel
+                 and tt-proc-ped-ent.nr-proc-exp        = p-processo
+                 and tt-proc-ped-ent.nome-abrev         = it-nota-fisc.nome-ab-cli
+                 and tt-proc-ped-ent.nr-pedcli          = it-nota-fisc.nr-pedcli
+                 and tt-proc-ped-ent.nr-sequencia       = it-nota-fisc.nr-seq-ped
+                 and tt-proc-ped-ent.it-codigo          = it-nota-fisc.it-codigo
+                 and tt-proc-ped-ent.cod-refer          = it-nota-fisc.cod-refer
+                 and tt-proc-ped-ent.nr-entrega         = it-nota-fisc.nr-entrega no-error.
+          if not avail tt-proc-ped-ent then do:
+             create tt-proc-ped-ent.
+             assign tt-proc-ped-ent.cod-estabel     = it-nota-fisc.cod-estabel
+                    tt-proc-ped-ent.nr-proc-exp        = p-processo
+                    tt-proc-ped-ent.nome-abrev         = it-nota-fisc.nome-ab-cli
+                    tt-proc-ped-ent.nr-pedcli          = it-nota-fisc.nr-pedcli
+                    tt-proc-ped-ent.nr-sequencia       = it-nota-fisc.nr-seq-ped
+                    tt-proc-ped-ent.it-codigo          = it-nota-fisc.it-codigo
+                    tt-proc-ped-ent.cod-refer          = it-nota-fisc.cod-refer
+                    tt-proc-ped-ent.nr-entrega         = it-nota-fisc.nr-entrega
+                 
+                    tt-proc-ped-ent.check-sum          = it-nota-fisc.check-sum
+                    tt-proc-ped-ent.des-discrep-item   = if avail item then item.desc-item  else ""
+                    tt-proc-ped-ent.nr-pedido          = it-nota-fisc.nr-pedido   
+                    tt-proc-ped-ent.peso-bruto         = it-nota-fisc.peso-bruto  
+                    tt-proc-ped-ent.peso-liquido       = it-nota-fisc.peso-liq-fat 
+                    tt-proc-ped-ent.quantidade[1]      = it-nota-fisc.qt-faturada[1] 
+                    tt-proc-ped-ent.quantidade[2]      = it-nota-fisc.qt-faturada[2] 
+                    tt-proc-ped-ent.un-fatur           = it-nota-fisc.un-fatur[1]    
+                    tt-proc-ped-ent.vl-preori          = if ped-venda.mo-codigo = 0 then it-nota-fisc.vl-preori else it-nota-fisc.vl-preori-e[1]
+                    tt-proc-ped-ent.vl-preuni          = if ped-venda.mo-codigo = 0 then it-nota-fisc.vl-preuni else it-nota-fisc.vl-preuni-e[1].
+                 
+                
+                 IF AVAIL ped-item THEN DO:
+                    assign tt-proc-ped-ent.ind-componen  = ped-item.ind-componen.
+                    
+                      if  ped-item.ind-fat-qtfam then
+                          assign tt-proc-ped-ent.idi-unid-fatur = 2.
+                      else
+                      if  not ped-item.ind-fat-qtfam then
+                          assign tt-proc-ped-ent.idi-unid-fatur = 1.
+                      else
+                          assign tt-proc-ped-ent.idi-unid-fatur = 3.
+                 end. 
+          end.
+          else do:
+               assign  tt-proc-ped-ent.peso-bruto         = tt-proc-ped-ent.peso-bruto    + it-nota-fisc.peso-bruto        
+                       tt-proc-ped-ent.peso-liquido       = tt-proc-ped-ent.peso-liquido  + it-nota-fisc.peso-liq-fat      
+                       tt-proc-ped-ent.quantidade[1]      = tt-proc-ped-ent.quantidade[1] + it-nota-fisc.qt-faturada[1]    
+                       tt-proc-ped-ent.quantidade[2]      = tt-proc-ped-ent.quantidade[2] + it-nota-fisc.qt-faturada[2] .   
+          end.
+          
+          if it-nota-fisc.ind-componen = 2 then do:
+          
+             for each fat-ser-lote no-lock
+                where fat-ser-lote.cod-estabel = it-nota-fisc.cod-estabel 
+                  and fat-ser-lote.serie       = it-nota-fisc.serie       
+                  and fat-ser-lote.nr-nota-fis = it-nota-fisc.nr-nota-fis 
+                  and fat-ser-lote.nr-seq-fat  = it-nota-fisc.nr-seq-fat  
+                  and fat-ser-lote.cod-depos   = it-nota-fisc.cod-depos   
+                  and fat-ser-lote.cod-localiz = it-nota-fisc.cod-localiz 
+                  and fat-ser-lote.it-codigo   = it-nota-fisc.it-codigo   
+                  and fat-ser-lote.cod-refer   = it-nota-fisc.cod-refer:
+                  
+                  for first item fields(desc-item) no-lock
+                       where item.it-codigo = fat-ser-lote.it-codigo : end.
+                  
+                   
+                  create tt-proc-ped-ent.
+                  assign tt-proc-ped-ent.cod-estabel        = fat-ser-lote.cod-estabel
+                         tt-proc-ped-ent.nr-proc-exp        = p-processo
+                         tt-proc-ped-ent.nome-abrev         = it-nota-fisc.nome-ab-cli
+                         tt-proc-ped-ent.nr-pedcli          = it-nota-fisc.nr-pedcli
+                         tt-proc-ped-ent.nr-sequencia       = it-nota-fisc.nr-seq-ped
+                         tt-proc-ped-ent.it-codigo          = fat-ser-lote.it-codigo
+                         tt-proc-ped-ent.cod-refer          = fat-ser-lote.cod-refer
+                         tt-proc-ped-ent.nr-entrega         = it-nota-fisc.nr-entrega
+                  
+                         tt-proc-ped-ent.check-sum          = fat-ser-lote.check-sum
+                         tt-proc-ped-ent.des-discrep-item   = if avail item then item.desc-item  else ""
+                         tt-proc-ped-ent.nr-pedido          = it-nota-fisc.nr-pedido   
+                         tt-proc-ped-ent.peso-bruto         = it-nota-fisc.peso-bruto  
+                         tt-proc-ped-ent.peso-liquido       = it-nota-fisc.peso-liq-fat 
+                         tt-proc-ped-ent.quantidade[1]      = it-nota-fisc.qt-faturada[1] 
+                         tt-proc-ped-ent.quantidade[2]      = it-nota-fisc.qt-faturada[2] 
+                         tt-proc-ped-ent.un-fatur           = it-nota-fisc.un-fatur[1]    
+                         tt-proc-ped-ent.vl-preori          = if ped-venda.mo-codigo = 0 then it-nota-fisc.vl-preori else it-nota-fisc.vl-preori-e[1]
+                         tt-proc-ped-ent.vl-preuni          = if ped-venda.mo-codigo = 0 then it-nota-fisc.vl-preuni else it-nota-fisc.vl-preuni-e[1].
+                       
+                  IF AVAIL ped-item THEN DO:
+                     assign tt-proc-ped-ent.ind-componen       = ped-item.ind-componen.
+                      if  ped-item.ind-fat-qtfam then
+                          assign tt-proc-ped-ent.idi-unid-fatur = 2.
+                      else
+                      if  not ped-item.ind-fat-qtfam then
+                          assign tt-proc-ped-ent.idi-unid-fatur = 1.
+                      else
+                          assign tt-proc-ped-ent.idi-unid-fatur = 3.
+                  end. 
+                  
+             end.   
+          end.
+     end.
+  end.
+  else do: /* embarque */
+       for each nota-fiscal fields(cod-estabel nr-nota-fis nr-proc-exp serie check-sum) no-lock
+          where nota-fiscal.cdd-embarq = p-embarque:
+          
+            if not can-find(first tt-proc-nota-fiscal no-lock
+                            where tt-proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel
+                              and tt-proc-nota-fiscal.nr-proc-exp = p-processo
+                              and tt-proc-nota-fiscal.serie       = nota-fiscal.serie
+                              and tt-proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis) then do:
+                
+                create tt-proc-nota-fiscal.
+                assign tt-proc-nota-fiscal.cod-estabel     = nota-fiscal.cod-estabel       
+                       tt-proc-nota-fiscal.nr-nota-fis     = nota-fiscal.nr-nota-fis     
+                       tt-proc-nota-fiscal.nr-proc-exp     = p-processo      
+                       tt-proc-nota-fiscal.serie           = nota-fiscal.serie       
+                       tt-proc-nota-fiscal.check-sum       = nota-fiscal.check-sum       
+                       tt-proc-nota-fiscal.log-nf-devolvid = no.
+            end.                      
+       end.   
+       for each it-pre-fat no-lock
+          where it-pre-fat.cdd-embarq = p-embarque:
+          
+          for first ped-ent fields(nome-abrev nr-pedcli nr-sequencia it-codigo cod-refer nr-entrega) no-lock
+              where ped-ent.nome-abrev   = it-pre-fat.nome-abrev  
+                and ped-ent.nr-pedcli    = it-pre-fat.nr-pedcli   
+                and ped-ent.nr-sequencia = it-pre-fat.nr-sequencia
+                and ped-ent.it-codigo    = it-pre-fat.it-codigo   
+                and ped-ent.cod-refer    = it-pre-fat.cod-refer   
+                and ped-ent.nr-entrega   = it-pre-fat.nr-entrega  : end.
+          
+          find first ped-venda no-lock
+               where ped-venda.nr-pedcli  = it-pre-fat.nr-pedcli
+                 and ped-venda.nome-abrev = it-pre-fat.nome-abrev no-error.
+          if avail ped-venda then do:   
+            if not can-find (first tt-proc-ped-venda no-lock
+                             where tt-proc-ped-venda.cod-estabel = ped-venda.cod-estabel
+                               and tt-proc-ped-venda.nr-proc-exp = p-processo
+                               and tt-proc-ped-venda.nr-pedido   = ped-venda.nr-pedido) then do:
+            
+                create tt-proc-ped-venda.
+                assign tt-proc-ped-venda.cod-estabel  = ped-venda.cod-estabel
+                       tt-proc-ped-venda.nr-proc-exp  = p-processo
+                       tt-proc-ped-venda.nr-pedido    = ped-venda.nr-pedido                      
+                       tt-proc-ped-venda.check-sum    = ped-venda.check-sum
+                       tt-proc-ped-venda.cod-emitente = ped-venda.cod-emitente
+                       tt-proc-ped-venda.nome-abrev   = ped-venda.nome-abrev
+                       tt-proc-ped-venda.nr-pedcli    = ped-venda.nr-pedcli.
+            end.                       
+          end.        
+  
+          for first item fields(desc-item item.peso-liquido item.peso-bruto) no-lock
+               where item.it-codigo = it-pre-fat.it-codigo : end.
+           
+          if not can-find (first tt-proc-ped-ent no-lock
+                           where tt-proc-ped-ent.cod-estabel  = ped-venda.cod-estabel 
+                             and tt-proc-ped-ent.nr-proc-exp  = p-processo
+                             and tt-proc-ped-ent.nome-abrev   = it-pre-fat.nome-abrev 
+                             and tt-proc-ped-ent.nr-pedcli    = it-pre-fat.nr-pedcli 
+                             and tt-proc-ped-ent.nr-sequencia = it-pre-fat.nr-sequencia
+                             and tt-proc-ped-ent.it-codigo    = it-pre-fat.it-codigo
+                             and tt-proc-ped-ent.cod-refer    = it-pre-fat.cod-refer
+                             and tt-proc-ped-ent.nr-entrega   = it-pre-fat.nr-entrega) then do:
+                             
+              create tt-proc-ped-ent.       
+              assign tt-proc-ped-ent.cod-estabel        = ped-venda.cod-estabel
+                     tt-proc-ped-ent.nr-proc-exp        = p-processo
+                     tt-proc-ped-ent.nome-abrev         = it-pre-fat.nome-abrev 
+                     tt-proc-ped-ent.nr-pedcli          = it-pre-fat.nr-pedcli 
+                     tt-proc-ped-ent.nr-sequencia       = it-pre-fat.nr-sequencia
+                     tt-proc-ped-ent.it-codigo          = it-pre-fat.it-codigo 
+                     tt-proc-ped-ent.cod-refer          = it-pre-fat.cod-refer 
+                     tt-proc-ped-ent.nr-entrega         = it-pre-fat.nr-entrega 
+              
+                     tt-proc-ped-ent.quantidade[1]      = it-pre-fat.qt-alocada
+                     tt-proc-ped-ent.check-sum          = it-pre-fat.check-sum
+                     tt-proc-ped-ent.des-discrep-item   = if avail item then item.desc-item  else ""
+                     tt-proc-ped-ent.nr-pedido          = ped-venda.nr-pedido.
+                 
+                 
+                 if avail item then 
+                    assign tt-proc-ped-ent.peso-liquido   = truncate(it-pre-fat.qt-alocada * item.peso-liquido,3) 
+                           tt-proc-ped-ent.peso-bruto     = truncate(it-pre-fat.qt-alocada * item.peso-bruto,3).
+                           
+                 for first ped-item fields(ind-fat-qtfam ind-componen ind-componen vl-preori vl-preuni
+                                           &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN
+                                                des-un-medida
+                                           &endif) no-lock
+                     where ped-item.nome-abrev    = it-pre-fat.nome-abrev    
+                       and ped-item.nr-pedcli     = it-pre-fat.nr-pedcli     
+                       and ped-item.nr-sequencia  = it-pre-fat.nr-sequencia  
+                       and ped-item.it-codigo     = it-pre-fat.it-codigo     
+                       and ped-item.cod-refer     = it-pre-fat.cod-refer :  end.  
+                 IF AVAIL ped-item THEN DO:
+                    assign tt-proc-ped-ent.ind-componen       = ped-item.ind-componen
+                           tt-proc-ped-ent.vl-preori          = ped-item.vl-preori
+                           tt-proc-ped-ent.vl-preuni          = ped-item.vl-preuni.  
+                           
+                      if  ped-item.ind-fat-qtfam then
+                          assign tt-proc-ped-ent.idi-unid-fatur = 2.
+                      else
+                      if  not ped-item.ind-fat-qtfam then
+                          assign tt-proc-ped-ent.idi-unid-fatur = 1.
+                      else
+                          assign tt-proc-ped-ent.idi-unid-fatur = 3.
+                    &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN
+                        assign c-un-medida = ped-item.des-un-medida.
+                    &endif
+                 end.       
+                 IF VALID-HANDLE(h-bocx195) THEN
+                    run converteQtdUnMedidaClienteFamilia in h-bocx195 (input  tt-proc-ped-ent.it-codigo,                                                     
+                                                                        INPUT  tt-proc-ped-ent.nome-abrev,
+                                                                        input  tt-proc-ped-ent.idi-unid-fatur,
+                                                                        input  tt-proc-ped-ent.quantidade[1],
+                                                                        &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN 
+                                                                             input c-un-medida,
+                                                                        &endif
+                                                                        output de-qtd-conver,
+                                                                        output c-unid-conver).
+                    assign tt-proc-ped-ent.quantidade[2] = de-qtd-conver
+                           tt-proc-ped-ent.un-fatur      = c-unid-conver.
+          end. /*find*/
+       end.                                        
+  end.
+  
+  run piRelacionaProcPedVenda (input table tt-proc-ped-venda,
+                               input-output table tt-bo-erro).
+  find first tt-bo-erro no-lock
+       where tt-bo-erro.errorsubtype <> "warning":U no-error.
+  if avail tt-bo-erro then
+     return "NOK":U.                             
+  
+  run piCriaRelacionamentos(input table tt-proc-ped-venda,
+                            input table tt-proc-ped-ent,
+                            input table tt-proc-nota-fiscal,
+                            input-output table tt-bo-erro).
+                            
+  find first tt-bo-erro no-error.
+  if avail tt-bo-erro then
+     return "NOK":U.                             
+
+  if p-origem = 1 then do: /* Nota Fiscal */
+     find first proc-nota-fiscal exclusive-lock
+          where proc-nota-fiscal.cod-estabel    = p-estab      
+            and proc-nota-fiscal.nr-proc-exp    = p-processo   
+            and proc-nota-fiscal.serie          = p-serie   
+            and proc-nota-fiscal.nr-nota-fis    = p-nota       no-error.
+     if avail proc-nota-fiscal then do:
+        for first nota-fiscal no-lock
+             where nota-fiscal.cod-estabel    = p-estab      
+               and nota-fiscal.nr-nota-fis    = p-nota       
+               and nota-fiscal.nr-proc-exp    = p-processo   
+               and nota-fiscal.serie          = p-serie: 
+        end.
+        
+        if avail nota-fiscal and 
+                 nota-fiscal.cdd-embarq <> 0 then do:
+           &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+             assign proc-nota-fiscal.cdn-tip-relacto = 1.
+           &ELSE 
+             assign proc-nota-fiscal.int-1  = 1.
+           &ENDIF      
+           
+           find first embarque exclusive-lock
+                where embarque.cdd-embarq = nota-fiscal.cdd-embarq no-error.
+           if avail embarque then do:
+              &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                  assign embarque.nr-proc-exp     = p-processo
+                         embarque.cdn-tip-relacto = 2.
+              &ELSE 
+                  assign overlay(embarque.char-1,2,12) = p-processo
+                         embarque.int-1                  = 1.
+              &ENDIF  
+           end.
+           release embarque.
+        end.   
+        else do:
+           &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+             assign proc-nota-fiscal.cdn-tip-relacto = 2.
+           &ELSE 
+             assign proc-nota-fiscal.int-1  = 2.
+           &ENDIF  
+        end.
+     end.
+  end.
+  else do: /* embarque */
+       find first embarque exclusive-lock
+            where embarque.cdd-embarq = p-embarque no-error.
+       if avail embarque then do:
+          &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+               assign embarque.nr-proc-exp     = p-processo
+                      embarque.cdn-tip-relacto = 2.
+          &ELSE 
+               assign overlay(embarque.char-1,2,12) = p-processo
+                      embarque.int-1                  = 1.
+          &ENDIF  
+       end.
+       release embarque.
+       
+       for each nota-fiscal fields(cod-estabel nr-nota-fis nr-proc-exp serie check-sum) no-lock
+          where nota-fiscal.cdd-embarq = p-embarque:
+          find first proc-nota-fiscal exclusive-lock
+               where proc-nota-fiscal.cod-estabel    = nota-fiscal.cod-estabel      
+                 and proc-nota-fiscal.nr-nota-fis    = nota-fiscal.nr-nota-fis       
+                 and proc-nota-fiscal.nr-proc-exp    = p-processo   
+                 and proc-nota-fiscal.serie          = nota-fiscal.serie    no-error.
+          if avail proc-nota-fiscal then do:
+             &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                 assign proc-nota-fiscal.cdn-tip-relacto = 1.
+             &ELSE 
+                 assign proc-nota-fiscal.int-1  = 1.
+             &ENDIF  
+          end.
+       end.
+  end. 
+
+return "OK":U.
+
+&ENDIF   
+end procedure.
+
+&IF DEFINED(bf_comex206b-1) &THEN
+    procedure piRelacionaProcPedVenda:
+        
+        def input param table for tt-proc-ped-venda.
+        def input-output param table for tt-bo-erro.
+        
+        def var r-rowid-ped-venda as rowid no-undo.
+        
+        for each tt-bo-erro: delete tt-bo-erro. end.
+        
+     
+            assign p-relaciona-nota-embarque-ex0190 = yes.
+         
+            for each tt-proc-ped-venda :
+                 
+                run findPk_proc_pedvenda (input tt-proc-ped-venda.cod-estabel,
+                                          input tt-proc-ped-venda.nr-proc-exp,
+                                          input tt-proc-ped-venda.nr-pedido,  
+                                          output c-return).
+                
+                if c-return = "" then do:
+                   run validarecebevariavelbodi317efm04(input yes).
+                end.                         
+                else do:
+                   
+                   create tt-proc-ped-venda-aux.
+                   buffer-copy tt-proc-ped-venda to tt-proc-ped-venda-aux.
+                   
+                   run validateCreate (input no,
+                                       input  table tt-proc-ped-venda-aux,
+                                       output table tt-bo-erro,
+                                       output r-rowid-ped-venda).
+                   IF CAN-FIND(FIRST tt-bo-erro
+                               where tt-bo-erro.errorsubtype <> "warning":U ) THEN 
+                      return "NOK":U.                      
+                    
+                   for each tt-proc-ped-venda-aux: delete tt-proc-ped-venda-aux. end.    
+                  
+                   IF CAN-FIND(FIRST tt-bo-erro
+                               where tt-bo-erro.errorsubtype <> "warning":U) THEN 
+                      return "NOK":U. /* n∆o pode continuar deve retornar para o programa com os erros */
+             
+                end.
+                run getRowid (output r-rowid-ped-venda).
+                assign tt-proc-ped-venda.r-rowid = r-rowid-ped-venda.  
+                    
+            end.
+        
+        return "OK":U.
+    end procedure.
+&ENDIF
+
+procedure PiCriaRelacionamentos:
+
+&IF DEFINED(bf_comex206b-1) &THEN
+
+  def input param table for tt-proc-ped-venda.
+  def input param table for tt-proc-ped-ent.
+  def input param table for tt-proc-nota-fiscal.
+  def input-output param table for tt-bo-erro.
+  
+  def buffer bfproc-ped-ent for proc-ped-ent.  
+
+  if not valid-handle(h-bocx195) then
+     run cxbo/bocx195.p persistent set h-bocx195.
+     
+  if not valid-handle(h-bocx195a) then
+     run cxbo/bocx195a.p persistent set h-bocx195a.   
+     
+  if not valid-handle(h-bocx260) then
+     run cxbo/bocx260.p persistent set h-bocx260.   
+  
+  
+          for each tt-proc-ped-ent exclusive-lock:
+             
+              create tt-proc-ped-ent-aux.
+              buffer-copy tt-proc-ped-ent to tt-proc-ped-ent-aux.
+              
+              find first tt-proc-ped-venda no-lock
+                   where tt-proc-ped-venda.cod-estabel = tt-proc-ped-ent.cod-estabel
+                     and tt-proc-ped-venda.nr-proc-exp = tt-proc-ped-ent.nr-proc-exp
+                     and tt-proc-ped-venda.nr-pedido   = tt-proc-ped-ent.nr-pedido no-error.
+              
+               for first proc-ped-ent no-lock
+                   where proc-ped-ent.cod-estabel  = tt-proc-ped-ent.cod-estabel 
+                     and proc-ped-ent.nr-proc-exp  = tt-proc-ped-ent.nr-proc-exp 
+                     and proc-ped-ent.nome-abrev   = tt-proc-ped-ent.nome-abrev  
+                     and proc-ped-ent.nr-pedcli    = tt-proc-ped-ent.nr-pedcli   
+                     and proc-ped-ent.nr-sequencia = tt-proc-ped-ent.nr-sequencia
+                     and proc-ped-ent.it-codigo    = tt-proc-ped-ent.it-codigo   
+                     and proc-ped-ent.cod-refer    = tt-proc-ped-ent.cod-refer   
+                     and proc-ped-ent.nr-entrega   = tt-proc-ped-ent.nr-entrega : end.
+              if avail proc-ped-ent then do:
+                 assign tt-proc-ped-ent.quantidade[1] = tt-proc-ped-ent.quantidade[1] + proc-ped-ent.quantidade[1] 
+                        tt-proc-ped-ent.quantidade[2] = tt-proc-ped-ent.quantidade[2] + proc-ped-ent.quantidade[2]
+                        tt-proc-ped-ent.peso-bruto    = tt-proc-ped-ent.peso-bruto    + proc-ped-ent.peso-bruto   
+                        tt-proc-ped-ent.peso-liquido  = tt-proc-ped-ent.peso-liquido  + proc-ped-ent.peso-liquido
+                        tt-proc-ped-ent.r-rowid       = rowid(proc-ped-ent).
+               
+                 if valid-handle(h-bocx195) then do:
+                    run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent,
+                                                     input tt-proc-ped-ent.r-rowid,
+                                                     output table tt-bo-erro).
+                    IF CAN-FIND(FIRST tt-bo-erro
+                       where tt-bo-erro.errorsubtype <> "warning":U) THEN 
+                       return "NOK":U.                                 
+                 end.   
+                 find first ped-item
+                      where ped-item.nome-abrev    = proc-ped-ent.nome-abrev  
+                        and ped-item.nr-pedcli     = proc-ped-ent.nr-pedcli    
+                        and ped-item.nr-sequencia  = proc-ped-ent.nr-sequencia   
+                        and ped-item.it-codigo     = proc-ped-ent.it-codigo    
+                        and ped-item.cod-refer     = proc-ped-ent.cod-refer no-lock no-error.  
+                 if avail ped-item then do:
+                     if ped-item.ind-componen = 2 then do:
+                         for each bfproc-ped-ent where
+                                  bfproc-ped-ent.cod-estabel  = proc-ped-ent.cod-estabel and
+                                  bfproc-ped-ent.nr-proc-exp  = proc-ped-ent.nr-proc-exp and 
+                                  bfproc-ped-ent.nome-abrev   = ped-item.nome-abrev      and 
+                                  bfproc-ped-ent.nr-pedcli    = ped-item.nr-pedcli       and
+                                  bfproc-ped-ent.nr-sequencia = ped-item.nr-sequencia no-lock:
+                             if proc-ped-ent.it-codigo <> bfproc-ped-ent.it-codigo then do:
+                             
+                                 find first ped-ent no-lock 
+                                      where ped-ent.nome-abrev   = bfproc-ped-ent.nome-abrev
+                                        and ped-ent.nr-pedcli    = bfproc-ped-ent.nr-pedcli
+                                        and ped-ent.nr-sequencia = bfproc-ped-ent.nr-sequencia
+                                        and ped-ent.it-codigo    = bfproc-ped-ent.it-codigo
+                                        and ped-ent.cod-refer    = bfproc-ped-ent.cod-refer
+                                        and ped-ent.nr-entrega   = bfproc-ped-ent.nr-entrega no-error.
+
+                                 empty temp-table tt-proc-ped-ent-filho.
+                        
+                                 create tt-proc-ped-ent-filho.
+                                 buffer-copy bfproc-ped-ent to tt-proc-ped-ent-filho.
+                                 
+                                 assign tt-proc-ped-ent-filho.quantidade[1] = tt-proc-ped-ent.quantidade[1] / ped-item.qt-pedida * ped-ent.qt-pedida
+                                        tt-proc-ped-ent-filho.r-rowid       = rowid(bfproc-ped-ent).
+
+                                 if valid-handle(h-bocx195) then do:
+                                 
+                                    run atualizaQuantidade in h-bocx195 (input rowid(ped-ent),
+                                                                         input-output table tt-proc-ped-ent-filho,
+                                                                         input tt-proc-ped-ent-filho.quantidade[1]).
+
+                                    for first item fields(peso-liquido peso-bruto) no-lock
+                                        where item.it-codigo = tt-proc-ped-ent-filho.it-codigo : end.
+		                            if avail item then
+                                        assign tt-proc-ped-ent-filho.peso-bruto   = truncate(tt-proc-ped-ent-filho.quantidade[1] * item.peso-bruto,3)
+                                               tt-proc-ped-ent-filho.peso-liquido = truncate(tt-proc-ped-ent-filho.quantidade[1] * item.peso-liquido,3).
+
+                                    find first tt-proc-ped-ent-filho no-lock no-error.
+
+                                    run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent-filho,
+                                                                     input tt-proc-ped-ent-filho.r-rowid,
+                                                                     output table tt-bo-erro).
+                                    IF CAN-FIND(FIRST tt-bo-erro
+                                       where tt-bo-erro.errorsubtype <> "warning":U) THEN 
+                                       return "NOK":U.                                 
+                                 end.   
+                             end.
+                         end.
+                     end.    
+                 end.
+              end.
+              else do:
+                   if valid-handle(h-bocx195a) then do:
+                      run carregaTempTablePedEnt in h-bocx195a (input table tt-proc-ped-ent-aux,
+                                                                input 0,
+                                                                input tt-proc-ped-venda.r-rowid).
+                                                                
+                      run carregattprocpedentaux in h-bocx195a (input tt-proc-ped-ent.nr-sequencia,
+                                                                input tt-proc-ped-ent.nr-entrega,
+                                                               &if defined(bf_comex206b-1) &then
+                                                                input tt-proc-ped-ent.quantidade[1] ,
+                                                               &endif
+                                                               output table tt-proc-ped-ent-aux). 
+                     
+                      run carregaTempTablePedEnt in h-bocx195a (input table tt-proc-ped-ent-aux,
+                                                                input 0,
+                                                                input tt-proc-ped-venda.r-rowid).                                          
+                   end.
+              end.
+              for each tt-proc-ped-ent-aux: delete tt-proc-ped-ent-aux. end.
+              delete tt-proc-ped-ent.
+          end.
+  
+  
+  for each tt-proc-nota-fiscal:
+      for first nota-fiscal fields(cod-estabel serie nr-nota-fis nr-proc-exp ind-tip-nota) exclusive-lock
+           where nota-fiscal.cod-estabel = tt-proc-nota-fiscal.cod-estabel
+             and nota-fiscal.serie       = tt-proc-nota-fiscal.serie      
+             and nota-fiscal.nr-nota-fis = tt-proc-nota-fiscal.nr-nota-fis: end.
+      if avail nota-fiscal then do:
+         assign nota-fiscal.nr-proc-exp = tt-proc-nota-fiscal.nr-proc-exp. 
+                   
+         for each proc-it-nota-desp fields(nr-proc-exp) exclusive-lock
+             where proc-it-nota-desp.cod-estabel = nota-fiscal.cod-estabel 
+               and proc-it-nota-desp.serie       = nota-fiscal.serie       
+               and proc-it-nota-desp.nr-nota-fis = nota-fiscal.nr-nota-fis:
+             assign proc-it-nota-desp.nr-proc-exp = tt-proc-nota-fiscal.nr-proc-exp.
+         end.
+         for each it-nota-fisc no-lock
+            where it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel 
+              and it-nota-fisc.serie       = nota-fiscal.serie       
+              and it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis :  
+             
+            if nota-fiscal.ind-tip-nota = 3 then do:
+               run exp/ex3105a.p(input rowid(it-nota-fisc),
+                                 input proc-nota-fiscal.nr-proc-exp).                       
+            end.
+         end.
+         if nota-fiscal.ind-tip-nota <> 3 then do:
+            run criaProcNota in h-bocx260(input rowid(nota-fiscal)).
+         end.
+      end.
+  end.
+  
+  if valid-handle(h-bocx195) then do:
+     delete procedure h-bocx195.
+     assign h-bocx195 = ?.
+  end.
+  if valid-handle(h-bocx195a) then do:
+     delete procedure h-bocx195a.
+     assign h-bocx195a = ?.
+  end.
+  if valid-handle(h-bocx260) then do:
+     delete procedure h-bocx260.
+     assign h-bocx260 = ?.
+  end.
+    
+&ENDIF
+return "OK":U.
+end procedure.
+
+procedure EmbarquesRelacionados:
+
+def input  param p-processo  as char no-undo.
+def input  param p-cod-estab as char no-undo.
+def output param table for tt-embarque.
+
+for each tt-embarque : delete tt-embarque. end.
+
+for each proc-ped-ent fields(nome-abrev nr-pedcli nr-sequencia it-codigo cod-refer nr-entrega) no-lock
+   where proc-ped-ent.cod-estabel = p-cod-estab 
+     and proc-ped-ent.nr-proc-exp = p-processo:
+   
+   for each it-pre-fat no-lock
+      where it-pre-fat.nome-abrev   = proc-ped-ent.nome-abrev
+        and it-pre-fat.nr-pedcli    = proc-ped-ent.nr-pedcli
+        and it-pre-fat.nr-sequencia = proc-ped-ent.nr-sequencia
+        and it-pre-fat.it-codigo    = proc-ped-ent.it-codigo
+        and it-pre-fat.cod-refer    = proc-ped-ent.cod-refer
+        and it-pre-fat.nr-entrega   = proc-ped-ent.nr-entrega :
+      
+        find first embarque no-lock
+             where embarque.cdd-embarq = it-pre-fat.cdd-embarq no-error.
+        if not avail embarque then next.
+        
+        &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+            if embarque.nr-proc-exp <> p-processo then next.
+        &ELSE 
+            if trim(substring(embarque.char-1,2,12)) <> p-processo then next.
+        &ENDIF  
+  
+         find first tt-embarque no-lock
+              where tt-embarque.cdd-embarq = embarque.cdd-embarq no-error.
+         if not avail tt-embarque then 
+            create tt-embarque.
+            
+         assign tt-embarque.cdd-embarq   = embarque.cdd-embarq
+                tt-embarque.dt-embarque  = embarque.dt-embarque
+                tt-embarque.identific    = embarque.identific
+                tt-embarque.situacao     = {diinc/i01di162.i 04 embarque.situacao}
+                tt-embarque.r-rowid      = rowid(embarque). 
+                
+         &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+            assign tt-embarque.tipo = string(embarque.cdn-tip-relacto). /*pendente include*/
+         &else
+            assign tt-embarque.tipo = string(embarque.int-1). /*pendente include*/
+         &ENDIF
+      
+   end.       
+end.   
+return "OK":U.
+end procedure.
+
+procedure EliminaRelacionamentosNota:
+
+&IF DEFINED(bf_comex206b-1) &THEN
+
+def input param p-estabel    like proc-nota-fiscal.nr-nota-fis no-undo.
+def input param p-serie      like proc-nota-fiscal.serie       no-undo.
+def input param p-nota       like proc-nota-fiscal.nr-nota-fis no-undo.
+def input param p-processo   as char                           no-undo.
+def input param p-estab-proc as char                           no-undo.
+def output param table for tt-bo-erro.
+
+define variable h-bocx195 as handle no-undo.
+define variable h-bocx265 as handle no-undo.
+define variable h-bocx260 as handle no-undo.
+define variable h-bocx185 as handle no-undo.
+def var r-rowid           as rowid  no-undo.
+def var l-achou-nf-emb    as logical no-undo.
+def var de-qtd-pai        as decimal no-undo.
+def buffer bfproc-ped-ent for proc-ped-ent.
+def buffer b-nota-fiscal  for nota-fiscal.
+
+
+IF NOT VALID-HANDLE(h-bocx195) THEN 
+   run cxbo/bocx195.p persistent set h-bocx195.
+
+IF NOT VALID-HANDLE(h-bocx265) THEN 
+   run cxbo/bocx265.p persistent set h-bocx265.   
+
+IF NOT VALID-HANDLE(h-bocx260) THEN 
+   run cxbo/bocx260.p persistent set h-bocx260.   
+
+IF NOT VALID-HANDLE(h-bocx185) THEN 
+   run cxbo/bocx185.p persistent set h-bocx185.      
+
+  find first proc-nota-fiscal no-lock
+       where proc-nota-fiscal.cod-estabel = p-estabel
+         and proc-nota-fiscal.nr-proc-exp = p-processo
+         and proc-nota-fiscal.serie       = p-serie
+         and proc-nota-fiscal.nr-nota-fis = p-nota no-error.
+  if avail proc-nota-fiscal then do:
+
+     for each proc-it-nota-fisc no-lock
+        where proc-it-nota-fisc.cod-estabel  = proc-nota-fiscal.cod-estabel
+          and proc-it-nota-fisc.nr-proc-exp  = proc-nota-fiscal.nr-proc-exp
+          and proc-it-nota-fisc.serie        = proc-nota-fiscal.serie
+          and proc-it-nota-fisc.nr-nota-fis  = proc-nota-fiscal.nr-nota-fis,
+        first it-nota-fisc fields 
+        (cod-estabel nome-ab-cli nr-pedcli nr-seq-ped it-codigo 
+         cod-refer nr-entrega qt-faturada[1] peso-liq-fat peso-bruto)    
+        where it-nota-fisc.cod-estab   = proc-it-nota-fisc.cod-estabel   
+          and it-nota-fisc.serie       = proc-it-nota-fisc.serie       
+          and it-nota-fisc.nr-nota-fis = proc-it-nota-fisc.nr-nota-fis 
+          and it-nota-fisc.nr-seq-fat  = proc-it-nota-fisc.nr-seq-fat 
+          and it-nota-fisc.it-codigo   = proc-it-nota-fisc.it-codigo no-lock:
+
+        for first proc-ped-ent            
+            where proc-ped-ent.cod-estabel  = proc-it-nota-fisc.cod-estabel 
+              and proc-ped-ent.nr-proc-exp  = proc-it-nota-fisc.nr-proc-exp
+              and proc-ped-ent.nome-abrev   = it-nota-fisc.nome-ab-cli  
+              and proc-ped-ent.nr-pedcli    = it-nota-fisc.nr-pedcli   
+              and proc-ped-ent.nr-sequencia = it-nota-fisc.nr-seq-ped
+              and proc-ped-ent.it-codigo    = it-nota-fisc.it-codigo   
+              and proc-ped-ent.cod-refer    = it-nota-fisc.cod-refer   
+              and proc-ped-ent.nr-entrega   = it-nota-fisc.nr-entrega no-lock : end.      
+        if not avail proc-ped-ent then next.
+        
+        for first proc-ped-venda fields(cod-estabel nr-proc-exp nr-pedido) no-lock
+            where proc-ped-venda.cod-estabel = proc-ped-ent.cod-estabel
+              and proc-ped-venda.nr-proc-exp = proc-ped-ent.nr-proc-exp
+              and proc-ped-venda.nr-pedido   = proc-ped-ent.nr-pedido   : end.
+        if not avail proc-ped-venda then next.
+        
+        /* Verifica se a quantidade desta nota Ç a mesma do item do pedido
+           de exportaá∆o, caso seja, ent∆o este item dever† ser eliminado do 
+           processo */ 
+           
+        if it-nota-fisc.qt-faturada[1] >= proc-ped-ent.quantidade[1] then do:
+        
+           find first ped-item
+                where ped-item.nome-abrev    = proc-ped-ent.nome-abrev  
+                  and ped-item.nr-pedcli     = proc-ped-ent.nr-pedcli    
+                  and ped-item.nr-sequencia  = proc-ped-ent.nr-sequencia   
+                  and ped-item.it-codigo     = proc-ped-ent.it-codigo    
+                  and ped-item.cod-refer     = proc-ped-ent.cod-refer no-lock no-error.  
+           if avail ped-item then do:
+              if ped-item.ind-componen = 2 then do:
+                   /*eliminaá∆o do itens filhos*/
+                   for each bfproc-ped-ent where
+                            bfproc-ped-ent.cod-estabel  = proc-ped-ent.cod-estabel and
+                            bfproc-ped-ent.nr-proc-exp  = proc-ped-ent.nr-proc-exp and 
+                            bfproc-ped-ent.nome-abrev   = ped-item.nome-abrev      and 
+                            bfproc-ped-ent.nr-pedcli    = ped-item.nr-pedcli       and
+                            bfproc-ped-ent.nr-sequencia = ped-item.nr-sequencia no-lock:
+                       if proc-ped-ent.it-codigo <> bfproc-ped-ent.it-codigo then do:
+                            assign r-rowid = rowid(bfproc-ped-ent).
+                            
+                            run validateDelete in h-bocx195 (input-output r-rowid,
+                                                             output table tt-bo-erro).
+                            IF CAN-FIND(FIRST tt-bo-erro) THEN do:
+                            return "NOK":U.
+                            end.
+                       end.
+                   end.
+              end.
+           end.
+           assign r-rowid = rowid(proc-ped-ent).
+           for each tt-bo-erro: 
+               delete tt-bo-erro. 
+           end.
+           run validateDelete in h-bocx195 (input-output r-rowid,
+                                            output table tt-bo-erro).
+           IF CAN-FIND(FIRST tt-bo-erro) THEN 
+              return "NOK":U.  
+              
+           find first bfproc-ped-ent no-lock
+                where bfproc-ped-ent.cod-estabel = proc-ped-venda.cod-estabel  
+                  and bfproc-ped-ent.nr-proc-exp = proc-ped-venda.nr-proc-exp  
+                  and bfproc-ped-ent.nr-pedido   = proc-ped-venda.nr-pedido   no-error.
+           if not avail bfproc-ped-ent then do:
+              for each tt-bo-erro: delete tt-bo-erro. end.
+              assign r-rowid = rowid(proc-ped-venda).
+              run validateDelete (input-output r-rowid, 
+                                  output table tt-bo-erro) .
+              IF CAN-FIND(FIRST tt-bo-erro) THEN 
+                 return "NOK":U.    
+           end.
+
+        end.
+        else do: 
+           /* Caso contr†rio, significa que este item do pedido foi faturado
+           parcial e a sua quantidade dever† ser diminuida, pois tem outras
+           notas referente a este item */
+           for each tt-proc-ped-ent: 
+               delete tt-proc-ped-ent. 
+           end.
+           create tt-proc-ped-ent.
+           buffer-copy proc-ped-ent to tt-proc-ped-ent NO-ERROR.
+           assign tt-proc-ped-ent.quantidade[1]   = tt-proc-ped-ent.quantidade[1]   -  it-nota-fisc.qt-faturada[1]   
+                  tt-proc-ped-ent.peso-liquido    = tt-proc-ped-ent.peso-liquido    -  it-nota-fisc.peso-liq-fat 
+                  tt-proc-ped-ent.peso-bruto      = tt-proc-ped-ent.peso-bruto      -  it-nota-fisc.peso-bruto
+                  tt-proc-ped-ent.r-rowid         = rowid(proc-ped-ent).
+           for each tt-bo-erro: 
+               delete tt-bo-erro. 
+           end.
+           
+           run setValidaNfEmbarque in h-bocx195 (input no).           
+           run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent,
+                                            input tt-proc-ped-ent.r-rowid,
+                                            output table tt-bo-erro).
+           run setValidaNfEmbarque in h-bocx195 (input yes).
+                                            
+           IF CAN-FIND(FIRST tt-bo-erro) THEN   
+              return "NOK":U.
+              
+           /* Diminuir as quantidades dos itens filhos */
+           find first ped-item
+                where ped-item.nome-abrev    = proc-ped-ent.nome-abrev  
+                  and ped-item.nr-pedcli     = proc-ped-ent.nr-pedcli    
+                  and ped-item.nr-sequencia  = proc-ped-ent.nr-sequencia   
+                  and ped-item.it-codigo     = proc-ped-ent.it-codigo    
+                  and ped-item.cod-refer     = proc-ped-ent.cod-refer no-lock no-error.  
+           if avail ped-item then do:
+                if ped-item.ind-componen = 2 then do:
+                                                  
+                    assign de-qtd-pai = tt-proc-ped-ent.quantidade[1].                  
+                    
+                    for each bfproc-ped-ent where
+                             bfproc-ped-ent.cod-estabel  = proc-ped-ent.cod-estabel and
+                             bfproc-ped-ent.nr-proc-exp  = proc-ped-ent.nr-proc-exp and 
+                             bfproc-ped-ent.nome-abrev   = ped-item.nome-abrev      and 
+                             bfproc-ped-ent.nr-pedcli    = ped-item.nr-pedcli       and
+                             bfproc-ped-ent.nr-sequencia = ped-item.nr-sequencia no-lock:
+                        if proc-ped-ent.it-codigo <> bfproc-ped-ent.it-codigo then do:
+                                                                                    
+                            find first ped-ent no-lock 
+                                 where ped-ent.nome-abrev   = bfproc-ped-ent.nome-abrev
+                                   and ped-ent.nr-pedcli    = bfproc-ped-ent.nr-pedcli
+                                   and ped-ent.nr-sequencia = bfproc-ped-ent.nr-sequencia
+                                   and ped-ent.it-codigo    = bfproc-ped-ent.it-codigo
+                                   and ped-ent.cod-refer    = bfproc-ped-ent.cod-refer
+                                   and ped-ent.nr-entrega   = bfproc-ped-ent.nr-entrega no-error.
+                            
+                            empty temp-table tt-proc-ped-ent.
+    
+                            create tt-proc-ped-ent.
+                            buffer-copy bfproc-ped-ent to tt-proc-ped-ent no-error.
+                            
+                            assign tt-proc-ped-ent.quantidade[1] = tt-proc-ped-ent.quantidade[1] - (de-qtd-pai / ped-item.qt-pedida * ped-ent.qt-pedida)
+                                   tt-proc-ped-ent.r-rowid       = rowid(bfproc-ped-ent).
+                             
+                            if valid-handle (h-bocx195) then do:
+                                run atualizaQuantidade in h-bocx195 (input rowid(ped-ent),
+                                                                     input-output table tt-proc-ped-ent,
+                                                                     input tt-proc-ped-ent.quantidade[1]).
+                                                                
+                                find first tt-proc-ped-ent no-lock no-error.
+                                
+                                for first item fields(peso-liquido peso-bruto) no-lock
+                                    where item.it-codigo = tt-proc-ped-ent.it-codigo : end.
+                                if avail item then
+                                    assign tt-proc-ped-ent.peso-bruto   = truncate(tt-proc-ped-ent.quantidade[1] * item.peso-bruto,3)
+                                           tt-proc-ped-ent.peso-liquido = truncate(tt-proc-ped-ent.quantidade[1] * item.peso-liquido,3).
+
+                                run setValidaNfEmbarque in h-bocx195 (input no).
+                                run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent,
+                                                                 input tt-proc-ped-ent.r-rowid,
+                                                                 output table tt-bo-erro).
+                                run setValidaNfEmbarque in h-bocx195 (input yes).                                                                 
+                                                                 
+                            end.                                                                
+                                                            
+                            IF CAN-FIND(FIRST tt-bo-erro) THEN 
+                                return "NOK":U.                                   
+                        end.
+                    end.     
+                end.                    
+           end.
+        end.
+        
+        /* Elimina o proc-it-nota-fisc */
+        assign r-rowid = rowid(proc-it-nota-fisc).
+        run validateDelete in h-bocx265 (input-output r-rowid,output table tt-bo-erro).
+        IF CAN-FIND(FIRST tt-bo-erro) THEN return "NOK":U.                                  
+        
+     end. /* for each proc-it-nota-fisc */
+     
+     /* Desvincula o processo da nota fiscal e do embarque */
+     assign l-achou-nf-emb = no.
+     for first nota-fiscal fields(cdd-embarq nr-nota-fis nr-proc-exp) exclusive-lock
+          where nota-fiscal.cod-estabel  = proc-nota-fiscal.cod-estabel   
+            and nota-fiscal.serie        = proc-nota-fiscal.serie         
+            and nota-fiscal.nr-nota-fis  = proc-nota-fiscal.nr-nota-fis:
+     end.
+     if avail nota-fiscal then do:
+        if nota-fiscal.cdd-embarq <> 0 then do:
+             for each b-nota-fiscal fields(nr-nota-fis cdd-embarq) where
+                      b-nota-fiscal.cdd-embarq = nota-fiscal.cdd-embarq no-lock:
+                 if b-nota-fiscal.nr-nota-fis   <> nota-fiscal.nr-nota-fis then 
+                    assign l-achou-nf-emb = yes.
+             end.         
+             if l-achou-nf-emb = no then do:
+                find first embarque exclusive-lock 
+                     where embarque.cdd-embarq = nota-fiscal.cdd-embarq no-error.
+                &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                   assign embarque.nr-proc-exp     = "".
+                &ELSE 
+                   assign overlay(embarque.char-1,2,12) = "".
+                &ENDIF  
+                release embarque.
+             end.
+        end.
+        assign nota-fiscal.nr-proc-exp = "".
+     end.
+     
+     /* Elimina a nota do processo - proc-nota-fiscal */
+     assign r-rowid = rowid(proc-nota-fiscal).
+     run validateDelete in h-bocx260 (input-output r-rowid,output table tt-bo-erro).
+     IF CAN-FIND(FIRST tt-bo-erro) THEN return "NOK":U.   
+
+  end. /* if avail proc-nota-fiscal */
+   
+  run atualizaSituacaoProcesso in h-bocx185(input p-estab-proc,
+                                            input p-processo).
+                  
+  for each tt-bo-erro: delete tt-bo-erro. end.                        
+  if valid-handle(h-bocx195) then do:
+     delete procedure h-bocx195.
+     assign h-bocx195 = ?.
+  end.
+  if valid-handle(h-bocx265) then do:
+     delete procedure h-bocx265.
+     assign h-bocx265 = ?.
+  end.
+  if valid-handle(h-bocx260) then do:
+     delete procedure h-bocx260.
+     assign h-bocx260 = ?.
+  end.
+  if valid-handle(h-bocx185) then do:
+     delete procedure h-bocx185.
+     assign h-bocx185 = ?.
+  end  .              
+  
+&ENDIF
+return "OK":U.
+end procedure.
+
+Procedure EliminaRelacionamentosEmbarque:
+
+&IF DEFINED(bf_comex206b-1) &THEN
+
+  def input param p-embarque   as dec   no-undo.
+  def input param p-processo   as char  no-undo.
+  def input param p-estab-proc as char  no-undo.
+  def output parameter table for tt-bo-erro.
+
+  define variable h-bocx195 as handle no-undo.
+  define variable h-bocx265 as handle no-undo.
+  define variable h-bocx260 as handle no-undo.
+  define variable h-bocx185 as handle no-undo.
+  
+  def buffer bfproc-ped-ent for proc-ped-ent.
+  def buffer b-proc-ped-ent for proc-ped-ent.
+  def var r-rowid     as rowid no-undo.
+  def var de-qtd-pai  as decimal no-undo.
+
+  IF NOT VALID-HANDLE(h-bocx195) THEN 
+     run cxbo/bocx195.p persistent set h-bocx195.
+   
+  IF NOT VALID-HANDLE(h-bocx265) THEN 
+     run cxbo/bocx265.p persistent set h-bocx265. 
+
+  IF NOT VALID-HANDLE(h-bocx260) THEN 
+     run cxbo/bocx260.p persistent set h-bocx260.
+
+  IF NOT VALID-HANDLE(h-bocx185) THEN 
+     run cxbo/bocx185.p persistent set h-bocx185.
+      
+  /* esta l¢gica foi corrigida por Emerson WEssling */
+
+  for first embarque fields(cdd-embarq) no-lock
+       where embarque.cdd-embarq = p-embarque: end.
+  if avail embarque then do:
+   
+     for each it-pre-fat no-lock
+        where it-pre-fat.cdd-embarq = embarque.cdd-embarq:
+      
+        for first proc-ped-ent no-lock
+            where proc-ped-ent.cod-estabel  = p-estab-proc
+              and proc-ped-ent.nr-proc-exp  = p-processo
+              and proc-ped-ent.nome-abrev   = it-pre-fat.nome-abrev
+              and proc-ped-ent.nr-pedcli    = it-pre-fat.nr-pedcli
+              and proc-ped-ent.nr-sequencia = it-pre-fat.nr-sequencia
+              and proc-ped-ent.it-codigo    = it-pre-fat.it-codigo
+              and proc-ped-ent.cod-refer    = it-pre-fat.cod-refer
+              and proc-ped-ent.nr-entrega   = it-pre-fat.nr-entrega : end.
+        if not avail proc-ped-ent then next.       
+      
+        for first item fields(desc-item item.peso-liquido item.peso-bruto) no-lock
+            where item.it-codigo = it-pre-fat.it-codigo : end.
+
+        for first proc-ped-venda fields(cod-estabel nr-proc-exp nr-proc-exp nr-pedido) no-lock
+            where proc-ped-venda.cod-estabel = proc-ped-ent.cod-estabel
+              and proc-ped-venda.nr-proc-exp = proc-ped-ent.nr-proc-exp
+              and proc-ped-venda.nr-pedido   = proc-ped-ent.nr-pedido   : end.
+        if not avail proc-ped-venda then next.
+      
+        if it-pre-fat.qt-alocada >= proc-ped-ent.quantidade[1] then do:
+           find first ped-item
+                where ped-item.nome-abrev    = proc-ped-ent.nome-abrev  
+                  and ped-item.nr-pedcli     = proc-ped-ent.nr-pedcli    
+                  and ped-item.nr-sequencia  = proc-ped-ent.nr-sequencia   
+                  and ped-item.it-codigo     = proc-ped-ent.it-codigo    
+                  and ped-item.cod-refer     = proc-ped-ent.cod-refer no-lock no-error.  
+           if avail ped-item then do:
+                  if ped-item.ind-componen = 2 then do:
+                       /*eliminaá∆o do itens filhos*/
+                       for each b-proc-ped-ent where
+                                b-proc-ped-ent.cod-estabel  = proc-ped-ent.cod-estabel and
+                                b-proc-ped-ent.nr-proc-exp  = proc-ped-ent.nr-proc-exp and 
+                                b-proc-ped-ent.nome-abrev   = ped-item.nome-abrev      and 
+                                b-proc-ped-ent.nr-pedcli    = ped-item.nr-pedcli       and
+                                b-proc-ped-ent.nr-sequencia = ped-item.nr-sequencia no-lock:
+                           if proc-ped-ent.it-codigo <> b-proc-ped-ent.it-codigo then do:
+                                assign r-rowid = rowid(b-proc-ped-ent).
+                                run validateDelete in h-bocx195 (input-output r-rowid,
+                                                                 output table tt-bo-erro).
+                                IF CAN-FIND(FIRST tt-bo-erro) THEN 
+                                    return "NOK":U.                                                    
+                            end.
+                       end.
+                  end.
+           end.
+           
+           assign r-rowid = rowid(proc-ped-ent).
+           run validateDelete in h-bocx195 (input-output r-rowid,
+                                            output table tt-bo-erro).
+           IF CAN-FIND(FIRST tt-bo-erro) THEN do:
+              return "NOK":U.                    
+           end.               
+        end.
+        else do:
+           for each tt-proc-ped-ent:
+               delete tt-proc-ped-ent.
+           end.
+           create tt-proc-ped-ent.
+           buffer-copy proc-ped-ent to tt-proc-ped-ent no-error.
+
+           assign tt-proc-ped-ent.quantidade[1] = tt-proc-ped-ent.quantidade[1] - it-pre-fat.qt-alocada
+                  tt-proc-ped-ent.r-rowid       = rowid(proc-ped-ent).
+           
+           if avail item then
+              assign tt-proc-ped-ent.peso-liquido = tt-proc-ped-ent.peso-liquido -  truncate(it-pre-fat.qt-alocada * item.peso-liquido,3) 
+                     tt-proc-ped-ent.peso-bruto   = tt-proc-ped-ent.peso-bruto   -  truncate(it-pre-fat.qt-alocada * item.peso-bruto,3).  
+                  
+           run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent,
+                                            input tt-proc-ped-ent.r-rowid,
+                                            output table tt-bo-erro).
+           IF CAN-FIND(FIRST tt-bo-erro) THEN 
+               return "NOK":U.                                   
+           /* Diminuir as quantidades dos itens filhos */
+           find first ped-item
+                where ped-item.nome-abrev    = proc-ped-ent.nome-abrev  
+                  and ped-item.nr-pedcli     = proc-ped-ent.nr-pedcli    
+                  and ped-item.nr-sequencia  = proc-ped-ent.nr-sequencia   
+                  and ped-item.it-codigo     = proc-ped-ent.it-codigo    
+                  and ped-item.cod-refer     = proc-ped-ent.cod-refer no-lock no-error.  
+           if avail ped-item then do:
+                if ped-item.ind-componen = 2 then do:
+                                                  
+                    ASSIGN de-qtd-pai = tt-proc-ped-ent.quantidade[1].                  
+                    
+                    for each b-proc-ped-ent where
+                             b-proc-ped-ent.cod-estabel  = proc-ped-ent.cod-estabel and
+                             b-proc-ped-ent.nr-proc-exp  = proc-ped-ent.nr-proc-exp and 
+                             b-proc-ped-ent.nome-abrev   = ped-item.nome-abrev      and 
+                             b-proc-ped-ent.nr-pedcli    = ped-item.nr-pedcli       and
+                             b-proc-ped-ent.nr-sequencia = ped-item.nr-sequencia no-lock:
+                        if proc-ped-ent.it-codigo <> b-proc-ped-ent.it-codigo then do:
+                                                                                    
+                            find first ped-ent no-lock 
+                                 where ped-ent.nome-abrev   = b-proc-ped-ent.nome-abrev
+                                   and ped-ent.nr-pedcli    = b-proc-ped-ent.nr-pedcli
+                                   and ped-ent.nr-sequencia = b-proc-ped-ent.nr-sequencia
+                                   and ped-ent.it-codigo    = b-proc-ped-ent.it-codigo
+                                   and ped-ent.cod-refer    = b-proc-ped-ent.cod-refer
+                                   and ped-ent.nr-entrega   = b-proc-ped-ent.nr-entrega no-error.
+                            
+                            empty temp-table tt-proc-ped-ent.
+    
+                            create tt-proc-ped-ent.
+                            buffer-copy b-proc-ped-ent to tt-proc-ped-ent no-error.
+                            
+                            assign tt-proc-ped-ent.quantidade[1] = tt-proc-ped-ent.quantidade[1] - (de-qtd-pai / ped-item.qt-pedida * ped-ent.qt-pedida)
+                                   tt-proc-ped-ent.r-rowid       = rowid(b-proc-ped-ent).
+                             
+                            if valid-handle (h-bocx195) then do:
+                                run atualizaQuantidade in h-bocx195 (input rowid(ped-ent),
+                                                                     input-output table tt-proc-ped-ent,
+                                                                     input tt-proc-ped-ent.quantidade[1]).
+                                                                
+                                find first tt-proc-ped-ent no-lock no-error.
+                                
+                                for first item fields(peso-liquido peso-bruto) no-lock
+                                    where item.it-codigo = tt-proc-ped-ent.it-codigo : end.
+                                if avail item then
+                                    assign tt-proc-ped-ent.peso-bruto   = truncate(tt-proc-ped-ent.quantidade[1] * item.peso-bruto,3)
+                                           tt-proc-ped-ent.peso-liquido = truncate(tt-proc-ped-ent.quantidade[1] * item.peso-liquido,3).
+                                                  
+                                run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent,
+                                                                 input tt-proc-ped-ent.r-rowid,
+                                                                 output table tt-bo-erro).
+                            end.                                                                
+                                                            
+                            IF CAN-FIND(FIRST tt-bo-erro) THEN 
+                                return "NOK":U.                                   
+                        end.
+                    end.     
+                end.                    
+           end.
+        end.
+      
+        find first bfproc-ped-ent no-lock
+             where bfproc-ped-ent.cod-estabel = proc-ped-venda.cod-estabel  
+               and bfproc-ped-ent.nr-proc-exp = proc-ped-venda.nr-proc-exp  
+               and bfproc-ped-ent.nr-pedido   = proc-ped-venda.nr-pedido no-error.
+        if not avail bfproc-ped-ent then do:
+           assign r-rowid = rowid(proc-ped-venda).
+           run validateDelete (input-output r-rowid, 
+                               output table tt-bo-erro) .
+           IF CAN-FIND(FIRST tt-bo-erro) THEN 
+              return "NOK":U.                      
+        end.
+      
+     end.
+   
+     FOR EACH nota-fiscal FIELDS 
+         (cod-estabel serie nr-nota-fis) NO-LOCK 
+         WHERE nota-fiscal.cdd-embarq = p-embarque:
+
+         for each it-nota-fisc fields
+           (cod-estabel serie nr-nota-fis nr-seq-fat it-codigo) no-lock
+            where it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel
+              and it-nota-fisc.serie       = nota-fiscal.serie
+              and it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis: 
+        
+            for first proc-it-nota-fisc fields
+               (cod-estabel nr-proc-exp serie nr-nota-fis) no-lock 
+                where proc-it-nota-fisc.cod-estabel = it-nota-fisc.cod-estabel
+                  and proc-it-nota-fisc.nr-proc-exp = p-processo
+                  and proc-it-nota-fisc.serie       = it-nota-fisc.serie
+                  and proc-it-nota-fisc.nr-nota-fis = it-nota-fisc.nr-nota-fis
+                  and proc-it-nota-fisc.nr-seq-fat  = it-nota-fisc.nr-seq-fat
+                  and proc-it-nota-fisc.it-codigo   = it-nota-fisc.it-codigo : end.
+            if avail proc-it-nota-fisc then do:
+               r-rowid = rowid(proc-it-nota-fisc).
+               run validateDelete in h-bocx265 (input-output r-rowid,
+                                                output table tt-bo-erro).
+               IF CAN-FIND(FIRST tt-bo-erro) THEN 
+                  return "NOK":U.                               
+            end.                                                                
+
+         end.
+       
+         find first proc-nota-fiscal no-lock
+              where proc-nota-fiscal.cod-estabel  = nota-fiscal.cod-estabel   
+                and proc-nota-fiscal.nr-proc-exp  = p-processo   
+                and proc-nota-fiscal.serie        = nota-fiscal.serie         
+                and proc-nota-fiscal.nr-nota-fis  = nota-fiscal.nr-nota-fis no-error.
+         if avail proc-nota-fiscal then do:   
+            assign r-rowid = rowid(proc-nota-fiscal).
+            run validateDelete in h-bocx260 (input-output r-rowid,
+                                             output table tt-bo-erro).
+            IF CAN-FIND(FIRST tt-bo-erro) THEN 
+               return "NOK":U.   
+         end.
+
+         find first bf_nota_fiscal exclusive-lock
+              where rowid(bf_nota_fiscal) = rowid(nota-fiscal) no-error.
+         if avail bf_nota_fiscal then 
+            assign bf_nota_fiscal.nr-proc-exp = "".
+
+     END.
+
+     for first embarque fields(cdd-embarq) exclusive-lock
+         where embarque.cdd-embarq = p-embarque: end.
+     if avail embarque then do:
+        &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+             assign embarque.nr-proc-exp     = "".
+        &ELSE 
+             assign overlay(embarque.char-1,2,12) = "".
+        &ENDIF  
+     end.
+     release embarque.
+     
+     run atualizaSituacaoProcesso in h-bocx185(input p-estab-proc,
+                                               input p-processo).
+  end.
+
+  if valid-handle(h-bocx195) then do:
+     delete procedure h-bocx195.
+     assign h-bocx195 = ?.
+  end.
+  if valid-handle(h-bocx265) then do:
+     delete procedure h-bocx265.
+     assign h-bocx265 = ?.
+  end.
+  if valid-handle(h-bocx260) then do:
+     delete procedure h-bocx260.
+     assign h-bocx260 = ?.
+  end.
+  if valid-handle(h-bocx185) then do:
+     delete procedure h-bocx185.
+     assign h-bocx185 = ?.
+  end.  
+   
+&ENDIF
+
+return "OK":U.
+
+end procedure.
+
+
+procedure PiAtualizaValoresProcesso:
+
+&IF DEFINED(bf_comex206b-1) &THEN
+
+  def input param p-processo   as char  no-undo.
+  def input param p-estab-proc as char  no-undo.
+  def output param table for tt-bo-erro.  
+  
+  define variable h-bocx185 as handle no-undo.
+  define variable h-bocx195 as handle no-undo.
+  define variable h-bocx195a as handle no-undo.
+        
+  def buffer bfproc-ped-ent for proc-ped-ent.
+
+   IF NOT VALID-HANDLE(h-bocx185) THEN 
+      run cxbo/bocx185.p persistent set h-bocx185.
+   
+   IF NOT VALID-HANDLE(h-bocx195) THEN 
+      run cxbo/bocx195.p persistent set h-bocx195.
+   
+   IF NOT VALID-HANDLE(h-bocx195a) THEN 
+      run cxbo/bocx195a.p persistent set h-bocx195a.
+      
+&IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+ if avail param-exp and
+    param-exp.log-atualiza-val-proces-export = yes then do:
+ &ELSE     
+ if avail param-exp and
+    substring(param-exp.char-1,23,1) = "1" then do:
+ &ENDIF
+   for each tt-proc-ped-ent: delete tt-proc-ped-ent. end.
+           
+   for first processo-exp fields (cod-sit-proc) no-lock 
+       where processo-exp.cod-estabel = p-estab-proc and
+             processo-exp.nr-proc-exp = p-processo:
+   end.
+
+   if avail processo-exp and can-find(first proc-nota-fiscal no-lock 
+                                      where proc-nota-fiscal.cod-estabel = p-estab-proc 
+                                        and proc-nota-fiscal.nr-proc-exp = p-processo) then do:                                           
+        run AtualizaProcPedEnt in h-bocx185(input p-estab-proc,
+                                            input p-processo,
+                                            output table tt-bo-erro).
+        IF CAN-FIND(FIRST tt-bo-erro
+                    where tt-bo-erro.errorsubtype <> "warning":U) THEN return "NOK":U.                                      
+   end.   
+                                               
+   for each  proc-ped-ent fields(nome-abrev nr-pedcli nr-sequencia it-codigo cod-refer nr-entrega nr-proc-exp quantidade[1]) no-lock
+       where proc-ped-ent.cod-estabel = p-estab-proc
+         and proc-ped-ent.nr-proc-exp = p-processo:
+       
+       for each it-pre-fat no-lock
+            where it-pre-fat.nome-abrev   = proc-ped-ent.nome-abrev
+              and it-pre-fat.nr-pedcli    = proc-ped-ent.nr-pedcli
+              and it-pre-fat.nr-sequencia = proc-ped-ent.nr-sequencia
+              and it-pre-fat.it-codigo    = proc-ped-ent.it-codigo
+              and it-pre-fat.cod-refer    = proc-ped-ent.cod-refer
+              and it-pre-fat.nr-entrega   = proc-ped-ent.nr-entrega:
+          for first embarque fields(cdd-embarq char-1) no-lock
+               where embarque.cdd-embarq = it-pre-fat.cdd-embarq: end.
+          if avail embarque then do:
+             &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+             if embarque.nr-proc-exp <> proc-ped-ent.nr-proc-exp then next.
+             &ELSE
+             if trim(substring(embarque.char-1,2,12)) <> proc-ped-ent.nr-proc-exp then next.
+             &ENDIF
+             
+             for each res-cli fields (cdd-embarq nr-resumo nome-abrev) no-lock
+                where res-cli.cdd-embarq  = embarque.cdd-embarq
+                  and res-cli.nr-resumo   = it-pre-fat.nr-resumo 
+             &IF '{&bf_dis_versao_ems}' >= '2.07' &THEN
+                  and res-cli.situacao   <> 4:
+             &ELSE
+                  and res-cli.situacao   <> 2:
+             &ENDIF
+                   for first ped-venda fields (nr-pedido) no-lock
+                        where ped-venda.nr-pedcli  = it-pre-fat.nr-pedcli
+                          and ped-venda.nome-abrev = it-pre-fat.nome-abrev:
+                   end.
+                   if not avail ped-venda then next.
+
+                   for first item fields(desc-item peso-liquido peso-bruto) no-lock
+                       where item.it-codigo = it-pre-fat.it-codigo : end.
+                          
+                   find first tt-proc-ped-ent exclusive-lock
+                        where tt-proc-ped-ent.cod-estabel    = p-estab-proc              
+                          and tt-proc-ped-ent.nr-proc-exp    = p-processo                 
+                          and tt-proc-ped-ent.nome-abrev     = it-pre-fat.nome-abrev      
+                          and tt-proc-ped-ent.nr-pedcli      = it-pre-fat.nr-pedcli       
+                          and tt-proc-ped-ent.nr-sequencia   = it-pre-fat.nr-sequencia    
+                          and tt-proc-ped-ent.it-codigo      = it-pre-fat.it-codigo       
+                          and tt-proc-ped-ent.cod-refer      = it-pre-fat.cod-refer       
+                          and tt-proc-ped-ent.nr-entrega     = it-pre-fat.nr-entrega  no-error.
+                   if not avail tt-proc-ped-ent then do:           
+                      create tt-proc-ped-ent.       
+                      assign tt-proc-ped-ent.cod-estabel        = p-estab-proc
+                             tt-proc-ped-ent.nr-proc-exp        = p-processo
+                             tt-proc-ped-ent.nome-abrev         = it-pre-fat.nome-abrev 
+                             tt-proc-ped-ent.nr-pedcli          = it-pre-fat.nr-pedcli 
+                             tt-proc-ped-ent.nr-sequencia       = it-pre-fat.nr-sequencia
+                             tt-proc-ped-ent.it-codigo          = it-pre-fat.it-codigo 
+                             tt-proc-ped-ent.cod-refer          = it-pre-fat.cod-refer 
+                             tt-proc-ped-ent.nr-entrega         = it-pre-fat.nr-entrega 
+                         
+                             tt-proc-ped-ent.check-sum          = it-pre-fat.check-sum
+                             tt-proc-ped-ent.des-discrep-item   = if avail item then item.desc-item  else ""
+                             tt-proc-ped-ent.quantidade[1]      = it-pre-fat.qt-alocada
+                             tt-proc-ped-ent.nr-pedido          = if avail ped-venda then ped-venda.nr-pedido else 0 
+                             tt-proc-ped-ent.r-rowid            = rowid(proc-ped-ent).
+                             
+                            for first ped-item fields( ind-fat-qtfam ind-componen ind-componen vl-preori vl-preuni
+                                                      &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN
+                                                            des-un-medida
+                                                      &endif) no-lock
+                                where ped-item.nome-abrev    = it-pre-fat.nome-abrev    
+                                  and ped-item.nr-pedcli     = it-pre-fat.nr-pedcli     
+                                  and ped-item.nr-sequencia  = it-pre-fat.nr-sequencia  
+                                  and ped-item.it-codigo     = it-pre-fat.it-codigo     
+                                  and ped-item.cod-refer     = it-pre-fat.cod-refer :  end.  
+                            IF AVAIL ped-item THEN DO:
+                                 if  ped-item.ind-fat-qtfam then
+                                     assign tt-proc-ped-ent.idi-unid-fatur = 2.
+                                 else
+                                 if  not ped-item.ind-fat-qtfam then
+                                     assign tt-proc-ped-ent.idi-unid-fatur = 1.
+                                 else
+                                     assign tt-proc-ped-ent.idi-unid-fatur = 3.
+                            
+                                 assign tt-proc-ped-ent.ind-componen       = ped-item.ind-componen
+                                        tt-proc-ped-ent.vl-preori          = ped-item.vl-preori
+                                        tt-proc-ped-ent.vl-preuni          = ped-item.vl-preuni.  
+                                   
+                                 &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN
+                                        assign c-un-medida = ped-item.des-un-medida.
+                                 &endif 
+                            end.
+                            if avail item then
+                               assign tt-proc-ped-ent.peso-liquido   = truncate(it-pre-fat.qt-alocada * item.peso-liquido,3) 
+                                      tt-proc-ped-ent.peso-bruto     = truncate(it-pre-fat.qt-alocada * item.peso-bruto,3).
+                                      
+                            IF VALID-HANDLE(h-bocx195) THEN
+                               run converteQtdUnMedidaClienteFamilia in h-bocx195 (input  tt-proc-ped-ent.it-codigo,                                                     
+                                                                                   INPUT  tt-proc-ped-ent.nome-abrev,
+                                                                                   input  tt-proc-ped-ent.idi-unid-fatur,
+                                                                                   input  tt-proc-ped-ent.quantidade[1],
+                                                                                   &IF "{&bf_dis_versao_ems}" >= "2.062" &THEN 
+                                                                                        input c-un-medida,
+                                                                                   &endif
+                                                                                   output de-qtd-conver,
+                                                                                   output c-unid-conver).
+                               assign tt-proc-ped-ent.quantidade[2] = de-qtd-conver
+                                      tt-proc-ped-ent.un-fatur      = c-unid-conver.
+                   end.
+                   else do:
+                       if avail item then
+                          assign  tt-proc-ped-ent.peso-bruto     =  tt-proc-ped-ent.peso-bruto    + truncate(it-pre-fat.qt-alocada * item.peso-liquido,3)      
+                                  tt-proc-ped-ent.peso-liquido   =  tt-proc-ped-ent.peso-liquido  + truncate(it-pre-fat.qt-alocada * item.peso-bruto,3).
+                                 
+                      assign  tt-proc-ped-ent.quantidade[1]  =  tt-proc-ped-ent.quantidade[1] + it-pre-fat.qt-alocada
+                              tt-proc-ped-ent.quantidade[2]  =  tt-proc-ped-ent.quantidade[2] + it-pre-fat.qt-faturada. 
+                   end.            
+                /*end. /* for each it-pre-fat */*/
+             end. /* for each res-cli */
+          end. /*find first embarque*/
+       end. /*find first it-pre-fat*/
+   end. /* proc-ped-venda */
+         
+   for each tt-proc-ped-ent exclusive-lock:
+       create tt-proc-ped-ent-aux.
+       buffer-copy tt-proc-ped-ent to tt-proc-ped-ent-aux.
+               
+       find first tt-proc-ped-venda no-lock
+            where tt-proc-ped-venda.cod-estabel = tt-proc-ped-ent.cod-estabel
+              and tt-proc-ped-venda.nr-proc-exp = tt-proc-ped-ent.nr-proc-exp
+              and tt-proc-ped-venda.nr-pedido   = tt-proc-ped-ent.nr-pedido no-error.
+              
+       for first proc-ped-ent fields(proc-ped-ent.quantidade[1] proc-ped-ent.quantidade[2] 
+       proc-ped-ent.peso-bruto proc-ped-ent.peso-liquido nr-proc-exp) no-lock
+            where proc-ped-ent.cod-estabel  = tt-proc-ped-ent.cod-estabel 
+              and proc-ped-ent.nr-proc-exp  = tt-proc-ped-ent.nr-proc-exp 
+              and proc-ped-ent.nome-abrev   = tt-proc-ped-ent.nome-abrev  
+              and proc-ped-ent.nr-pedcli    = tt-proc-ped-ent.nr-pedcli   
+              and proc-ped-ent.nr-sequencia = tt-proc-ped-ent.nr-sequencia
+              and proc-ped-ent.it-codigo    = tt-proc-ped-ent.it-codigo   
+              and proc-ped-ent.cod-refer    = tt-proc-ped-ent.cod-refer   
+              and proc-ped-ent.nr-entrega   = tt-proc-ped-ent.nr-entrega : end.
+       if avail proc-ped-ent then do:
+          if valid-handle(h-bocx195) then do:
+             run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent,
+                                              input tt-proc-ped-ent.r-rowid,
+                                              output table tt-bo-erro).
+             IF CAN-FIND(FIRST tt-bo-erro
+                where tt-bo-erro.errorsubtype <> "warning":U) THEN 
+                return "NOK":U.                                   
+          end.   
+          find first ped-item
+               where ped-item.nome-abrev    = proc-ped-ent.nome-abrev  
+                 and ped-item.nr-pedcli     = proc-ped-ent.nr-pedcli    
+                 and ped-item.nr-sequencia  = proc-ped-ent.nr-sequencia   
+                 and ped-item.it-codigo     = proc-ped-ent.it-codigo    
+                 and ped-item.cod-refer     = proc-ped-ent.cod-refer no-lock no-error.  
+          if avail ped-item then do:
+              if ped-item.ind-componen = 2 then do:
+                  for each bfproc-ped-ent where
+                           bfproc-ped-ent.cod-estabel  = proc-ped-ent.cod-estabel and
+                           bfproc-ped-ent.nr-proc-exp  = proc-ped-ent.nr-proc-exp and 
+                           bfproc-ped-ent.nome-abrev   = ped-item.nome-abrev      and 
+                           bfproc-ped-ent.nr-pedcli    = ped-item.nr-pedcli       and
+                           bfproc-ped-ent.nr-sequencia = ped-item.nr-sequencia no-lock:
+                      if proc-ped-ent.it-codigo <> bfproc-ped-ent.it-codigo then do:
+                     
+                          find first ped-ent no-lock 
+                               where ped-ent.nome-abrev   = bfproc-ped-ent.nome-abrev
+                                 and ped-ent.nr-pedcli    = bfproc-ped-ent.nr-pedcli
+                                 and ped-ent.nr-sequencia = bfproc-ped-ent.nr-sequencia
+                                 and ped-ent.it-codigo    = bfproc-ped-ent.it-codigo
+                                 and ped-ent.cod-refer    = bfproc-ped-ent.cod-refer
+                                 and ped-ent.nr-entrega   = bfproc-ped-ent.nr-entrega no-error.
+
+                          empty temp-table tt-proc-ped-ent-filho.
+                
+                          create tt-proc-ped-ent-filho.
+                          buffer-copy bfproc-ped-ent to tt-proc-ped-ent-filho.
+                         
+                          assign tt-proc-ped-ent-filho.quantidade[1] = tt-proc-ped-ent.quantidade[1] / ped-item.qt-pedida * ped-ent.qt-pedida
+                                 tt-proc-ped-ent-filho.r-rowid       = rowid(bfproc-ped-ent).
+
+                          if valid-handle(h-bocx195) then do:
+                            
+                             run atualizaQuantidade in h-bocx195 (input rowid(ped-ent),
+                                                                  input-output table tt-proc-ped-ent-filho,
+                                                                  input tt-proc-ped-ent-filho.quantidade[1]).
+
+                             find first tt-proc-ped-ent-filho no-lock no-error.
+
+                             for first item fields(peso-liquido peso-bruto) no-lock
+                                 where item.it-codigo = tt-proc-ped-ent-filho.it-codigo : end.
+                             if avail item then 
+                                 assign tt-proc-ped-ent-filho.peso-bruto   = truncate(tt-proc-ped-ent-filho.quantidade[1] * item.peso-bruto,3)
+                                        tt-proc-ped-ent-filho.peso-liquido = truncate(tt-proc-ped-ent-filho.quantidade[1] * item.peso-liquido,3).
+                             
+                             run ValidateUpdate in h-bocx195 (input table tt-proc-ped-ent-filho,
+                                                              input tt-proc-ped-ent-filho.r-rowid,
+                                                              output table tt-bo-erro).
+                             IF CAN-FIND(FIRST tt-bo-erro
+                                where tt-bo-erro.errorsubtype <> "warning":U) THEN 
+                                return "NOK":U.                                 
+                          end.   
+                      end.
+                  end.
+              end.
+          end.
+       end.
+       else do:
+           
+            if valid-handle(h-bocx195a) then do:
+                                                
+                run carregaTempTablePedEnt in h-bocx195a (input table tt-proc-ped-ent-aux,
+                                                          input 0,
+                                                          input tt-proc-ped-venda.r-rowid).
+                                                  
+                run carregattprocpedentaux in h-bocx195a (input tt-proc-ped-ent.nr-sequencia,
+                                                          input tt-proc-ped-ent.nr-entrega,
+                                                          &if defined(bf_comex206b-1) &then
+                                                          input tt-proc-ped-ent.quantidade[1],
+                                                          &endif
+                                                          output table tt-proc-ped-ent-aux).
+                                                         
+                find first tt-proc-ped-ent-aux no-lock no-error.
+                if avail tt-proc-ped-ent-aux then
+                    run carregaTempTablePedEnt in h-bocx195a (input table tt-proc-ped-ent-aux,
+                                                              input 0,
+                                                              input tt-proc-ped-venda.r-rowid).                                          
+                                                          
+            end.
+            for each tt-proc-ped-ent-aux: delete tt-proc-ped-ent-aux. end.
+       end. 
+       delete tt-proc-ped-ent.
+   end.    
+ end.       
+   if valid-handle(h-bocx185) then do:
+      delete procedure h-bocx185.
+      assign h-bocx185 = ?.
+   end.
+        
+   if valid-handle(h-bocx195) then do:
+      delete procedure h-bocx195.
+      assign h-bocx195 = ?.
+   end.
+        
+   if valid-handle(h-bocx195a) then do:
+      delete procedure h-bocx195a.
+      assign h-bocx195a = ?.
+   end.
+&ENDIF
+return "OK":U.
+end procedure.
+
+Procedure PiValidaCR:
+
+   def input param p-estab    as char no-undo.
+   def input param p-serie    as char no-undo.
+   def input param p-nota     as char no-undo.
+   def input param p-embarque as dec  no-undo.
+   def output param c-notas   as char no-undo.
+  
+   assign c-notas = "".
+
+   if p-embarque = 0 then do:
+      find first nota-fiscal no-lock
+           where nota-fiscal.cod-estabel = p-estab
+             and nota-fiscal.serie       = p-serie
+             and nota-fiscal.nr-nota-fis = p-nota no-error.
+      if avail nota-fiscal then do:
+         if nota-fiscal.dt-atual-cr <> ? then 
+            assign c-notas = string(nota-fiscal.nr-nota-fis).
+      end. 
+   end. 
+   else do:
+        for each nota-fiscal no-lock
+           where nota-fiscal.cdd-embarq = p-embarque:
+            if nota-fiscal.dt-atual-cr <> ? then
+                assign c-notas = c-notas + string(nota-fiscal.nr-nota-fis) + ";".
+        end. 
+   end.                      
+return "OK":U.
+end procedure.
+
+procedure EliminaDespesas:
+
+   define input parameter c-cod-estabel like processo-exp.cod-estabel no-undo.
+   define input parameter c-nr-proc-exp like processo-exp.nr-proc-exp no-undo.
+
+   for each proc-desp-itiner
+      where proc-desp-itiner.cod-estabel = c-cod-estabel
+        and proc-desp-itiner.nr-proc-exp = c-nr-proc-exp exclusive-lock:
+     delete proc-desp-itiner.
+   end.
+     
+   return "OK":U.
+
+end procedure.
+
+
+
+ 

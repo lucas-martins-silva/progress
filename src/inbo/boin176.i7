@@ -1,0 +1,36 @@
+ASSIGN {3} = {1}.log-2 OR {1}.vl-subs[1] > 0
+       {4} = (IF {1}.cd-trib-icm = 4 THEN ({1}.icm-ntrib[1] + {1}.icm-outras[1] + {1}.icm-outras[2]) ELSE 0)
+       {5} = INT({7}.ind-tipo-vat).
+
+ASSIGN {2} = (IF {6}.codigo-orig <= 0 
+              OR (LOOKUP({7}.modelo-docto,"07,08,8B,09,10,11,26,27,57") > 0) THEN 000 
+              ELSE ({6}.codigo-orig * 100)) +
+             (     IF {7}.ind-it-sub-dif                                     THEN 50
+              ELSE IF {7}.ind-it-sub-dif   = ?                               THEN 51
+              ELSE IF {7}.ind-it-icms AND {1}.vl-subs[1]   = 0
+                                      AND {1}.base-subs[1] = 0               THEN 60
+              ELSE IF {1}.cd-trib-icm = 1 AND {3}
+                                          AND ({1}.base-subs[1] > 0 OR
+                                               {1}.vl-subs[1]   > 0)         THEN 10
+              ELSE IF {1}.cd-trib-icm = 1 AND {1}.valor-icm[1] = 0           THEN 90
+              ELSE IF {1}.cd-trib-icm = 1 AND {1}.valor-icm[1] > 0           THEN 00
+              ELSE IF {1}.cd-trib-icm = 4 AND {3}
+                                          AND {4} > 0
+                                          AND {1}.aliquota-icm > 0
+                                          AND {1}.valor-icm[1] > 0           THEN 70
+              ELSE IF {1}.cd-trib-icm = 4 AND {4} = 0
+                                          AND {1}.aliquota-icm > 0
+                                          AND {1}.valor-icm[1] > 0           THEN 00
+              ELSE IF {1}.cd-trib-icm = 4 AND NOT {3}
+                                          AND {4} > 0
+                                          AND {1}.aliquota-icm > 0           THEN 20
+              ELSE IF {1}.cd-trib-icm = 2 AND {3}                            THEN 30
+              ELSE IF {1}.cd-trib-icm = 2                                    THEN 40 + {5}
+              ELSE 90
+             ).
+
+&if "{&bf_dis_versao_ems}":U >= "2.08":U &then
+    ASSIGN {1}.idi-sit-trib-icms     = {2}.
+&ELSE
+    ASSIGN OVERLAY({1}.char-2,502,3) = STRING({2}).
+&ENDIF

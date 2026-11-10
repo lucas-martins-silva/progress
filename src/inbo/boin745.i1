@@ -1,0 +1,13 @@
+/*****************************************************************
+**
+**  BOIN745.i1 - Defini‡Æo da Temp-table
+**
+******************************************************************/
+
+DEF TEMP-TABLE tt-item-un-negoc no-undo
+    FIELD it-codigo   LIKE unid-negoc-depos.it-codigo
+    FIELD cod-estabel LIKE unid-negoc-depos.cod-estab
+    FIELD cod-depos   LIKE unid-negoc-depos.cod-depos
+    INDEX id IS UNIQUE PRIMARY it-codigo cod-estabel cod-depos.
+
+/*** FIm da Include ***/

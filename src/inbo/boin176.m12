@@ -1,0 +1,73 @@
+PROCEDURE calculateImpostos :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Essa procedure ² excutada pelo rat-docum (notas rateio), para cÿlculo
+         do IPI. È retornado a temp-table de impostos para que seja poss­vel dar
+         o assign dos valores do impostos para a tabela desejada. 
+         Obs.: Pode ser usado por qualquer outro programa que tenha por objetivo
+               calcular o ipi/iss. 
+------------------------------------------------------------------------------*/
+
+    def input  param piCodEmitente like item-doc-est.cod-emitente   no-undo.
+    def input  param piSerieDocto  like item-doc-est.serie-docto    no-undo.
+    def input  param piNroDocto    like item-doc-est.nro-docto      no-undo.
+    def input  param piNatOperacao like item-doc-est.nat-operacao   no-undo.
+    def input  param piSequencia   like item-doc-est.sequencia      no-undo.
+    def input  param piItem        like item-doc-est.it-codigo      no-undo. 
+    def input  param piQuantidade  like item-doc-est.quantidade     no-undo.
+    def input  param piQtDoForn    like item-doc-est.quantidade     no-undo.
+    def input  param piPrecoTotal  like item-doc-est.preco-total[1] no-undo.
+    def input  param piDesconto    like item-doc-est.desconto[1]    no-undo.
+    def input  param piDespesa     like item-doc-est.despesas[1]    no-undo.            
+    def input  param piFrete       like item-doc-est.pr-total-cmi   no-undo.
+    def input  param piAliquotaIPI like item-doc-est.aliquota-ipi   no-undo.    
+    def input  param piAliquotaICM like item-doc-est.aliquota-icm   no-undo.
+    def input  param piAliquotaISS like item-doc-est.aliquota-iss   no-undo.        
+    def input  param piCdTribIPI   like item-doc-est.cd-trib-ipi    no-undo.    
+    def input  param piCdTribICM   like item-doc-est.cd-trib-icm    no-undo.
+    def input  param piCdTribISS   like item-doc-est.cd-trib-iss    no-undo.    
+    def input  param piIcmRetido   like item-doc-est.log-2          no-undo.    
+    def input  param pdePercIPI    as dec                           no-undo.    
+    def input  param pdePercICM    as dec                           no-undo.
+    def output param table for tb-wt-it-imposto.
+    
+    run findDocumento ( input piCodEmitente,
+                        input piSerieDocto,
+                        input piNroDocto,
+                        input piNatOperacao ).
+
+    EMPTY TEMP-TABLE tb-wt-docto.
+    EMPTY TEMP-TABLE tb-wt-it-docto.
+    EMPTY TEMP-TABLE tb-wt-it-imposto.
+
+    run createTbWtDocto.
+
+    run createTbWtItDocto ( input pisequencia,
+                            input piItem,
+                            input piQuantidade,
+                            input piQtDoForn,
+                            input piPrecoTotal,
+                            input piDesconto,
+                            input piDespesa,
+                            input piFrete ).
+
+    run createTbWtItImposto ( input piSequencia,
+                              input piAliquotaIpi,
+                              input piAliquotaIcm,
+                              input piAliquotaIss,
+                              input piCdTribIpi,
+                              input piCdTribIcm,
+                              input piCdTribIss,
+                              input piIcmRetido,
+                              input pdePercIPI,
+                              input pdePercICM ).
+    run calculate_IPI_ISS.
+    
+    run calculate_ICMS_SubsTrib_ICMSComp.
+
+END PROCEDURE.
+
+
+
+

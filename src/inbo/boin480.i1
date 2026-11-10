@@ -1,0 +1,529 @@
+/********************************************************************************
+** Procedure AtualizarListaComponItem  (ex trigger WRITE)
+** Gera estrutura para o item e componentes da lista
+** Gera automaticamente processos do item 
+********************************************************************************/
+PROCEDURE AtualizarListaComponItem:
+
+    DEFINE PARAMETER BUFFER b-lista-compon-item FOR lista-compon-item.
+    DEFINE OUTPUT PARAMETER TABLE FOR rowErrors.
+    
+
+    def var v-num-next-seq   as integer no-undo.
+    def var v-val-prop-acum  as integer no-undo.
+    def var v-num-proces     as integer no-undo.
+    def var v-old-proporcao  as decimal no-undo.
+    define var ref-it-aux    like ref-item.cod-refer no-undo.
+    define var ref-es-aux    like ref-item.cod-refer no-undo.
+    
+    def var r-rowid as rowid no-undo.
+
+    
+    on write of rot-item override do: end.
+
+    if not valid-handle(h-boin111) then 
+        run inbo/boin111.p persistent set h-boin111.
+    
+    
+    /*run setConstraintItCodigo IN h-boin111 (input b-lista-compon-item.it-codigo).*/
+    run openQueryStatic in h-boin111 (input "main").
+
+    
+    /*** Inclus∆o/alteraá∆o da estrutura do item ***/
+    find last param-en no-lock no-error.
+    find last estrutura where 
+              estrutura.it-codigo = b-lista-compon-item.it-codigo no-lock no-error.
+    if available estrutura then
+       assign v-num-next-seq = max(1, param-en.num-var-estrutura) + estrutura.sequencia.
+    else     
+       assign v-num-next-seq = max(1, param-en.num-var-estrutura).
+
+    find item where item.it-codigo = b-lista-compon-item.it-codigo no-lock no-error.
+    
+    
+    do transaction on error undo, leave:
+        for each item-lista-compon where 
+                 item-lista-compon.cod-lista-compon = b-lista-compon-item.cod-lista-compon no-lock:
+        
+
+            find first ref-estrut 
+                 where ref-estrut.it-codigo = b-lista-compon-item.it-codigo and
+                       ref-estrut.es-codigo = item-lista-compon.es-codigo and
+                       ref-estrut.sequencia = v-num-next-seq  no-lock no-error.
+            
+            if not avail ref-estrut then do:
+             
+                 find ref-item where
+                      ref-item.it-codigo = b-lista-compon-item.it-codigo and
+                      ref-item.cod-refer = item.cod-refer no-lock no-error.
+                      
+                 if  available ref-item then 
+                     assign ref-it-aux = ref-item.cod-refer.
+            
+                  find ref-item where
+                       ref-item.it-codigo = item-lista-compon.es-codigo and
+                       ref-item.cod-refer = item-lista-compon.cod-ref-es no-lock no-error.
+                  if  available ref-item then 
+                      assign ref-es-aux = ref-item.cod-refer.
+            
+                  if ref-it-aux <> "" or ref-es-aux <> "" then do:
+                      create ref-estrut.
+                      assign ref-estrut.it-codigo  = b-lista-compon-item.it-codigo                         
+                             ref-estrut.es-codigo  = item-lista-compon.es-codigo                        
+                             ref-estrut.sequencia  = v-num-next-seq
+                             ref-estrut.cod-ref-it = ref-it-aux 
+                             ref-estrut.cod-ref-es = ref-es-aux.
+                      release ref-estrut.
+                  end.
+            
+            end.
+            
+
+            find first estrutura use-index codigo where
+                       estrutura.it-codigo             = b-lista-compon-item.it-codigo        and  
+                       estrutura.es-codigo             = item-lista-compon.es-codigo          and
+                       estrutura.cod-lista-compon      = b-lista-compon-item.cod-lista-compon and
+                       substring(estrutura.char-1,1,5) = string(item-lista-compon.sequencia,">>>>9")
+                       exclusive-lock no-error.
+        
+            /*** Se n∆o existe interseá∆o nas datas next ***/      
+            if item-lista-compon.data-inicio     >= b-lista-compon-item.data-termino or
+               item-lista-compon.data-termino    <= b-lista-compon-item.data-inicio then do:
+                if available estrutura then delete estrutura.
+                next.
+            end.
+            
+            empty temp-table tt-estrutura.
+            
+
+            create tt-estrutura.
+            assign tt-estrutura.it-codigo             = b-lista-compon-item.it-codigo   
+                   tt-estrutura.cod-lista-compon      = b-lista-compon-item.cod-lista-compon 
+                   tt-estrutura.es-codigo             = item-lista-compon.es-codigo 
+                   overlay(tt-estrutura.char-1,1,5)   = string(item-lista-compon.sequencia,">>>>9")
+                   tt-estrutura.sequencia             = v-num-next-seq
+                   v-num-next-seq                     = v-num-next-seq + max(1, param-en.num-var-estrutura).
+        
+            assign tt-estrutura.data-inicio  = max(b-lista-compon-item.data-inicio,item-lista-compon.data-inicio)   
+                   tt-estrutura.data-termino = min(b-lista-compon-item.data-termino,item-lista-compon.data-termino)
+                   tt-estrutura.fantasma     = item-lista-compon.fantasma 
+                   tt-estrutura.fator-perda  = item-lista-compon.fator-perda  
+                   tt-estrutura.op-codigo    = b-lista-compon-item.op-codigo
+                   tt-estrutura.cod-roteiro  = b-lista-compon-item.cod-roteiro 
+                   tt-estrutura.prop-proc    = b-lista-compon-item.proporcao 
+                   tt-estrutura.proporcao    = item-lista-compon.proporcao
+                   tt-estrutura.qtd-item     = b-lista-compon-item.qtd-item
+		   tt-estrutura.log-quant-fix = item-lista-compon.log-quant-fix
+                   /* D_MAN002 - Quantidade fixa para componentes de engenharia */
+                   tt-estrutura.qtd-compon   = if tt-estrutura.log-quant-fix then item-lista-compon.qtd-compon
+                                            else b-lista-compon-item.qtd-lista * item-lista-compon.qtd-compon 
+                                                 / item-lista-compon.qtd-lista
+                   tt-estrutura.quant-usada  = if tt-estrutura.log-quant-fix then tt-estrutura.qtd-compon
+                                            else tt-estrutura.qtd-compon / tt-estrutura.qtd-item
+                   tt-estrutura.quant-liquid = if tt-estrutura.log-quant-fix then tt-estrutura.qtd-compon
+                                            else tt-estrutura.qtd-compon * (100 - tt-estrutura.fator-perda) / 100 
+                   tt-estrutura.tempo-reserv = if (item-lista-compon.tempo-reserv = ? or
+                                                item.ressup-fabri = 0) then ?
+                                            else min(item-lista-compon.tempo-reserv, item.ressup-fabri)
+                   tt-estrutura.tipo-sobra   = if item-lista-compon.qtd-compon >= 0
+                                            then 4
+                                            else item-lista-compon.int-1.
+                                            
+            assign tt-estrutura.veiculo      = item-lista-compon.veiculo
+                   tt-estrutura.val-perc-distrib-veic = item-lista-compon.val-perc-distrib-veic.
+            
+
+            if available estrutura then do:
+                assign tt-estrutura.r-rowid   = rowid(estrutura)
+				       tt-estrutura.sequencia = estrutura.sequencia.
+                
+                /*Chamar o validateUpdate*/
+                run validateUpdate in h-boin111(input table tt-Estrutura,
+                                                input tt-estrutura.r-rowid,
+                                                output table rowErrors).
+                
+                
+            end.    
+            else do:
+            assign tt-estrutura.r-rowid = ?.
+            
+                RUN emptyRowErrors IN h-boin111.
+                 
+                /*Chamar o Validate Create*/
+                RUN validateCreate IN h-boin111 (INPUT TABLE tt-Estrutura, 
+                                                 OUTPUT TABLE rowErrors, 
+                                                 OUTPUT r-rowid).
+                
+            end.
+            
+            if return-value = "NOK":u then do:
+                if valid-handle(h-boin111) then
+                    delete object h-boin111.
+        
+                return "Nok":u.
+            end.
+            
+        
+        end. /*** each item-lista-compon ***/     
+    end.
+
+    if valid-handle(h-boin111) then
+        delete object h-boin111.
+        
+    
+    /*** Geraá∆o de processos do item ***/
+
+    if not can-find (first proces-item 
+                     where proces-item.it-codigo        = b-lista-compon-item.it-codigo
+                     and   proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon) and 
+        not can-find (first rot-item 
+                      where rot-item.it-codigo  = b-lista-compon-item.it-codigo) then do:
+
+        run GerarProcesItem (buffer b-lista-compon-item).
+    end.
+    else do:
+
+        assign v-val-prop-acum = 0
+               v-num-proces    = 0. 
+
+        if b-lista-compon-item.cod-roteiro <> "" then do:
+               for each proces-item
+               where proces-item.it-codigo        = b-lista-compon-item.it-codigo
+                 and proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon
+                 and proces-item.cod-roteiro     <> b-lista-compon-item.cod-roteiro exclusive-lock:
+               delete proces-item.
+           end.
+           release proces-item.
+        end.
+
+        for each proces-item 
+            where proces-item.it-codigo        = b-lista-compon-item.it-codigo
+              and proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon no-lock:
+            assign v-val-prop-acum = v-val-prop-acum + proces-item.proporcao 
+                   v-num-proces    = v-num-proces          + 1. 
+        end.                        
+        for each proces-item 
+            where proces-item.it-codigo        = b-lista-compon-item.it-codigo
+              and proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon exclusive-lock:
+
+
+                    assign v-old-proporcao       = proces-item.proporcao
+                           proces-item.proporcao = if v-val-prop-acum > 0 then 
+                                              (proces-item.proporcao * b-lista-compon-item.proporcao / v-val-prop-acum)
+                                           else               
+                                              (b-lista-compon-item.proporcao / v-num-proces).
+
+
+            if proces-item.cod-roteiro <> "" then do:
+               find rot-item where
+                    rot-item.it-codigo   = proces-item.it-codigo and
+                    rot-item.cod-roteiro = proces-item.cod-roteiro exclusive-lock.
+               assign rot-item.proporcao = rot-item.proporcao + proces-item.proporcao - v-old-proporcao.      
+            end.               
+
+        end.
+        release proces-item.
+        release rot-item.
+    end.     
+
+END PROCEDURE.
+
+
+/********************************************************************************
+** Procedure GerarProcesItem
+** Geraá∆o autom†tica de processos para o item em base a b-lista-compon-item
+********************************************************************************/
+PROCEDURE GerarProcesItem:
+
+
+    DEFINE PARAMETER BUFFER b-lista-compon-item FOR lista-compon-item.
+
+    def var v-num-next-seq  as integer                    no-undo.
+
+
+    def buffer b-rot-item for         rot-item.
+
+    /******************Chamada EPC InicioGerarProcesItem*******************************/
+        for each tt-epc:
+           delete tt-epc.
+        end.
+        /*** Criacao do registro para temp-table tt-epc ***/
+
+        {include/i-epc200.i2 &CodEvent="'InicioGerarProcesItem'"
+                             &CodParameter="'it-codigo'"
+                             &ValueParameter=string(b-lista-compon-item.it-codigo)}
+        {include/i-epc200.i2 &CodEvent="'InicioGerarProcesItem'"
+                             &CodParameter="'lista'"
+                             &ValueParameter=string(b-lista-compon-item.cod-lista-compon)}
+
+        /*** Chamada do programa EPC ***/
+        {include/i-epc201.i  "InicioGerarProcesItem" }
+        if return-value = "NOK" then
+           return "NOK":U.
+
+    /******************Chamada EPC InicioGerarProcesItem*******************************/       
+
+    find last param-en no-lock.
+
+    find last proces-item where
+              proces-item.it-codigo = b-lista-compon-item.it-codigo exclusive-lock no-error.
+
+    if available proces-item then 
+        assign v-num-next-seq = proces-item.sequencia + max(1, param-en.num-var-estrutura).
+    else      
+        assign v-num-next-seq = max(1, param-en.num-var-estrutura).
+
+
+    if b-lista-compon-item.cod-roteiro <> "" then do:
+        find rot-item where
+             rot-item.cod-roteiro = b-lista-compon-item.cod-roteiro and
+             rot-item.it-codigo   = b-lista-compon-item.it-codigo no-lock no-error.
+        if available rot-item then do:      
+            find first proces-item where
+                           proces-item.it-codigo        = b-lista-compon-item.it-codigo and
+                           proces-item.cod-roteiro      = rot-item.cod-roteiro          and
+                           proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon 
+                           exclusive-lock no-error.
+
+            if not available proces-item then do:                       
+                    create proces-item.            
+                    assign proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon
+                           proces-item.cod-roteiro      = b-lista-compon-item.cod-roteiro
+                           proces-item.it-codigo        = b-lista-compon-item.it-codigo
+                           proces-item.proporcao        = b-lista-compon-item.proporcao * rot-item.proporcao / 100
+                           proces-item.sequencia        = v-num-next-seq.                             
+                    release proces-item.
+            end.                            
+
+        end.                   
+    end.
+    else do:
+        if can-find (first rot-item where
+                           rot-item.it-codigo = b-lista-compon-item.it-codigo) then do: 
+          for each rot-item exclusive-lock
+              where (rot-item.it-codigo = b-lista-compon-item.it-codigo
+                 and rot-item.data-inicio  < b-lista-compon-item.data-termino
+                 and rot-item.data-termino > b-lista-compon-item.data-inicio):            
+                find first proces-item where
+                           proces-item.it-codigo        = b-lista-compon-item.it-codigo and
+                           proces-item.cod-roteiro      = rot-item.cod-roteiro          and
+                           proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon 
+                           exclusive-lock no-error.
+
+                if not available proces-item then do:           
+                    create proces-item.
+                    assign proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon
+                           proces-item.cod-roteiro      = rot-item.cod-roteiro
+                           proces-item.it-codigo        = b-lista-compon-item.it-codigo
+                           proces-item.proporcao        = b-lista-compon-item.proporcao * rot-item.proporcao / 100
+                           proces-item.sequencia        = v-num-next-seq
+                           v-num-next-seq               = v-num-next-seq  + max(1, param-en.num-var-estrutura).
+                    release proces-item.
+
+                end.
+                /* else do:
+                    /*** Existem 2 ou mais roteiros iguais associados ao item ***/
+                    find first b-rot-item where
+                               b-rot-item.cod-roteiro = rot-item.cod-roteiro and
+                               b-rot-item.it-codigo   = rot-item.it-codigo   and
+                               rowid(b-rot-item) <> rowid(rot-item) exclusive-lock no-error.
+
+                     if avail b-rot-item then do:
+                            assign  b-rot-item.proporcao      = b-rot-item.proporcao + rot-item.proporcao 
+                                    b-rot-item.data-inicio    = min(b-rot-item.data-inicio, rot-item.data-inicio)
+                                    b-rot-item.data-termino   = max(b-rot-item.data-termino, rot-item.data-termino)
+                                    proces-item.proporcao     = b-lista-compon-item.proporcao * rot-item.proporcao / 100. 
+
+                            delete rot-item.
+                     end.        
+                end.
+                */            
+          end. /*** for each rot-item ***/
+        end.
+        /*** N∆o existe roteiros e sim operaá‰es associadas ao item ***/         
+        else do:
+
+            find first proces-item where
+               proces-item.it-codigo        = b-lista-compon-item.it-codigo and
+               proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon 
+               exclusive-lock no-error.
+            if not avail proces-item then do:
+                  
+                 create proces-item.
+                 assign proces-item.cod-lista-compon = b-lista-compon-item.cod-lista-compon
+                        proces-item.cod-roteiro      = ""
+                        proces-item.it-codigo        = b-lista-compon-item.it-codigo
+                        proces-item.proporcao        = b-lista-compon-item.proporcao
+                        proces-item.sequencia        = v-num-next-seq.
+                        
+                 release proces-item.                   
+            end.
+        end.
+    end.
+
+
+END PROCEDURE.
+
+
+/********************************************************************************
+Procedure eliminarListaComponItem  (ex trigger delete)
+********************************************************************************/
+PROCEDURE eliminarListaComponItem:
+    define input  parameter rw-lista-compon-item as rowid no-undo.
+
+    find lista-compon-item no-lock where 
+         rowid(lista-compon-item) = rw-lista-compon-item.
+
+    for each estrutura exclusive-lock where 
+         estrutura.cod-lista-compon = lista-compon-item.cod-lista-compon and
+         estrutura.it-codigo        = lista-compon-item.it-codigo:
+         delete estrutura.
+    end.
+
+    for each proces-item where
+             proces-item.it-codigo = lista-compon-item.it-codigo and
+             proces-item.cod-lista-compon = lista-compon-item.cod-lista-compon exclusive-lock:
+
+        /*** Tratamento de percentual roteiros do item ***/
+        if proces-item.cod-roteiro <> "" then do:
+            find first rot-item where
+                       rot-item.it-codigo   = proces-item.it-codigo and
+                       rot-item.cod-roteiro = proces-item.cod-roteiro exclusive-lock no-error. 
+            if available rot-item then 
+                assign rot-item.proporcao = max(0, rot-item.proporcao - 
+                                                   proces-item.proporcao).
+        end.                
+        delete proces-item.
+
+    end.
+    release proces-item.
+    release rot-item.
+
+END PROCEDURE.
+
+
+/*** Fazer que as listas de componentes e roteiros do item fechem em 100% ***/
+/** AjustarRotItem100 (b-lista-compon-item.it-codigo).
+    AjustarListaComponItem100 (b-lista-compon-item.it-codigo). ***/
+
+/********************************************************************************
+** Procedure AjustarRotItem100 
+** Ajusta as proporá‰es dos roteiros ativos do item para 100% 
+********************************************************************************/
+PROCEDURE AjustarRotItem100:
+
+    def input parameter p-it-codigo as char format "x(16)".
+
+    def var val-old-prop as decimal no-undo.
+    def var val-tot      as decimal no-undo.
+    def var num-proces   as integer no-undo.
+
+    for each rot-item 
+        where rot-item.it-codigo    = p-it-codigo
+          and rot-item.data-termino > today no-lock:
+       assign val-tot    = val-tot + rot-item.proporcao
+              num-proces = num-proces + 1.
+    end.
+
+    for each rot-item where
+             rot-item.it-codigo = p-it-codigo
+             and rot-item.data-termino > today exclusive-lock:
+
+        assign val-old-prop       = rot-item.proporcao 
+               rot-item.proporcao = if val-tot > 0 
+                                       then rot-item.proporcao * 100 / val-tot
+                                       else 100 / num-proces.
+    end.
+    release rot-item.
+
+END PROCEDURE.
+
+/********************************************************************************
+** Procedure AjustarListaComponItem100 
+** Ajusta as proporá‰es das listas de componentes ativas do item para 100%
+********************************************************************************/
+PROCEDURE AjustarListaComponItem100:
+
+    def input parameter p-it-codigo as char format "x(16)".
+
+    def var val-old-prop as decimal no-undo.
+    def var val-tot      as decimal no-undo.
+    def var num-proces   as integer no-undo.
+
+    for each lista-compon-item  no-lock 
+        where lista-compon-item.it-codigo    = p-it-codigo
+          and lista-compon-item.data-termino > today:
+
+       assign val-tot    = val-tot + lista-compon-item.proporcao
+              num-proces = num-proces + 1.
+    end.
+
+    for each lista-compon-item where 
+             lista-compon-item.it-codigo = p-it-codigo and 
+             lista-compon-item.data-termino > today exclusive-lock:
+        assign val-old-prop                = lista-compon-item.proporcao 
+               lista-compon-item.proporcao = if val-tot > 0 
+                                                then lista-compon-item.proporcao * 100 / val-tot
+                                                else 100 / num-proces.
+    end.
+
+END PROCEDURE.
+
+
+/********************************************************************************
+** Procedure GerarProcesRot
+** Geraá∆o de processos para o item com roteiro sem listas componentes
+********************************************************************************/
+PROCEDURE GerarProcesRot:
+
+    def input param c-it-codigo as char no-undo.
+    def var v-num-next-seq  as integer  no-undo.
+    def buffer b-rot-item for rot-item.
+
+    find last param-en no-lock.
+
+    find last proces-item where
+              proces-item.it-codigo = c-it-codigo no-lock no-error.
+
+    if available proces-item then 
+        assign v-num-next-seq = proces-item.sequencia + max(1, param-en.num-var-estrutura).
+    else      
+        assign v-num-next-seq = max(1, param-en.num-var-estrutura).
+
+        if can-find (first rot-item where
+                           rot-item.it-codigo = c-it-codigo) then do: 
+          for each rot-item exclusive-lock
+              where (rot-item.it-codigo = c-it-codigo):
+                find first proces-item where
+                           proces-item.it-codigo        = c-it-codigo          and
+                           proces-item.cod-roteiro      = rot-item.cod-roteiro and
+                           proces-item.cod-lista-compon = "" 
+                exclusive-lock no-error.
+                if not available proces-item then do:           
+                    create proces-item.
+                    assign proces-item.cod-lista-compon = ""
+                           proces-item.cod-roteiro      = rot-item.cod-roteiro
+                           proces-item.it-codigo        = c-it-codigo
+                           proces-item.proporcao        = rot-item.proporcao 
+                           proces-item.sequencia        = v-num-next-seq
+                           v-num-next-seq               = v-num-next-seq  + max(1, param-en.num-var-estrutura).
+                    release proces-item.
+                end.
+                else do:
+                    /*** Existem 2 ou mais roteiros iguais associados ao item ***/
+                    find first b-rot-item where
+                               b-rot-item.it-codigo   = rot-item.it-codigo   and
+                               b-rot-item.cod-roteiro = rot-item.cod-roteiro and
+                               rowid(b-rot-item) <> rowid(rot-item) exclusive-lock no-error.
+                     if avail b-rot-item then do:          
+                            assign b-rot-item.proporcao      = b-rot-item.proporcao + rot-item.proporcao
+                                    b-rot-item.data-inicio   = min(b-rot-item.data-inicio, rot-item.data-inicio)
+                                    b-rot-item.data-termino  = max(b-rot-item.data-termino, rot-item.data-termino)
+                                    proces-item.proporcao    = b-rot-item.proporcao.
+                            delete rot-item.        
+                     end.
+                end.            
+          end. /*** for each rot-item ***/
+        end.
+
+END PROCEDURE.

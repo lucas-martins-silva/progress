@@ -1,0 +1,71 @@
+/*****************************************************************************
+** Procedure Interna.....: pi-calcular-tempo-resid-dia
+*****************************************************************************/
+
+PROCEDURE pi-calcular-tempo-resid-dia:
+
+    def Input param p-num-dia-sema            as int format ">>>>,>>9" no-undo.
+    def Input param p-qtd-segs-calcul         as dec format ">>,>>9"
+                                                 decimals 0 no-undo.
+    def output param p-qtd-tempo-dispon-dia   as dec format ">>,>>9"
+                                                 decimals 0 no-undo.
+    def output param p-qtd-tempo-dispon-turno as dec format ">,>>>,>>9"
+                                                 decimals 0 no-undo.
+    def output param p-qtd-tempo-gasto-turno  as dec format ">>,>>9"
+                                                 decimals 0 no-undo.
+
+    def var v-qtd-segs-fim-interv        as decimal         no-undo.
+    def var v-qtd-segs-inic-interv       as decimal         no-undo.
+
+    /* Encontra primeiro turno da data e hora do parametro */
+    find first tt-turno-semana no-lock
+        where tt-turno-semana.num-dia-sema         = p-num-dia-sema
+          and tt-turno-semana.qtd-segs-fim-turno  >= p-qtd-segs-calcul
+          and tt-turno-semana.qtd-segs-inic-turno <= p-qtd-segs-calcul
+        no-error.
+
+    assign p-qtd-tempo-dispon-dia  = 0
+           p-qtd-tempo-gasto-turno = 0.
+
+    if  avail tt-turno-semana then do:
+
+        /* Artificio para evitar que se considere duas vezes o tempo do turno 
+           corrente*/
+        if  TT-TURNO-SEMANA.qtd-segs-inic-turno = p-qtd-segs-calcul then
+            p-qtd-tempo-dispon-dia = -1 * TT-TURNO-SEMANA.qtd-tempo-dispon-turno.
+
+        /* Calcular tempo residual do turno */
+        if  TT-TURNO-SEMANA.qtd-segs-fim-turno -
+            TT-TURNO-SEMANA.qtd-segs-inic-turno >
+            TT-TURNO-SEMANA.qtd-tempo-dispon-turno then 
+ 
+            assign v-val-fat-correcao-hra = TT-TURNO-SEMANA.qtd-tempo-dispon-turno /
+                                           (TT-TURNO-SEMANA.qtd-segs-fim-turno -
+                                            TT-TURNO-SEMANA.qtd-segs-inic-turno).
+        else 
+            assign v-val-fat-correcao-hra = 1.
+      
+        assign p-qtd-tempo-dispon-turno = (TT-TURNO-SEMANA.qtd-segs-fim-turno -
+                                           p-qtd-segs-calcul) * 
+                                           v-val-fat-correcao-hra
+
+               p-qtd-tempo-dispon-turno = min(p-qtd-tempo-dispon-turno,
+                                          TT-TURNO-SEMANA.qtd-tempo-dispon-turno)
+
+               p-qtd-tempo-dispon-dia  = p-qtd-tempo-dispon-turno +
+                                         p-qtd-tempo-dispon-dia
+
+                p-qtd-tempo-gasto-turno = TT-TURNO-SEMANA.qtd-tempo-dispon-turno -
+                                          p-qtd-tempo-dispon-turno.
+    end.
+
+    disp-dia:
+    for each tt-turno-semana no-lock
+        where tt-turno-semana.num-dia-sema         = p-num-dia-sema
+          and tt-turno-semana.qtd-segs-inic-turno >= p-qtd-segs-calcul:
+
+        assign p-qtd-tempo-dispon-dia = p-qtd-tempo-dispon-dia +
+                                        TT-TURNO-SEMANA.qtd-tempo-dispon-turno.
+    end.
+    
+END PROCEDURE.

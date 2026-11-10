@@ -1,0 +1,76 @@
+/*****************************************************************************
+**
+**  Include neg¢cio ordem de produ‡Æo - Finaliza‡Æo da ordem.
+**  Parametros: buffer ord-prod (exclusive-lock)
+**              i - l-atualiza-estado-ordem - 
+**                             indica se a ordem dever  ser atualizada ou nÆo.
+**
+******************************************************************************/
+{cpp/cpapi013.i}   /* Defini‡Æo da temp-table de aloca‡Æo            */
+
+PROCEDURE FinalizarOrdemProducao:
+
+    def param buffer b-ord-prod for ord-prod.
+    def input param l-atualiza-estado-ordem as log no-undo.
+
+    def buffer b-oper-ord for oper-ord.
+
+    def var l-atu-pl as logical no-undo.
+	def var h-cpapi013 as handle no-undo.
+      
+    do  on error undo, return error:
+
+	    if not valid-handle (h-cpapi013) then 
+            run cpp/cpapi013.p persistent set h-cpapi013 (input        table tt-alocacao,
+                                                          input        table tt-deposito,
+                                                          input-output table tt-erro,
+                                                          input        yes).
+      
+        find first item 
+            where item.it-codigo = b-ord-prod.it-codigo no-lock no-error.
+      
+        assign l-atu-pl = (b-ord-prod.qt-refugada >
+                          (b-ord-prod.qt-ordem - (b-ord-prod.qt-ordem *
+                          (1 - item.fator-refugo / 100)))) or
+                           b-ord-prod.qt-ordem - b-ord-prod.qt-produzida > 0.
+    
+        for each  reservas
+            where reservas.nr-ord-produ = b-ord-prod.nr-ord-produ exclusive-lock:
+         
+            run pi-desaloca-reserva in h-cpapi013 (input rowid(reservas)). 
+			
+			if ((param-global.modulo-pl 
+             and l-atu-pl)
+            or   param-global.modulo-pi)
+            and reservas.estado = 1 then do:
+                run cdp/cd7000.p (input 0,
+                                  input reservas.it-codigo,
+                                  input b-ord-prod.cod-estabel).
+            end.
+            assign reservas.estado = 2.
+        end.
+
+		if valid-handle (h-cpapi013) then
+			run pi-finalizar in h-cpapi013.
+     
+        if  l-atualiza-estado-ordem = yes then do:
+            if  param-global.modulo-cs = no then
+                assign b-ord-prod.estado = 8.
+            else
+                assign b-ord-prod.estado = 7.
+        end.
+
+        if (param-global.modulo-pl 
+        and l-atu-pl)
+        or param-global.modulo-pi then do:
+           run cdp/cd7000.p (0,
+                             b-ord-prod.it-codigo,
+                             b-ord-prod.cod-estabel). /* usado p/planejamento */
+        end. 
+
+        for each  b-oper-ord
+            where b-oper-ord.nr-ord-produ = b-ord-prod.nr-ord-produ exclusive-lock:
+            assign b-oper-ord.estado = 3.
+        end.
+    end.
+END PROCEDURE.

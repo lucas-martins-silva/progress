@@ -1,0 +1,38 @@
+/**********************************************************************************************************
+** 
+** PROCEDURE EliminarVisaoMan
+** Objetivo: Eliminar todos os relacionamentos da tabela VisÆo Man
+** Parƒmetros: Entrada buffer b-visao-man
+**             
+**********************************************************************************************************/
+PROCEDURE EliminarVisaoMan:
+
+   def parameter buffer b-visao-man for visao-man.
+    
+   for each dim-vis-man
+       of b-visao-man EXCLUSIVE-LOCK :
+       delete dim-vis-man.
+   end.
+   
+   for each ind-vis-man
+       of b-visao-man EXCLUSIVE-LOCK :
+       delete ind-vis-man.
+   end.
+   
+   for each regra-vis-man
+       of b-visao-man EXCLUSIVE-LOCK :
+       delete regra-vis-man.
+   end.
+   
+   for each hrq-vis-man
+       where hrq-vis-man.cod-visao-n1 = b-visao-man.cod-visao
+          or hrq-vis-man.cod-visao-n2 = b-visao-man.cod-visao
+          or hrq-vis-man.cod-visao-n3 = b-visao-man.cod-visao
+          or hrq-vis-man.cod-visao-n4 = b-visao-man.cod-visao
+          or hrq-vis-man.cod-visao-n5 = b-visao-man.cod-visao
+          or hrq-vis-man.cod-visao-n6 = b-visao-man.cod-visao
+          or hrq-vis-man.cod-visao-n7 = b-visao-man.cod-visao EXCLUSIVE-LOCK :
+       delete hrq-vis-man.
+   end.
+            
+END PROCEDURE.

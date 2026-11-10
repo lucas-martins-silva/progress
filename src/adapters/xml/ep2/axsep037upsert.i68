@@ -1,7 +1,0 @@
-PROCEDURE pi-seta-Cod-Estabel: /*Procedimento para cria‡Æo das informa‡äes do Emissor da Nota (chamado no ft0910b.p)*/
-
-    DEFINE INPUT  PARAMETER p-CodEstabel AS CHARACTER   NO-UNDO.
-
-    ASSIGN cCodEstabel = p-CodEstabel.
-
-END PROCEDURE.

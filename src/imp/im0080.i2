@@ -1,0 +1,85 @@
+        /********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/******************************************************************************
+**
+**  Include: im0080.i2 - Contabilizaá∆o de Material em tr∆sito - Definiá∆o dos Form(s)
+**
+*******************************************************************************/
+/***************************** Definiá∆o de Vari†veis *************************/
+
+def var c-selecao          as char no-undo.
+def var c-impressao        as char no-undo format "x(10)".
+def var c-destino          as char no-undo.
+def var c-titulo-contab    as char no-undo format "X(40)".
+def var c-titulo-erro      as char no-undo format "x(40)".
+def var c-estab            no-undo like estabelec.cod-estabel.
+def var c-embarq           as char no-undo format "x(10)".
+def var c-erro             as char no-undo format "x(06)".
+def var c-mens             as char no-undo format "x(08)".
+def var c-sim-nao          as char no-undo format "x(08)".
+
+/******************************Definiá∆o de Form *********************************/
+
+form  
+      tt-embarque-contab.cod-estabel         at 01 
+      tt-embarque-contab.embarque            at 06 
+      tt-embarque-contab.ep-codigo           at 24
+      tt-embarque-contab.cod-esp             at 29
+      tt-embarque-contab.serie               at 34
+      tt-embarque-contab.nr-docto            at 41
+      tt-embarque-contab.parcela             at 59
+      tt-embarque-contab.cod-fornec          at 63 
+      with down no-box width 136 stream-io frame f-layout1.
+
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-layout1:HANDLE).
+
+form  
+      tt-retorno-erro.cod-estabel         at 01 
+      tt-retorno-erro.embarque            at 06
+      tt-retorno-erro.cod-erro            at 24 
+      tt-retorno-erro.mensagem            at 34
+      with down no-box no-labels width 136 stream-io frame f-layout2.      
+
+form  
+      c-estab                             at 01 
+      c-embarq                            at 06 
+      c-erro                              at 27
+      c-mens                              at 34
+      "----"                              at 01
+      "-----------------"                 at 06
+      "-------------------------------------------------------------------------------------------------------------"  at 24
+      with down no-box no-labels width 136 stream-io frame f-label-erro.
+
+form  
+      c-titulo-contab         at 24 
+      "---------------------------" at 24  skip(1)
+      with down no-box no-labels width 136 stream-io frame f-tit1.
+
+form  
+      "  " skip(2)
+      c-titulo-erro            at 24 
+      "------------------------------" at 23  skip(1)      
+      with down no-box no-labels width 136 stream-io frame f-tit2.            
+      
+form skip(01)
+     c-selecao                     no-label     skip(1)
+     tt-param.data-ini             colon 40 space(07) "|< >|"
+     tt-param.data-fim             no-label colon 61 skip
+     tt-param.l-desemb-parcial     colon 40          skip(1)
+     c-impressao no-label                            skip(1)
+     c-destino                     colon 40
+     " - ":U
+     tt-param.arquivo no-label format "x(60)":U skip
+     tt-param.usuario        colon 40 skip(4)     
+     with down no-box side-labels width 132 stream-io frame f-parametros.
+
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-parametros:HANDLE).
+

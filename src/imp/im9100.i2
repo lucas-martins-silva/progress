@@ -1,0 +1,792 @@
+&IF "{1}" = "tt-processo-imp"
+OR  "{1}" = "tt-pedido-compr-emb" &THEN
+
+    empty temp-table tt-pedido.
+
+    RUN getPedidoCompra IN h-imapi009 (OUTPUT TABLE tt-pedido).
+    FIND FIRST tt-pedido NO-ERROR.
+    if avail tt-pedido then
+        ASSIGN {1}.num-ped-benef  = tt-pedido.num-ped-benef
+           {1}.data-pedido	  = tt-pedido.data-pedido
+           {1}.desc-situacao	  = {ininc/i02in295.i 4 tt-pedido.situacao}
+           {1}.cod-emitente       = tt-pedido.cod-emitente
+           {1}.end-entrega        = tt-pedido.end-entrega
+           {1}.end-cobranca       = tt-pedido.end-cobranca
+           {1}.cod-cond-pag       = tt-pedido.cod-cond-pag
+           {1}.cod-mens-ped       = tt-pedido.cod-mensagem
+           {1}.comentarios	  = tt-pedido.comentarios
+           {1}.compl-entrega	  = tt-pedido.compl-entrega
+           {1}.cod-estabel-gestor = tt-pedido.cod-estab-gestor
+           {1}.cod-emit-terc	  = tt-pedido.cod-emit-terc.
+     
+    empty temp-table tt-emitente.  
+
+    RUN getEmitenteEntrega IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}.nome-emit-entr	   = tt-emitente.nome-emit
+               {1}.endereco-emit-entr      = tt-emitente.endereco
+               {1}.bairro-emit-entr	   = tt-emitente.bairro
+               {1}.cidade-emit-entr	   = tt-emitente.cidade
+               {1}.pais-emit-entr	   = tt-emitente.pais
+               {1}.cep-emit-entr	   = tt-emitente.cep
+               {1}.cgc-emit-entr	   = tt-emitente.cgc
+               {1}.estado-emit-entr	   = tt-emitente.estado
+               {1}.ins-estadual-emit-entr  = tt-emitente.ins-estadual
+               {1}.ins-municipal-emit-entr = tt-emitente.ins-municipal
+               {1}.caixa-postal-emit-entr  = tt-emitente.caixa-postal
+               {1}.e-mail-emit-entr	   = tt-emitente.e-mail
+               {1}.cod-aba-emit-entr       = tt-emitente.cod-aba
+               {1}.telefone1-emit-entr     = tt-emitente.telefone[1]
+               {1}.telefone2-emit-entr     = tt-emitente.telefone[2]
+               {1}.ramal1-emit-entr	   = tt-emitente.ramal[1]
+               {1}.ramal2-emit-entr	   = tt-emitente.ramal[2]
+               {1}.home-page-emit-entr     = tt-emitente.home-page
+               {1}.telefax-emit-entr       = tt-emitente.telefax
+               {1}.ramal-fax-emit-entr     = tt-emitente.ramal-fax
+               {1}.telef-fac-emit-entr     = tt-emitente.telef-fac
+               {1}.ramal-fac-emit-entr     = tt-emitente.ramal-fac
+               {1}.telef-modem-emit-entr   = tt-emitente.telef-modem
+               {1}.ramal-modem-emit-entr   = tt-emitente.ramal-modem.
+           
+    empty temp-table tt-estabelec.
+
+    RUN getEstabelecimentoEntrega IN h-imapi009 (OUTPUT TABLE tt-estabelec).
+    FIND FIRST tt-estabelec NO-ERROR.
+    if avail tt-estabelec then
+        ASSIGN {1}.nome-estab-entr	    = tt-estabelec.nome
+               {1}.endereco-estab-entr	    = tt-estabelec.endereco
+               {1}.bairro-estab-entr	    = tt-estabelec.bairro
+               {1}.cidade-estab-entr	    = tt-estabelec.cidade
+               {1}.pais-estab-entr	    = tt-estabelec.pais
+               {1}.cep-estab-entr	    = tt-estabelec.cep
+               {1}.cgc-estab-entr	    = tt-estabelec.cgc
+               {1}.estado-estab-entr	    = tt-estabelec.estado
+               {1}.ins-estadual-estab-entr  = tt-estabelec.ins-estadual
+               {1}.ins-municipal-estab-entr = tt-estabelec.ins-municipal
+               {1}.cod-suframa-estab-entr   = tt-estabelec.cod-suframa
+               {1}.cod-emit-estab-entr	    = tt-estabelec.cod-emitente.
+           
+    empty temp-table tt-emitente.
+
+    RUN getEmitenteEstabEntrega IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}.nome-emit-estab-entr	         = tt-emitente.nome-emit
+               {1}.endereco-emit-estab-entr	 = tt-emitente.endereco
+               {1}.bairro-emit-estab-entr	 = tt-emitente.bairro
+               {1}.cidade-emit-estab-entr	 = tt-emitente.cidade
+               {1}.pais-emit-estab-entr          = tt-emitente.pais
+               {1}.cep-emit-estab-entr	         = tt-emitente.cep
+               {1}.cgc-emit-estab-entr	         = tt-emitente.cgc
+               {1}.estado-emit-estab-entr	 = tt-emitente.estado
+               {1}.ins-estadual-emit-estab-entr	 = tt-emitente.ins-estadual
+               {1}.ins-municipal-emit-estab-entr = tt-emitente.ins-municipal
+               {1}.caixa-postal-emit-estab-entr  = tt-emitente.caixa-postal
+               {1}.e-mail-emit-estab-entr	 = tt-emitente.e-mail
+               {1}.cod-aba-emit-estab-entr	 = tt-emitente.cod-aba
+               {1}.telefone1-emit-estab-entr     = tt-emitente.telefone[1]
+               {1}.telefone2-emit-estab-entr     = tt-emitente.telefone[2]
+               {1}.ramal1-emit-estab-entr	 = tt-emitente.ramal[1]
+               {1}.ramal2-emit-estab-entr        = tt-emitente.ramal[2]
+               {1}.home-page-emit-estab-entr     = tt-emitente.home-page
+               {1}.telefax-emit-estab-entr	 = tt-emitente.telefax
+               {1}.ramal-fax-emit-estab-entr     = tt-emitente.ramal-fax
+               {1}.telef-fac-emit-estab-entr     = tt-emitente.telef-fac
+               {1}.ramal-fac-emit-estab-entr     = tt-emitente.ramal-fac
+               {1}.telef-modem-emit-estab-entr   = tt-emitente.telef-modem
+               {1}.ramal-modem-emit-estab-entr   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-estabelec.
+    
+    RUN getEstabelecimentoCobranca IN h-imapi009 (OUTPUT TABLE tt-estabelec).
+    
+    &IF "{1}" = "tt-processo-imp" &THEN
+        if not can-find({1}-aux where {1}-aux.cod-estabel = {1}.cod-estabel
+                                 and  {1}-aux.embarque    = {1}.embarque   
+                                 and  {1}-aux.num-pedido  = {1}.num-pedido
+                                 and  {1}-aux.nr-proc-imp = {1}.nr-proc-imp) then do:
+                                 
+                create {1}-aux.
+                assign {1}-aux.cod-estabel = {1}.cod-estabel
+                       {1}-aux.embarque    = {1}.embarque   
+                       {1}-aux.num-pedido  = {1}.num-pedido 
+                       {1}-aux.r-rowid     = {1}.r-rowid
+                       {1}-aux.nr-proc-imp = {1}.nr-proc-imp.
+        end.   
+    
+    &ENDIF
+    
+    &IF "{1}" = "tt-pedido-compr-emb" &THEN
+        if not can-find({1}-aux where {1}-aux.cod-estabel = {1}.cod-estabel
+                                 and  {1}-aux.embarque    = {1}.embarque   
+                                 and  {1}-aux.num-pedido  = {1}.num-pedido) then do:
+                                 
+                create {1}-aux.
+                assign {1}-aux.cod-estabel = {1}.cod-estabel
+                       {1}-aux.embarque    = {1}.embarque   
+                       {1}-aux.num-pedido  = {1}.num-pedido 
+                       {1}-aux.r-rowid     = {1}.r-rowid.
+        end.   
+    
+    &ENDIF
+    
+    FIND FIRST tt-estabelec NO-ERROR.
+    ASSIGN {1}.nome-estab-cobr	        = tt-estabelec.nome
+           {1}.endereco-estab-cobr      = tt-estabelec.endereco
+           {1}.bairro-estab-cobr        = tt-estabelec.bairro
+           {1}.cidade-estab-cobr        = tt-estabelec.cidade.
+    
+    assign {1}-aux.pais-estab-cobr          = tt-estabelec.pais
+           {1}-aux.cep-estab-cobr	    = tt-estabelec.cep
+           {1}-aux.cgc-estab-cobr	    = tt-estabelec.cgc
+           {1}-aux.estado-estab-cobr        = tt-estabelec.estado
+           {1}-aux.ins-estadual-estab-cobr  = tt-estabelec.ins-estadual
+           {1}-aux.ins-municipal-estab-cobr = tt-estabelec.ins-municipal
+           {1}-aux.cod-suframa-estab-cobr   = tt-estabelec.cod-suframa
+           {1}-aux.cod-emit-estab-cobr	    = tt-estabelec.cod-emitente.
+
+    empty temp-table tt-emitente.
+
+    RUN getEmitenteEstabCobr IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux.nome-emit-estab-cobr	         = tt-emitente.nome-emit
+               {1}-aux.endereco-emit-estab-cobr	 = tt-emitente.endereco
+               {1}-aux.bairro-emit-estab-cobr	 = tt-emitente.bairro
+               {1}-aux.cidade-emit-estab-cobr	 = tt-emitente.cidade
+               {1}-aux.pais-emit-estab-cobr	         = tt-emitente.pais
+               {1}-aux.cep-emit-estab-cobr	         = tt-emitente.cep
+               {1}-aux.cgc-emit-estab-cobr	         = tt-emitente.cgc
+               {1}-aux.estado-emit-estab-cobr	 = tt-emitente.estado
+               {1}-aux.ins-estadual-emit-estab-cobr  = tt-emitente.ins-estadual
+               {1}-aux.ins-municipal-emit-estab-cobr = tt-emitente.ins-municipal
+               {1}-aux.caixa-postal-emit-estab-cobr  = tt-emitente.caixa-postal
+               {1}-aux.e-mail-emit-estab-cobr	 = tt-emitente.e-mail
+               {1}-aux.cod-aba-emit-estab-cobr	 = tt-emitente.cod-aba
+               {1}-aux.telefone1-emit-estab-cobr     = tt-emitente.telefone[1]
+               {1}-aux.telefone2-emit-estab-cobr     = tt-emitente.telefone[2]
+               {1}-aux.ramal1-emit-estab-cobr	 = tt-emitente.ramal[1]
+               {1}-aux.ramal2-emit-estab-cobr	 = tt-emitente.ramal[2]
+               {1}-aux.home-page-emit-estab-cobr     = tt-emitente.home-page
+               {1}-aux.telefax-emit-estab-cobr	 = tt-emitente.telefax
+               {1}-aux.ramal-fax-emit-estab-cobr     = tt-emitente.ramal-fax
+               {1}-aux.telef-fac-emit-estab-cobr     = tt-emitente.telef-fac
+               {1}-aux.ramal-fac-emit-estab-cobr     = tt-emitente.ramal-fac
+               {1}-aux.telef-modem-emit-estab-cobr   = tt-emitente.telef-modem
+               {1}-aux.ramal-modem-emit-estab-cobr   = tt-emitente.ramal-modem.
+           
+    empty temp-table tt-estabelec.
+           
+    RUN getEstabelecimentoGestor IN h-imapi009 (OUTPUT TABLE tt-estabelec).
+    
+    FIND FIRST tt-estabelec NO-ERROR.
+    if avail tt-estabelec then
+        ASSIGN {1}-aux.nome-estab-gest	    = tt-estabelec.nome
+               {1}-aux.endereco-estab-gest	    = tt-estabelec.endereco
+               {1}-aux.bairro-estab-gest	    = tt-estabelec.bairro
+               {1}-aux.cidade-estab-gest	    = tt-estabelec.cidade
+               {1}-aux.pais-estab-gest	    = tt-estabelec.pais
+               {1}-aux.cep-estab-gest	    = tt-estabelec.cep
+               {1}-aux.cgc-estab-gest	    = tt-estabelec.cgc
+               {1}-aux.estado-estab-gest	    = tt-estabelec.estado
+               {1}-aux.ins-estadual-estab-gest  = tt-estabelec.ins-estadual
+               {1}-aux.ins-municipal-estab-gest = tt-estabelec.ins-municipal
+               {1}-aux.cod-suframa-estab-gest   = tt-estabelec.cod-suframa
+               {1}-aux.cod-emit-estab-gest	    = tt-estabelec.cod-emitente. 
+
+    empty temp-table tt-emitente.
+    
+    RUN getEmitenteEstabGest IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux.nome-emit-estab-gest	         = tt-emitente.nome-emit
+               {1}-aux.endereco-emit-estab-gest      = tt-emitente.endereco
+               {1}-aux.bairro-emit-estab-gest        = tt-emitente.bairro
+               {1}-aux.cidade-emit-estab-gest        = tt-emitente.cidade
+               {1}-aux.pais-emit-estab-gest	         = tt-emitente.pais
+               {1}-aux.cep-emit-estab-gest	         = tt-emitente.cep
+               {1}-aux.cgc-emit-estab-gest	         = tt-emitente.cgc
+               {1}-aux.estado-emit-estab-gest        = tt-emitente.estado
+               {1}-aux.ins-estadual-emit-estab-gest  = tt-emitente.ins-estadual
+               {1}-aux.ins-municipal-emit-estab-gest = tt-emitente.ins-municipal
+               {1}-aux.caixa-postal-emit-estab-gest  = tt-emitente.caixa-postal
+               {1}-aux.e-mail-emit-estab-gest	 = tt-emitente.e-mail
+               {1}-aux.cod-aba-emit-estab-gest	 = tt-emitente.cod-aba
+               {1}-aux.telefone1-emit-estab-gest     = tt-emitente.telefone[1]
+               {1}-aux.telefone2-emit-estab-gest     = tt-emitente.telefone[2]
+               {1}-aux.ramal1-emit-estab-gest	 = tt-emitente.ramal[1]
+               {1}-aux.ramal2-emit-estab-gest	 = tt-emitente.ramal[2]
+               {1}-aux.home-page-emit-estab-gest     = tt-emitente.home-page
+               {1}-aux.telefax-emit-estab-gest	 = tt-emitente.telefax
+               {1}-aux.ramal-fax-emit-estab-gest     = tt-emitente.ramal-fax
+               {1}-aux.telef-fac-emit-estab-gest     = tt-emitente.telef-fac
+               {1}-aux.ramal-fac-emit-estab-gest     = tt-emitente.ramal-fac
+               {1}-aux.telef-modem-emit-estab-gest   = tt-emitente.telef-modem
+               {1}-aux.ramal-modem-emit-estab-gest   = tt-emitente.ramal-modem.
+           
+    empty temp-table tt-cond-pagto.
+    
+    RUN getCondicaoPagamento IN h-imapi009 (OUTPUT TABLE tt-cond-pagto).
+    
+    FIND FIRST tt-cond-pagto NO-ERROR.
+    if avail tt-cond-pagto then
+        ASSIGN {1}-aux.desc-cond-pagto = tt-cond-pagto.descricao.
+
+    empty temp-table tt-mensagens.
+
+    RUN getMensagem IN h-imapi009 (OUTPUT TABLE tt-mensagens).
+    FIND FIRST tt-mensagens NO-ERROR.
+    if avail tt-mensagens then
+        ASSIGN {1}-aux.desc-mensagem-ped = tt-mensagens.descricao
+               {1}-aux.texto-mensag-ped  = tt-mensagens.texto-mensag.
+
+    FOR FIRST bf-processo-imp FIELDS(num-pedido)
+        WHERE bf-processo-imp.num-pedido = tt-pedido.num-pedido NO-LOCK: END.
+        
+    RUN setConstraintProcessoImp IN h-imapi009 (INPUT ROWID(bf-processo-imp)).
+    
+    empty temp-table tt-processo.
+
+    RUN getProcessoImportacao IN h-imapi009 (OUTPUT TABLE tt-processo).
+    FIND FIRST tt-processo NO-ERROR.
+    if avail tt-processo then 
+        ASSIGN {1}-aux.nr-proc-imp	          = tt-processo.nr-proc-imp
+               {1}-aux.cod-itiner	          = tt-processo.cod-itiner
+               {1}-aux.dt-emissao	          = tt-processo.dt-emissao
+               {1}-aux.dt-implantacao	          = tt-processo.dt-implantacao
+               {1}-aux.dt-autorizacao	          = tt-processo.dt-autorizacao
+               {1}-aux.cod-despachante	          = tt-processo.cod-despachante
+               {1}-aux.cod-exportador	          = tt-processo.cod-exportador
+               {1}-aux.cod-consignatario          = tt-processo.cod-consignatario
+               {1}-aux.cod-transportador          = tt-processo.cod-transportador
+               {1}-aux.cod-estabel	          = tt-processo.cod-estabel
+               {1}-aux.carta-credito	          = tt-processo.carta-credito
+               {1}-aux.narrativa                  = tt-processo.narrativa
+               {1}-aux.cod-banco	          = tt-processo.cod-banco
+               {1}-aux.nr-rof	                  = tt-processo.nr-rof
+               {1}-aux.desc-via-transp	          = {adinc/i01ad268.i 4 tt-processo.via-transp}
+               {1}-aux.estab-fisc	          = tt-processo.estab-fisc
+               {1}-aux.contrato-cambio	          = tt-processo.contrato-cambio
+               {1}-aux.cod-idioma	          = tt-processo.cod-idioma
+               {1}-aux.situacao-proc-imp          = {cxinc/i01cx140.i 4 tt-processo.situacao}
+               {1}-aux.cod-agente	          = tt-processo.cod-agente
+               {1}-aux.cod-mens-proc-imp          = tt-processo.cod-mensagem
+               {1}-aux.texto-mens-proc-imp        = tt-processo.texto-mensag
+               {1}-aux.destino-documentacao       = tt-processo.destino-documentacao
+               {1}-aux.cdn-corretor-cambio-import = tt-processo.cdn-corretor-cambio-import
+               {1}-aux.cdn-despa-exter-import     = tt-processo.cdn-despa-exter-import
+               {1}-aux.cdn-segurad-import	  = tt-processo.cdn-segurad-import
+               {1}-aux.cdn-corretor-import	  = tt-processo.cdn-corretor-import.
+
+    empty temp-table tt-estabelec.
+
+    RUN getImportador IN h-imapi009 (OUTPUT TABLE tt-estabelec).
+    FIND FIRST tt-estabelec NO-ERROR.
+    if avail tt-estabelec then
+        ASSIGN {1}-aux.nome-import	        = tt-estabelec.nome
+           {1}-aux.endereco-import	= tt-estabelec.endereco
+           {1}-aux.bairro-import	= tt-estabelec.bairro
+           {1}-aux.cidade-import	= tt-estabelec.cidade
+           {1}-aux.pais-import	        = tt-estabelec.pais
+           {1}-aux.cep-import	        = tt-estabelec.cep
+           {1}-aux.cgc-import	        = tt-estabelec.cgc
+           {1}-aux.estado-import	= tt-estabelec.estado
+           {1}-aux.ins-estadual-import	= tt-estabelec.ins-estadual
+           {1}-aux.ins-municipal-import	= tt-estabelec.ins-municipal
+           {1}-aux.cod-suframa-import	= tt-estabelec.cod-suframa
+           {1}-aux.cod-emit-import	= tt-estabelec.cod-emitente.
+           
+    empty temp-table tt-emitente.
+    
+    RUN getEmitenteImportador IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    
+    &IF "{1}" = "tt-processo-imp" &THEN
+        if not can-find({1}-aux2 where {1}-aux2.cod-estabel = {1}.cod-estabel
+                                  and  {1}-aux2.embarque    = {1}.embarque   
+                                  and  {1}-aux2.num-pedido  = {1}.num-pedido
+                                  and  {1}-aux2.nr-proc-imp = {1}.nr-proc-imp) then do:
+                                 
+                create {1}-aux2.
+                assign {1}-aux2.cod-estabel = {1}.cod-estabel
+                       {1}-aux2.embarque    = {1}.embarque   
+                       {1}-aux2.num-pedido  = {1}.num-pedido 
+                       {1}-aux2.r-rowid     = {1}.r-rowid
+                       {1}-aux2.nr-proc-imp = {1}.nr-proc-imp.
+        end.   
+    
+    &ENDIF
+    
+    &IF "{1}" = "tt-pedido-compr-emb" &THEN
+        if not can-find({1}-aux2 where {1}-aux2.cod-estabel = {1}.cod-estabel
+                                   and {1}-aux2.embarque    = {1}.embarque   
+                                   and {1}-aux2.num-pedido  = {1}.num-pedido) then do:
+                                 
+                create {1}-aux2.
+                assign {1}-aux2.cod-estabel = {1}.cod-estabel
+                       {1}-aux2.embarque    = {1}.embarque   
+                       {1}-aux2.num-pedido  = {1}.num-pedido 
+                       {1}-aux2.r-rowid     = {1}.r-rowid.
+        end.   
+    
+    &ENDIF
+    
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+    ASSIGN {1}-aux2.nome-emit-import	        = tt-emitente.nome-emit
+           {1}-aux2.endereco-emit-import        = tt-emitente.endereco
+           {1}-aux2.bairro-emit-import	        = tt-emitente.bairro
+           {1}-aux2.cidade-emit-import	        = tt-emitente.cidade
+           {1}-aux2.pais-emit-import            = tt-emitente.pais
+           {1}-aux2.cep-emit-import             = tt-emitente.cep
+           {1}-aux2.cgc-emit-import             = tt-emitente.cgc
+           {1}-aux2.estado-emit-import	        = tt-emitente.estado
+           {1}-aux2.ins-estadual-emit-import    = tt-emitente.ins-estadual
+           {1}-aux2.ins-municipal-emit-import   = tt-emitente.ins-municipal
+           {1}-aux2.caixa-postal-emit-import    = tt-emitente.caixa-postal
+           {1}-aux2.e-mail-emit-import	        = tt-emitente.e-mail
+           {1}-aux2.cod-aba-emit-import	        = tt-emitente.cod-aba
+           {1}-aux2.telefone1-emit-import       = tt-emitente.telefone[1]
+           {1}-aux2.telefone2-emit-import       = tt-emitente.telefone[2]
+           {1}-aux2.ramal1-emit-import	        = tt-emitente.ramal[1]
+           {1}-aux2.ramal2-emit-import	        = tt-emitente.ramal[2]
+           {1}-aux2.home-page-emit-import       = tt-emitente.home-page
+           {1}-aux2.telefax-emit-import	        = tt-emitente.telefax
+           {1}-aux2.ramal-fax-emit-import       = tt-emitente.ramal-fax
+           {1}-aux2.telef-fac-emit-import       = tt-emitente.telef-fac
+           {1}-aux2.ramal-fac-emit-import       = tt-emitente.ramal-fac
+           {1}-aux2.telef-modem-emit-import     = tt-emitente.telef-modem
+           {1}-aux2.ramal-modem-emit-import     = tt-emitente.ramal-modem.
+           
+    empty temp-table tt-emitente.
+    
+    RUN getExportador IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux2.nome-emit-export	     = tt-emitente.nome-emit
+               {1}-aux2.endereco-emit-export      = tt-emitente.endereco
+               {1}-aux2.bairro-emit-export        = tt-emitente.bairro
+               {1}-aux2.cidade-emit-export        = tt-emitente.cidade
+               {1}-aux2.pais-emit-export          = tt-emitente.pais
+               {1}-aux2.cep-emit-export           = tt-emitente.cep
+               {1}-aux2.cgc-emit-export           = tt-emitente.cgc
+               {1}-aux2.estado-emit-export	     = tt-emitente.estado
+               {1}-aux2.ins-estadual-emit-export	 = tt-emitente.ins-estadual
+               {1}-aux2.ins-municipal-emit-export = tt-emitente.ins-municipal
+               {1}-aux2.caixa-postal-emit-export  = tt-emitente.caixa-postal
+               {1}-aux2.e-mail-emit-export	     = tt-emitente.e-mail
+               {1}-aux2.cod-aba-emit-export	     = tt-emitente.cod-aba
+               {1}-aux2.telefone1-emit-export     = tt-emitente.telefone[1]
+               {1}-aux2.telefone2-emit-export     = tt-emitente.telefone[2]
+               {1}-aux2.ramal1-emit-export	     = tt-emitente.ramal[1]
+               {1}-aux2.ramal2-emit-export	     = tt-emitente.ramal[2]
+               {1}-aux2.home-page-emit-export     = tt-emitente.home-page
+               {1}-aux2.telefax-emit-export	     = tt-emitente.telefax
+               {1}-aux2.ramal-fax-emit-export     = tt-emitente.ramal-fax
+               {1}-aux2.telef-fac-emit-export     = tt-emitente.telef-fac
+               {1}-aux2.ramal-fac-emit-export     = tt-emitente.ramal-fac
+               {1}-aux2.telef-modem-emit-export   = tt-emitente.telef-modem
+               {1}-aux2.ramal-modem-emit-export   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-inco-cx.
+    
+    RUN getIncoterm IN h-imapi009 (OUTPUT TABLE tt-inco-cx).
+    FIND FIRST tt-inco-cx NO-ERROR.
+    if avail tt-inco-cx then
+        ASSIGN {1}-aux2.desc-incoterm  = tt-inco-cx.descricao
+               {1}-aux2.cod-incoterm   = tt-inco-cx.cod-incoterm.
+           
+    empty temp-table tt-itinerario.
+    
+    RUN getItinerario IN h-imapi009 (OUTPUT TABLE tt-itinerario).
+    
+    FIND FIRST tt-itinerario NO-ERROR.
+    if avail tt-itinerario then
+        ASSIGN {1}-aux2.desc-itner    = tt-itinerario.descricao
+               {1}-aux2.distancia     = tt-itinerario.distancia
+               {1}-aux2.nr-dias       = tt-itinerario.nr-dias
+               {1}-aux2.narrat-itiner = tt-itinerario.narrativa.
+
+    RUN getMensagem IN h-imapi009 (OUTPUT TABLE tt-mensagens).
+    FIND FIRST tt-mensagens NO-ERROR.
+    if avail tt-mensagens then
+        ASSIGN {1}-aux2.desc-mensagem-proc = tt-mensagens.descricao
+               {1}-aux2.texto-mensag-proc  = tt-mensagens.texto-mensag.
+
+    empty temp-table tt-mensagens.
+
+    RUN getTransportador IN h-imapi009 (OUTPUT TABLE tt-transporte).
+    FIND FIRST tt-transporte NO-ERROR.
+    if avail tt-transporte then
+        ASSIGN {1}-aux2.nome-transp	         = tt-transporte.nome
+               {1}-aux2.nome-abrev-transp	 = tt-transporte.nome-abrev
+               {1}-aux2.endereco-transp	 = tt-transporte.endereco
+               {1}-aux2.bairro-transp	 = tt-transporte.bairro
+               {1}-aux2.cidade-transp	 = tt-transporte.cidade
+               {1}-aux2.pais-transp	         = tt-transporte.pais
+               {1}-aux2.cep-transp	         = tt-transporte.cep
+               {1}-aux2.cgc-transp	         = tt-transporte.cgc
+               {1}-aux2.estado-transp	 = tt-transporte.estado
+               {1}-aux2.ins-estadual-transp	 = tt-transporte.ins-estadual
+               {1}-aux2.caixa-postal-transp	 = tt-transporte.cx-postal
+               {1}-aux2.contato-transp	 = tt-transporte.contato
+               {1}-aux2.telefone-transp	 = tt-transporte.telefone
+               {1}-aux2.ramal-transp	 = tt-transporte.ramal
+               {1}-aux2.telefax-transp	 = tt-transporte.telefax
+               {1}-aux2.telex-transp	 = tt-transporte.telex
+               {1}-aux2.ins-municipal-transp = tt-transporte.ins-municipal
+               {1}-aux2.zip-code-transp	 = tt-transporte.zip-code
+               {1}-aux2.e-mail-transp	 = tt-transporte.e-mail
+               {1}-aux2.telef-modem-transp	 = tt-transporte.telef-modem
+               {1}-aux2.home-page-transp	 = tt-transporte.home-page
+               {1}-aux2.ramal-modem-transp	 = tt-transporte.ramal-modem
+               {1}-aux2.ramal-fax-transp	 = tt-transporte.ramal-fax.
+
+    empty temp-table tt-transporte.
+    
+    RUN getDespachante IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux2.nome-despach	  = tt-emitente.nome-emit
+               {1}-aux2.endereco-despach	  = tt-emitente.endereco
+               {1}-aux2.bairro-despach	  = tt-emitente.bairro
+               {1}-aux2.cidade-despach	  = tt-emitente.cidade
+               {1}-aux2.pais-despach          = tt-emitente.pais
+               {1}-aux2.cep-despach           = tt-emitente.cep
+               {1}-aux2.cgc-despach           = tt-emitente.cgc
+               {1}-aux2.estado-despach	  = tt-emitente.estado
+               {1}-aux2.ins-estadual-despach  = tt-emitente.ins-estadual
+               {1}-aux2.ins-municipal-despach = tt-emitente.ins-municipal
+               {1}-aux2.caixa-postal-despach  = tt-emitente.caixa-postal
+               {1}-aux2.e-mail-despach	  = tt-emitente.e-mail
+               {1}-aux2.cod-aba-despach	  = tt-emitente.cod-aba
+               {1}-aux2.telefone1-despach     = tt-emitente.telefone[1]
+               {1}-aux2.telefone2-despach     = tt-emitente.telefone[2]
+               {1}-aux2.ramal1-despach	  = tt-emitente.ramal[1]
+               {1}-aux2.ramal2-despach	  = tt-emitente.ramal[2]
+               {1}-aux2.home-page-despach     = tt-emitente.home-page
+               {1}-aux2.telefax-despach	  = tt-emitente.telefax
+               {1}-aux2.ramal-fax-despach     = tt-emitente.ramal-fax
+               {1}-aux2.telef-fac-despach     = tt-emitente.telef-fac
+               {1}-aux2.ramal-fac-despach     = tt-emitente.ramal-fac
+               {1}-aux2.telef-modem-despach   = tt-emitente.telef-modem
+               {1}-aux2.ramal-modem-despach   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+    
+    RUN getAgenteCargas IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux2.nome-agente	         = tt-emitente.nome-emit
+               {1}-aux2.endereco-agente	 = tt-emitente.endereco
+               {1}-aux2.bairro-agente	 = tt-emitente.bairro
+               {1}-aux2.cidade-agente	 = tt-emitente.cidade
+               {1}-aux2.pais-agente	         = tt-emitente.pais
+               {1}-aux2.cep-agente	         = tt-emitente.cep
+               {1}-aux2.cgc-agente	         = tt-emitente.cgc
+               {1}-aux2.estado-agente	 = tt-emitente.estado
+               {1}-aux2.ins-estadual-agente  = tt-emitente.ins-estadual
+               {1}-aux2.ins-municipal-agente = tt-emitente.ins-municipal
+               {1}-aux2.caixa-postal-agente	 = tt-emitente.caixa-postal
+               {1}-aux2.e-mail-agente	 = tt-emitente.e-mail
+               {1}-aux2.cod-aba-agente	 = tt-emitente.cod-aba
+               {1}-aux2.telefone1-agente	 = tt-emitente.telefone[1]
+               {1}-aux2.telefone2-agente	 = tt-emitente.telefone[2]
+               {1}-aux2.ramal1-agente	 = tt-emitente.ramal[1]
+               {1}-aux2.ramal2-agente	 = tt-emitente.ramal[2]
+               {1}-aux2.home-page-agente	 = tt-emitente.home-page
+               {1}-aux2.telefax-agente	 = tt-emitente.telefax
+               {1}-aux2.ramal-fax-agente	 = tt-emitente.ramal-fax
+               {1}-aux2.telef-fac-agente	 = tt-emitente.telef-fac
+               {1}-aux2.ramal-fac-agente	 = tt-emitente.ramal-fac
+               {1}-aux2.telef-modem-agente	 = tt-emitente.telef-modem
+               {1}-aux2.ramal-modem-agente	 = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+    
+    RUN getCorretorCambio IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux2.nome-corretor-cam	       = tt-emitente.nome-emit
+               {1}-aux2.endereco-corretor-cam      = tt-emitente.endereco
+               {1}-aux2.bairro-corretor-cam	       = tt-emitente.bairro
+               {1}-aux2.cidade-corretor-cam	       = tt-emitente.cidade
+               {1}-aux2.pais-corretor-cam	       = tt-emitente.pais
+               {1}-aux2.cep-corretor-cam	       = tt-emitente.cep
+               {1}-aux2.cgc-corretor-cam	       = tt-emitente.cgc
+               {1}-aux2.estado-corretor-cam	       = tt-emitente.estado
+               {1}-aux2.ins-estadual-corretor-cam  = tt-emitente.ins-estadual
+               {1}-aux2.ins-municipal-corretor-cam = tt-emitente.ins-municipal
+               {1}-aux2.caixa-postal-corretor-cam  = tt-emitente.caixa-postal
+               {1}-aux2.e-mail-corretor-cam	       = tt-emitente.e-mail
+               {1}-aux2.cod-aba-corretor-cam       = tt-emitente.cod-aba
+               {1}-aux2.telefone1-corretor-cam     = tt-emitente.telefone[1]
+               {1}-aux2.telefone2-corretor-cam     = tt-emitente.telefone[2]
+               {1}-aux2.ramal1-corretor-cam	       = tt-emitente.ramal[1]
+               {1}-aux2.ramal2-corretor-cam        = tt-emitente.ramal[2]
+               {1}-aux2.home-page-corretor-cam     = tt-emitente.home-page
+               {1}-aux2.telefax-corretor-cam       = tt-emitente.telefax
+               {1}-aux2.ramal-fax-corretor-cam     = tt-emitente.ramal-fax
+               {1}-aux2.telef-fac-corretor-cam     = tt-emitente.telef-fac
+               {1}-aux2.ramal-fac-corretor-cam     = tt-emitente.ramal-fac
+               {1}-aux2.telef-modem-corretor-cam   = tt-emitente.telef-modem
+               {1}-aux2.ramal-modem-corretor-cam   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+    
+    RUN getDespachExterno IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux2.nome-despach-ext	      = tt-emitente.nome-emit
+               {1}-aux2.endereco-despach-ext      = tt-emitente.endereco
+               {1}-aux2.bairro-despach-ext	      = tt-emitente.bairro
+               {1}-aux2.cidade-despach-ext	      = tt-emitente.cidade
+               {1}-aux2.pais-despach-ext	      = tt-emitente.pais
+               {1}-aux2.cep-despach-ext	      = tt-emitente.cep
+               {1}-aux2.cgc-despach-ext	      = tt-emitente.cgc
+               {1}-aux2.estado-despach-ext	      = tt-emitente.estado
+               {1}-aux2.ins-estadual-despach-ext  = tt-emitente.ins-estadual
+               {1}-aux2.ins-municipal-despach-ext = tt-emitente.ins-municipal
+               {1}-aux2.caixa-postal-despach-ext  = tt-emitente.caixa-postal
+               {1}-aux2.e-mail-despach-ext	      = tt-emitente.e-mail
+               {1}-aux2.cod-aba-despach-ext	      = tt-emitente.cod-aba
+               {1}-aux2.telefone1-despach-ext     = tt-emitente.telefone[1]
+               {1}-aux2.telefone2-despach-ext     = tt-emitente.telefone[2]
+               {1}-aux2.ramal1-despach-ext	      = tt-emitente.ramal[1]
+               {1}-aux2.ramal2-despach-ext	      = tt-emitente.ramal[2]
+               {1}-aux2.home-page-despach-ext     = tt-emitente.home-page
+               {1}-aux2.telefax-despach-ext	      = tt-emitente.telefax
+               {1}-aux2.ramal-fax-despach-ext     = tt-emitente.ramal-fax
+               {1}-aux2.telef-fac-despach-ext     = tt-emitente.telef-fac
+               {1}-aux2.ramal-fac-despach-ext     = tt-emitente.ramal-fac
+               {1}-aux2.telef-modem-despach-ext   = tt-emitente.telef-modem
+               {1}-aux2.ramal-modem-despach-ext   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+
+    RUN getSeguradora IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux2.nome-segurad	  = tt-emitente.nome-emit
+               {1}-aux2.endereco-segurad	  = tt-emitente.endereco
+               {1}-aux2.bairro-segurad	  = tt-emitente.bairro
+               {1}-aux2.cidade-segurad	  = tt-emitente.cidade
+               {1}-aux2.pais-segurad	  = tt-emitente.pais
+               {1}-aux2.cep-segurad	          = tt-emitente.cep
+               {1}-aux2.cgc-segurad	          = tt-emitente.cgc
+               {1}-aux2.estado-segurad	  = tt-emitente.estado
+               {1}-aux2.ins-estadual-segurad  = tt-emitente.ins-estadual
+               {1}-aux2.ins-municipal-segurad = tt-emitente.ins-municipal
+               {1}-aux2.caixa-postal-segurad  = tt-emitente.caixa-postal
+               {1}-aux2.e-mail-segurad	  = tt-emitente.e-mail
+               {1}-aux2.cod-aba-segurad	  = tt-emitente.cod-aba
+               {1}-aux2.telefone1-segurad     = tt-emitente.telefone[1]
+               {1}-aux2.telefone2-segurad     = tt-emitente.telefone[2]
+               {1}-aux2.ramal1-segurad	  = tt-emitente.ramal[1]
+               {1}-aux2.ramal2-segurad	  = tt-emitente.ramal[2]
+               {1}-aux2.home-page-segurad     = tt-emitente.home-page
+               {1}-aux2.telefax-segurad	  = tt-emitente.telefax
+               {1}-aux2.ramal-fax-segurad     = tt-emitente.ramal-fax
+               {1}-aux2.telef-fac-segurad     = tt-emitente.telef-fac
+               {1}-aux2.ramal-fac-segurad     = tt-emitente.ramal-fac
+               {1}-aux2.telef-modem-segurad   = tt-emitente.telef-modem
+               {1}-aux2.ramal-modem-segurad   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+    
+    RUN getCorretorImport IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    
+    &IF "{1}" = "tt-processo-imp" &THEN
+        if not can-find({1}-aux3 where {1}-aux3.cod-estabel = {1}.cod-estabel
+                                   and {1}-aux3.embarque    = {1}.embarque   
+                                   and {1}-aux3.num-pedido  = {1}.num-pedido
+                                   and {1}-aux3.nr-proc-imp = {1}.nr-proc-imp) then do:
+                                 
+                create {1}-aux3.
+                assign {1}-aux3.cod-estabel = {1}.cod-estabel
+                       {1}-aux3.embarque    = {1}.embarque   
+                       {1}-aux3.num-pedido  = {1}.num-pedido 
+                       {1}-aux3.r-rowid     = {1}.r-rowid
+                       {1}-aux3.nr-proc-imp = {1}.nr-proc-imp.
+        end.   
+    
+    &ENDIF
+    
+    &IF "{1}" = "tt-pedido-compr-emb" &THEN
+        if not can-find({1}-aux3 where {1}-aux3.cod-estabel = {1}.cod-estabel
+                                   and {1}-aux3.embarque    = {1}.embarque   
+                                   and {1}-aux3.num-pedido  = {1}.num-pedido) then do:
+                                 
+                create {1}-aux3.
+                assign {1}-aux3.cod-estabel = {1}.cod-estabel
+                       {1}-aux3.embarque    = {1}.embarque   
+                       {1}-aux3.num-pedido  = {1}.num-pedido 
+                       {1}-aux3.r-rowid     = {1}.r-rowid.
+        end.   
+    
+    &ENDIF
+    
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux3.nome-corretor-imp	   = tt-emitente.nome-emit
+               {1}-aux3.endereco-corretor-imp      = tt-emitente.endereco
+               {1}-aux3.bairro-corretor-imp	   = tt-emitente.bairro
+               {1}-aux3.cidade-corretor-imp	   = tt-emitente.cidade
+               {1}-aux3.pais-corretor-imp	   = tt-emitente.pais
+               {1}-aux3.cep-corretor-imp	   = tt-emitente.cep
+               {1}-aux3.cgc-corretor-imp	   = tt-emitente.cgc
+               {1}-aux3.estado-corretor-imp	   = tt-emitente.estado
+               {1}-aux3.ins-estadual-corretor-imp  = tt-emitente.ins-estadual
+               {1}-aux3.ins-municipal-corretor-imp = tt-emitente.ins-municipal
+               {1}-aux3.caixa-postal-corretor-imp  = tt-emitente.caixa-postal
+               {1}-aux3.e-mail-corretor-imp	   = tt-emitente.e-mail
+               {1}-aux3.cod-aba-corretor-imp       = tt-emitente.cod-aba
+               {1}-aux3.telefone1-corretor-imp     = tt-emitente.telefone[1]
+               {1}-aux3.telefone2-corretor-imp     = tt-emitente.telefone[2]
+               {1}-aux3.ramal1-corretor-imp	   = tt-emitente.ramal[1]
+               {1}-aux3.ramal2-corretor-imp	   = tt-emitente.ramal[2]
+               {1}-aux3.home-page-corretor-imp     = tt-emitente.home-page
+               {1}-aux3.telefax-corretor-imp       = tt-emitente.telefax
+               {1}-aux3.ramal-fax-corretor-imp     = tt-emitente.ramal-fax
+               {1}-aux3.telef-fac-corretor-imp     = tt-emitente.telef-fac
+               {1}-aux3.ramal-fac-corretor-imp     = tt-emitente.ramal-fac
+               {1}-aux3.telef-modem-corretor-imp   = tt-emitente.telef-modem
+               {1}-aux3.ramal-modem-corretor-imp   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+    
+    RUN getBanco IN h-imapi009 (OUTPUT TABLE tt-banco).
+    FIND FIRST tt-banco NO-ERROR.
+    if avail tt-banco then
+        ASSIGN {1}-aux3.desc-banco = tt-banco.nome-banco
+               {1}-aux3.ag-banco   = tt-banco.ag-padrao.
+
+    empty temp-table tt-banco.
+    
+    RUN getAgenciaBanco IN h-imapi009 (OUTPUT TABLE tt-agencia).
+    FIND FIRST tt-agencia NO-ERROR.
+    if avail tt-agencia then
+        ASSIGN {1}-aux3.desc-agencia = tt-agencia.nome.
+
+    empty temp-table tt-agencia.
+    
+    RUN getConsignatario IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+        ASSIGN {1}-aux3.nome-consig	      = tt-emitente.nome-emit
+               {1}-aux3.endereco-consig	      = tt-emitente.endereco
+               {1}-aux3.bairro-consig	      = tt-emitente.bairro
+               {1}-aux3.cidade-consig	      = tt-emitente.cidade
+               {1}-aux3.pais-consig	      = tt-emitente.pais
+               {1}-aux3.cep-consig	      = tt-emitente.cep
+               {1}-aux3.cgc-consig	      = tt-emitente.cgc
+               {1}-aux3.estado-consig	      = tt-emitente.estado
+               {1}-aux3.ins-estadual-consig   = tt-emitente.ins-estadual
+               {1}-aux3.ins-municipal-consig  = tt-emitente.ins-municipal
+               {1}-aux3.caixa-postal-consig   = tt-emitente.caixa-postal
+               {1}-aux3.e-mail-consig	      = tt-emitente.e-mail
+               {1}-aux3.cod-aba-consig	      = tt-emitente.cod-aba
+               {1}-aux3.telefone1-consig      = tt-emitente.telefone[1]
+               {1}-aux3.telefone2-consig      = tt-emitente.telefone[2]
+               {1}-aux3.ramal1-consig	      = tt-emitente.ramal[1]
+               {1}-aux3.ramal2-consig	      = tt-emitente.ramal[2]
+               {1}-aux3.home-page-consig      = tt-emitente.home-page
+               {1}-aux3.telefax-consig	      = tt-emitente.telefax
+               {1}-aux3.ramal-fax-consig      = tt-emitente.ramal-fax
+               {1}-aux3.telef-fac-consig      = tt-emitente.telef-fac
+               {1}-aux3.ramal-fac-consig      = tt-emitente.ramal-fac
+               {1}-aux3.telef-modem-consig    = tt-emitente.telef-modem
+               {1}-aux3.ramal-modem-consig    = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+    
+    RUN getEstabelecimentoFiscal IN h-imapi009 (OUTPUT TABLE tt-estabelec).
+    FIND FIRST tt-estabelec NO-ERROR.
+    if avail tt-estabelec then
+        ASSIGN {1}-aux3.nome-estab-fis	    = tt-estabelec.nome
+               {1}-aux3.endereco-estab-fis	    = tt-estabelec.endereco
+               {1}-aux3.bairro-estab-fis	    = tt-estabelec.bairro
+               {1}-aux3.cidade-estab-fis	    = tt-estabelec.cidade
+               {1}-aux3.pais-estab-fis	    = tt-estabelec.pais
+               {1}-aux3.cep-estab-fis	    = tt-estabelec.cep
+               {1}-aux3.cgc-estab-fis	    = tt-estabelec.cgc
+               {1}-aux3.estado-estab-fis	    = tt-estabelec.estado
+               {1}-aux3.ins-estadual-estab-fis  = tt-estabelec.ins-estadual
+               {1}-aux3.ins-municipal-estab-fis = tt-estabelec.ins-municipal
+               {1}-aux3.cod-suframa-estab-fis   = tt-estabelec.cod-suframa
+               {1}-aux3.cod-emit-estab-fis	    = tt-estabelec.cod-emitente.
+
+    empty temp-table tt-estabelec.
+    
+    RUN getEmitenteEstabFis IN h-imapi009 (OUTPUT TABLE tt-emitente).
+    FIND FIRST tt-emitente NO-ERROR.
+    if avail tt-emitente then
+    ASSIGN {1}-aux3.nome-emit-estab-fis	         = tt-emitente.nome-emit
+           {1}-aux3.endereco-emit-estab-fis	 = tt-emitente.endereco
+           {1}-aux3.bairro-emit-estab-fis	 = tt-emitente.bairro
+           {1}-aux3.cidade-emit-estab-fis	 = tt-emitente.cidade
+           {1}-aux3.pais-emit-estab-fis	         = tt-emitente.pais
+           {1}-aux3.cep-emit-estab-fis	         = tt-emitente.cep
+           {1}-aux3.cgc-emit-estab-fis	         = tt-emitente.cgc
+           {1}-aux3.estado-emit-estab-fis	 = tt-emitente.estado
+           {1}-aux3.ins-estadual-emit-estab-fis  = tt-emitente.ins-estadual
+           {1}-aux3.ins-municipal-emit-estab-fis = tt-emitente.ins-municipal
+           {1}-aux3.caixa-postal-emit-estab-fis  = tt-emitente.caixa-postal
+           {1}-aux3.e-mail-emit-estab-fis	 = tt-emitente.e-mail
+           {1}-aux3.cod-aba-emit-estab-fis	 = tt-emitente.cod-aba
+           {1}-aux3.telefone1-emit-estab-fis	 = tt-emitente.telefone[1]
+           {1}-aux3.telefone2-emit-estab-fis	 = tt-emitente.telefone[2]
+           {1}-aux3.ramal1-emit-estab-fis	 = tt-emitente.ramal[1]
+           {1}-aux3.ramal2-emit-estab-fis	 = tt-emitente.ramal[2]
+           {1}-aux3.home-page-emit-estab-fis	 = tt-emitente.home-page
+           {1}-aux3.telefax-emit-estab-fis	 = tt-emitente.telefax
+           {1}-aux3.ramal-fax-emit-estab-fis	 = tt-emitente.ramal-fax
+           {1}-aux3.telef-fac-emit-estab-fis	 = tt-emitente.telef-fac
+           {1}-aux3.ramal-fac-emit-estab-fis	 = tt-emitente.ramal-fac
+           {1}-aux3.telef-modem-emit-estab-fis   = tt-emitente.telef-modem
+           {1}-aux3.ramal-modem-emit-estab-fis   = tt-emitente.ramal-modem.
+
+    empty temp-table tt-emitente.
+
+    RUN getPontosControleItiner IN h-imapi009 (OUTPUT TABLE tt-emb-pto-contr).
+    FOR EACH tt-emb-pto-contr:                       
+        CASE tt-emb-pto-contr.tp-pto-contr:
+            WHEN 1 THEN DO:    
+                ASSIGN {1}-aux3.pto-despacho	         = tt-emb-pto-contr.pto-contr               
+                       {1}-aux3.desc-pto-despacho	 = tt-emb-pto-contr.desc-pto-contr          
+                       {1}-aux3.data-prev-despacho       = tt-emb-pto-contr.data-prev-pto-contr     
+                       {1}-aux3.data-efet-despacho       = tt-emb-pto-contr.data-efet-pto-contr     
+                       {1}-aux3.data-ult-prev-despacho   = tt-emb-pto-contr.data-ult-prev-pto-contr 
+                       {1}-aux3.ufr-despacho	         = tt-emb-pto-contr.unid-referencial.
+            END.
+            WHEN 2 THEN DO:
+                ASSIGN {1}-aux3.pto-embarque	         = tt-emb-pto-contr.pto-contr               
+                       {1}-aux3.desc-pto-embarque	 = tt-emb-pto-contr.desc-pto-contr          
+                       {1}-aux3.data-prev-embarque       = tt-emb-pto-contr.data-prev-pto-contr     
+                       {1}-aux3.data-efet-embarque       = tt-emb-pto-contr.data-efet-pto-contr     
+                       {1}-aux3.data-ult-prev-embarque   = tt-emb-pto-contr.data-ult-prev-pto-contr 
+                       {1}-aux3.ufr-embarque	         = tt-emb-pto-contr.unid-referencial.
+            END.
+            WHEN 3 THEN DO:
+                ASSIGN {1}-aux3.pto-nacionaliz	         = tt-emb-pto-contr.pto-contr                
+                       {1}-aux3.desc-pto-nacionaliz      = tt-emb-pto-contr.desc-pto-contr           
+                       {1}-aux3.data-prev-nacionaliz     = tt-emb-pto-contr.data-prev-pto-contr      
+                       {1}-aux3.data-efet-nacionaliz     = tt-emb-pto-contr.data-efet-pto-contr      
+                       {1}-aux3.data-ult-prev-nacionaliz = tt-emb-pto-contr.data-ult-prev-pto-contr  
+                       {1}-aux3.ufr-nacionaliz	         = tt-emb-pto-contr.unid-referencial.
+            END.
+            WHEN 5 THEN DO:
+                ASSIGN {1}-aux3.pto-chegada	         = tt-emb-pto-contr.pto-contr               
+                       {1}-aux3.desc-pto-chegada	 = tt-emb-pto-contr.desc-pto-contr          
+                       {1}-aux3.data-prev-chegada	 = tt-emb-pto-contr.data-prev-pto-contr     
+                       {1}-aux3.data-efet-chegada	 = tt-emb-pto-contr.data-efet-pto-contr     
+                       {1}-aux3.data-ult-prev-chegada    = tt-emb-pto-contr.data-ult-prev-pto-contr 
+                       {1}-aux3.ufr-chegada	         = tt-emb-pto-contr.unid-referencial.  
+            END.                                                            
+        END CASE.
+    END.         
+    empty temp-table tt-emb-pto-contr.
+    
+    
+&ENDIF     

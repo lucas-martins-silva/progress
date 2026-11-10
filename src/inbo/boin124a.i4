@@ -1,0 +1,22 @@
+/*Numerico ou Faixa*/
+IF {1}.tipo-result = 1 OR 
+   {1}.tipo-result = 4 THEN DO:
+
+   ASSIGN cDecimal = "." + SUBSTRING(cAux,1,INTEGER({1}.nr-decimais)).
+
+   IF cDecimal = "." THEN ASSIGN cDecimal = "".
+
+   ASSIGN cFormato = "->,>>>,>>9" + cDecimal.         
+   ASSIGN deResultMin = {1}.result-min 
+          deResultMax = {1}.result-max
+          p-result = TRIM(STRING(deResultMin,cFormato)) + " - " + TRIM(STRING(deResultMax,cFormato)).
+END.
+  /*tabela*/
+ELSE IF {1}.tipo-result = 2 THEN DO:
+
+    FOR FIRST bf-tab-result FIELDS(nr-tabela descricao) NO-LOCK
+        WHERE bf-tab-result.nr-tabela = bf-comp-exame.nr-tabela: END.
+
+    IF AVAIL bf-tab-result THEN
+       ASSIGN p-result =  STRING(bf-tab-result.nr-tabela) + " - " + bf-tab-result.descricao.
+END. 

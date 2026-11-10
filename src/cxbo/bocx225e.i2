@@ -1,0 +1,72 @@
+/*
+**
+** BOCX225E.I2 - Busca-grava atributos livres da tabela {2}
+**
+*/
+
+/*
+** {1} - yes - grava    no - busca
+*/
+
+IF {1} THEN DO:
+
+       ASSIGN {2}.peso-bruto            = de-peso-bruto-i1
+              {2}.peso-liquido          = de-peso-liquido-i1
+              {2}.cd-trib-ii            = i-trib-ii-i1
+              {2}.aliquota-ii           = de-aliq-ii-i1
+              overlay({2}.char-1,105,8) = string(de-aliq-ii-i1,">>9.9999")
+              {2}.cd-trib-ipi           = i-trib-ipi-i1
+              {2}.aliquota-ipi          = de-aliq-ipi-i1
+              {2}.cd-trib-icms          = i-trib-icms-i1
+              {2}.aliquota-icms         = de-aliq-icms-i1
+              {2}.idi-tributac-pis      = i-trib-pis-i1
+              {2}.idi-tributac-cofins   = i-trib-cofins-i1
+              {2}.val-aliq-ext-pis      = de-aliq-pis-i1
+              {2}.val-aliq-ext-cofins   = de-aliq-cofins-i1
+              {2}.dec-1                 = de-aliq-pis-i1
+              {2}.dec-2                 = de-aliq-cofins-i1.
+
+       /******************************************************
+       * Engenharia IPI Suspensao Incorporar Base PIS COFINS *
+       ******************************************************/
+       IF  c-suspensao-II  = "1":U THEN
+           ASSIGN {2}.log-suspens-impto-import = YES.
+       ELSE
+           ASSIGN {2}.log-suspens-impto-import = NO.
+
+       IF  c-suspensao-IPI = "1":U THEN
+           ASSIGN {2}.log-suspens-ipi-import   = YES.
+       ELSE
+           ASSIGN {2}.log-suspens-ipi-import   = NO.                      
+
+END.
+ELSE DO:
+ 
+       ASSIGN de-peso-bruto-i1    = {2}.peso-bruto
+              de-peso-liquido-i1  = {2}.peso-liquido
+              i-trib-ii-i1        = {2}.cd-trib-ii
+              i-trib-ipi-i1       = {2}.cd-trib-ipi
+              i-trib-icms-i1      = {2}.cd-trib-icms
+              de-aliq-ii-i1       = if substr({2}.char-1,105,8) <> "" then dec(substr({2}.char-1,105,8)) else {2}.aliquota-ii
+              de-aliq-ipi-i1      = {2}.aliquota-ipi
+              de-aliq-icms-i1     = {2}.aliquota-icms
+              i-trib-pis-i1       = {2}.idi-tributac-pis
+              de-aliq-pis-i1      = {2}.dec-1
+              i-trib-cofins-i1    = {2}.idi-tributac-cofins
+              de-aliq-cofins-i1   = {2}.dec-2.
+
+       /******************************************************
+       * Engenharia IPI Suspensao Incorporar Base PIS COFINS *
+       ******************************************************/
+       IF  {2}.log-suspens-impto-import THEN
+           ASSIGN c-suspensao-II = "1":U.
+       ELSE
+           ASSIGN c-suspensao-II = "":U.
+
+       IF  {2}.log-suspens-ipi-import   THEN
+           ASSIGN c-suspensao-IPI = "1":U.
+       ELSE
+           ASSIGN c-suspensao-IPI = "":U.
+
+END.                                               
+

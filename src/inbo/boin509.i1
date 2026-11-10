@@ -1,0 +1,172 @@
+/************************************************************************************
+**
+** BOIN509.I1
+**
+** Valida‡äes para Motivos de Refugo
+**
+************************************************************************************/
+
+{cdp/cdcfgman.i}
+{sfc/sf9999.i}
+
+Procedure ValidarMotivoRefugo:
+
+    def param  buffer b-motiv-refugo for motiv-refugo.
+    def output param table for tt-bo-erro.
+    
+    def var c-label as char format "x(20)" no-undo.
+
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+        
+    if b-motiv-refugo.log-material   = no and
+       b-motiv-refugo.log-retrabalho = no then do:
+       
+       run utp/ut-msgs.p (input "msg",
+                          input 17837,
+                          input "").
+       
+       create tt-bo-erro.
+       assign i-seq-erro          = i-seq-erro + 1
+              tt-bo-erro.i-sequen = i-seq-erro
+              tt-bo-erro.cd-erro  = 17837
+              tt-bo-erro.mensagem = return-value.
+    end.
+    
+    find first param-global no-lock no-error.
+    find first param-cq     no-lock no-error.
+    if param-global.modulo-cq = yes and
+       param-cq.tipo-cq > 1 then do:  
+             
+             if b-motiv-refugo.codigo-rejei = 0 and
+               b-motiv-refugo.log-material = yes then do:
+               {utp/ut-field.i mgind cod-rejeicao codigo-rejei 01}
+               assign c-label = return-value.
+               
+               {utp/ut-field.i mgind motiv-refugo log-material 01}
+               run utp/ut-msgs.p (input "msg",
+                                  input 17838,
+                                  input c-label + "~~" + return-value).
+               
+               create tt-bo-erro.
+               assign i-seq-erro          = i-seq-erro + 1
+                      tt-bo-erro.i-sequen = i-seq-erro
+                      tt-bo-erro.cd-erro  = 17838
+                      tt-bo-erro.mensagem = return-value.
+        
+             end.
+    end.
+    
+    if b-motiv-refugo.codigo-rejei <> 0 then do:
+        find first cod-rejeicao where cod-rejeicao.codigo-rejei = b-motiv-refugo.codigo-rejei no-lock no-error.
+        if not avail cod-rejeicao then do:
+
+            {utp/ut-field.i mgind cod-rejeicao codigo-rejei 01}
+            run utp/ut-msgs.p (input "msg",
+                               input 56,
+                               input return-value).
+            
+            create tt-bo-erro.
+            assign i-seq-erro          = i-seq-erro + 1
+                   tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 56
+                   tt-bo-erro.mensagem = return-value.
+        end.
+        else do:
+            if b-motiv-refugo.log-material and
+               cod-rejeicao.tipo-rejeicao = 2 then do:
+               
+                run utp/ut-msgs.p (input "msg",
+                                   input 55397,
+                                   input '').
+                
+                create tt-bo-erro.
+                assign i-seq-erro          = i-seq-erro + 1
+                       tt-bo-erro.i-sequen = i-seq-erro
+                       tt-bo-erro.cd-erro  = 55397
+                       tt-bo-erro.mensagem = return-value.
+            end.
+        end.
+    end.
+    
+    &if defined(bf_man_204) &then
+
+        IF l-glob-novo-sfc THEN DO:
+        
+            &if defined(bf_man_207) &then
+            
+                if b-motiv-refugo.cod-clas-motiv <> "" and 
+                   NOT CAN-FIND(FIRST clas-motiv NO-LOCK
+                                WHERE clas-motiv.cod-clas-motiv = b-motiv-refugo.cod-clas-motiv)
+            &else
+
+                if substring(b-motiv-refugo.char-1,1,8) <> "" and 
+                   NOT CAN-FIND(FIRST clas-motiv NO-LOCK
+                                WHERE clas-motiv.cod-clas-motiv = substring(b-motiv-refugo.char-1,1,8))   
+
+            &endif
+                then do:
+                
+                     {utp/ut-liter.i Classe_Motivo *}
+                     run utp/ut-msgs.p (input "msg",                     
+                                        input 2,                        
+                                        input return-value).             
+                                                                         
+                     create tt-bo-erro.                                  
+                     assign i-seq-erro          = i-seq-erro + 1         
+                            tt-bo-erro.i-sequen = i-seq-erro             
+                            tt-bo-erro.cd-erro  = 2                     
+                            tt-bo-erro.mensagem = return-value.          
+                end.
+        END.
+    
+    &endif
+                   
+End procedure.
+
+
+Procedure EliminarMotivoRefugo:
+
+    def input  param p-cod-motivo like motiv-refugo.cod-motiv-refugo.
+    def output param table for tt-bo-erro.
+    
+    def var c-label  as char format "x(20)" no-undo.
+    def var c-relac  as char format "x(40)" no-undo.
+    def var l-relac  as logical             no-undo.
+
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+    
+    {utp/ut-table.i mgind motiv-refugo 01}
+    assign c-label = return-value.
+    
+    if can-find(first rep-refugo-oper
+                where rep-refugo-oper.cod-motiv-refugo = p-cod-motivo) then do:
+        {utp/ut-table.i mgind rep-refugo-oper 01}
+        assign l-relac = yes
+               c-relac = return-value.
+    end.
+
+    if can-find(first rep-refugo-mat
+                where rep-refugo-mat.cod-motiv-refugo = p-cod-motivo) then do:
+        {utp/ut-table.i mgind rep-refugo-mat 01}
+        assign l-relac = yes
+               c-relac = if c-relac = "" then return-value 
+                         else c-relac + ", " + return-value.
+    end.
+    
+    if l-relac = yes then do:
+        run utp/ut-msgs.p (input 'msg',
+                           input 8699,
+                           input c-label + "~~" + c-relac).
+        
+        create tt-bo-erro.
+        assign i-seq-erro          = i-seq-erro + 1
+               tt-bo-erro.i-sequen = i-seq-erro
+               tt-bo-erro.cd-erro  = 8699
+               tt-bo-erro.mensagem = return-value.        
+    end.
+
+End procedure.

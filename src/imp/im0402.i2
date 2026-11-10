@@ -1,0 +1,132 @@
+DEFINE VARIABLE c-lbl-selecao               AS CHARACTER FORMAT "x(20)" NO-UNDO.
+DEFINE VARIABLE c-lbl-parametros            AS CHARACTER FORMAT "x(20)" NO-UNDO.
+DEFINE VARIABLE c-lbl-impressao             AS CHARACTER FORMAT "x(20)" NO-UNDO.
+DEFINE VARIABLE c-lbl-destino               AS CHARACTER FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE c-lbl-execucao              AS CHARACTER FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE c-lbl-usuario               AS CHARACTER FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE c-lbl-impressora            AS CHARACTER FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE c-lbl-arquivo               AS CHARACTER FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE c-lbl-terminal              AS CHARACTER FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE c-lbl-online                AS CHARACTER FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE c-lbl-batch                 AS CHARACTER FORMAT "x(10)" NO-UNDO.
+
+DEFINE VARIABLE c-lbl-decalaracao-importacao AS CHARACTER FORMAT "x(26)" NO-UNDO.
+DEFINE VARIABLE c-lbl-data-di                AS CHARACTER FORMAT "x(8)" NO-UNDO.
+DEFINE VARIABLE c-lbl-di-ems                 AS CHARACTER FORMAT "x(8)" NO-UNDO.
+DEFINE VARIABLE c-lbl-estabelecimento           AS CHARACTER FORMAT "x(25)"   NO-UNDO.
+DEFINE VARIABLE c-lbl-embarque                  AS CHARACTER FORMAT "x(25)"   NO-UNDO.
+DEFINE VARIABLE c-lbl-declaracao-importacao-ems AS CHARACTER FORMAT "x(25)"   NO-UNDO.
+DEFINE VARIABLE c-lbl-di-siscomex               AS CHARACTER FORMAT "x(25)"   NO-UNDO.
+
+{utp/ut-liter.i "SELE€ÇO"}
+ASSIGN c-lbl-selecao             = RETURN-VALUE.
+{utp/ut-liter.i "PAR¶METROS"}
+ASSIGN c-lbl-parametros          = RETURN-VALUE.
+{utp/ut-liter.i "IMPRESSÇO"}
+ASSIGN c-lbl-impressao           = RETURN-VALUE.
+{utp/ut-liter.i "Destino:"}
+ASSIGN c-lbl-destino             = RETURN-VALUE.
+{utp/ut-liter.i "Execu‡Æo:"}
+ASSIGN c-lbl-execucao            = RETURN-VALUE.
+{utp/ut-liter.i "Usu rio:"}
+ASSIGN c-lbl-usuario             = RETURN-VALUE.
+{utp/ut-liter.i "Impressora"}
+ASSIGN c-lbl-impressora          = RETURN-VALUE.
+{utp/ut-liter.i "Arquivo"}
+ASSIGN c-lbl-arquivo             = RETURN-VALUE.
+{utp/ut-liter.i "Terminal"}
+ASSIGN c-lbl-terminal            = RETURN-VALUE.
+{utp/ut-liter.i "On-line"}
+ASSIGN c-lbl-online              = RETURN-VALUE.
+{utp/ut-liter.i "Batch"}
+ASSIGN c-lbl-batch               = RETURN-VALUE.
+
+{utp/ut-liter.i "Declara‡Æo de Importa‡Æo"}
+ASSIGN c-lbl-decalaracao-importacao = RETURN-VALUE + ":":U.
+{utp/ut-liter.i "Data DI"}
+ASSIGN c-lbl-data-di = RETURN-VALUE + ":":U.
+{utp/ut-liter.i "DI EMS"}
+ASSIGN c-lbl-di-ems = RETURN-VALUE + ":":U.
+
+{utp/ut-liter.i "Estabelecimento"}
+ASSIGN c-lbl-estabelecimento           = RETURN-VALUE + ":":U.
+{utp/ut-liter.i "Embarque"}
+ASSIGN c-lbl-embarque                  = RETURN-VALUE + ":":U.
+{utp/ut-liter.i "Declara‡Æo Impora‡Æo EMS"}
+ASSIGN c-lbl-declaracao-importacao-ems = RETURN-VALUE + ":":U.
+{utp/ut-liter.i "DI Siscomex"}
+ASSIGN c-lbl-di-siscomex               = RETURN-VALUE + ":":U.
+
+FORM
+    ordens-embarque.cod-estabel              COLUMN-LABEL "Est"
+    ordens-embarque.embarque                 COLUMN-LABEL "Embarque"
+    ordens-embarque.numero-ordem             COLUMN-LABEL "Ordem"
+    prazo-compra.un                          COLUMN-LABEL "Un"
+    prazo-compra.parcela                     COLUMN-LABEL "Parc"
+    prazo-compra.data-entrega                COLUMN-LABEL "Dt Entrega"
+    ordens-embarque.quantidade               COLUMN-LABEL "Quantidade"
+    prazo-compra.quant-receb                 COLUMN-LABEL "Qtd Receb"
+    prazo-compra.quant-rejeit                COLUMN-LABEL "Qtde Devol"
+    de-saldo-embarque                        COLUMN-LABEL "Qtde Saldo"
+    prazo-compra.dec-1                       COLUMN-LABEL "Qtde Aloc Par"       FORMAT ">>>>,>>9.9999":U
+    skip
+    prazo-compra.it-codigo                   COLUMN-LABEL "Item"
+    item.desc-item                           COLUMN-LABEL "Descricao"           FORMAT "x(30)"
+    c-situacao-parcela                       COLUMN-LABEL "Situa‡Æo"  AT 58     FORMAT "x(15)"
+    SKIP(1)
+WITH FRAME f-embarque DOWN STREAM-IO width 134.
+
+FORM
+    c-lbl-decalaracao-importacao AT 1 
+    c-di-siscomex                AT 27
+    c-lbl-data-di                AT 1
+    decla-import.dat-di          AT 10
+    c-lbl-di-ems                 AT 1
+    c-di-ems                     AT 9
+WITH FRAME f-cabecalho-di DOWN STREAM-IO NO-LABEL width 134.
+
+FORM
+    decla-import-ord.cod-estab             COLUMN-LABEL "Est"
+    decla-import-ord.cod-embarq            COLUMN-LABEL "Embarque"
+    decla-import-ord.num-ordem             COLUMN-LABEL "Ordem"
+    prazo-compra.un                        COLUMN-LABEL "Un"
+    prazo-compra.parcela                   COLUMN-LABEL "Parc"
+    prazo-compra.data-entrega              COLUMN-LABEL "Dt Entrega"
+    decla-import-ord.qtd-item              COLUMN-LABEL "Quantidade"
+    prazo-compra.quant-receb               COLUMN-LABEL "Qtd Receb"
+    prazo-compra.quant-rejeit              COLUMN-LABEL "Qtde Devol"
+    de-saldo-embarque                      COLUMN-LABEL "Qtde Saldo"
+    prazo-compra.dec-1                     COLUMN-LABEL "Qtde Aloc Par"       FORMAT ">>>>,>>9.9999":U
+    skip
+    prazo-compra.it-codigo                 COLUMN-LABEL "Item"
+    item.desc-item                         COLUMN-LABEL "Descricao"           FORMAT "x(30)"
+    c-situacao-parcela                     COLUMN-LABEL "Situa‡Æo"  AT 58     FORMAT "x(15)"
+    SKIP(1)
+WITH FRAME f-embarque-di DOWN STREAM-IO width 134.
+
+form
+    c-lbl-selecao AT 5 SKIP(1)
+    c-lbl-estabelecimento               AT 10
+    tt-param.cCodEstabIni               AT 36 "|< >|" AT 60 tt-param.cCodEstabFim
+    
+    c-lbl-embarque                      AT 10     
+    tt-param.cCodEmbarqIni              AT 36 "|< >|" AT 60 tt-param.cCodEmbarqFim
+
+    c-lbl-declaracao-importacao-ems     AT 10
+    tt-param.iNumDiEmsIni               AT 36 "|< >|" AT 60 tt-param.iNumDiEmsFim
+
+    c-lbl-di-siscomex                   AT 10
+    tt-param.cCodDiSiscomexIni          AT 36 "|< >|" AT 60 tt-param.cCodDiSiscomexFim
+with stream-io overlay row 1 column 1 width 132 NO-LABEL frame f-selecao.
+
+form
+     c-lbl-parametros AT 5 SKIP(1)
+     c-tipo-impressao AT 10
+with stream-io overlay row 1 column 1 width 132 NO-LABEL frame f-parametros.
+
+form
+    c-lbl-impressao AT 5  SKIP(1)
+    c-lbl-destino  AT 10 c-destino " - ":U tt-param.arquivo
+    c-lbl-execucao AT 10 c-execucao
+    c-lbl-usuario  AT 10 tt-param.usuario FORMAT "x(12)"
+with stream-io overlay row 1 column 1 width 132 NO-LABEL frame f-impressao.

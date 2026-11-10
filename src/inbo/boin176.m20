@@ -1,0 +1,94 @@
+PROCEDURE calculate_IPI_ISS :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:   Cÿlcula o valor dos impostos (IPI e ISS) atrav²s da BO de impostos.    
+------------------------------------------------------------------------------*/
+
+    def var l-procedimento-ok  as logical  no-undo.
+
+    RUN localizaWtDocto in h_bodi317im2bra ( input 1,
+                                             output l-procedimento-ok ).
+    if  not l-procedimento-ok then 
+        RETURN "NOK":U.
+
+    RUN localizaWtItDocto in h_bodi317im2bra ( input 1,
+                                               input tb-wt-it-docto.seq-wt-it-docto,
+                                               output l-procedimento-ok ).
+
+    IF  not l-procedimento-ok then 
+        RETURN "NOK":U.
+
+    RUN localizaWtItImposto in h_bodi317im2bra ( input 1,
+                                                 input tb-wt-it-docto.seq-wt-it-docto,
+                                                 output l-procedimento-ok ).
+    IF  not l-procedimento-ok then 
+        RETURN "NOK":U.
+     
+    IF  not l-servicos then do:
+        RUN calculaIPI in h_bodi317im2bra ( input  l-comercio,
+                                            output l-procedimento-ok) .
+                                            
+        assign l-utilizaImpostoMonitor = no.                       
+        RUN utilizaImpostosMonitorRecFiscal (INPUT  RowObject.serie-docto,
+                                             INPUT  RowObject.nro-docto,
+                                             INPUT  RowObject.cod-emitente,
+                                             INPUT  RowObject.nat-operacao,
+                                             INPUT  INT(SUBSTRING(RowObject.char-2,832,5)),
+                                             OUTPUT l-utilizaImpostoMonitor).
+            
+        IF l-utilizaImpostoMonitor = NO THEN DO:                       
+            ASSIGN de-valor-ipi-unid = 0.
+            IF tb-wt-it-imposto.cd-trib-ipi <> 2 THEN DO: /*Isento*/
+                FOR FIRST ITEM FIELDS(valor-ipi-beb) NO-LOCK
+                    WHERE item.it-codigo = tb-wt-it-docto.it-codigo:
+                    ASSIGN de-valor-ipi-unid = item.valor-ipi-beb.
+                END.                
+                
+                IF de-valor-ipi-unid <> 0 THEN DO:
+                    RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IPI,
+                                                  INPUT AtributoImposto:VALOR-UNID,
+                                                  INPUT STRING(de-valor-ipi-unid)).   
+                                               
+                    RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IPI,
+                                                  INPUT AtributoImposto:QUANT-UNID,
+                                                  INPUT STRING(RowObject.quantidade)).        
+                                                  
+                END.            
+            END.
+        END. 
+    end.                                        
+    ELSE do:
+    
+        find first natur-oper no-lock
+             where natur-oper.nat-operacao = tb-wt-it-docto.nat-operacao no-error.
+        
+        /*Nota de Frete Normal, alimentar os valor de IPI nÆo tributado*/
+        if  avail natur-oper
+        and natur-oper.usa-pick = yes  /*Escritura‡Æo IPI Frete*/
+        and natur-oper.tipo-compra = 2 /*Frete*/ then do:
+            RUN calculaIPI in h_bodi317im2bra ( input  l-comercio,
+                                                output l-procedimento-ok) .
+        end.                       
+        
+        RUN calculaISS in h_bodi317im2bra ( output l-procedimento-ok ) .            
+    end.
+    
+    RUN retornaTbWtItImposto in h_bodi317im2bra (output table tb-wt-it-imposto).
+
+    find tb-wt-it-imposto
+        where tb-wt-it-imposto.seq-wt-docto    = 1
+          and tb-wt-it-imposto.seq-wt-it-docto = tb-wt-it-docto.seq-wt-it-docto 
+        exclusive-lock no-error.
+
+    if  not l-recalcula    /* Somente para recalculo do imposto */
+    and avail tb-wt-it-imposto then
+        assign RowObject.cd-trib-ipi = tb-wt-it-imposto.cd-trib-ipi.
+
+    return "OK":U.
+
+END PROCEDURE.
+
+
+
+

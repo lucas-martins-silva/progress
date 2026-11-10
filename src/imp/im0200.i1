@@ -1,0 +1,403 @@
+/*******************************************************************************
+**
+**   IM0200.I1 - Emiss∆o de Declaraá‰es e Comunicaá‰es.
+**   pi-mail-embarque
+**
+*******************************************************************************/
+
+/* Parametros ******************************************************************
+{1} - historico-proc-imp/historico-embarque
+{2} - nr-proc-imp/embarque
+{3} - proc-imp/embarq-imp
+*******************************************************************************/           
+    if can-find (first funcao where funcao.cd-funcao = "spp-imp-dt-prev" and funcao.ativo) then do:
+        {imp/im0200.i13 {1} {3}}  /* Verifica se a declaracao vai ser impressa */      
+    end.
+    else do:
+        {cdp/cd2507.i {1} {3}}  /* Verifica se a declaracao vai ser impressa */      
+    end.
+    
+    {utp/ut-liter.i Endereáo * r}
+    assign emitente.endereco:label in frame f-declaracao = codepage-convert(trim(return-value), "iso8859-1", "ibm850").
+   
+    if  tt-param.l-traduz then do:
+        find emitente-cex where
+             emitente-cex.cod-emitente = emitente.cod-emitente
+             no-lock no-error.
+        if avail emitente-cex then do:
+            {imp/im9999.i1 "Emitente" "emitente.cod-emitente" "emitente-cex" "f-declaracao"}
+            {imp/im9999.i1 "Endereáo" "emitente.endereco" "emitente-cex" "f-declaracao"}
+            {imp/im9999.i1 "Bairro" "emitente.bairro" "emitente-cex" "f-declaracao"}
+            {imp/im9999.i1 "CEP" "emitente.cep" "emitente-cex" "f-declaracao"}
+            {imp/im9999.i1 "Estado" "emitente.estado" "emitente-cex" "f-declaracao"}
+            {imp/im9999.i  "Processo Imp" "c-processo" "emitente-cex"}
+            {imp/im9999.i  "Pto Embarque" "c-embarq" "emitente-cex"}
+            {imp/im9999.i  "Pto Nacionalizaá∆o" "c-desemb" "emitente-cex"}
+          
+            find trad-gerais use-index pk-tr-texto
+                 where trad-gerais.texto      =  "Endereáo"
+                 and   trad-gerais.cod-idioma =   emitente-cex.cod-idioma
+                 no-lock no-error.
+            if   avail trad-gerais then
+                 assign emitente.endereco:label in frame f-declaracao = codepage-convert(trim(trad-gerais.texto-trad), "iso8859-1", "ibm850").
+        end.     
+    end.   
+    
+    {imp/im9999.i2 "c-processo" "18"}
+    {imp/im9999.i2 "c-embarq" "18"}
+    {imp/im9999.i2 "c-desemb" "18"}
+
+
+    if l-imprime then do: 
+    
+       {utp/ut-liter.i "Arquivo Anexo" * r}
+       find decl-padrao where
+            decl-padrao.de-codigo = decl-hist-{3}.de-codigo no-lock no-error.
+             
+               if avail decl-padrao then do:
+                    assign c-texto = if avail decl-hist-{3} and decl-hist-{3}.descricao <> "":U then decl-hist-{3}.descricao else decl-padrao.descricao.
+                    assign c-verifica-modulo = "IMP".
+                    assign i-pos-f = 0.
+                    assign c-linha-desc = c-texto
+                           i-pos-fim = r-index(c-linha-desc,"&")
+                           l-carrega-desc = yes.        
+                           
+                    {cdp/cd2550.i1} /*ordens-embarque*/
+                    
+                    assign c-texto-msg = c-linha-desc. /*codepage-convert(c-linha-desc, "iso8859-1", "ibm850").*/
+                    assign c-assunto-e-mail  = c-texto-msg
+                           c-mensagem-e-mail = trim(return-value) + " " + c-texto-msg
+                           c-titulo-relat    = codepage-convert(c-texto-msg, "iso8859-1", "ibm850")
+                           c-sistema         = c-sistema.
+                           
+               end.
+                   
+       assign i-arq = i-arq + 1.
+       
+       output to value(c-arq + string(i-arq) + ".txt")
+       paged page-size 64.
+       view frame f-cabec-80.
+       view frame f-rodape-80.
+       
+       if avail tt-processo-imp then do:
+          if processo-imp.nr-proc-imp < tt-processo-imp.c-nr-proc-imp then
+             find tt-processo-imp where
+                  tt-processo-imp.c-nr-proc-imp = processo-imp.nr-proc-imp no-error.
+       end.
+       
+       FIND FIRST tt-processo-imp NO-LOCK NO-ERROR.
+       IF AVAIL tt-processo-imp THEN
+           assign c-nr-proc-imp-aux   = tt-processo-imp.c-nr-proc-imp.
+
+       IF c-nr-proc-imp-aux = "" THEN
+          LEAVE.
+
+       disp emitente.cod-emitente
+            codepage-convert(emitente.nome-emit, "iso8859-1", "ibm850") @ emitente.nome-emit
+            codepage-convert(emitente.endereco, "iso8859-1", "ibm850") @ emitente.endereco
+            codepage-convert(emitente.bairro, "iso8859-1", "ibm850") @ emitente.bairro
+            codepage-convert(emitente.cidade, "iso8859-1", "ibm850") @ emitente.cidade
+            codepage-convert(string(emitente.cep), "iso8859-1", "ibm850") @ emitente.cep  
+            codepage-convert(emitente.estado, "iso8859-1", "ibm850") @ emitente.estado
+            codepage-convert(emitente.pais, "iso8859-1", "ibm850") @ emitente.pais
+            with frame f-declaracao.
+
+
+       disp c-processo
+            c-nr-proc-imp-aux
+            with frame f-lbl-processo.
+       down with frame f-lbl-processo.
+       
+       for each tt-processo-imp:
+           if tt-processo-imp.c-nr-proc-imp = c-nr-proc-imp-aux THEN DO:
+              ASSIGN c-nr-proc-imp-aux = "".
+              next.
+           END.                         
+
+           disp codepage-convert(tt-processo-imp.c-nr-proc-imp, "iso8859-1", "ibm850") @ tt-processo-imp.c-nr-proc-imp
+                with frame f-nr-processo.
+           down with frame f-nr-processo.
+       end.
+       disp 
+           codepage-convert(c-embarq, "iso8859-1", "ibm850") @ c-embarq
+           itinerario.pto-embarque
+           codepage-convert(c-desc-embarq, "iso8859-1", "ibm850") @ c-desc-embarq
+           codepage-convert(c-desemb, "iso8859-1", "ibm850") @ c-desemb
+           itinerario.pto-desembarque
+           codepage-convert(c-desc-desemb, "iso8859-1", "ibm850") @ c-desc-desemb
+           with frame f-processo2.
+       
+       for each tt-editor:
+           delete tt-editor.
+       end.      
+                          
+       assign c-texto = codepage-convert(decl-hist-{3}.texto, "iso8859-1", "ibm850").    
+       assign c-verifica-modulo = "IMP".
+       assign i-pos-f = 0.
+       if (avail decl-hist-{3}) then
+           assign c-linha-desc = decl-hist-{3}.texto
+                  i-pos-fim = r-index(c-linha-desc,"&")
+                  l-carrega-desc = yes.        
+       {cdp/cd2550.i1}        
+        
+       if c-nro-invoice[1] <> "" then do:
+          run pi-print-editor (codepage-convert(c-inicio, "iso8859-1", "ibm850"), 73). 
+          find first tt-editor no-error.
+          disp tt-editor.conteudo when avail tt-editor
+               with frame f-decl-texto.
+          for each tt-editor where
+                   tt-editor.linha >= 1:
+              disp tt-editor.conteudo when avail tt-editor
+                   with frame f-decl-texto.
+              down with frame f-decl-texto.
+          end.
+          put skip(1).
+          disp c-nro-invoice-label 
+               c-parcela-label
+               c-dt-vencim-label
+               c-vl-invoice-label with frame f-fatura-label.
+          down with frame f-fatura-label.
+
+          do  i-conta = 1 to i-num - 1:
+              assign c-nro-invoice-aux = trim(c-nro-invoice[i-conta])
+                     c-parcela-aux     = trim(c-parcela[i-conta])
+                     c-dt-vencim-aux   = trim(c-dt-vencim[i-conta])  
+                     de-vl-invoice-aux  = de-vl-invoice[i-conta].
+             
+              disp c-nro-invoice-aux
+                   c-parcela-aux
+                   c-dt-vencim-aux
+                   de-vl-invoice-aux with frame f-fatura.
+              down with frame f-fatura.
+          end.
+          run pi-print-editor (codepage-convert(c-linha-desc, "iso8859-1", "ibm850"), 73).
+          for each tt-editor where
+                   tt-editor.linha > 1:
+              disp tt-editor.conteudo when avail tt-editor
+                   with frame f-decl-texto-aux.
+              down with frame f-decl-texto-aux.         
+          end.
+          ASSIGN c-var = "" 
+                 c-nro-invoice[1] = "".
+       end.
+       else do: 
+       
+           run pi-print-editor (codepage-convert(c-linha-desc, "iso8859-1", "ibm850"), 73).
+           
+           find first tt-editor no-error.
+           disp tt-editor.conteudo when avail tt-editor
+                with frame f-decl-texto.
+           down with frame f-decl-texto.
+           for each tt-editor where
+                    tt-editor.linha > 1:
+               disp tt-editor.conteudo when avail tt-editor
+                    with frame f-decl-texto.
+               down with frame f-decl-texto.         
+               if line-counter >= 60 then do:
+                  put skip.
+                  page.
+               end.
+           end.
+       end.
+        
+       put skip(2).
+       
+       assign decl-hist-{3}.decl-emitida = yes.
+        
+       down with frame f-declaracao.
+        
+       if line-counter >= 63 then
+           page.
+
+       if  decl-hist-{3}.e-mail-emitente <> "" then do:
+           output close.
+           find first param-global
+                no-lock no-error.
+           assign c-arq = replace (c-arq,"~\","/")
+                  c-arq-anexo = c-arq + string(i-arq) + ".txt".
+           for each tt-envio:
+               delete tt-envio.
+           end.           
+           create tt-envio.
+           assign tt-envio.versao-integracao = 001
+                  tt-envio.exchange          = param-global.log-1
+                  tt-envio.importancia       = 1                             
+                  tt-envio.destino           = decl-hist-{3}.e-mail-emitente
+                  tt-envio.remetente         = c-remetente
+                  tt-envio.assunto           = c-assunto-e-mail
+                  tt-envio.mensagem          = c-mensagem-e-mail
+                  tt-envio.arq-anexo         = c-arq-anexo.
+                  
+           &if defined(bf-mat-comex) &then 
+               run cdp/cdapi523.p persistent set h-prg523.
+               if valid-handle(h-prg523) and return-value = "OK" then do:
+                  assign tt-envio.servidor = serv-mail()
+                         tt-envio.porta    = porta-mail()
+                         tt-envio.exchange = ms-serv().
+                  delete procedure h-prg523.
+               end.
+           &endif
+           run utp/utapi009.p (input table tt-envio,
+                               output table tt-erros).
+       end.
+        
+       if  decl-hist-{3}.e-mail-agente <> "" then do:
+           output close.
+           find first param-global
+                no-lock no-error.
+           assign c-arq = replace (c-arq, "~\","/")
+                  c-arq-anexo = c-arq + string(i-arq) + ".txt".
+           for each tt-envio:
+               delete tt-envio.
+           end.           
+           create tt-envio.
+           assign tt-envio.versao-integracao = 001
+                  tt-envio.exchange          = param-global.log-1
+                  tt-envio.importancia       = 1                             
+                  tt-envio.destino           = decl-hist-{3}.e-mail-agente
+                  tt-envio.remetente         = c-remetente               
+                  tt-envio.assunto           = c-assunto-e-mail
+                  tt-envio.mensagem          = c-mensagem-e-mail
+                  tt-envio.arq-anexo         = c-arq-anexo.
+           &if defined(bf-mat-comex) &then 
+               run cdp/cdapi523.p persistent set h-prg523.
+               if valid-handle(h-prg523) and return-value = "OK" then do:
+                  assign tt-envio.servidor = serv-mail()
+                         tt-envio.porta    = porta-mail()
+                         tt-envio.exchange = ms-serv().
+                  delete procedure h-prg523.
+               end.
+           &endif
+           run utp/utapi009.p (input table tt-envio,
+                               output table tt-erros).
+       end.
+        
+       if  decl-hist-{3}.e-mail-despachante <> "" then do:
+           output close.
+           find first param-global
+                no-lock no-error.
+           assign c-arq = replace (c-arq, "~\","/")
+                  c-arq-anexo = c-arq + string(i-arq) + ".txt".
+           for each tt-envio:
+               delete tt-envio.
+           end.           
+           create tt-envio.
+           assign tt-envio.versao-integracao = 001
+                  tt-envio.exchange          = param-global.log-1
+                  tt-envio.importancia       = 1                             
+                  tt-envio.destino           = decl-hist-{3}.e-mail-despachante
+                  tt-envio.remetente         = c-remetente               
+                  tt-envio.assunto           = c-assunto-e-mail
+                  tt-envio.mensagem          = c-mensagem-e-mail
+                  tt-envio.arq-anexo         = c-arq-anexo.
+           &if defined(bf-mat-comex) &then 
+               run cdp/cdapi523.p persistent set h-prg523.
+               if valid-handle(h-prg523) and return-value = "OK" then do:
+                  assign tt-envio.servidor = serv-mail()
+                         tt-envio.porta    = porta-mail()
+                         tt-envio.exchange = ms-serv().
+                  delete procedure h-prg523.
+               end.
+           &endif
+           run utp/utapi009.p (input table tt-envio,
+                               output table tt-erros).
+       end.       
+        
+       if  decl-hist-{3}.e-mail-repres <> "" then do:
+           output close.
+           find first param-global
+                no-lock no-error.
+           assign c-arq = replace (c-arq, "~\","/")
+                  c-arq-anexo = c-arq + string(i-arq) + ".txt".
+           for each tt-envio:
+               delete tt-envio.
+           end.           
+           create tt-envio.
+           assign tt-envio.versao-integracao = 001
+                  tt-envio.exchange          = param-global.log-1
+                  tt-envio.importancia       = 1                             
+                  tt-envio.destino           = decl-hist-{3}.e-mail-repres
+                  tt-envio.remetente         = c-remetente               
+                  tt-envio.assunto           = c-assunto-e-mail
+                  tt-envio.mensagem          = c-mensagem-e-mail
+                  tt-envio.arq-anexo         = c-arq-anexo.
+           &if defined(bf-mat-comex) &then 
+               run cdp/cdapi523.p persistent set h-prg523.
+               if valid-handle(h-prg523) and return-value = "OK" then do:
+                  assign tt-envio.servidor = serv-mail()
+                         tt-envio.porta    = porta-mail()
+                         tt-envio.exchange = ms-serv().
+                  delete procedure h-prg523.
+               end.
+           &endif
+           run utp/utapi009.p (input table tt-envio,
+                               output table tt-erros).
+       end.
+       
+       if  decl-hist-{3}.e-mail-fabricante <> "" then do:
+           output close.
+           find first param-global
+                no-lock no-error.
+           assign c-arq = replace (c-arq, "~\","/")
+                  c-arq-anexo = c-arq + string(i-arq) + ".txt".
+           for each tt-envio:
+               delete tt-envio.
+           end.                       
+           create tt-envio.
+           assign tt-envio.versao-integracao = 001
+                  tt-envio.exchange          = param-global.log-1
+                  tt-envio.importancia       = 1                             
+                  tt-envio.destino           = decl-hist-{3}.e-mail-fabricante
+                  tt-envio.remetente         = c-remetente               
+                  tt-envio.assunto           = c-assunto-e-mail
+                  tt-envio.mensagem          = c-mensagem-e-mail
+                  tt-envio.arq-anexo         = c-arq-anexo.
+           &if defined(bf-mat-comex) &then 
+               run cdp/cdapi523.p persistent set h-prg523.
+               if valid-handle(h-prg523) and return-value = "OK" then do:
+                  assign tt-envio.servidor = serv-mail()
+                         tt-envio.porta    = porta-mail()
+                         tt-envio.exchange = ms-serv().
+                  delete procedure h-prg523.
+               end.
+           &endif
+                                            
+           run utp/utapi009.p (input table tt-envio,
+                               output table tt-erros).
+       end.
+        
+       if  decl-hist-{3}.e-mail-outros <> "" then do:
+           output close.
+           find first param-global
+                no-lock no-error.
+           assign c-arq = replace (c-arq, "~\","/")
+                  c-arq-anexo = c-arq + string(i-arq) + ".txt".
+           for each tt-envio:
+               delete tt-envio.
+           end.           
+           create tt-envio.
+           assign tt-envio.versao-integracao = 001
+                  tt-envio.exchange          = param-global.log-1
+                  tt-envio.importancia       = 1                             
+                  tt-envio.destino           = decl-hist-{3}.e-mail-outros
+                  tt-envio.remetente         = c-remetente               
+                  tt-envio.assunto           = c-assunto-e-mail
+                  tt-envio.mensagem          = c-mensagem-e-mail
+                  tt-envio.arq-anexo         = c-arq-anexo.
+           &if defined(bf-mat-comex) &then 
+               run cdp/cdapi523.p persistent set h-prg523.
+               if valid-handle(h-prg523) and return-value = "OK" then do:
+                  assign tt-envio.servidor = serv-mail()
+                         tt-envio.porta    = porta-mail()
+                         tt-envio.exchange = ms-serv().
+                  delete procedure h-prg523.
+               end.
+           &endif
+           run utp/utapi009.p (input table tt-envio,
+                               output table tt-erros).
+       end.
+       FOR EACH tt-processo-imp:
+           DELETE tt-processo-imp.
+       END.
+    end.                      
+/* IM0200.I */

@@ -1,0 +1,9 @@
+DEFINE TEMP-TABLE ttParamCreateIntegrationError NO-UNDO
+    FIELD nr-trans       LIKE mla-docto-pend-fluig.nr-trans        /*N£mero da transa‡Æo*/
+    FIELD cdn-tip-erro   LIKE mla-docto-pend-fluig.cdn-tip-erro    /*Tipo de erro (1=Envio, 2=Aprova‡Æo, 3=Reprova‡Æo, 4=Cancelamento Altera‡Æo, 5=Cancelamento Elimina‡Æo, 6=Troca de aprovador)*/
+    FIELD cdn-msg        LIKE mla-docto-pend-fluig.cdn-mensagem    /*C¢digo do erro ocorrido no processamento*/
+    FIELD des-msg        LIKE mla-docto-pend-fluig.des-mensagem    /*Descri‡Æo do erro ocorrido no processamento*/
+    FIELD help-msg       LIKE mla-docto-pend-fluig.des-mensagem    /*Help do erro ocorrido no processamento*/
+    FIELD cod-usuar-orig LIKE mla-doc-pend-aprov.cod-usuar         /*Usu rio de origem (Troca de Usu rio)*/
+    FIELD cod-usuar      LIKE mla-doc-pend-aprov.cod-usuar         /*Usu rio de destino (Troca de Usu rio)*/
+    FIELD reproces       AS LOGICAL.                               /*Indica se trata-se de um reprocessamento*/

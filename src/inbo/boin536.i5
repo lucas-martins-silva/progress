@@ -1,0 +1,107 @@
+{inbo/boin530.i2} /*** pi-sfc-reporte-tempo ***/
+
+/******************************************************************************
+** 
+** PROCEDURE AtualizarTempoRepOper
+** Objetivo: Atualiza tempos do reporte de opera‡Æo em fun‡Æo dos dados do
+             reporte e paradas intermedias
+** Parƒmetros: buffer b-rep-oper-ctrab
+**
+*******************************************************************************/
+PROCEDURE AtualizarTempoRepOper:
+
+    define parameter buffer b-rep-oper-ctrab for rep-oper-ctrab.
+
+    def var de-valor-old       like rep-oper-ctrab.qtd-tempo-reporte   no-undo.
+    def var de-valor-old-ext   like rep-oper-ctrab.qtd-tempo-extra     no-undo.
+    def var de-valor-old-mod   like rep-oper-ctrab.qtd-tempo-mod       no-undo.
+    def var de-valor-old-par   like rep-oper-ctrab.qtd-tempo-parada    no-undo.
+	def var v-tempo-parada-ext like rep-oper-ctrab.qtd-tempo-parada    no-undo.
+    def var de-tempo-liquido   like rep-oper-ctrab.qtd-tempo-parada    no-undo.
+
+    find ctrab where
+         ctrab.cod-ctrab = b-rep-oper-ctrab.cod-ctrab no-lock no-error.
+         
+    find current b-rep-oper-ctrab exclusive-lock.
+
+    assign de-valor-old     = b-rep-oper-ctrab.qtd-tempo-reporte
+           de-valor-old-mod = b-rep-oper-ctrab.qtd-tempo-mod
+           de-valor-old-par = b-rep-oper-ctrab.qtd-tempo-parada
+           de-valor-old-ext = b-rep-oper-ctrab.qtd-tempo-extra.
+
+    if ctrab.ind-tip-ctrab = 4 then 
+        run pi-sfc-tempo-paradas-mod (input  b-rep-oper-ctrab.cod-ctrab,
+                                      input  ctrab.gm-codigo,
+                                      input  b-rep-oper-ctrab.cod-equipe,
+                                      input  b-rep-oper-ctrab.val-refer-inic-rep,
+                                      input  b-rep-oper-ctrab.val-refer-fim-rep,
+                                      output b-rep-oper-ctrab.qtd-tempo-parada,
+									  output v-tempo-parada-ext). 
+    else 
+        run pi-sfc-tempo-paradas-maq (input  b-rep-oper-ctrab.cod-ctrab,
+                                      input  ctrab.gm-codigo,
+                                      input  b-rep-oper-ctrab.val-refer-inic-rep,
+                                      input  b-rep-oper-ctrab.val-refer-fim-rep,
+                                      output b-rep-oper-ctrab.qtd-tempo-parada,
+									  output v-tempo-parada-ext).
+
+    run pi-sfc-reporte-tempo (input ctrab.cod-ctrab, 
+                              input b-rep-oper-ctrab.dat-fim-reporte,
+                              input b-rep-oper-ctrab.qtd-segs-fim-reporte,
+                              input b-rep-oper-ctrab.dat-inic-reporte,
+                              input b-rep-oper-ctrab.qtd-segs-inic-reporte,
+                              output b-rep-oper-ctrab.qtd-tempo-reporte,
+                              output b-rep-oper-ctrab.qtd-tempo-extra,
+                              output b-rep-oper-ctrab.cod-model-turno,
+                              output b-rep-oper-ctrab.num-turno).                           
+                                               
+     ASSIGN de-tempo-liquido = b-rep-oper-ctrab.qtd-tempo-reporte + 
+                               b-rep-oper-ctrab.qtd-tempo-extra   - 
+                               b-rep-oper-ctrab.qtd-tempo-parada.    
+     
+     IF de-tempo-liquido < 0 THEN       
+            ASSIGN de-tempo-liquido = 0.    
+
+    /*** Atualiza o tempo de reporte considerando horas extra e diminuindo tempo de paradas ***/
+    assign b-rep-oper-ctrab.qtd-tempo-reporte = de-tempo-liquido.
+    
+	if (b-rep-oper-ctrab.qtd-tempo-extra > 0) and (b-rep-oper-ctrab.qtd-tempo-extra > v-tempo-parada-ext) then 
+			assign b-rep-oper-ctrab.qtd-tempo-reporte = b-rep-oper-ctrab.qtd-tempo-reporte - v-tempo-parada-ext
+			       b-rep-oper-ctrab.qtd-tempo-parada = b-rep-oper-ctrab.qtd-tempo-parada + v-tempo-parada-ext.
+        
+    if b-rep-oper-ctrab.qtd-tempo-extra > b-rep-oper-ctrab.qtd-tempo-reporte then
+        assign b-rep-oper-ctrab.qtd-tempo-extra = b-rep-oper-ctrab.qtd-tempo-reporte.
+
+
+    if de-valor-old-par    <> b-rep-oper-ctrab.qtd-tempo-parada  or
+       de-valor-old        <> b-rep-oper-ctrab.qtd-tempo-reporte or 
+       de-valor-old-ext    <> b-rep-oper-ctrab.qtd-tempo-extra then do:
+       assign b-rep-oper-ctrab.qtd-tempo-mod = 0.
+
+       for each rep-oper-mod exclusive-lock
+          where rep-oper-mod.nr-ord-produ = b-rep-oper-ctrab.nr-ord-produ 
+            and rep-oper-mod.num-seq-rep  = b-rep-oper-ctrab.num-seq-rep:
+
+           assign rep-oper-mod.qtd-tempo-mod     = b-rep-oper-ctrab.qtd-tempo-reporte
+                  rep-oper-mod.qtd-tempo-extra   = b-rep-oper-ctrab.qtd-tempo-extra            
+                  rep-oper-mod.qtd-tempo-parada  = b-rep-oper-ctrab.qtd-tempo-parada
+                  b-rep-oper-ctrab.qtd-tempo-mod = b-rep-oper-ctrab.qtd-tempo-mod + rep-oper-mod.qtd-tempo-mod.
+       end.     
+
+       find first split-operac exclusive-lock
+            where split-operac.nr-ord-produ   = b-rep-oper-ctrab.nr-ord-produ
+              and split-operac.num-operac-sfc = b-rep-oper-ctrab.num-operac-sfc
+              and split-operac.num-split-operac = b-rep-oper-ctrab.num-split-operac no-error.
+
+       if avail split-operac then
+           assign split-operac.tempo-real-mod    = split-operac.tempo-real-mod + b-rep-oper-ctrab.qtd-tempo-mod - de-valor-old-mod
+                  split-operac.tempo-real-maq    = split-operac.tempo-real-maq + b-rep-oper-ctrab.qtd-tempo-reporte - de-valor-old
+                  split-operac.tempo-real-operac = if ctrab.ind-tip-ctrab = 4 then split-operac.tempo-real-mod
+                                                                              else split-operac.tempo-real-maq.
+    end.
+    
+    find current b-rep-oper-ctrab no-lock.
+
+
+END PROCEDURE.    
+

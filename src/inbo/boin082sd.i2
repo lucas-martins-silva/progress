@@ -1,0 +1,479 @@
+/*------------------------------------------------------------------------------
+  Purpose: Carrega vari veis que retornarÆo com informa‡äes defaults preparando a cota‡Æo para uma 
+           inclusÆo.     
+  Parameters:
+
+            ipar1  : piNumeroOrdem : numero da ordem na cotacao do item
+            ipar2  : piFornec      : c¢digo do fornecedor 
+            ipar3  : prItem        : rowid do item
+            opar4  : piSequencia   : sequencia da cotacao-item
+            opar5  : pdeQtSolic    : quantidade total solicitada na ordem 
+            opar6  : pdaEmissao    : data da emissÆo da ordem
+            opar7  : pdaEntrega    : data de entrega da parcela 
+            opar8  : pcUn          : unidade de medida relacionada a parcela
+            opar9  : pcItem        : item da ordem de compra
+            opar10 : pcItemFornec  : item relacionado ao fornecedor    
+            opar11 : rowObject     : registro da cotacao-item
+
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def input  param piNumeroOrdem  as int   no-undo.
+    def input  param piFornec       as int   no-undo.
+    def input  param prItem         as rowid no-undo.
+    def output param piSequencia    as int   no-undo.
+    def output param pdeQtSolic     as dec   no-undo.
+    def output param pdaEmissao     as date  no-undo.
+    def output param pdaEntrega     as date  no-undo.
+    def output param pcUn           as char  no-undo.
+    def output param pcItem         as char  no-undo.
+    def output param pcItemFornec   as char  no-undo.
+    def output param table for rowObject.
+
+    def var l-frete-compra as log no-undo.
+    def var lExisteMoeda as logical no-undo.
+    def var i-cod-busca  as integer no-undo.
+    
+    find first param-compra 
+         no-lock no-error.
+
+    find first param-global 
+         no-lock no-error.
+
+    find first rowObject 
+         exclusive-lock no-error.
+
+    assign iNumeroOrdem-ini   = piNumeroOrdem.
+    for first ordem-compra fields(numero-ordem cod-comprado data-emissao qt-solic 
+                                  it-codigo    cod-estabel  codigo-icm) where
+               ordem-compra.numero-ordem = iNumeroOrdem-ini no-lock: end.
+
+    if avail ordem-compra then do:
+        for first item fields(it-codigo aliquota-ipi class-fiscal) where 
+             rowid(item) = prItem
+             no-lock: end.
+
+        create rowObject.                 
+        assign rowObject.cod-comprado = ordem-compra.cod-comprado.
+        
+        if int(substr(string(ordem-compra.numero-ordem, "99999999"), 7, 2)) > 0 then do:
+            if avail item then do:
+                for first b-ord fields(it-codigo numero-ordem) use-index item where
+                    b-ord.it-codigo = item.it-codigo and 
+                    int(substr(string(b-ord.numero-ordem, "99999999"), 1, 6)) =
+                    int(substr(string(ordem-compra.numero-ordem, "99999999"), 1, 6))
+                    no-lock: end.
+                if avail b-ord then 
+                    assign piSequencia = int(substr(string(b-ord.numero-ordem, "99999999"), 7, 2)).
+            end. 
+        end.
+        else 
+             assign piSequencia   = 00 .
+    end.
+    else do:
+        create rowObject.
+        assign rowObject.cod-comprado = "".
+    end.   
+
+    /* ---------------------------------------------------------- */
+     assign rowObject.seq-cotac    = 0
+            rowObject.data-cotacao = today
+            rowObject.preco-fornec = 0
+            rowObject.mo-codigo    = 0
+            rowObject.valor-taxa   = 0
+            rowObject.nr-dias-taxa = 0
+            rowObject.numero-ordem = piNumeroOrdem
+            rowObject.cod-emitente = piFornec.
+    /* ---------------------------------------------------------- */
+
+    if avail ordem-compra then do:
+        assign pdaEmissao = ordem-compra.data-emissao
+               pdeQtSolic = ordem-compra.qt-solic
+               pcItem     = ordem-compra.it-codigo.
+
+        &IF '{&mguni_version}' < '2.07' &THEN
+            /** Sugere o cod. servi‡o do cadastro de parametros de fretes **/
+            if param-global.modulo-tf and connected('mgscm') then do:
+    
+                if not valid-handle(h-bosc014) then
+                    run scbo/bosc014.p persistent set h-bosc014.
+        
+                run openQueryStatic in h-bosc014(input "Default").
+                run goToKey in h-bosc014(input ordem-compra.cod-estabel).
+                if return-value = 'OK':U then do:
+                    run getLogField in h-bosc014 (input "log-frete-compra":U, output l-frete-compra).
+                    if  l-frete-compra then do:
+                        run getIntField in h-bosc014 (input "cod-servico":U,
+                                                      output i-cod-servico).
+                        &if '{&bf_dis_versao_ems}':U >= '2.05':U &then
+                            assign rowObject.cod-servico = i-cod-servico.
+                        &else
+                            assign rowObject.int-2 = i-cod-servico.
+                        &endif
+                    end.
+                end.
+                if valid-handle (h-bosc014) then do:
+                    run destroy in h-bosc014.
+                                   h-bosc014 = ?.
+                end.
+            end.
+        &ENDIF
+    end.
+
+    for first emitente fields(cod-emitente cod-transp cod-cond-pag 
+                              nr-dias-taxa taxa-financ) where 
+         emitente.cod-emitente = piFornec
+         no-lock: end.
+
+    if avail emitente then do:
+        assign rowObject.cod-transp = emitente.cod-transp.
+
+        for first cont-emit fields(cod-emitente nome sequencia) where
+            cont-emit.cod-emitente = emitente.cod-emitente 
+            no-lock: end.
+        if avail cont-emit then 
+            assign rowObject.contato = substring(cont-emit.nome,1,12).
+        else 
+            assign rowObject.contato = "".
+    end.
+
+
+   assign deQtParcela          = 0
+          rowObject.data-cotacao = today.
+    if avail emitente then do:
+        if avail item then do:
+            for first ordem-compra fields(numero-ordem cod-comprado data-emissao qt-solic 
+                                          it-codigo    cod-estabel  codigo-icm) where
+                 ordem-compra.numero-ordem = piNumeroOrdem 
+                 no-lock: end.
+            if avail ordem-compra then do:         
+                assign rOrdemCompra = rowid(ordem-compra).     
+
+                for first prazo-compra fields(numero-ordem data-entrega un) where
+                    prazo-compra.numero-ordem = ordem-compra.numero-ordem
+                    no-lock: end.
+                 if avail prazo-compra then 
+                    assign pdaEntrega = prazo-compra.data-entrega
+                           pcUn       = prazo-compra.un.          
+
+                for each prazo-compra fields(numero-ordem quantidade) where
+                    prazo-compra.numero-ordem = ordem-compra.numero-ordem no-lock:
+                    assign deQtParcela = deQtParcela + prazo-compra.quantidade.
+                end.
+                      
+            end.
+
+            for last b-cot-item fields(numero-ordem cod-emitente it-codigo seq-cotac
+                                       data-cotacao dias-validade) where 
+                b-cot-item.numero-ordem = piNumeroOrdem and
+                b-cot-item.cod-emitente = piFornec      and
+                b-cot-item.it-codigo    = item.it-codigo 
+                no-lock: end.
+
+            assign rowObject.seq-cotac = if  avail b-cot-item then  b-cot-item.seq-cotac + 1 else 1.
+
+            for first item-fornec fields(it-codigo cod-emitente ativo unid-med-for cod-cond-pag) where 
+                item-fornec.it-codigo    = item.it-codigo and
+                item-fornec.cod-emitente = piFornec  and
+                item-fornec.ativo          no-lock: end.
+
+            if avail item-fornec then
+               assign rowObject.un  = item-fornec.unid-med-for
+                      pcItemFornec = item-fornec.it-codigo.     
+
+            for first b-cot-item fields(numero-ordem cod-emitente it-codigo seq-cotac
+                                       data-cotacao dias-validade) where 
+                b-cot-item.cod-emitente  = piFornec       and
+                b-cot-item.it-codigo     = item.it-codigo and
+                b-cot-item.data-cotacao <> &IF "{&ems_dbtype}":U = "MSS":U &THEN 01/01/1800 &ELSE 11/11/1111 &ENDIF     and
+                b-cot-item.numero-ordem  = ?              and
+                b-cot-item.dias-validade + b-cot-item.data-cotacao > today 
+                no-lock: end.
+
+            if  avail b-cot-item then 
+                assign rbCotacaoItem = rowid(b-cot-item)
+                       rwTbPrCc = ?
+                       rwTabItem = ?.
+            else do:
+
+                assign rowObject.cod-cond-pag = if avail item-fornec then item-fornec.cod-cond-pag
+                                                   else if avail emitente then emitente.cod-cond-pag
+                                                   else 0.
+
+                /** Desenvolvimento release 2.04 - item-fornec-estab **/
+
+                if avail ordem-compra then
+                   for first item-fornec-estab fields(cod-emitente it-codigo 
+                                                      cod-estabel  cod-cond-pag) where 
+                        item-fornec-estab.cod-emitente = piFornec and
+                        item-fornec-estab.it-codigo    = item.it-codigo and
+                        item-fornec-estab.cod-estabel  = ordem-compra.cod-estabel   
+                        no-lock: end.
+                if avail item-fornec-estab then do:
+                   assign rowObject.cod-cond-pag = item-fornec-estab.cod-cond-pag.
+                          
+                   if SUBSTRING(item-fornec-estab.char-1, 1, 2) <> "" then do:
+                        assign iCodigoMoedaCotItem = integer(SUBSTRING(item-fornec-estab.char-1, 1, 2))
+                               lExisteMoeda = YES.
+                   end.
+                end.
+                ELSE DO:
+                    FIND FIRST item-fornec
+                        WHERE item-fornec.it-codigo = ITEM.it-codigo AND
+                              item-fornec.cod-emitente = piFornec NO-LOCK NO-ERROR.
+                    IF AVAIL item-fornec THEN do:
+                        if SUBSTRING(item-fornec.char-2, 3, 2) <> "" then do:
+                            ASSIGN iCodigoMoedaCotItem = integer(SUBSTRING(item-fornec.char-2, 3, 2))
+                                   lExisteMoeda = YES.
+                        end.
+                    end.
+                END.
+
+                if lExisteMoeda then do:
+                    find first tb-pr-cc
+                         where tb-pr-cc.cod-emitente = emitente.cod-emitente
+                           and tb-pr-cc.cod-cond-pag = rowObject.cod-cond-pag
+                           and tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                           and tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                           AND tb-pr-cc.cod-estabel  = ordem-compra.cod-estabel
+                           AND tb-pr-cc.mo-codigo    = iCodigoMoedaCotItem
+                           and tb-pr-cc.situacao = 1 no-lock no-error.
+                           
+                    IF AVAIL tb-pr-cc THEN DO:
+                        ASSIGN i-cod-busca = 1.
+                    END.
+                    ELSE DO:
+                        find first tb-pr-cc
+                             where tb-pr-cc.cod-emitente = emitente.cod-emitente
+                               and tb-pr-cc.cod-cond-pag = rowObject.cod-cond-pag
+                               and tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                               and tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                               AND tb-pr-cc.cod-estabel  = ""
+                               AND tb-pr-cc.mo-codigo    = iCodigoMoedaCotItem
+                               and tb-pr-cc.situacao = 1 no-lock no-error.
+                        IF AVAIL tb-pr-cc THEN DO:
+                            ASSIGN i-cod-busca = 2.
+                        END.
+                    END.
+                end.
+                ELSE DO:
+                    find first tb-pr-cc
+                     where tb-pr-cc.cod-emitente = emitente.cod-emitente
+                       and tb-pr-cc.cod-cond-pag = rowObject.cod-cond-pag
+                       and tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                       and tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                       AND tb-pr-cc.cod-estabel  = ordem-compra.cod-estabel
+                       and tb-pr-cc.situacao = 1 no-lock no-error.
+                       
+                    IF AVAIL tb-pr-cc THEN DO:
+                        ASSIGN i-cod-busca = 3.
+                    END.
+                    ELSE DO:
+                        find first tb-pr-cc
+                             where tb-pr-cc.cod-emitente = emitente.cod-emitente
+                               and tb-pr-cc.cod-cond-pag = rowObject.cod-cond-pag
+                               and tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                               and tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                               AND tb-pr-cc.cod-estabel  = ""
+                               and tb-pr-cc.situacao = 1 no-lock no-error.
+                               
+                        IF AVAIL tb-pr-cc THEN DO:
+                            ASSIGN i-cod-busca = 4.
+                        END.
+                    END.
+                END.
+                
+                assign deQtParcela = deQtParcela * deConver. 
+
+                if  avail tb-pr-cc then do:
+                    repeat:
+                        find last item-tab
+                            where item-tab.it-codigo    = item.it-codigo
+                            and   item-tab.cod-emitente = emitente.cod-emitente
+                            and   item-tab.cod-cond-pag = tb-pr-cc.cod-cond-pag
+                            and   item-tab.nr-tab       = tb-pr-cc.nr-tab
+                            AND   item-tab.cod-estabel  = tb-pr-cc.cod-estabel
+                            AND   item-tab.mo-codigo    = tb-pr-cc.mo-codigo
+                            and   item-tab.quant-min   <= deQtParcela
+                            no-lock no-error.
+                        if not avail item-tab then
+                            find first item-tab where
+                                item-tab.cod-emitente = emitente.cod-emitente and
+                                item-tab.nr-tab       = tb-pr-cc.nr-tab       and
+                                item-tab.cod-cond-pag = tb-pr-cc.cod-cond-pag and
+                                item-tab.cod-estabel  = tb-pr-cc.cod-estabel  AND
+                                item-tab.mo-codigo    = tb-pr-cc.mo-codigo    AND
+                                item-tab.it-codigo    = item.it-codigo no-lock no-error.
+                    
+                        if  avail item-tab then 
+                            leave.
+                            
+                        CASE i-cod-busca:
+                            WHEN 1 THEN DO:
+                                find next tb-pr-cc
+                                    where tb-pr-cc.cod-emitente =  emitente.cod-emitente
+                                    and   tb-pr-cc.cod-cond-pag =  rowObject.cod-cond-pag
+                                    and   tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                                    and   tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                                    AND   tb-pr-cc.cod-estabel  = ordem-compra.cod-estabel
+                                    AND   tb-pr-cc.mo-codigo    = iCodigoMoedaCotItem
+                                    and   tb-pr-cc.situacao     = 1 no-lock no-error.
+                            END.
+                            WHEN 2 THEN DO:
+                                find next tb-pr-cc
+                                    where tb-pr-cc.cod-emitente =  emitente.cod-emitente
+                                    and   tb-pr-cc.cod-cond-pag =  rowObject.cod-cond-pag
+                                    and   tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                                    and   tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                                    AND   tb-pr-cc.cod-estabel  = ""
+                                    AND   tb-pr-cc.mo-codigo    = iCodigoMoedaCotItem
+                                    and   tb-pr-cc.situacao     = 1 no-lock no-error.
+                            END.
+                            WHEN 3 THEN DO:
+                                find next tb-pr-cc
+                                    where tb-pr-cc.cod-emitente =  emitente.cod-emitente
+                                    and   tb-pr-cc.cod-cond-pag =  rowObject.cod-cond-pag
+                                    and   tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                                    and   tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                                    AND   tb-pr-cc.cod-estabel  = ordem-compra.cod-estabel
+                                    and   tb-pr-cc.situacao     = 1 no-lock no-error.
+                            END.
+                            WHEN 4 THEN DO:
+                                find next tb-pr-cc
+                                    where tb-pr-cc.cod-emitente =  emitente.cod-emitente
+                                    and   tb-pr-cc.cod-cond-pag =  rowObject.cod-cond-pag
+                                    and   tb-pr-cc.dt-inicio   <= rowObject.data-cotacao
+                                    and   tb-pr-cc.dt-termino  >= rowObject.data-cotacao
+                                    AND   tb-pr-cc.cod-estabel  = ""
+                                    and   tb-pr-cc.situacao     = 1 no-lock no-error.
+                            END.
+                         END CASE.
+                         
+                        if  not avail tb-pr-cc then
+                            leave.
+                    end.
+                end.    
+                assign rowObject.preco-fornec = if avail item-tab then item-tab.pr-Item
+                                                else 0
+                       rowObject.mo-codigo = if  avail tb-pr-cc then tb-pr-cc.mo-codigo
+                                              else 0. 
+            end.
+            if  avail item-tab and avail tb-pr-cc then 
+                assign rwTbPrCc  = if avail tb-pr-cc then rowid(tb-pr-cc) else ?
+                       rwTabItem = if avail item-tab then rowid(item-tab) else ?.
+
+            find b-cotacao-item where rowid(b-cotacao-item) = rbCotacaoItem no-lock no-error.
+            find item-tab       where rowid(item-tab)       = rwTabItem     no-lock no-error.
+            find tb-pr-cc       where rowid(tb-pr-cc)       = rwTbPrCc     no-lock no-error.
+            find ordem-compra   where rowid(ordem-compra)   = rOrdemCompra  no-lock no-error.
+            for first emitente fields(cod-emitente cod-transp cod-cond-pag 
+                                      nr-dias-taxa taxa-financ) where 
+                emitente.cod-emitente = piFornec        no-lock: end.
+
+            if  rowid(b-cot-item) <> ? and
+                avail b-cotacao-item then 
+                assign  rowObject.preco-fornec = b-cotacao-item.preco-fornec
+                        rowObject.mo-codigo    = b-cotacao-item.mo-codigo
+                        rowObject.valor-taxa   = b-cotacao-item.valor-taxa
+                        rowObject.nr-dias-taxa = b-cotacao-item.nr-dias-taxa
+                        rowObject.taxa-financ  = b-cotacao-item.taxa-financ.
+
+            if  rwTbPrCc <> ? then do :
+                assign rowObject.taxa-financ  = tb-pr-cc.taxa-financ.
+                if tb-pr-cc.taxa-financ then do:
+                    assign rowObject.valor-taxa   = tb-pr-cc.valor-taxa   
+                           rowObject.nr-dias-taxa = tb-pr-cc.nr-dias-taxa .
+                end.
+            end.
+            else do:
+                if  avail emitente then 
+                    if  (emitente.nr-dias-taxa = 0 or 
+                         emitente.nr-dias-taxa = ? )
+                    and (emitente.taxa-financ = 0  or
+                         emitente.taxa-financ = ? )
+                    then do: 
+                        if param-compra.utiliza-taxa then
+                           assign rowObject.valor-taxa   = param-compra.taxa-financ
+                                  rowObject.nr-dias-taxa = param-compra.nr-dias-taxa.
+                    end.
+                    else
+                        assign rowObject.valor-taxa   = emitente.taxa-financ
+                               rowObject.nr-dias-taxa = emitente.nr-dias-taxa.
+            end.
+
+            if rwTabItem <> ? then 
+               assign rowObject.aliquota-ipi = item-tab.aliquota-ipi
+                      rowObject.aliquota-icm = item-tab.aliquota-icm.
+
+            if rwTbPrCc <> ? then 
+               assign rowObject.codigo-ipi  = tb-pr-cc.codigo-ipi
+                      rowObject.frete       = tb-pr-cc.frete
+                      rowObject.valor-frete = tb-pr-cc.valor-frete.
+
+            if rbCotacaoItem = ? and rwTbPrCc = ? then do :
+               assign rowObject.aliquota-iss = param-compra.aliq-iss-pad
+                      rowObject.aliquota-icm = param-compra.aliq-icm-pad.
+
+               /* Retirado o comentario. FO 473.926 */
+               if available item then
+                  assign rowObject.aliquota-ipi = item.aliquota-ipi . 
+               if avail ordem-compra then
+                  assign rowObject.codigo-icm = ordem-compra.codigo-icm.
+               if available item and item.aliquota-ipi = 0 then do:
+                  for first classif-fisc fields(class-fiscal aliquota-ipi) where 
+                      classif-fisc.class-fiscal = item.class-fiscal no-lock: end.
+                  if avail classif-fisc then 
+                     assign rowObject.codigo-ipi    = yes
+                            rowObject.aliquota-ipi  = classif-fisc.aliquota-ipi.
+               end.
+            end.
+
+            if  rbCotacaoItem <> ? then 
+                assign  rowObject.perc-descto  = b-cotacao-item.perc-descto
+                        rowObject.valor-descto = b-cotacao-item.valor-descto.
+
+            if  rwTabItem <> ? then 
+                assign rowObject.perc-descto = item-tab.desco-quant.
+
+            if  rwTbPrCc <> ? then do:
+                if rowObject.perc-descto = 0 then
+                    assign rowObject.perc-descto  = tb-pr-cc.perc-descto 
+                           rowObject.cod-cond-pag = tb-pr-cc.cod-cond-pag.
+            end.
+            if  rbCotacaoItem <> ? and rwTbPrCc <> ? then do:
+                if avail ordem-compra then do:
+                    for first emitente fields(cod-emitente cod-cond-pag) where
+                         emitente.cod-emitente = ordem-compra.cod-emitente no-lock: end.
+                    if avail emitente then 
+                        assign rowObject.cod-cond-pag = emitente.cod-cond-pag.
+
+                    for first cont-emit fields(cod-emitente nome sequencia)
+                         where cont-emit.cod-emitente = emitente.cod-emitente
+                           and cont-emit.sequencia = 1 no-lock: end.
+                    if  avail cont-emit then
+                        assign rowObject.contato = cont-emit.nome.
+                end.
+            end.            
+        end. /* if avail emitente */
+    end. /* if avail item     */
+
+    if  param-compra.utiliza-icm = no then
+        assign rowObject.codigo-icm = 1
+               rowObject.aliquota-icm = param-compra.aliq-icm-pad.
+    if  param-compra.utiliza-iss = no then
+        assign rowObject.aliquota-iss = param-compra.aliq-iss-pad.               
+
+    if param-compra.utiliza-taxa = no then do:
+        assign rowObject.valor-taxa   = 0
+               rowObject.nr-dias-taxa = 0
+               rowObject.taxa-financ  = no.
+    end.    
+    
+
+/*    /* Integracao Modulo Importacao ********************************************************/
+ *     find first param-global no-lock no-error.
+ *     if param-global.modulo-07 then 
+ *        run pi-verifica-emitente in h_cc0303a-v05  
+ *             (input integer(i-cod-emitente})).            
+ *     end.
+ *     /***************************************************************************************/*/

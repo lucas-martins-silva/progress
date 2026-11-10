@@ -1,0 +1,479 @@
+PROCEDURE validateValores :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    DEFINE INPUT PARAMETER pType AS CHARACTER NO-UNDO.
+
+    def var de-vl-ipi-outras   like item-doc-est.ipi-outras[1]  no-undo.
+    def var de-calculado       as decimal                       no-undo.
+    def var de-informado       as decimal                       no-undo.
+    def var de-val-aux         as decimal                       no-undo.
+    def var de-var-min         as decimal                       no-undo.
+    def var i-round            as int                           no-undo.
+    def var de-preco-total     as decimal                       no-undo.
+    def var de-limite          as decimal                       no-undo.
+    def var de-percentual      as decimal                       no-undo.
+    def var de-var-max-perc    as decimal                       no-undo.
+    def var de-var-max-lim     as decimal                       no-undo.
+    def var de-var-max         as decimal                       no-undo.
+    def var de-vl-merc-liq-aux as decimal                       no-undo.
+    def var l-erro             as logical                       no-undo.
+    def var l-erro-co          as logical                       no-undo.
+    def var de-var-max-aux     as decimal                       no-undo.
+    def var de-vl-desc         as decimal                       no-undo.
+    def var de-tot-preco       LIKE rat-ordem.val-medicao       no-undo.
+    DEF VAR de-vl-liq-orig     AS DECIMAL                       NO-UNDO.
+    DEF VAR de-conv-med        LIKE rat-ordem.val-medicao       NO-UNDO.
+    DEF VAR i-dif-moeda        AS INTEGER                       NO-UNDO.
+    DEF VAR de-vl-merc-liq-rat AS DECIMAL                       NO-UNDO.
+    DEF VAR de-quant-rat       AS DECIMAL                       NO-UNDO.
+    DEF VAR lNaoValidaImpto    AS LOGICAL INIT NO               NO-UNDO.
+    
+    /*Importaá∆o*/
+    def var l-imp              as logical                       no-undo.    
+    
+    {cdp/cd4300.i3}
+    {rep/re1001a.i50}  /* variaveis e informacoes utilizadas pelo re1001a.i51 */    
+    
+    assign l-imp = no.
+
+    if param-global.modulo-07 and
+       emitente.pais <> estabelec.pais and
+       (emitente.natureza = 3 or emitente.natureza = 4) then do:
+       
+        assign l-imp = yes. 
+        {cdp/cd4300.i4   "yes" docum-est.char-1}
+        {rep/re1001a.i51 "yes"}
+    end.
+    
+    /*Nota Fiscal Simples Remessa*/       
+    if  l-imp /*modulo de importacao implantado*/ 
+    and docum-est.idi-nf-simples-remes = 1 then do: /*verifica se a nota Ç uma nota de simples remessa m∆e*/  
+        /*reposicionar a ordem de compra baseado no numero da ordem*/
+        if trim(substring(rowObject.char-2,940,1)) <> "S":U then /*n∆o gera primeira NF remessa com a nota m∆e*/
+           run findOrdemCompra(input RowObject.num-ord-import, 
+                               input ?).       
+        else 
+           run findOrdemCompra(input RowObject.numero-ordem, 
+                               input ?).       
+    end. 
+    
+    if  not available natur-oper 
+    or  ( (    natur-oper.tp-oper-terc <> 2 
+           and natur-oper.tp-oper-terc <> 4 
+           and natur-oper.tp-oper-terc <> 5) 
+         or    l-alter-itens) then do:
+
+        if  RowObject.preco-total[1] = 0 
+        and RowObject.quantidade <> 0 
+        and natur-oper.tipo-compra <> 7 
+        and natur-oper.tipo-compra <> 9 /*Nota Credito/Debito*/ then do:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-preco-total AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Preco_Total" *}
+            ASSIGN c-lbl-liter-preco-total = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-seq AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Seq" *}
+            ASSIGN c-lbl-liter-seq = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-item AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Item" *}
+            ASSIGN c-lbl-liter-item = TRIM(RETURN-VALUE).
+            {method/svc/errors/inserr.i
+                            &ErrorNumber="1491" /*Preco total deve ser diferente de zero*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR" 
+                            &ErrorParameters="c-lbl-liter-preco-total + '~~~~' + 
+                                              '. ' + c-lbl-liter-seq + ': ' + '~~~~' +
+                                              string(RowObject.sequencia) + '~~~~' +
+                                              c-lbl-liter-item + ': ' + '~~~~' + 
+                                              trim(RowObject.it-codigo) " }
+        end.
+
+        if  RowObject.qt-do-forn <> 0 then do:
+
+            assign de-val-aux = round(RowObject.preco-unit[1] *
+                                      RowObject.qt-do-forn, 2).
+            
+            /*** importaá∆o****/
+            if  l-imp and
+                c-embarque <> "" then
+                if avail docum-est and avail ordem-compra then
+                   run imp/im9047.p (input  c-embarque,
+                                     input  docum-est.cod-estabel,
+                                     input  docum-est.dt-emissao,
+                                     input  RowObject.qt-do-forn,
+                                     input  ordem-compra.pre-unit-for,
+                                     input  ordem-compra.mo-codigo,
+                                     input  ordem-compra.aliquota-ipi,
+                                     output de-val-aux).
+            
+            /****************************/
+
+            if  de-val-aux <> (RowObject.preco-total[1] - IF l-devolucao THEN RowObject.desconto[1] ELSE 0)
+            and param-re.preco-unit then do:
+
+                {method/svc/errors/inserr.i
+                            &ErrorNumber="18794" /*Preco total n o confere com calculado.*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="WARNING" }
+
+            end.
+
+            if  avail natur-oper 
+            and natur-oper.imp-nota 
+            and param-re.tipo-arredonda <> 0 then do:
+
+                assign i-round  = if  param-re.tipo-arredonda = 1 /* Duas Casas */
+                                  then 2
+                                  else 5.
+
+                assign RowObject.preco-unit[1] = round(RowObject.preco-unit[1], i-round).                
+
+                assign de-preco-total = RowObject.preco-unit[1]
+                                      * (  RowObject.qt-do-forn
+                                         + int( RowObject.qt-do-forn = 0 )).
+
+                /*** importaá∆o****/
+                if  l-imp and
+                    c-embarque <> "" then
+                    if avail docum-est and avail ordem-compra then
+                       run imp/im9047.p (input  c-embarque,
+                                         input  docum-est.cod-estabel,
+                                         input  docum-est.dt-emissao,
+                                         input  RowObject.qt-do-forn,
+                                         input  ordem-compra.pre-unit-for,
+                                         input  ordem-compra.mo-codigo,
+                                         input  ordem-compra.aliquota-ipi,
+                                         output de-preco-total).
+                                       
+     
+                if  de-preco-total <> RowObject.preco-total[1] then do:
+                    {method/svc/errors/inserr.i
+                                &ErrorNumber="26928" /*Preco total diferente do Unitario X Quantidade.*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="WARNING" }
+                end.
+            end.
+        end.
+    end.
+
+    ASSIGN de-vl-merc-liq-aux = RowObject.preco-total[1] - RowObject.desconto[1].
+
+    IF  pType = "Update":U
+    AND CAN-FIND(FIRST rat-ordem OF RowObject
+                 WHERE rat-ordem.val-medicao > 0) THEN DO:  /* Contrato - Medicao */
+
+        FOR EACH rat-ordem FIELDS(nro-docto serie-docto nat-operacao cod-emitente sequencia val-medicao nr-contrato)
+              OF RowObject NO-LOCK,
+           FIRST contrato-for FIELDS(mo-codigo) 
+              OF rat-ordem NO-LOCK:
+            ASSIGN de-tot-preco = de-tot-preco + rat-ordem.val-medicao
+                   i-dif-moeda  = IF contrato-for.mo-codigo = 0 THEN 0 ELSE 1.
+        END.
+
+        IF  de-tot-preco <> 0                                                        
+        AND (de-tot-preco <> de-vl-merc-liq-aux                AND
+            (de-tot-preco  - de-vl-merc-liq-aux > i-dif-moeda  OR    /* Assume diferenáas de atÇ 1 real para moeda diferente de Real */
+             de-tot-preco  - de-vl-merc-liq-aux < (i-dif-moeda * -1))) THEN DO:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="31474"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"}
+        END.
+    END.
+
+    FOR FIRST rat-ordem FIELDS(numero-ordem) OF RowObject NO-LOCK:
+        RUN findOrdemCompra(INPUT rat-ordem.numero-ordem,
+                            INPUT ?).
+    END.
+    
+    ASSIGN i-numero-ordem = IF AVAIL rat-ordem THEN rat-ordem.numero-ordem ELSE RowObject.numero-ordem.
+
+    /* CONTRATO */
+    IF  param-global.modulo-cn
+    AND i-numero-ordem <> 0 THEN
+        RUN cnp/cn9174.p(INPUT i-numero-ordem,
+                         INPUT 1,
+                         INPUT RowObject.int-1,
+                         INPUT de-vl-merc-liq-aux,
+                         INPUT docum-est.dt-emissao,
+                         OUTPUT de-var-max-aux,
+                         OUTPUT l-erro-co,
+                         OUTPUT l-contrato,
+                         OUTPUT i-total,
+                         INPUT-OUTPUT TABLE tt-erro).
+
+    IF  pType = "Create":U
+    AND l-contrato
+    AND NOT RowObject.log-1 THEN DO:
+        RUN cnp/cn9174.p(INPUT i-numero-ordem,
+                         INPUT 3,
+                         INPUT RowObject.int-1,
+                         INPUT de-vl-merc-liq-aux,
+                         INPUT docum-est.dt-emissao,
+                         OUTPUT de-var-max-aux,
+                         OUTPUT l-erro-co,
+                         OUTPUT l-contrato,
+                         OUTPUT i-total,
+                         INPUT-OUTPUT TABLE tt-erro).
+        IF l-erro-co THEN
+            FOR EACH tt-erro:
+                RUN _insertErrorManual IN THIS-PROCEDURE(INPUT tt-erro.cd-erro,
+                                                         INPUT "EMS":U,
+                                                         INPUT "Error":U,
+                                                         INPUT tt-erro.mensagem,
+                                                         INPUT tt-erro.mensagem,
+                                                         INPUT "":U).
+            END.
+    END.
+
+    /****** Variaá∆o de Valor ******/
+    IF  AVAIL item 
+    AND i-numero-ordem <> 0
+    AND AVAIL ordem-compra
+    AND NOT l-contrato
+    AND NOT (pType = "Create":U AND RowObject.log-1) THEN DO:
+
+        /** Para documentos vinculados a ordem de compra, a quantidade do emitente precisa ser 
+            informada para que a parcela seja encerrada **/
+        if  not can-find(first funcao
+                         where funcao.cd-funcao = "spp-valQtde":U
+                         and   funcao.ativo)    
+        and RowObject.qt-do-forn = 0 then 
+            {method/svc/errors/inserr.i
+                                &ErrorNumber=33476
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"}
+                                
+        run calculatePriceOrdemCompra ( input ?,
+                                        output de-vl-merc-liq ).
+                                        
+        /* Considerar todas as ordens do rateio */
+        IF RowObject.log-1 THEN DO:        
+
+            ASSIGN de-vl-merc-liq-rat = 0
+                   de-quant-rat       = 0.
+                   
+            FOR EACH rat-ordem FIELDS(numero-ordem qtidade-forn) OF RowObject NO-LOCK:
+                
+                RUN findOrdemCompra(INPUT rat-ordem.numero-ordem,
+                                    INPUT ?).
+                                        
+                RUN calculatePriceOrdemCompra (INPUT ?,
+                                               OUTPUT de-vl-merc-liq ).
+                                                    
+                ASSIGN de-vl-merc-liq-rat = de-vl-merc-liq-rat + (de-vl-merc-liq * rat-ordem.qtidade-forn)
+                       de-quant-rat       = de-quant-rat + rat-ordem.qtidade-forn.
+            END.
+                
+            ASSIGN de-vl-merc-liq = de-vl-merc-liq-rat / de-quant-rat.
+        END.
+                                        
+        /* Valor digitado no Item */
+        assign de-vl-merc-liq     = round(de-vl-merc-liq, 5)
+               /* PreØo Total de Acordo com a Ordem de Compra */ 
+               de-vl-aux = round(de-vl-merc-liq * ( RowObject.qt-do-forn
+                           + int( RowObject.qt-do-forn = 0 )),2 ).
+               
+        /*** importaá∆o****/
+        if  l-imp and
+            c-embarque <> "" then
+            if avail docum-est and avail ordem-compra then
+               run imp/im9047.p (input  c-embarque,
+                                 input  docum-est.cod-estabel,
+                                 input  docum-est.dt-emissao,
+                                 input  RowObject.qt-do-forn,
+                                 input  ordem-compra.pre-unit-for,
+                                 input  ordem-compra.mo-codigo,
+                                 input  ordem-compra.aliquota-ipi,
+                                 output de-vl-aux).
+
+        /**********************VARIA∞ÄO DE VALOR************************************ 
+        * de-vl-aux          -> preáo de acordo com a ordem de compra
+        * de-vl-merc-liq-aux -> preáo informado pelo usuˇrio (Preáo Total - Desconto)
+        * de-var-max-perc    -> preáo mˇximo permitido conforme percentual
+        * de-var-max-lim     -> preáo mˇximo permitido conforme limite
+        * de-percentual      -> percentual de variaá∆o
+        * de-limite          -> limite de variaá∆o           
+        ****************************************************************************/
+        
+        run calculateVariationValue ( input  de-vl-aux,
+                                      output de-var-max-perc,
+                                      output de-var-max-lim,
+                                      output de-percentual, 
+                                      output de-limite ).
+        
+        assign l-erro = no.          
+        if  de-percentual = 0
+        and de-limite = 0 then do:
+            if  de-vl-merc-liq-aux > de-var-max-perc
+            or  de-vl-merc-liq-aux > de-var-max-lim then
+                assign l-erro = yes.    
+        end.        
+        else 
+            if  de-vl-merc-liq-aux <=  de-var-max-perc 
+            or  de-percentual = 0 then 
+                if  de-vl-merc-liq-aux > de-var-max-lim  
+                and de-limite <> 0 then  
+                    assign l-erro = yes. 
+                else  
+                    assign l-erro = no. 
+            else 
+                assign l-erro = yes. 
+
+        /* inicio ponto upc */
+        IF  c-nom-prog-upc-mg97 <> "" THEN DO:  /* Se existe UPC cadastrada */
+            FOR EACH tt-epc WHERE tt-epc.cod-event = "before-message-value-dif":U :
+                DELETE tt-epc.
+            END.
+            CREATE tt-epc.
+            ASSIGN tt-epc.cod-event     = "before-message-value-dif":U
+                   tt-epc.cod-parameter = "HANDLE item-doc-est":U
+                   tt-epc.val-parameter = STRING(TEMP-TABLE rowObject:HANDLE).
+                
+            {include/i-epc201.i  "before-message-value-dif" }
+                
+            if return-value = "OK":U then l-erro = no.
+            else if return-value = "NOK":U then l-erro = yes.
+        END.
+        /* fim ponto upc */
+                        
+        if  l-erro then do:       
+            if  param-re.aceita-var = no then do:              
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-valor AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "valor" *}
+                ASSIGN c-lbl-liter-valor = TRIM(RETURN-VALUE).
+ 
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="28643" /*mensagem: Variacao de valor nao permitida.*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="c-lbl-liter-valor"}
+            end.
+            else do:
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="18796"  /*Valor liquido fora da variacao permitida.*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="WARNING"}
+            end.
+        end.       
+        
+        run beforeValidateBoin060 (input 1). /* Instancia */
+
+        run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                             RowObject.serie-docto,
+                                             RowObject.nro-docto,
+                                             RowObject.nat-operacao,
+                                             RowObject.sequencia,
+                                             (not (l-erro)),
+                                             ( if de-var-max-perc < de-var-max-lim  
+                                               then de-var-max-perc 
+                                               else de-var-max-lim),
+                                             de-vl-merc-liq-aux,
+                                             18796,
+                                             1).
+                                             
+        run beforeValidateBoin060 (input 2). /* Elimina */                                             
+    end.
+
+    /* Passa a calcular a variaá∆o somente quando for menor que 999 por problemas na Grendene */
+    if  (l-retorno or l-ret-fat)
+    and available natur-oper
+    AND natur-oper.dec-1 < 999 then do:
+
+        if  not valid-handle(h-boin404re) then 
+            run inbo/boin404re.p persistent set h-boin404re.
+
+        run findNaturOper in h-boin404re ( RowObject.nat-operacao ).
+
+        run findSaldoTerc in h-boin404re ( RowObject.cod-emitente,
+                                           RowObject.serie-comp,
+                                           RowObject.nro-comp,
+                                           RowObject.nat-comp,
+                                           RowObject.seq-comp,
+                                           RowObject.it-codigo,
+                                           RowObject.cod-refer ).
+        if  return-value <> "OK":U then DO:
+            if valid-handle(h-boin404re) then do:
+               run destroy in h-boin404re.
+               assign h-boin404re = ?.                
+            end.
+            return "NOK":U.
+        END.
+        
+        run getValuesTerceiros in h-boin404re ( input docum-est.dt-trans,
+                                                input 0,
+                                                input RowObject.quantidade,
+                                                output de-vl-merc-liq,
+                                                output de-vl-desc ).
+
+        assign de-vl-merc-liq = de-vl-merc-liq 
+                                - de-vl-desc.
+
+        ASSIGN de-vl-liq-orig = de-vl-merc-liq.
+
+        if  l-alter-itens then
+            assign de-var-max = de-vl-merc-liq 
+                              + (de-vl-merc-liq * natur-oper.dec-1 / 100)
+                   de-var-min = de-vl-merc-liq 
+                              - (de-vl-merc-liq * natur-oper.dec-1 / 100).
+        else
+            assign de-var-max = de-vl-merc-liq 
+                   de-var-min = de-vl-merc-liq.
+
+        assign de-vl-merc-liq = RowObject.preco-total[1] 
+                              - RowObject.desconto[1].
+        
+        IF  (de-vl-merc-liq > de-var-max OR de-vl-merc-liq < de-var-min)
+            OR (natur-oper.var-val-it-terc > 0 AND (de-vl-merc-liq > (de-vl-liq-orig + natur-oper.var-val-it-terc) OR
+                                                   de-vl-merc-liq < (de-vl-liq-orig - natur-oper.var-val-it-terc))) THEN DO:
+            /* MENSAGEM: 15197 - Valor l°quido nota terceiros fora da variaá∆o permitida */
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-sequencia AS CHARACTER NO-UNDO.
+                DEFINE VARIABLE c-lbl-liter-seq-erro AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Sequància" *}
+                ASSIGN c-lbl-liter-sequencia = TRIM(RETURN-VALUE) + " ".
+
+                IF int(SUBSTRING(RowObject.char-2,832,5)) <= 0 THEN
+                    ASSIGN c-lbl-liter-seq-erro = string(rowobject.sequencia).
+                ELSE
+                    ASSIGN c-lbl-liter-seq-erro = SUBSTRING(rowobject.char-2,832,5).
+
+                {method/svc/errors/inserr.i &ErrorNumber = "15197"
+                                            &ErrorType = "EMS"
+                                            &ErrorSubType = "WARNING"
+                                            &ErrorParameters = "c-lbl-liter-sequencia + c-lbl-liter-seq-erro"}    
+        end.
+        
+        if valid-handle(h-boin404re) then do:
+            run destroy in h-boin404re.
+            assign h-boin404re = ?.                
+        end.
+        
+
+    end.
+    if  param-re.pd-despesas 
+    and RowObject.despesas[1] < RowObject.pr-total-cmi then do:
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="1598"  /*Total despesas nao pode ser inferior ao frete*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR"}
+    end.            
+    
+    RUN utilizaImpostosMonitorRecFiscal (INPUT RowObject.serie-docto,
+                                         INPUT RowObject.nro-docto,
+                                         INPUT RowObject.cod-emitente,
+                                         INPUT RowObject.nat-operacao,
+                                         INPUT INT(SUBSTRING(RowObject.char-2,832,5)),
+                                         OUTPUT lNaoValidaImpto).    
+
+    IF NOT lNaoValidaImpto THEN                                 
+        RUN validateValoresIpiPisCofins.
+    
+    RETURN "OK":U.
+    
+END PROCEDURE.

@@ -1,0 +1,498 @@
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createItemOfMultaJuros DBOProgram
+PROCEDURE createItemOfMultaJuros:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Cria os itens da nota de multa e juros com base na nota relacionada
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER piHboin090       AS HANDLE                NO-UNDO.
+    DEFINE INPUT PARAMETER pValorMultaJuros LIKE docum-est.tot-valor NO-UNDO.
+    DEFINE INPUT PARAMETER TABLE FOR tt-docum-est.
+    
+    DEFINE VARIABLE h-acomp     AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE h-reapi434  AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE i-seq-aux   LIKE item-doc-est.sequencia NO-UNDO.
+    DEFINE VARIABLE c-nat-of    LIKE item-doc-est.nat-of    NO-UNDO.
+    DEFINE VARIABLE c-msg-liter AS CHARACTER                NO-UNDO.
+    
+    ASSIGN h-boin090 = piHboin090.
+           
+    RUN getKey in h-boin090  ( OUTPUT i-cod-emitente,
+                               OUTPUT c-serie-docto,
+                               OUTPUT c-nro-docto,
+                               OUTPUT c-nat-operacao ).
+                               
+    RUN findDocumento ( i-cod-emitente,
+                        c-serie-docto,
+                        c-nro-docto,
+                        c-nat-operacao ).
+    if  not avail docum-est then 
+        RETURN "NOK":U.
+        
+    RUN findNaturOper ( docum-est.nat-operacao ).
+    
+
+    RUN findUsuario ( c-seg-usuario).
+    
+    IF NOT AVAIL param-re THEN
+        RETURN "NOK":U.
+        
+    RUN openQueryStatic ( "Main" ).
+    
+    RUN utp/ut-acomp.p persistent set h-acomp.
+    
+    {utp/ut-liter.i "Gerando_Itens" *}
+    RUN pi-inicializar in h-acomp ("Gerando Itens").
+    RUN pi-desabilita-cancela in h-acomp.
+    
+    {utp/ut-liter.i "Gerando_Itens_da_Nota" *}
+    RUN pi-acompanhar in h-acomp (RETURN-VALUE).
+    
+    /*tt-docum-est contem as informaá‰es da nota de crÇdtio/dÇbito*/
+    FOR FIRST tt-docum-est:
+        RUN setHandleDocumEst (INPUT h-boin090 ). 
+        RUN openQueryStatic  IN h-boin090 (INPUT "Main":U).
+        RUN repositionRecord IN  h-boin090 (INPUT tt-docum-est.r-rowid).
+        RUN isMultaJuros in h-boin090 (INPUT  tt-docum-est.nat-operacao, OUTPUT l-multa-juros).
+    END.
+    
+    IF  AVAIL tt-docum-est
+    AND tt-docum-est.cod-finalidade = '6'           /*6 = NF d≤bito */
+    AND tt-docum-est.cod-tipo-nf-cred-deb    = '4' THEN DO:  /*4 = Multa e juros*/  
+        IF NOT VALID-HANDLE(h-reapi434) THEN
+           RUN rep/reapi434.p PERSISTENT SET h-reapi434. 
+    END.   
+    
+    bloco:
+    DO TRANS ON ERROR UNDO, LEAVE:
+        EMPTY TEMP-TABLE tt-rateio-multa-juros.
+       
+        IF pValorMultaJuros <= 0 THEN DO:
+            {utp/ut-liter.i Valor_multa/juros_sem_CBS/IBS *}
+            {method/svc/errors/inserr.i &ErrorNumber="4700"         
+                                        &ErrorType="EMS":U          
+                                        &ErrorSubType="ERROR":U 
+                                        &ErrorParameters="RETURN-VALUE"}
+            RETURN "NOK":U.
+        END.
+        
+        FOR FIRST b-docum-est NO-LOCK 
+               WHERE b-docum-est.serie-docto  = c-serie-docto 
+                 AND b-docum-est.nro-docto    = c-nro-docto  
+                 AND b-docum-est.cod-emitente = i-cod-emitente
+                 AND b-docum-est.nat-operacao = c-nat-operacao: END.
+
+        IF NOT AVAIL b-docum-est THEN DO:
+            {utp/ut-liter.i Documento *}
+            {method/svc/errors/inserr.i &ErrorNumber="58205"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U
+                                        &ErrorParameters="RETURN-VALUE"}
+            RETURN "NOK":U.
+        END.
+        ELSE DO:
+            IF  b-docum-est.ce-atual = NO THEN DO:
+               {method/svc/errors/inserr.i
+                                   &ErrorNumber="58205"
+                                   &ErrorType="EMS":U
+                                   &ErrorSubType="ERROR":U }
+               RETURN "NOK":U.                                
+            END.
+
+            IF  b-docum-est.dt-emissao >  tt-docum-est.dt-emissao THEN DO:
+               {utp/ut-liter.i "Data_de_emiss∆o_do_documento_relacionado" * R}
+               assign c-msg-liter = return-value.
+               {utp/ut-liter.i "_a_data_de_emiss∆o_do_documento_de_multa/juros" * R}
+                {method/svc/errors/inserr.i
+                                &ErrorNumber="17085"
+                                &ErrorType="EMS":U
+                                &ErrorSubType="ERROR":U 
+                                &ErrorParameters="c-msg-liter + '~~~~' + return-value"}
+                RETURN "NOK":U.
+            END.
+        END.
+
+        /*soma valor de todos os itens*/
+        FOR EACH bfitem-doc-est  NO-LOCK
+            WHERE bfitem-doc-est.serie-docto  = c-serie-docto
+              AND bfitem-doc-est.nro-docto    = c-nro-docto 
+              AND bfitem-doc-est.cod-emitente = i-cod-emitente 
+              AND bfitem-doc-est.nat-operacao = c-nat-operacao:
+            CREATE tt-rateio-multa-juros.
+            ASSIGN tt-rateio-multa-juros.id            = bfitem-doc-est.sequencia
+                   tt-rateio-multa-juros.tot-val-itens = (bfitem-doc-est.preco-total[1]
+                                                       +  bfitem-doc-est.despesas[1]
+                                                       -  bfitem-doc-est.desconto[1]).
+                                  
+        END.
+        
+        RUN rateioProporcional (INPUT pValorMultaJuros,
+                                INPUT-OUTPUT TABLE tt-rateio-multa-juros).   
+            
+        ASSIGN  i-seq-aux = 0.
+         
+        FOR EACH  bfitem-doc-est NO-LOCK
+            WHERE bfitem-doc-est.serie-docto  = c-serie-docto
+              AND bfitem-doc-est.nro-docto    = c-nro-docto 
+              AND bfitem-doc-est.cod-emitente = i-cod-emitente 
+              AND bfitem-doc-est.nat-operacao = c-nat-operacao:
+              
+            RUN emptyRowObject.        
+            FIND FIRST tt-rateio-multa-juros NO-LOCK 
+                 WHERE tt-rateio-multa-juros.id  = bfitem-doc-est.sequencia NO-ERROR.
+                 
+            FOR FIRST b-docum-est NO-LOCK 
+                WHERE b-docum-est.serie-docto  = bfitem-doc-est.serie-docto 
+                  AND b-docum-est.nro-docto    = bfitem-doc-est.nro-docto  
+                  AND b-docum-est.cod-emitente = bfitem-doc-est.cod-emitente
+                  AND b-docum-est.nat-operacao = bfitem-doc-est.nat-operacao: END.
+                  
+            ASSIGN  i-seq-aux                       = i-seq-aux + param-re.inc-seq.
+            CREATE RowObject.
+            ASSIGN RowObject.cod-emitente           = tt-docum-est.cod-emitente 
+                   RowObject.serie-docto            = tt-docum-est.serie-docto
+                   RowObject.nro-docto              = tt-docum-est.nro-docto
+                   RowObject.nat-operacao           = tt-docum-est.nat-operacao
+                   RowObject.nat-of                 = tt-docum-est.nat-operacao
+                   RowObject.sequencia              = i-seq-aux
+                   RowObject.it-codigo              = bfitem-doc-est.it-codigo
+                   RowObject.cod-refer              = bfitem-doc-est.cod-refer
+                   RowObject.emite-comp             = bfitem-doc-est.cod-emitente
+                   RowObject.serie-comp             = bfitem-doc-est.serie-docto
+                   RowObject.nro-comp               = bfitem-doc-est.nro-docto
+                   RowObject.nat-comp               = bfitem-doc-est.nat-operacao
+                   RowObject.nat-of-comp            = IF bfitem-doc-est.nat-of <> ? THEN  bfitem-doc-est.nat-of ELSE ""
+                   RowObject.seq-comp               = bfitem-doc-est.sequencia
+                   RowObject.data-comp              = if avail b-docum-est then b-docum-est.dt-emissao else ?
+                   RowObject.baixa-ce               = NO
+                   RowObject.class-fiscal           = bfitem-doc-est.class-fiscal
+                   RowObject.un                     = bfitem-doc-est.un
+                   RowObject.quantidade             = 0
+                   RowObject.qt-do-forn             = 0 
+                   RowObject.aliquota-ipi           = 0
+                   RowObject.aliquota-icm           = 0
+                   RowObject.preco-total[1]         = tt-rateio-multa-juros.valor-rateado  
+                   RowObject.preco-unit[1]          = tt-rateio-multa-juros.valor-rateado 
+                   RowObject.peso-liquido           = 0.
+                                                      
+            ASSIGN OVERLAY(rowObject.char-2,956,20) = SUBSTRING(bfitem-doc-est.char-2,956,20). /*NBS*/
+             
+            IF l-mult-natur-receb THEN DO:
+                RUN piEngineMultaJurosNatOf (OUTPUT c-nat-of).
+             
+                IF c-nat-of <> "" AND c-nat-of <> ? THEN 
+                 ASSIGN RowObject.nat-of =   c-nat-of.
+            END.
+            IF l-NT2024002 THEN DO:
+            
+                RUN copiarInfCBSIBSNFOrig(INPUT piHboin090).
+            END.                   
+
+            RUN emptyRowErrors.
+            RUN createRecord.  /* Cria tabela item-doc-est */
+            
+            if  return-value = "NOK":U then do:
+                
+                {utp/ut-liter.i "A_sequància" *}
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="6470" /* &1 esta com problemas. */
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="TRIM(RETURN-VALUE) + ' ' + string(RowObject.seq-comp)"}
+
+                undo bloco, return "NOK":U. /* Desfaz o bloco e retorna com erro */
+            end.
+            
+            IF AVAIL tt-docum-est AND tt-docum-est.cod-finalidade = '6' AND tt-docum-est.cod-tipo-nf-cred-deb  = '4' THEN DO: /*6 = NF d≤bito e 4 = Multa e juros*/
+                
+               IF NOT AVAIL b-docum-est THEN 
+                   FOR FIRST b-docum-est NO-LOCK 
+                       WHERE b-docum-est.serie-docto  = RowObject.serie-comp
+                         AND b-docum-est.nro-docto    = RowObject.nro-comp
+                         AND b-docum-est.cod-emitente = RowObject.emite-comp
+                         AND b-docum-est.nat-operacao = RowObject.nat-comp:  END.     
+               
+               IF VALID-HANDLE(h-reapi434) AND AVAIL b-docum-est THEN DO:
+                    
+                  RUN setChaveRefer   in h-reapi434  (input b-docum-est.cod-chave-aces-nf-eletro).
+                  RUN cria-referencia-por-item   IN h-reapi434 (INPUT  b-docum-est.cod-estabel,
+                                                                INPUT  RowObject.serie-docto,
+                                                                INPUT  RowObject.nro-docto,
+                                                                INPUT  RowObject.cod-emitente,
+                                                                INPUT  RowObject.nat-operacao,
+                                                                INPUT  RowObject.it-codigo,
+                                                                INPUT  RowObject.sequencia,
+                                                                INPUT  RowObject.serie-comp,      
+                                                                INPUT  RowObject.nro-comp,
+                                                                INPUT  RowObject.nat-comp,
+                                                                INPUT  RowObject.seq-comp,
+                                                                INPUT  SUBSTRING(rowObject.char-2,832,5),
+                                                                INPUT  6, /*Nota cr≤dito/d≤bito*/
+                                                                OUTPUT TABLE rowErrors). 
+               END.
+            END.
+            ELSE DO:
+             
+                IF  AVAIL tt-docum-est AND tt-docum-est.cod-finalidade = '5' AND tt-docum-est.cod-tipo-nf-cred-deb    = '1' THEN DO: /*5 = NF cr≤dito e 1 = Multa e juros*/
+               
+                    RUN rep/re1910.p (INPUT  tt-docum-est.cod-estabel,
+                                      INPUT  tt-docum-est.serie-docto,
+                                      INPUT  tt-docum-est.nro-docto,
+                                      INPUT  tt-docum-est.cod-emitente,
+                                      INPUT  tt-docum-est.nat-operacao,
+                                      INPUT  RowObject.it-codigo,
+                                      INPUT  RowObject.serie-comp,      
+                                      INPUT  RowObject.nro-comp,
+                                      INPUT  RowObject.nat-comp,
+                                      INPUT  8, /*multa Juros*/
+                                      OUTPUT TABLE rowErrors).
+                    
+                END.
+            END.
+        END.
+    END. /* do trans */
+    
+    
+    {utp/ut-liter.i "Totalizando_Itens_Documento" *}
+    RUN pi-acompanhar in h-acomp (RETURN-VALUE).
+    
+    
+    RUN getTotalizaNota ( 0 ).
+    
+    RUN copiaEnteOperGovNForig IN piHboin090 (INPUT tt-docum-est.cod-emitente,
+                                              INPUT tt-docum-est.serie-docto,
+                                              INPUT tt-docum-est.nro-docto,
+                                              INPUT tt-docum-est.nat-operacao).
+    
+    RUN TransferTotalItensNota ( tt-docum-est.cod-emitente,
+                                 tt-docum-est.serie-docto,
+                                 tt-docum-est.nro-docto,
+                                 tt-docum-est.nat-operacao ). 
+                                 
+    return "OK":U.
+    
+    FINALLY:
+        delete procedure h-acomp no-error.
+        ASSIGN h-acomp = ?.
+        
+        IF VALID-HANDLE(h-reapi434) THEN DO:
+            DELETE PROCEDURE h-reapi434.
+            ASSIGN h-reapi434 = ?.
+        END.
+        
+        
+    END FINALLY.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rateioProporcional DBOProgram
+PROCEDURE rateioProporcional:
+/*------------------------------------------------------------------------------
+  Finalidade : Ratear valor proporcionalmente entre registros
+  Parametros : INPUT  pValorMulta  -> valor a ser rateado
+               INPUT-OUTPUT TABLE  -> tt-rateio-multa-juros
+  Observaá∆o : 
+------------------------------------------------------------------------------*/
+
+    DEFINE INPUT        PARAMETER pValorMulta AS DECIMAL NO-UNDO.
+    DEFINE INPUT-OUTPUT PARAMETER TABLE FOR tt-rateio-multa-juros.
+
+    DEFINE VARIABLE deValorTotalItens AS DECIMAL NO-UNDO.
+    DEFINE VARIABLE deRateado         AS DECIMAL NO-UNDO.
+    DEFINE VARIABLE deCalculado       AS DECIMAL NO-UNDO.
+    DEFINE VARIABLE iTotalNItens      AS INTEGER NO-UNDO.
+    DEFINE VARIABLE iContItens        AS INTEGER NO-UNDO.
+      
+    FOR EACH tt-rateio-multa-juros:
+        ASSIGN deValorTotalItens = deValorTotalItens + tt-rateio-multa-juros.tot-val-itens.
+               iTotalNItens  = iTotalNItens + 1.
+    END.      
+    
+    /* Evita divis∆o por zero */
+    IF deValorTotalItens = 0 OR iTotalNItens = 0 THEN
+        RETURN "NOK":U.
+
+    /* Rateio */
+    FOR EACH tt-rateio-multa-juros:
+
+        ASSIGN iContItens = iContItens + 1.
+
+        IF iContItens < iTotalNItens THEN DO:
+
+            ASSIGN deCalculado = ROUND((tt-rateio-multa-juros.tot-val-itens / deValorTotalItens) * pValorMulta, 2)
+                   deRateado = deRateado + deCalculado.
+        END.
+        ELSE DO:
+            /* Èltimo registro recebe ajuste */
+            ASSIGN deCalculado = pValorMulta - deRateado.
+        END.
+
+        IF deCalculado < 0 THEN
+            ASSIGN deCalculado = 0.
+
+        ASSIGN tt-rateio-multa-juros.valor-rateado = deCalculado.
+    END.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piEngineMultaJurosNatOf DBOProgram
+PROCEDURE piEngineMultaJurosNatOf:
+
+    DEFINE OUTPUT PARAMETER pNatOf AS CHARACTER FORMAT "x(5)" NO-UNDO.
+    
+    DEFINE VARIABLE c-empresa     AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE c-chave-docto AS CHARACTER NO-UNDO.
+    
+    
+    IF NOT AVAILABLE docum-est THEN DO:
+        /***** Leitura Docum-est *****/
+        RUN findDocumento (INPUT RowObject.cod-emitente,
+                           INPUT RowObject.serie-docto,
+                           INPUT RowObject.nro-docto,
+                           INPUT RowObject.nat-operacao).
+            
+        IF  RETURN-VALUE <> "OK":U THEN
+            RETURN "NOK":U.
+    END.
+   
+   ASSIGN pNatOf =  RowObject.nat-of.
+   
+    FOR FIRST estabelec NO-LOCK
+        WHERE estabelec.cod-estabel = docum-est.cod-estabel:
+        ASSIGN c-empresa = estabelec.ep-codigo.
+    END.
+         
+    RUN piVarEngineMultaJurosNatOf (OUTPUT TABLE tt-variavel).
+   
+    IF NOT VALID-HANDLE(h-cdapi034) THEN
+        RUN cdp/cdapi034.p PERSISTENT SET h-cdapi034 (INPUT c-empresa,
+                                                      INPUT docum-est.cod-estabel,
+                                                      INPUT "NFMultaJuros-itemNatOf":U,
+                                                      INPUT TABLE tt-variavel,
+                                                      OUTPUT i-cod-regra-utilizada,
+                                                      OUTPUT TABLE tt-retorno,
+                                                      OUTPUT TABLE RowErrors APPEND).
+
+    ASSIGN c-chave-docto = STRING(RowObject.cod-emitente) + "|" + RowObject.serie-docto + "|" + RowObject.nro-docto + "|" + RowObject.nat-of.
+
+    RUN set-constraint-log-execucao IN h-cdapi034(INPUT c-chave-docto,
+                                                  INPUT RowObject.sequencia, /*seq item*/
+                                                  INPUT "":U,                /*conteudo original*/
+                                                  INPUT 0).                  /*tipo documento (NFe)*/
+
+    RUN pi-inicializa IN h-cdapi034 (INPUT c-empresa,
+                                     INPUT docum-est.cod-estabel,
+                                     INPUT "NFMultaJuros-itemNatOf":U,
+                                     INPUT TABLE tt-variavel,
+                                     OUTPUT i-cod-regra-utilizada,
+                                     OUTPUT TABLE tt-retorno,
+                                     OUTPUT TABLE RowErrors APPEND).
+                                     
+    if  valid-handle (h-cdapi034) then do:
+        delete procedure h-cdapi034.
+        assign h-cdapi034 = ?.
+    end.
+                                     
+    FOR EACH RowErrors:
+        /*desconsidera erro de regra nCo encontrada*/
+        IF RowErrors.ErrorNumber = 25997 THEN DO:
+            DELETE RowErrors.
+            NEXT.
+        END.
+        
+        IF RowErrors.ErrorSubType = "ERROR" THEN
+           RETURN "NOK":U.
+    END.
+    
+    
+    /*passa os retornos do engine para as variaveis apropriadas*/
+    FOR EACH tt-retorno:
+          
+        IF tt-retorno.campo-retorno = "nat-of":U THEN
+            ASSIGN pNatOf = tt-retorno.valor-retorno.
+    
+    END.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piVarEngineMultaJurosNatOf DBOProgram
+PROCEDURE piVarEngineMultaJurosNatOf:
+
+    DEFINE OUTPUT PARAMETER TABLE FOR tt-variavel.
+
+    DEFINE BUFFER bf-natur-oper FOR natur-oper.
+    
+    EMPTY TEMP-TABLE tt-variavel.
+
+    IF NOT AVAIL RowObject THEN RETURN "NOK".
+
+    
+    /*Carrega variaveis para o engine de regras*/
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "cod-emitente":U
+           tt-variavel.valor-variavel    = STRING(RowObject.cod-emitente).
+           
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "cod-estabel":U
+           tt-variavel.valor-variavel    = STRING(docum-est.cod-estabel).       
+    
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "it-codigo":U
+           tt-variavel.valor-variavel    = STRING(RowObject.it-codigo).       
+    
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "nat-operacao":U
+           tt-variavel.valor-variavel    = RowObject.nat-operacao.
+
+
+    FIND FIRST bf-natur-oper NO-LOCK WHERE bf-natur-oper.nat-operacao =  RowObject.nat-operacao NO-ERROR.
+    IF AVAIL bf-natur-oper THEN DO:
+        CREATE tt-variavel.
+        ASSIGN tt-variavel.cod-var-oper      = "cod-cfop":U
+               tt-variavel.valor-variavel    = bf-natur-oper.cod-cfop.
+
+        CREATE tt-variavel.
+        ASSIGN tt-variavel.cod-var-oper      = "tipo-compra":U
+               tt-variavel.valor-variavel    = STRING(bf-natur-oper.tipo-compra).
+    END.
+
+    FIND FIRST item  NO-LOCK  WHERE item.it-codigo = RowObject.it-codigo NO-ERROR.
+    IF AVAIL item THEN DO:
+        create tt-variavel.
+        assign tt-variavel.cod-var-oper      = "ge-codigo":U
+               tt-variavel.valor-variavel    = string(item.ge-codigo).
+    
+        create tt-variavel.
+        assign tt-variavel.cod-var-oper      = "fm-codigo":U
+               tt-variavel.valor-variavel    = string(item.fm-codigo).
+    END.
+    
+    FIND FIRST bf-natur-oper NO-LOCK WHERE bf-natur-oper.nat-operacao = (if RowObject.nat-of-comp <> "" and  RowObject.nat-of-comp <> ? then  RowObject.nat-of-comp else  RowObject.nat-comp) NO-ERROR.
+    IF AVAIL bf-natur-oper THEN DO:
+        CREATE tt-variavel.
+        ASSIGN tt-variavel.cod-var-oper      = "nat-oper-nf-relac":U
+               tt-variavel.valor-variavel    = bf-natur-oper.nat-operacao.
+
+        CREATE tt-variavel.
+        ASSIGN tt-variavel.cod-var-oper      = "cod-cfop-nf-relac":U
+               tt-variavel.valor-variavel    = STRING(bf-natur-oper.cod-cfop).
+    END.
+        
+    
+    
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+

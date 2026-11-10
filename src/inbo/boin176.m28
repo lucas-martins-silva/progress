@@ -1,0 +1,71 @@
+PROCEDURE enableButtons :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Retorna de serÿ habilitado ou n’o os bot„es do programa.
+------------------------------------------------------------------------------*/
+
+    DEFINE INPUT PARAMETER  pFieldName   AS CHARACTER NO-UNDO.
+    DEFINE OUTPUT PARAMETER pFieldEnable AS INTEGER   NO-UNDO.
+    
+
+    if  not avail docum-est then
+        return "NOK":U.
+        
+
+    run findNaturOper ( docum-est.nat-operacao ).
+
+    CASE pFieldName:
+        WHEN "btItensInc":U     THEN ASSIGN pFieldEnable = if  docum-est.ce-atual
+                                                           or  docum-est.rec-fisico
+                                                           or  docum-est.esp-docto = 23 /* Transfer¬ncia */
+                                                           or  natur-oper.tipo-compra = 8 /*Devol Transf*/
+                                                           or  (    natur-oper.terceiros 
+                                                                and (   natur-oper.tp-oper-terc = 2 
+                                                                     or natur-oper.tp-oper-terc = 4
+                                                                     or natur-oper.tp-oper-terc = 5 
+                                                                     or natur-oper.tp-oper-terc = 6 ) )    
+                                                           or docum-est.ind-sit-wms-ext = 5 /*Conferencia NOK*/
+                                                           then 0
+                                                           else 1.
+        WHEN "btItensElim":U    THEN ASSIGN pFieldEnable = if  docum-est.ce-atual
+                                                           or  docum-est.rec-fisico
+                                                           or  docum-est.esp-docto = 23 /* Transfer¬ncia */
+                                                           or docum-est.ind-sit-wms-ext = 5 /*Conferencia NOK*/
+                                                           then 0
+                                                           else 1.
+        WHEN "btItensMod":U     THEN ASSIGN pFieldEnable = if  not docum-est.ce-atual
+                                                           then 1
+                                                           else 0.
+        WHEN "btImportacao":U   THEN ASSIGN pFieldEnable = if  not docum-est.ce-atual
+                                                           and param-global.modulo-07
+                                                           and avail emitente
+                                                           and (emitente.natureza = 3 or
+                                                                emitente.natureza = 4)
+                                                           and avail estabelec 
+                                                           and estabelec.pais <> emitente.pais     
+                                                           then 1
+                                                           else 0.
+        WHEN "btEstoque":U      THEN ASSIGN pFieldEnable = if  docum-est.ce-atual
+                                                           or  docum-est.rec-fisico
+                                                           or  (natur-oper.tipo-compra = 9)
+                                                           then 0
+                                                           else 1.
+        WHEN "btPastaFIFO":U    THEN ASSIGN pFieldEnable = if  RowObject.log-1
+                                                           and param-re.sem-pedido
+                                                           then 1
+                                                           else 0.                                                   
+
+        OTHERWISE ASSIGN pFieldEnable = 1.
+        
+
+    END CASE.
+    
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+
+

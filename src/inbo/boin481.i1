@@ -1,0 +1,44 @@
+/********************************************************************************
+*** Procedure eliminarProcesItem  (ex trigger delete)
+*** Elimina»’o do processo do Item atualiza propor»„es de listas e roteiros
+    associados ao item 
+********************************************************************************/
+PROCEDURE eliminarProcesItem:
+
+    define input  parameter rw-proces-item as rowid.
+    find proces-item where rowid(proces-item) = rw-proces-item exclusive-lock no-error.  
+
+    
+    
+
+    /*** Tratamento de percentual e lista de componentes do item ***/
+    if proces-item.cod-lista-compon <> "" then do:
+        find lista-compon-item where
+             lista-compon-item.it-codigo        = proces-item.it-codigo and
+             lista-compon-item.cod-lista-compon = proces-item.cod-lista-compon  exclusive-lock no-error. 
+
+        if available lista-compon-item then do:
+            assign lista-compon-item.proporcao = max(0, lista-compon-item.proporcao).
+            for each estrutura where
+                     estrutura.it-codigo        = lista-compon-item.it-codigo and
+                     estrutura.cod-lista-compon = lista-compon-item.cod-lista-compon exclusive-lock:
+                assign estrutura.prop-proc = lista-compon-item.proporcao.   
+            end.
+            release estrutura.
+            release lista-compon-item.        
+        end.                                                
+
+    end.                
+
+    /*** Tratamento de percentual roteiros do item ***/
+    if proces-item.cod-roteiro <> "" then do:
+        find first rot-item where
+                   rot-item.it-codigo   = proces-item.it-codigo and
+                   rot-item.cod-roteiro = proces-item.cod-roteiro exclusive-lock no-error. 
+        if available rot-item then do:
+            assign rot-item.proporcao = max(0, rot-item.proporcao).
+        /*  release rot-item.   */ /* comentado por ocorrer erros ambiente oracle. */
+        end.                                       
+    end.                
+
+END PROCEDURE.

@@ -1,0 +1,812 @@
+/******************************************************************************
+**  BOCX245.i1
+**
+**  Embalagens do Container 
+**
+**  Ultima altera‡Æo: 04/05/99 - GeraBO
+**  Ultima altera‡Æo: 11/05/99 - brv9586
+******************************************************************************/
+{cdp/cdcfgdis.i} /* Definicao de pre-processadores */
+
+&IF INTEGER(ENTRY(1,PROVERSION,".")) >= 9 &THEN
+   &GLOBAL-DEFINE v9indrep  INDEXED-REPOSITION
+&endif
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.001
+&scoped-define FIRST-TABLE-IN-QUERY proc-container-emb
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME proc-container-emb
+ 
+{include/boini.i} 
+{cxbo/bocx245.i RowObject}
+{cxbo/bocx245.i tt-proc-container-emb}
+ 
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+DEFINE VAR c-cod-estabel  like {&TABLE-NAME}.cod-estabel  no-undo.
+DEFINE VAR c-nr-proc-exp  like {&TABLE-NAME}.nr-proc-exp  no-undo.
+DEFINE VAR c-id-container like {&table-name}.id-container no-undo.
+DEFINE VAR c-serie        like {&TABLE-NAME}.serie        no-undo.
+DEFINE VAR c-nr-nota-fis  like {&TABLE-NAME}.nr-nota-fis  no-undo.
+DEFINE VAR i-nr-seq-fat   like {&TABLE-NAME}.nr-seq-fat   no-undo.
+DEFINE VAR c-it-codigo    like {&table-name}.it-codigo    no-undo.
+DEFINE VAR c-sigla-emb    like {&TABLE-NAME}.sigla-emb    no-undo.
+DEFINE VAR c-volume       like {&TABLE-NAME}.volume       no-undo.
+ 
+procedure setConstraint1: 
+end procedure.
+
+procedure setConstraint2:
+    def input parameter p-cod-estabel  like {&TABLE-NAME}.cod-estabel  no-undo.
+    def input parameter p-nr-proc-exp  like {&TABLE-NAME}.nr-proc-exp  no-undo.
+    def input parameter p-id-container like {&table-name}.id-container no-undo.
+    def input parameter p-serie        like {&TABLE-NAME}.serie        no-undo.
+    def input parameter p-nr-nota-fis  like {&TABLE-NAME}.nr-nota-fis  no-undo.
+    def input parameter p-nr-seq-fat   like {&TABLE-NAME}.nr-seq-fat   no-undo.
+    def input parameter p-it-codigo    like {&table-name}.it-codigo    no-undo.
+    def input parameter p-sigla-emb    like {&TABLE-NAME}.sigla-emb    no-undo.
+    def input parameter p-volume       like {&TABLE-NAME}.volume       no-undo.
+    assign c-cod-estabel  = p-cod-estabel
+           c-nr-proc-exp  = p-nr-proc-exp
+           c-id-container = p-id-container
+           c-serie        = p-serie
+           c-nr-nota-fis  = p-nr-nota-fis
+           i-nr-seq-fat   = p-nr-seq-fat
+           c-it-codigo    = p-it-codigo
+           c-sigla-emb    = p-sigla-emb
+           c-volume       = p-volume.
+
+end procedure.
+
+procedure setConstraint3:
+    def input parameter p-cod-estabel  like {&TABLE-NAME}.cod-estabel  no-undo.
+    def input parameter p-nr-proc-exp  like {&TABLE-NAME}.nr-proc-exp  no-undo.
+    def input parameter p-id-container like {&table-name}.id-container no-undo.
+    assign c-cod-estabel  = p-cod-estabel
+           c-nr-proc-exp  = p-nr-proc-exp
+           c-id-container = p-id-container.
+end procedure.
+
+procedure setConstraint4:
+    def input parameter pr-proc-container as rowid  no-undo.
+    
+    find proc-container where rowid(proc-container) = pr-proc-container no-lock no-error.
+
+end procedure.
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+   
+    case i-abertura:
+        when 1 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock
+                                              {&v9indrep}.
+        when 2 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where
+                                        {&TABLE-NAME}.cod-estabel  >= c-cod-estabel  and 
+                                        {&TABLE-NAME}.nr-proc-exp  >= c-nr-proc-exp  and 
+                                        {&table-name}.id-container >= c-id-container and 
+                                        {&TABLE-NAME}.serie        >= c-serie        and 
+                                        {&TABLE-NAME}.nr-nota-fis  >= c-nr-nota-fis  and 
+                                        {&TABLE-NAME}.nr-seq-fat   >= i-nr-seq-fat   and 
+                                        {&table-name}.it-codigo    >= c-it-codigo    and 
+                                        {&TABLE-NAME}.sigla-emb    >= c-sigla-emb    and
+                                        {&TABLE-NAME}.volume       >= c-volume       no-lock
+                                        use-index pk-container-emb
+                                        {&v9indrep}.  
+        when 3 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock where
+                                        {&TABLE-NAME}.cod-estabel  = trim(c-cod-estabel)  and
+                                        {&TABLE-NAME}.nr-proc-exp  = trim(c-nr-proc-exp)  and
+                                        {&table-name}.id-container = trim(c-id-container)
+                                        use-index pk-container-emb
+                                        INDEXED-REPOSITION.
+        when 4 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock where 
+                                        {&TABLE-NAME}.cod-estabel  = proc-container.cod-estabel  and 
+                                        {&TABLE-NAME}.nr-proc-exp  = proc-container.nr-proc-exp  and 
+                                        {&table-name}.id-container = proc-container.id-container
+                                        use-index pk-container-emb
+                                        {&v9indrep}.
+ 
+    end case.
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+ 
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-dis-comex) &then    
+&else
+    {include/bocomver.i}
+    {include/bogetver.i}
+&endif    
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+{include/boexecre.i}
+/*{include/boexeupt.i}*/
+{include/boexedel.i}
+{include/bovalupt.i}
+{include/bovaldel.i}
+
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */ 
+    run startMethod ("initializeValidade").
+ 
+    run endMethod   ("initializeValidade").
+end procedure.
+
+procedure findCh_container:
+    /*  
+    ** Procura pelo indice, caso nao ache,
+    ** retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("validateFields").
+
+    def input parameter p-id-container like {&table-name}.id-container no-undo.
+    def output parameter c-return as char no-undo.
+    
+    find first {&TABLE-NAME}  no-lock
+         where {&table-name}.id-container = p-id-container no-error.
+    if not avail {&TABLE-NAME} then do:
+       /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+          pre-processador em chamada de includes */
+       {utp/ut-table.i mgcex proc-container-emb 1}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,
+                          input return-value).
+       assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("validateFields").
+
+end procedure.
+
+procedure findCh_item-embal:
+    /*  
+    ** Procura pelo indice, caso nao ache,
+    ** retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("validateFields").
+
+    def input parameter p-cod-estabel  like {&TABLE-NAME}.cod-estabel  no-undo.
+    def input parameter p-serie        like {&TABLE-NAME}.serie        no-undo.
+    def input parameter p-nr-nota-fis  like {&TABLE-NAME}.nr-nota-fis  no-undo.
+    def input parameter p-nr-seq-fat   like {&TABLE-NAME}.nr-seq-fat   no-undo.
+    def input parameter p-it-codigo    like {&table-name}.it-codigo    no-undo.
+    def input parameter p-sigla-emb    like {&TABLE-NAME}.sigla-emb    no-undo.
+    def output parameter c-return as char no-undo.
+    
+    for first {&TABLE-NAME} no-lock
+         where {&TABLE-NAME}.cod-estabel  = p-cod-estabel and
+               {&TABLE-NAME}.serie        = p-serie       and
+               {&TABLE-NAME}.nr-nota-fis  = p-nr-nota-fis and
+               {&TABLE-NAME}.nr-seq-fat   = p-nr-seq-fat  and
+               {&table-name}.it-codigo    = p-it-codigo   and
+               {&TABLE-NAME}.sigla-emb    = p-sigla-emb
+               use-index ch-item-embal:
+    end.
+    if not avail {&TABLE-NAME} then do:
+       /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+          pre-processador em chamada de includes */
+       {utp/ut-table.i mgcex proc-container-emb 1}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,
+                          input return-value).
+       assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("validateFields").
+
+end procedure.
+
+procedure findCh_proc-exp:
+    /*  
+    ** Procura pelo indice, caso nao ache,
+    ** retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("validateFields").
+
+    def input parameter p-nr-proc-exp  like proc-container.nr-proc-exp  no-undo.
+    def input parameter p-cod-estabel  like proc-container.cod-estabel  no-undo.
+    def output parameter c-return as char no-undo.
+    
+    for first {&TABLE-NAME}  no-lock
+        where {&TABLE-NAME}.nr-proc-exp  = p-nr-proc-exp and
+              {&TABLE-NAME}.cod-estabel  = p-cod-estabel
+              use-index ch-proc-exp:
+    end.
+    if not avail {&TABLE-NAME} then do:
+       /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+          pre-processador em chamada de includes */
+       {utp/ut-table.i mgcex proc-container-emb 1}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,
+                          input return-value).
+       assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("validateFields").
+
+end procedure.
+ 
+procedure findPk_{&TABLE-NAME}:
+    /*  
+    ** Procura pelo indice, caso nao ache, 
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("validateFields").
+
+    def input parameter p-cod-estabel  like {&TABLE-NAME}.cod-estabel  no-undo.
+    def input parameter p-nr-proc-exp  like {&TABLE-NAME}.nr-proc-exp  no-undo.
+    def input parameter p-id-container like {&table-name}.id-container no-undo.
+    def input parameter p-serie        like {&TABLE-NAME}.serie        no-undo.
+    def input parameter p-nr-nota-fis  like {&TABLE-NAME}.nr-nota-fis  no-undo.
+    def input parameter p-nr-seq-fat   like {&TABLE-NAME}.nr-seq-fat   no-undo.
+    def input parameter p-it-codigo    like {&table-name}.it-codigo    no-undo.
+    def input parameter p-sigla-emb    like {&TABLE-NAME}.sigla-emb    no-undo.
+    def input parameter p-volume       like {&TABLE-NAME}.volume       no-undo.
+    def output parameter c-return as char no-undo.
+    
+    for first {&TABLE-NAME}  no-lock
+         where {&TABLE-NAME}.cod-estabel  = p-cod-estabel  and
+               {&TABLE-NAME}.nr-proc-exp  = p-nr-proc-exp  and
+               {&table-name}.id-container = p-id-container and
+               {&TABLE-NAME}.serie        = p-serie        and
+               {&TABLE-NAME}.nr-nota-fis  = p-nr-nota-fis  and
+               {&TABLE-NAME}.nr-seq-fat   = p-nr-seq-fat   and
+               {&table-name}.it-codigo    = p-it-codigo    and
+               {&TABLE-NAME}.sigla-emb    = p-sigla-emb    and
+               {&TABLE-NAME}.volume       = p-volume
+               use-index pk-container-emb:
+    end.
+    if not avail {&TABLE-NAME} then do:
+       /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+          pre-processador em chamada de includes */
+       {utp/ut-table.i mgcex proc-container-emb 1}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,
+                          input return-value).
+       assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("validateFields").
+
+end procedure.
+
+procedure findPk_container_emb:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter c-cod-estabel  as char no-undo.
+    def input parameter c-nr-proc-exp  as char no-undo.
+    def input parameter c-id-container as char no-undo.
+    def input parameter c-serie        as char no-undo.
+    def input parameter c-nr-nota-fis  as char no-undo.
+    def input parameter i-nr-seq-fat   as inte no-undo.
+    def input parameter c-it-codigo    as char no-undo.
+    def input parameter c-sigla-emb    as char no-undo.
+    def input parameter i-volume       as inte no-undo.
+    def output parameter c-return      as char no-undo.
+ 
+    for first {&TABLE-NAME} no-lock where 
+              {&TABLE-NAME}.cod-estabel  = c-cod-estabel  and
+              {&TABLE-NAME}.nr-proc-exp  = c-nr-proc-exp  and
+              {&table-name}.id-container = c-id-container and
+              {&TABLE-NAME}.serie        = c-serie        and
+              {&TABLE-NAME}.nr-nota-fis  = c-nr-nota-fis  and
+              {&TABLE-NAME}.nr-seq-fat   = i-nr-seq-fat   and
+              {&table-name}.it-codigo    = c-it-codigo    and
+              {&TABLE-NAME}.sigla-emb    = c-sigla-emb    and
+              {&TABLE-NAME}.volume       = i-volume
+              use-index pk-container-emb:
+    end.
+    if not avail {&TABLE-NAME} then do:
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex proc-container-emb 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+end procedure.
+ 
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+    find first rowObject
+        no-lock no-error.
+ 
+    run startMethod ("validateFields").
+    if rowObject.cod-estabel = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb cod-estabel 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.id-container = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb id-container 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.it-codigo = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb it-codigo 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.nr-nota-fis = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb nr-nota-fis 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.nr-proc-exp = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb nr-proc-exp 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.nr-seq-fat = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb nr-seq-fat 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.serie = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb serie 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.sigla-emb = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb sigla-emb 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+    if rowObject.volume = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex proc-container-emb volume 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+ 
+        run endMethod ("validateFields").
+ 
+end procedure.
+ 
+procedure validateCreate:
+    /*
+    **  Valida cria‡Æo da tabela/duplicidade de registro.
+    */
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    def output parameter r-chave as rowid.
+    
+    def var c-return1 as char no-undo.
+ 
+    run initializeValidate.
+    run startMethod ("validateCreate").
+ 
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+ 
+    find first rowObject
+        no-lock no-error.
+        
+    run validateFields.        
+        
+    if not can-find(item-embal where item-embal.cod-estabel = rowObject.cod-estabel
+                                 and item-embal.serie       = rowObject.serie
+                                 &if defined(bf-dis-comex) &then      
+                                     and item-embal.nr-nota-fis = int(rowObject.nr-nota-fis)
+                                 &else
+                                     and item-embal.nr-nota-fis = rowObject.nr-nota-fis
+                                 &endif    
+                                 and item-embal.nr-seq-fat  = rowObject.nr-seq-fat
+                                 and item-embal.it-codigo   = rowObject.it-codigo
+                                 and item-embal.sigla-emb   = rowObject.sigla-emb
+                                 and item-embal.int-1       = rowObject.volume) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgdis item-embal 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 2
+               tt-bo-erro.mensagem     = return-value.
+    end.
+    
+    if not can-find(proc-nota-fiscal 
+                    where proc-nota-fiscal.cod-estabel = rowObject.cod-estabel and
+                          proc-nota-fiscal.nr-proc-exp = rowObject.nr-proc-exp and
+                          proc-nota-fiscal.serie       = rowObject.serie and
+                          proc-nota-fiscal.nr-nota-fis = rowObject.nr-nota-fis) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgdis nota-fiscal 1}
+        assign c-return1 = return-value.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex processo-exp 1}
+        create tt-bo-erro.
+        assign tt-bo-erro.parametros = c-return1 + "~~" + return-value.
+        run utp/ut-msgs.p (input "msg",
+                           input 8691,
+                           input c-return1 + "~~" + return-value).        
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 8691
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    find first tt-bo-erro
+        no-lock no-error.
+    if not available tt-bo-erro then do:
+        if can-find({&TABLE-NAME}
+              where {&TABLE-NAME}.cod-estabel = rowObject.cod-estabel and
+                    {&TABLE-NAME}.nr-proc-exp = rowObject.nr-proc-exp and
+                    {&table-name}.id-container = rowObject.id-container and
+                    {&TABLE-NAME}.serie = rowObject.serie and
+                    {&TABLE-NAME}.nr-nota-fis = rowObject.nr-nota-fis and
+                    {&TABLE-NAME}.nr-seq-fat = rowObject.nr-seq-fat and
+                    {&table-name}.it-codigo = rowObject.it-codigo and
+                    {&TABLE-NAME}.sigla-emb = rowObject.sigla-emb and
+                    {&TABLE-NAME}.volume = rowObject.volume) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex proc-container-emb 1}
+            run utp/ut-msgs.p (input "msg",
+                               input 8,
+                               input return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 8
+                   tt-bo-erro.mensagem     = return-value.
+        end.
+    end.
+ 
+    find first tt-bo-erro
+        no-lock no-error. 
+    if not avail tt-bo-erro then do:
+       run executeCreate.
+       assign r-chave = to-rowid(return-value).
+    end.
+ 
+    run endMethod ("validateCreate").
+end procedure.
+
+procedure executeUpdate:
+    /*  Executa Update  */
+    buffer-copy RowObject except r-rowid cod-estabel nr-proc-exp id-container serie nr-nota-fis 
+                                 nr-seq-fat it-codigo sigla-emb volume to {&TABLE-NAME}.
+                                     
+end procedure.
+
+procedure deleteTable:
+     def input parameter p-cod-estabel  like {&TABLE-NAME}.cod-estabel.
+     def input parameter p-nr-proc-exp  like {&TABLE-NAME}.nr-proc-exp.
+     def input parameter p-id-container like {&table-name}.id-container.
+     
+    /* def output parameter table for tt-bo-erro.*/
+     def var r-rowid  as rowid no-undo.
+     
+     for each {&TABLE-NAME} exclusive-lock
+         where {&TABLE-NAME}.cod-estabel  = p-cod-estabel
+         and   {&TABLE-NAME}.nr-proc-exp  = p-nr-proc-exp
+         and   {&table-name}.id-container = p-id-container
+         use-index pk-container-emb:
+         assign r-rowid = rowid({&TABLE-NAME}).
+         run validateDelete (input-output r-rowid, output table tt-bo-erro) .
+     end.   
+
+end procedure.
+
+procedure incluirEmbalagensnota:
+/*
+** Inclui todas as embalagens de uma nota fiscal
+*/
+def input parameter p-rw-proc-container as rowid                       no-undo.
+def input parameter p-nr-nota-fis       like {&TABLE-NAME}.nr-nota-fis no-undo.
+def input parameter p-serie             like {&TABLE-NAME}.serie no-undo.
+def input parameter p-it-codigo-ini     like {&table-name}.it-codigo no-undo.
+def input parameter p-it-codigo-fim     like {&table-name}.it-codigo no-undo.
+def input parameter p-sigla-emb-ini     like {&table-name}.sigla-emb no-undo.
+def input parameter p-sigla-emb-fim     like {&table-name}.sigla-emb no-undo.
+
+def output parameter table for tt-bo-erro.
+
+def var r-{&TABLE-NAME} as rowid   no-undo.
+def var c-return1            as char    no-undo.
+def var l-existe             as logical no-undo.
+
+for each tt-{&TABLE-NAME}:
+    delete tt-{&TABLE-NAME}.
+end.
+
+for each tt-bo-erro:
+    delete tt-bo-erro.
+end.
+
+find proc-container where 
+     rowid(proc-container) = p-rw-proc-container no-lock no-error.
+if avail proc-container then do:
+    
+    if not can-find(first item-embal where item-embal.cod-estabel = proc-container.cod-estabel and
+                                           item-embal.serie       = p-serie and
+                                           &if defined(bf-dis-comex) &then      
+                                               item-embal.nr-nota-fis = int(p-nr-nota-fis))
+                                           &else
+                                               item-embal.nr-nota-fis = p-nr-nota-fis) 
+                                           &endif 
+                                           then do:        
+                                           
+        assign i-seq-erro = i-seq-erro + 1.
+        create tt-bo-erro.    
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgdis item-embal 1}
+        assign tt-bo-erro.parametros = return-value.
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign tt-bo-erro.i-sequen = i-seq-erro
+               tt-bo-erro.cd-erro  = 2
+               tt-bo-erro.mensagem = return-value.
+    end.
+    if not avail tt-bo-erro then do:
+        
+        if not can-find(first item-embal 
+                            where item-embal.cod-estabel = proc-container.cod-estabel and
+                                  &if defined(bf-dis-comex) &then      
+                                      item-embal.nr-nota-fis = int(p-nr-nota-fis) and
+                                  &else
+                                      item-embal.nr-nota-fis = p-nr-nota-fis and
+                                  &endif 
+                                  item-embal.serie       = p-serie) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            create tt-bo-erro.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-field.i mgdis item-embal cod-estabel 1}
+            assign c-return1 = return-value.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */ 
+            {utp/ut-table.i mgdis item-embal 1}
+            assign c-return1 = c-return1 + " " + return-value.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex proc-container 1}
+            assign tt-bo-erro.parametros = c-return1 + "~~" + return-value.
+            run utp/ut-msgs.p (input "msg",
+                               input 17399,
+                               input c-return1 + "~~" + return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 17399
+                   tt-bo-erro.mensagem = return-value.
+        end.
+     end.
+        
+    for each item-embal fields(nr-seq-fat it-codigo sigla-emb int-1 serie nr-nota-fis)
+       where item-embal.cod-estabel = proc-container.cod-estabel and
+             item-embal.serie       = p-serie                    and
+             &if defined(bf-dis-comex) &then      
+                 item-embal.nr-nota-fis = int(p-nr-nota-fis) and
+             &else
+                 item-embal.nr-nota-fis = p-nr-nota-fis and
+             &endif
+             item-embal.it-codigo >= p-it-codigo-ini and
+             item-embal.it-codigo <= p-it-codigo-fim and
+             item-embal.sigla-emb >= p-sigla-emb-ini and
+             item-embal.sigla-emb <= p-sigla-emb-fim no-lock:
+        
+        create tt-{&TABLE-NAME}.
+        
+        assign tt-{&TABLE-NAME}.nr-proc-exp  = proc-container.nr-proc-exp
+               tt-{&TABLE-NAME}.cod-estabel  = proc-container.cod-estabel
+               tt-{&table-name}.id-container = proc-container.id-container
+               tt-{&TABLE-NAME}.serie        = item-embal.serie
+               &if defined(bf-dis-comex) &then      
+                   tt-{&TABLE-NAME}.nr-nota-fis = string(item-embal.nr-nota-fis)
+               &else
+                   tt-{&TABLE-NAME}.nr-nota-fis = item-embal.nr-nota-fis
+               &endif    
+               tt-{&TABLE-NAME}.nr-seq-fat   = item-embal.nr-seq-fat
+               tt-{&table-name}.it-codigo    = item-embal.it-codigo
+               tt-{&TABLE-NAME}.sigla-emb    = item-embal.sigla-emb
+               tt-{&table-name}.volume       = item-embal.int-1.
+               
+        run validateCreate (input table tt-{&TABLE-NAME},
+                            output table tt-bo-erro,
+                            output r-{&TABLE-NAME}). 
+        
+        delete tt-{&TABLE-NAME}.
+        find first tt-bo-erro no-error.
+        if avail tt-bo-erro then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            create tt-bo-erro.    
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgdis item-embal 1}
+            assign c-return1 = return-value + " " + item-embal.it-codigo.
+            assign tt-bo-erro.parametros = c-return1.
+            run utp/ut-msgs.p (input "msg",
+                               input 18880,
+                               input c-return1).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 18880
+                   tt-bo-erro.mensagem = return-value.                                
+            undo, leave.
+        end.
+    end.
+end.
+
+end procedure.
+
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+ 
+    case c-field:
+        when "char-1" then c-value = RowObject.char-1.
+        when "char-2" then c-value = RowObject.char-2.
+        when "check-sum" then c-value = RowObject.check-sum.
+        when "cod-estabel" then c-value = RowObject.cod-estabel.
+        when "id-container" then c-value = RowObject.id-container.
+        when "it-codigo" then c-value = RowObject.it-codigo.
+        when "nr-nota-fis" then c-value = RowObject.nr-nota-fis.
+        when "nr-proc-exp" then c-value = RowObject.nr-proc-exp.
+        when "serie" then c-value = RowObject.serie.
+        when "sigla-emb" then c-value = RowObject.sigla-emb.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+ 
+    case c-field:
+        when "dec-1" then c-value = RowObject.dec-1.
+        when "dec-2" then c-value = RowObject.dec-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+ 
+    case c-field:
+        when "int-1" then c-value = RowObject.int-1.
+        when "int-2" then c-value = RowObject.int-2.
+        when "nr-seq-fat" then c-value = RowObject.nr-seq-fat.
+        when "volume" then c-value = RowObject.volume.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+ 
+    case c-field:
+        when "data-1" then c-value = RowObject.data-1.
+        when "data-2" then c-value = RowObject.data-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+ 
+    case c-field:
+        when "log-1" then c-value = RowObject.log-1.
+        when "log-2" then c-value = RowObject.log-2.
+        otherwise return error.
+    end case.
+end procedure.
+

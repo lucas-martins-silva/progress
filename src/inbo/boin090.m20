@@ -1,0 +1,149 @@
+PROCEDURE validateContaTransit :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    def var i-num-finalid-cta as int no-undo.
+   def buffer bf-natur-oper-fut for natur-oper.
+
+    /* chamando o boin090.m03*/
+    run findContaContab ( RowObject.ct-transit,
+                          RowObject.sc-transit,
+                          RowObject.cod-estabel ).
+    /* fim chamada boin090.m03*/
+
+    if return-value = "ok" then do:
+
+        run prgint/utb/utb743za.py persistent set h_api_cta_ctbl.
+
+        EMPTY temp-table tt_log_erro.
+        assign v_cod_cta_ctbl = RowObject.ct-transit.
+        
+        run pi_busca_dados_cta_ctbl in h_api_cta_ctbl (input        STRING(i-empresa),  /* EMPRESA EMS2 */
+                                                       input        "",                 /* PLANO DE CONTAS */
+                                                       input-output v_cod_cta_ctbl,     /* CONTA */
+                                                       input        RowObject.dt-trans, /* DATA TRANSACAO */   
+                                                       output       v_des_cta_ctbl,     /* DESCRICAO CONTA */
+                                                       output       v_num_tip_cta_ctbl, /* TIPO DA CONTA */
+                                                       output       v_num_sit_cta_ctbl, /* SITUAø°O DA CONTA */
+                                                       output       v_ind_finalid_cta,  /* FINALIDADES DA CONTA */
+                                                       output table tt_log_erro).       /* ERROS */
+													   
+        run pi_busca_dados_cta_ctbl_integr in h_api_cta_ctbl (input        STRING(i-empresa), /* EMPRESA EMS2 */
+                                                              input        "CEP",             /* MàDULO */
+                                                              input        "",                /* PLANO DE CONTAS */
+                                                              input        v_cod_cta_ctbl,    /* CONTA */
+                                                              input        RowObject.dt-trans,/* DATA TRANSACAO */   
+                                                              output       v_ind_finalid_cta, /* FINALIDADES DA CONTA */
+                                                              output table tt_log_erro).      /* ERROS */ 
+
+        find first tt_log_erro no-lock no-error.
+        if not avail tt_log_erro then do:
+
+            assign i-num-finalid-cta = {adinc/i05ad049.i 6 v_ind_finalid_cta}.
+
+            if  v_num_sit_cta_ctbl <> 3 then do:           /* Sistema */
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="1062"
+                                    &ErrorType="EMS":U
+                                    &ErrorSubType="ERROR":U}
+            end.
+        
+        
+            if  i-num-finalid-cta = 10 then do:          /* Nao Aceita Lan‡amentos */
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="445"
+                                    &ErrorType="EMS":U
+                                    &ErrorSubType="ERROR":U}
+            end.
+        
+            find bf-natur-oper-fut where
+                     bf-natur-oper-fut.nat-operacao = RowObject.nat-operacao no-lock no-error.
+              
+            /*--- include que contem a logica para identificar se a natureza do docum-est eh fatura faturamento 
+                  antecipado, remessa faturamento antecipado, fatura ent futura ou remessa ent futura ---*/
+            {cdp/cd9700.i1 bf-natur-oper-fut}     
+
+            if  l-transf or l-dev-transf then do:
+                if  i-num-finalid-cta <> 4 then do:      /* Transferªncia */
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="747"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U}
+                end.
+            end.
+            else         
+            if  l-ent-cons then do:
+                if  i-num-finalid-cta <> 2 then do:      /* NÆo Consumo */
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="6323"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U}
+                end.
+            end.        
+            else 
+            if  l-retorno  then do:
+                                    
+                        
+                /*--- se a natureza eh de retorno beneficiamento nao precisa verificar se 
+                      eh consumo ou nao consumo ---*/
+                if  i-num-finalid-cta <> 1  /* Consumo */
+                and i-num-finalid-cta <> 2  /* NÆo Consumo */
+                and l-remessa-fat-antecip = no /* Nota de remessa fat antecipado */
+                and l-remessa-ent-futura  = no /* Nota de remessa entrega futura */ then do:
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="6325"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U}
+                end.
+            end.        
+            else 
+            if  l-devolucao then do:    
+                if  i-num-finalid-cta <> 2               /* NÆo Consumo */
+                and i-num-finalid-cta <> 6               /* CPV */
+                and i-num-finalid-cta <> 8 then do:      /* Transit®ria Devolu‡Æo */
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="6317"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U}
+                end.
+            end.        
+            else  do:
+                if  i-num-finalid-cta <> 2               /* NÆo Consumo */
+                and i-num-finalid-cta <> 4               /* Transferªncia */
+                and i-num-finalid-cta <> 7 then do:      /* Transit®ria Compras */
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="438"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U}
+                end.
+            end.        
+        
+        
+            if  avail estab-mat
+            and RowObject.ct-transit = estab-mat.cod-cta-fornec-unif
+            and RowObject.sc-transit = estab-mat.cod-ccusto-fornec-unif
+            and avail natur-oper
+            and not natur-oper.emite-duplic then do:
+                IF NOT (l-remessa-fat-antecip    /* Nota de remessa fat antecipado */
+                        OR l-remessa-ent-futura) /* Nota de remessa entrega futura */  THEN
+
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="19272"
+                                    &ErrorType="EMS":U
+                                    &ErrorSubType="WARNING":U}
+            end.
+
+        end.
+
+        delete object h_api_cta_ctbl.
+    end.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+
+

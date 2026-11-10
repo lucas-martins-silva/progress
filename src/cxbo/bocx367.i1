@@ -1,0 +1,361 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+
+FOR EACH {&TableName} EXCLUSIVE-LOCK
+   WHERE {&TableName}.seq-wt-docto = wt-docto.seq-wt-docto:
+    DELETE {&TableName}.
+END.
+
+FOR EACH tt-{&TableName}-aux EXCLUSIVE-LOCK
+   WHERE tt-{&TableName}-aux.seq-wt-docto = wt-docto.seq-wt-docto:
+    DELETE tt-{&TableName}-aux.
+END.
+
+FIND FIRST param-exp NO-LOCK
+     WHERE param-exp.cod-estabel = IF wt-docto.cod-estab-proces-export = "" THEN wt-docto.cod-estabel ELSE wt-docto.cod-estab-proces-export NO-ERROR.
+         
+       
+IF  NOT AVAIL param-exp THEN
+    RETURN "NOK":U.
+
+FOR EACH {1} NO-LOCK
+   WHERE {1}.seq-wt-docto = wt-docto.seq-wt-docto and
+         {1}.calcula = yes:
+   
+    /*--- POR PEDIDO ---*/
+    IF  param-exp.idi-busca-despes-export = 1 THEN DO:
+    
+        FOR EACH ped-ent-desp NO-LOCK
+           WHERE ped-ent-desp.nome-abrev   = wt-docto.nome-abrev
+             AND ped-ent-desp.nr-pedcli    = {1}.nr-pedcli
+             AND ped-ent-desp.nr-sequencia = {1}.nr-sequencia
+             AND ped-ent-desp.it-codigo    = {1}.it-codigo
+             AND ped-ent-desp.nr-entrega   = {1}.nr-entrega
+             AND ped-ent-desp.cod-refer    = {1}.cod-refer:
+             
+            FIND FIRST ped-ent OF ped-ent-desp NO-LOCK NO-ERROR.
+            IF  NOT AVAIL ped-ent THEN
+                NEXT.
+
+            ASSIGN de-tot-vl-faturada = 0
+                   de-tot-qt-faturada = 0.
+
+            {cxbo/bocx367.i2 ped-ent-desp}
+            
+            ASSIGN de-saldo-valor      = ped-ent-desp.val-despes - de-tot-vl-faturada.
+            
+            if de-saldo-valor < 0 then assign de-saldo-valor = 0.
+            
+            assign c-cod-estabelec = if wt-docto.cod-estab-proces-export = "" then wt-docto.cod-estabel else wt-docto.cod-estab-proces-export.
+
+            find first proc-ped-ent no-lock 
+                 where proc-ped-ent.cod-estabel  = c-cod-estabelec 
+                   and proc-ped-ent.nr-proc-exp  = wt-docto.nr-proc-exp 
+                   and proc-ped-ent.nome-abrev   = wt-docto.nome-abrev
+                   and proc-ped-ent.nr-pedcli    = {1}.nr-pedcli
+                   and proc-ped-ent.nr-sequencia = {1}.nr-sequencia 
+                   and proc-ped-ent.it-codigo    = {1}.it-codigo
+                   and proc-ped-ent.cod-refer    = {1}.cod-refer
+                   and proc-ped-ent.nr-entrega   = {1}.nr-entrega no-error.
+            if avail proc-ped-ent then do:
+                ASSIGN de-saldo-valor = ped-ent-desp.val-despes - de-tot-vl-faturada.
+                
+                if de-saldo-valor < 0 then assign de-saldo-valor = 0.
+                
+                if  (de-tot-qt-faturada + {1}.quantidade[1]) >= proc-ped-ent.quantidade[1] then
+                    assign de-saldo-a-faturar = de-saldo-valor.
+                else do:
+                    if l-spp-vl-tot-fatur-parc then
+                        assign de-saldo-a-faturar = de-saldo-valor.
+                    else
+                        assign de-saldo-a-faturar = trunc((de-saldo-valor * {1}.quantidade[1] 
+                                                  / ( proc-ped-ent.quantidade[1] - de-tot-qt-faturada)),2).
+                                              
+                end.
+                
+                if de-saldo-a-faturar < 0 then assign de-saldo-a-faturar = 0.
+
+            end.
+            else do:            
+                if  (de-tot-qt-faturada + {1}.quantidade[1]) >= ped-ent.qt-pedida then
+                    assign de-saldo-a-faturar = de-saldo-valor.
+                else do:
+                    if l-spp-vl-tot-fatur-parc then
+                        if can-find(first ped-venda-desp NO-LOCK
+                                    where ped-venda-desp.nome-abrev            = ped-ent-desp.nome-abrev
+                                      and ped-venda-desp.nr-pedcli             = ped-ent-desp.nr-pedcli
+                                      and ped-venda-desp.cdn-despes            = ped-ent-desp.cdn-despes
+                                      and substring(ped-venda-desp.cod-livre-1,3,1) = "1") then
+                            assign de-saldo-a-faturar = de-saldo-valor.
+                        else
+                            assign de-saldo-a-faturar = trunc((de-saldo-valor * {1}.quantidade[1] 
+                                                  / (ped-ent.qt-pedida - de-tot-qt-faturada)),2).
+                    else                
+                        assign de-saldo-a-faturar = trunc((de-saldo-valor * {1}.quantidade[1] 
+                                                  / (ped-ent.qt-pedida - de-tot-qt-faturada)),2).
+                end.
+            end.
+                                 
+            if de-saldo-a-faturar < 0 then assign de-saldo-a-faturar = 0.
+                            
+            /*Localiza Despesa*/
+            FIND FIRST tt-{&TableName}-aux
+                 WHERE tt-{&TableName}-aux.seq-wt-docto = wt-docto.seq-wt-docto
+                   AND tt-{&TableName}-aux.cdn-despes   = ped-ent-desp.cdn-despes NO-ERROR.
+                   
+            /*Se nao existe, cria despesa*/
+            IF  NOT AVAIL tt-{&TableName}-aux THEN DO:
+            
+                FOR FIRST ped-venda-desp NO-LOCK
+                    WHERE ped-venda-desp.nome-abrev = ped-ent-desp.nome-abrev
+                      AND ped-venda-desp.nr-pedcli  = ped-ent-desp.nr-pedcli
+                      AND ped-venda-desp.cdn-despes = ped-ent-desp.cdn-despes:
+                    
+                    if int(ped-venda-desp.cdn-classif-despes) = 1 then next. /*desconsidera despesas que tem classificacao "nenhum"*/
+                    
+                    if ped-venda-desp.val-despes = 0 or ped-venda-desp.val-despes = ? then next.
+                    
+                    CREATE tt-{&TableName}-aux.
+                    ASSIGN tt-{&TableName}-aux.seq-wt-docto-despes  = i-seq + 1
+                           tt-{&TableName}-aux.seq-wt-docto         = wt-docto.seq-wt-docto
+                           tt-{&TableName}-aux.cod-itiner           = ped-venda-desp.cod-itiner
+                           tt-{&TableName}-aux.cod-pto-contr        = ped-venda-desp.cod-pto-contr
+                           tt-{&TableName}-aux.cdn-despes           = ped-ent-desp.cdn-despes
+                           tt-{&TableName}-aux.cod-emitente-desp    = ped-venda-desp.cod-emitente-desp
+                           tt-{&TableName}-aux.sequencia            = ped-venda-desp.sequencia
+                           tt-{&TableName}-aux.mo-codigo            = ped-venda-desp.mo-codigo
+                           tt-{&TableName}-aux.val-despes-nf        = 0
+                           tt-{&TableName}-aux.val-despes-ped       = 0
+                           tt-{&TableName}-aux.log-forma-preco      = ped-venda-desp.log-forma-preco
+                           tt-{&TableName}-aux.cdn-classif-despes   = ped-venda-desp.cdn-classif-despes
+                           tt-{&TableName}-aux.cod-cond-pagto       = ped-venda-desp.cod-cond-pag
+                           tt-{&TableName}-aux.log-despes-integr-ap = ped-venda-desp.log-despes-integr-ap
+                           tt-{&TableName}-aux.log-comis-agent      = NO
+                           tt-{&TableName}-aux.dat-base-cobr-despes = ped-venda-desp.dat-base-cobr-despes
+                           i-seq                                    = i-seq + 1
+                           tt-{&TableName}-aux.val-despes = tt-{&TableName}-aux.val-despes + de-saldo-a-faturar
+                           &IF "{&bf_dis_versao_ems}" >= "2.09":U &THEN
+                               tt-{&TableName}-aux.log-despes-inclusa = ped-venda-desp.log-despes-inclusa
+                               tt-{&TableName}-aux.log-destaca-despes = ped-venda-desp.log-destaca-despes
+                               tt-{&TableName}-aux.log-val-tot-faturam = ped-venda-desp.log-val-tot-faturam
+                           &ELSE
+                               overlay(tt-{&TableName}-aux.cod-livre-1,1,1) = trim(substring(ped-venda-desp.cod-livre-1,1,1))
+                               overlay(tt-{&TableName}-aux.cod-livre-1,2,1)   = trim(substring(ped-venda-desp.cod-livre-1,2,1))
+                               overlay(tt-{&TableName}-aux.cod-livre-1,3,1)   = trim(substring(ped-venda-desp.cod-livre-1,3,1))
+                           &ENDIF
+                           .
+                END.
+            END.
+            else do:
+                assign tt-{&TableName}-aux.val-despes = tt-{&TableName}-aux.val-despes + de-saldo-a-faturar.
+            END.
+        END.
+    END.
+    
+    /*--- POR PROCESSO ---*/
+    IF  param-exp.idi-busca-despes-export = 2 THEN DO:
+        find processo-exp where
+             &if '{&BF_MAT_VERSAO_EMS}' >= "2.071" &then
+               processo-exp.cod-estabel = wt-docto.cod-estab-proces-export and
+             &else
+               processo-exp.cod-estabel = substring(wt-docto.char-1,118,3) and
+             &endif
+             processo-exp.nr-proc-exp = wt-docto.nr-proc-exp no-lock no-error.
+
+        if avail processo-exp then
+           find first proc-desp-itiner
+              where proc-desp-itiner.cod-estabel = processo-exp.cod-estabel
+                and proc-desp-itiner.nr-proc-exp = processo-exp.nr-proc-exp
+                no-lock no-error.
+              if avail processo-exp     and
+                 avail proc-desp-itiner and
+                 processo-exp.log-1 = no then do:
+                 IF  NOT CAN-FIND (FIRST RowErrors
+                                   WHERE RowErrors.ErrorNumber = 31556 NO-LOCK) THEN DO:
+                     {method/svc/errors/inserr.i &ErrorNumber="31556"
+                                                 &ErrorType="EMS":U
+                                                 &ErrorSubType="Error":U
+                                                 &ErrorParameters="''"}
+                 END.
+            END.
+            else do:
+            FOR EACH proc-ped-ent-desp NO-LOCK
+               &if '{&BF_MAT_VERSAO_EMS}' >= "2.071" &then
+                 WHERE proc-ped-ent-desp.cod-estabel  = wt-docto.cod-estab-proces-export
+               &else
+                 WHERE proc-ped-ent-desp.cod-estabel  = substring(wt-docto.char-1,118,3)
+               &endif
+                 AND proc-ped-ent-desp.nr-proc-exp  = wt-docto.nr-proc-exp
+                 AND proc-ped-ent-desp.nome-abrev   = wt-docto.nome-abrev
+                 AND proc-ped-ent-desp.nr-pedcli    = {1}.nr-pedcli
+                 AND proc-ped-ent-desp.nr-sequencia = {1}.nr-sequencia
+                 AND proc-ped-ent-desp.it-codigo    = {1}.it-codigo
+                 AND proc-ped-ent-desp.nr-entrega   = {1}.nr-entrega
+                 AND proc-ped-ent-desp.cod-refer    = {1}.cod-refer:
+               
+                FIND FIRST proc-ped-ent OF proc-ped-ent-desp NO-LOCK NO-ERROR.
+                IF  NOT AVAIL proc-ped-ent THEN
+                    NEXT.
+                    
+                find first ped-ent of proc-ped-ent no-lock no-error.
+                if not avail ped-ent then next.
+                
+                ASSIGN de-tot-vl-faturada = 0
+                       de-tot-qt-faturada = 0.
+                
+                {cxbo/bocx367.i2 proc-ped-ent-desp}
+                
+                ASSIGN de-saldo-valor = proc-ped-ent-desp.val-despes - de-tot-vl-faturada.
+                
+                if de-saldo-valor < 0 then assign de-saldo-valor = 0.
+                
+                if  (de-tot-qt-faturada + {1}.quantidade[1]) >= proc-ped-ent.quantidade[1] then
+                    assign de-saldo-a-faturar = de-saldo-valor.
+                else do:
+                    if l-spp-vl-tot-fatur-parc then 
+                        if can-find(first proc-desp-itiner NO-LOCK
+                                    where proc-desp-itiner.cod-estabel           = proc-ped-ent-desp.cod-estabel
+                                      and proc-desp-itiner.nr-proc-exp           = proc-ped-ent-desp.nr-proc-exp
+                                      and proc-desp-itiner.cod-desp              = proc-ped-ent-desp.cdn-despes
+                                      and substring(proc-desp-itiner.char-1,3,1) = "1") then
+                            assign de-saldo-a-faturar = de-saldo-valor.
+                        else
+                            assign de-saldo-a-faturar = trunc((de-saldo-valor * {1}.quantidade[1] / ( proc-ped-ent.quantidade[1] - de-tot-qt-faturada)),2).
+                    else                 
+                        assign de-saldo-a-faturar = trunc((de-saldo-valor * {1}.quantidade[1] / ( proc-ped-ent.quantidade[1] - de-tot-qt-faturada)),2).
+                end.
+                
+                if de-saldo-a-faturar < 0 then assign de-saldo-a-faturar = 0.
+
+                /*Localiza Despesa*/
+                FIND FIRST tt-{&TableName}-aux
+                     WHERE tt-{&TableName}-aux.seq-wt-docto = wt-docto.seq-wt-docto
+                       AND tt-{&TableName}-aux.cdn-despes   = proc-ped-ent-desp.cdn-despes
+                       AND tt-{&TableName}-aux.num-livre-1  = proc-ped-ent-desp.nr-sequencia NO-ERROR.
+                       
+                
+                /*Se nao existe, cria despesa*/
+                IF  NOT AVAIL tt-{&TableName}-aux THEN DO:
+                
+                    FOR FIRST proc-desp-itiner NO-LOCK
+                        WHERE proc-desp-itiner.cod-estabel       = proc-ped-ent-desp.cod-estabel
+                          AND proc-desp-itiner.nr-proc-exp       = proc-ped-ent-desp.nr-proc-exp
+                          AND proc-desp-itiner.cod-desp          = proc-ped-ent-desp.cdn-despes:
+                        
+                        if proc-desp-itiner.classif-despesa    = 1 then next.  /*desconsidera despesas que tem classificacao "nenhum"*/
+                        
+                        if proc-desp-itiner.val-desp = 0 or proc-desp-itiner.val-desp = ? then next.
+                        
+                        CREATE tt-{&TableName}-aux.
+                        ASSIGN tt-{&TableName}-aux.seq-wt-docto-despes  = i-seq + 1
+                               tt-{&TableName}-aux.seq-wt-docto         = wt-docto.seq-wt-docto
+                               tt-{&TableName}-aux.cod-itiner           = proc-desp-itiner.cod-itiner
+                               tt-{&TableName}-aux.cod-pto-contr        = proc-desp-itiner.cod-pto-contr
+                               tt-{&TableName}-aux.cdn-despes           = proc-ped-ent-desp.cdn-despes
+                               tt-{&TableName}-aux.cod-emitente-desp    = proc-desp-itiner.cod-emitente-desp
+                               tt-{&TableName}-aux.sequencia            = proc-desp-itiner.sequencia
+                               tt-{&TableName}-aux.mo-codigo            = proc-desp-itiner.mo-codigo
+                               tt-{&TableName}-aux.val-despes-nf        = 0
+                               tt-{&TableName}-aux.val-despes-ped       = 0
+                               tt-{&TableName}-aux.log-forma-preco      = proc-desp-itiner.l-forma-preco
+                               tt-{&TableName}-aux.cdn-classif-despes   = proc-desp-itiner.classif-despesa
+                               tt-{&TableName}-aux.cod-cond-pagto       = proc-desp-itiner.cod-cond-pag
+                               tt-{&TableName}-aux.log-despes-integr-ap = proc-desp-itiner.log-despes-integr-ap
+                               tt-{&TableName}-aux.log-comis-agent      = NO
+                               tt-{&TableName}-aux.dat-base-cobr-despes = proc-desp-itiner.dat-base-cobr-despes
+                               i-seq                                    = i-seq + 1
+                               tt-{&TableName}-aux.val-despes           = tt-{&TableName}-aux.val-despes + de-saldo-a-faturar
+                               tt-{&TableName}-aux.num-livre-1          = proc-ped-ent-desp.nr-sequencia
+                               &IF "{&bf_dis_versao_ems}" >= "2.09":U &THEN
+                                   tt-{&TableName}-aux.log-despes-inclusa  = proc-desp-itiner.log-despes-inclusa
+                                   tt-{&TableName}-aux.log-destaca-despes  = proc-desp-itiner.log-destaca-despes
+                                   tt-{&TableName}-aux.log-val-tot-faturam = proc-desp-itiner.log-val-tot-faturam
+                               &ELSE
+                                   overlay(tt-{&TableName}-aux.cod-livre-1,1,1) = trim(substring(proc-desp-itiner.char-1,1,1))
+                                   overlay(tt-{&TableName}-aux.cod-livre-1,2,1) = trim(substring(proc-desp-itiner.char-1,2,1))
+                                   overlay(tt-{&TableName}-aux.cod-livre-1,3,1) = trim(substring(proc-desp-itiner.char-1,3,1))
+                               &ENDIF
+                               .
+                               
+                    END.
+                END.
+                ELSE DO:
+                    assign tt-{&TableName}-aux.val-despes = tt-{&TableName}-aux.val-despes + de-saldo-a-faturar.
+                END.
+            END.
+        END.
+    END.
+END.
+
+/*Sugere log-comis-agent*/
+FOR FIRST proc-ped-ent NO-LOCK
+    &if '{&BF_MAT_VERSAO_EMS}' >= "2.071" &then
+      WHERE proc-ped-ent.cod-estabel = wt-docto.cod-estab-proces-export
+    &else
+      WHERE proc-ped-ent.cod-estabel = substring(wt-docto.char-1,118,3)
+    &endif
+      AND proc-ped-ent.nr-pedcli   = wt-docto.nr-pedcli
+      AND proc-ped-ent.nr-proc-exp = wt-docto.nr-proc-exp:
+
+    FIND FIRST param-exp WHERE param-exp.cod-estabel = proc-ped-ent.cod-estabel NO-LOCK NO-ERROR.
+
+    FOR FIRST processo-exp NO-LOCK
+        WHERE processo-exp.cod-estabel = proc-ped-ent.cod-estabel
+          AND processo-exp.nr-proc-exp = proc-ped-ent.nr-proc-exp:
+
+        FOR FIRST itinerario NO-LOCK
+            WHERE itinerario.cod-itiner = processo-exp.cod-itiner:
+
+            FOR FIRST pto-itiner NO-LOCK 
+                WHERE pto-itiner.cod-itiner    = itinerario.cod-itiner
+                  AND pto-itiner.cod-pto-contr = itinerario.pto-embarque:
+
+                ASSIGN i-seq-pto-embarque = pto-itiner.sequencia.
+            END.
+
+            FOR FIRST ped-repre NO-LOCK
+                WHERE ped-repre.nome-ab-rep = wt-docto.no-ab-reppri
+                  AND ped-repre.nr-pedido   = proc-ped-ent.nr-pedido:
+
+                ASSIGN i-tip-base-comis = ped-repre.idi-tip-base-comis-agent.
+                
+                FOR EACH tt-{&TableName}-aux:
+
+                    FOR FIRST pto-itiner NO-LOCK
+                        WHERE pto-itiner.cod-itiner    = tt-{&TableName}-aux.cod-itiner
+                          AND pto-itiner.cod-pto-contr = tt-{&TableName}-aux.cod-pto-contr:
+                    END.
+
+                    IF  CAN-FIND(FIRST desp-incoterm
+                                 WHERE desp-incoterm.cod-desp     = tt-{&TableName}-aux.cdn-despes
+                                   AND desp-incoterm.cod-incoterm = STRING(processo-exp.cod-itiner))
+                         OR tt-{&TableName}-aux.cdn-classif-despes = 1 
+                         OR tt-{&TableName}-aux.log-forma-preco    = NO THEN
+                         NEXT.
+                    ELSE 
+                        IF i-tip-base-comis = 1 THEN DO:
+                            IF param-exp.idi-busca-despes-export = 2 THEN
+                                ASSIGN tt-{&TableName}-aux.log-comis-agent = NO.
+                            ELSE
+                                IF  AVAIL pto-itiner AND pto-itiner.sequencia <= i-seq-pto-embarque THEN
+                                    ASSIGN tt-{&TableName}-aux.log-comis-agent = YES.
+                        END.
+                        ELSE DO:
+                            IF CAN-FIND(FIRST desp-incoterm
+                                        WHERE desp-incoterm.cod-desp     = tt-{&TableName}-aux.cdn-despes
+                                          AND desp-incoterm.cod-incoterm = processo-exp.cod-incoterm) THEN
+                                ASSIGN tt-{&TableName}-aux.log-comis-agent = YES.
+                            ELSE
+                                ASSIGN tt-{&TableName}-aux.log-comis-agent = NO.
+                        END.
+                END.
+            END.
+        END.
+    END.
+END.

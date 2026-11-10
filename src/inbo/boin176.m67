@@ -1,0 +1,14 @@
+PROCEDURE calculaPesoUn:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:  .      
+------------------------------------------------------------------------------*/
+    DEF INPUT PARAM de-peso LIKE item-doc-est.peso-liquido NO-UNDO.
+
+    
+    ASSIGN de-peso-un = de-peso / RowObject.qt-do-forn.
+        
+    return "OK":U.
+
+END PROCEDURE.

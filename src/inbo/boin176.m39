@@ -1,0 +1,173 @@
+PROCEDURE validateDevolucao :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Validaá∆o dos itens da nota de devoluá∆o de cliente.      
+------------------------------------------------------------------------------*/
+
+
+    def var de-qtd-max  like item-doc-est.quantidade  no-undo.
+
+    def buffer b-item-doc-est for item-doc-est.
+    
+    if  RowObject.nro-comp = "" then do:
+        if  RowObject.data-comp = ? then do:   
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="15200" /*Devera ser informada data da nota da sada*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"}
+        end.
+            
+
+        if  RowObject.data-comp > docum-est.dt-trans then do:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="17302" /*Data de sa°da n∆o pode ser maior que Data de Transaá∆o*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"}
+        end.
+            
+
+        if  avail emitente
+        and (    RowObject.nr-pedcli <> "" 
+             or  RowObject.nr-pd-seq <> 0)  then do:
+            find first ped-item 
+               where ped-item.nome-abrev  = emitente.nome-abrev 
+                and ped-item.nr-pedcli    = RowObject.nr-pedcli 
+                and ped-item.nr-sequencia = RowObject.nr-pd-seq 
+                and ped-item.it-codigo    = RowObject.it-codigo
+                no-lock no-error.
+        
+
+            if  not available ped-item then do:
+                {method/svc/errors/inserr.i
+                                &ErrorNumber="7154" /*Item n o consta no pedido de venda*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"}
+            end.
+            find ped-venda 
+               where ped-venda.nome-abrev = ped-item.nome-abrev 
+                 and ped-venda.nr-pedcli  = ped-item.nr-pedcli
+                 no-lock no-error.
+        
+
+            if  not available ped-venda 
+            or ( avail ped-venda and ped-venda.cod-sit-ped = 4 ) then do:
+                {method/svc/errors/inserr.i
+                                &ErrorNumber="7152" /*Pedido de venda esta suspenso*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"}
+            end.
+    
+
+            if  not available ped-venda 
+            or ( avail ped-venda and ped-venda.cod-sit-ped = 9 ) then do:
+                {method/svc/errors/inserr.i
+                                &ErrorNumber="7153" /*Pedido de venda esta cancelado*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"}
+    
+
+            end.
+        end.            
+    end.
+    else
+        if  l-pede-qtd then do:   
+        
+            find it-nota-fisc 
+               where it-nota-fisc.cod-estabel  = docum-est.cod-estabel
+                 and it-nota-fisc.serie        = RowObject.serie-comp   
+                 and it-nota-fisc.nr-nota-fis  = RowObject.nro-comp
+                 and it-nota-fisc.it-codigo    = RowObject.it-codigo
+                 and it-nota-fisc.nr-seq-fat   = RowObject.seq-comp  no-lock no-error.
+    
+
+            if  avail it-nota-fisc then do:
+    
+
+                assign de-qtd-max = it-nota-fisc.qt-faturada[1].
+    
+                for each devol-cli use-index ch-nfs
+                   where devol-cli.cod-estabel  = it-nota-fisc.cod-estabel
+                     and devol-cli.serie        = it-nota-fisc.serie
+                     and devol-cli.nr-nota-fis  = it-nota-fisc.nr-nota-fis
+                     and devol-cli.nr-sequencia = it-nota-fisc.nr-seq-fat
+                     and devol-cli.it-codigo    = it-nota-fisc.it-codigo   no-lock:
+    
+
+                   assign de-qtd-max = de-qtd-max - devol-cli.qt-devolvida.
+                end.
+                
+                FOR EACH b-docum-est NO-LOCK
+                WHERE b-docum-est.CE-atual = NO and
+                      b-docum-est.cod-emitente = docum-est.cod-emitente,
+                EACH b-item-doc-est where
+                     b-item-doc-est.cod-emitente = b-docum-est.cod-emitente AND
+                     b-item-doc-est.nro-docto    = b-docum-est.nro-docto AND
+                     b-item-doc-est.nat-operacao  = b-docum-est.nat-operacao AND
+                     b-item-doc-est.serie-docto  = b-docum-est.serie-docto and
+                     b-item-doc-est.it-codigo    = it-nota-fisc.it-codigo no-lock:
+                       
+                        IF    b-item-doc-est.serie-comp   = it-nota-fisc.serie        
+                        AND   b-item-doc-est.nro-comp     = it-nota-fisc.nr-nota-fis  
+                        AND   b-item-doc-est.nat-comp     = it-nota-fisc.nat-operacao 
+                        AND   b-item-doc-est.seq-comp     = it-nota-fisc.nr-seq-fat THEN DO:
+                        
+                          if RowObject.nro-docto    <> b-item-doc-est.nro-docto    or
+                             RowObject.nat-operacao <> b-item-doc-est.nat-operacao or
+                             RowObject.serie-docto  <> b-item-doc-est.serie-docto  or
+                             RowObject.sequencia    <> b-item-doc-est.sequencia    then
+                              assign  de-qtd-max = de-qtd-max - b-item-doc-est.quantidade.        
+                        END.
+                END.
+
+            end.
+            else do:
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-nota-fiscal-de-saida AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Nota_fiscal_de_sa°da" *}
+                ASSIGN c-lbl-liter-nota-fiscal-de-saida = TRIM(RETURN-VALUE).
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="2"
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR" 
+                                    &ErrorParameters="c-lbl-liter-nota-fiscal-de-saida"}
+
+                assign de-qtd-max = ?.
+            end.
+            
+            if  de-qtd-max <> ? then do:
+            
+                if de-qtd-max < 0 then do: 
+                    {method/svc/errors/inserr.i
+                                    &ErrorNumber="15024" /*Quantidade devolvida maior que quantidade faturada*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR" }
+                end.
+                else do:
+                   
+
+                    if RowObject.quantidade > it-nota-fisc.qt-faturada[1]
+                     or (RowObject.quantidade  >  (if (RowObject.r-rowid <> ? and avail item-doc-est and item-doc-est.quantidade > de-qtd-max) 
+                      then item-doc-est.quantidade else de-qtd-max) and 
+                         de-qtd-max            >= 0) then do:
+                         
+                       {method/svc/errors/inserr.i
+                                  &ErrorNumber="15024" /*Quantidade devolvida maior que quantidade faturada*/
+                                  &ErrorType="EMS"
+                                  &ErrorSubType="ERROR" }
+                    end.
+                    ELSE IF  RowObject.quantidade = 0
+                         AND de-qtd-max           = 0 THEN DO:
+
+                        {method/svc/errors/inserr.i
+                                  &ErrorNumber="5764" /*Quantidade j† devolvida e zerada*/
+                                  &ErrorType="EMS"
+                                  &ErrorSubType="ERROR" }
+                    END.
+                end.
+            end.
+        end.
+
+    return "OK":U.
+
+END PROCEDURE.

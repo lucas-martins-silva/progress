@@ -1,0 +1,35 @@
+/********************************************************************************
+**
+** IM0200.i5 - Defini‡Æo temp-table tt-param.
+**
+********************************************************************************/
+
+define temp-table tt-param NO-UNDO
+    field destino              as integer   /* IMPRESSORA - 1, ARQUIVO - 2, E-MAIL - 3 */
+    field arquivo              as char format "x(30)"   /* Nome do Arquivo */
+    field diretorio            as char      /* Diretorio do arquivo */
+    field usuario              as char      /* Usuario */
+    field data-exec            as date      /* Data execu‡Æo */
+    field hora-exec            as integer   /* Hora execu‡Æo */
+    field c-proc-ini           like processo-imp.nr-proc-imp /* Processo Inicial */
+    field c-proc-fim           as char      /* Processo Final */
+    field c-emb-ini            like embarque-imp.embarque    /* Embarque Inicial */    
+    field c-emb-fim            as char      /* Embarque Final */
+    field i-decl-ini           like decl-padrao.de-codigo /* Declara‡Æo Inicial */
+    field i-decl-fim           as integer   /* Declara‡Æo Final */
+    field i-itiner-ini         like itinerario.cod-itiner   /* Itiner rio Inicial */
+    field i-itiner-fim         as integer   /* Itiner rio Final */
+    field da-data-ini          as date label "Data" /* Data Inicial */
+    field da-data-fim          as date              /* Data Final */
+    field i-pto-con-ini        like pto-contr.cod-pto-contr   /* Ponto Controle Inicial */
+    field i-pto-con-fim        as integer   /* Ponto Controle Final */
+    field l-envia              as logical   /* Envia e-mail */
+    field l-traduz             as logical   /* Traduz relat¢rios */
+    field l-reemite            as logical   /* Reemite Declara‡Æo */
+    field l-imprime            as logical   /* Imprime P gina Parƒmetros */
+    field c-destino            as char      /* Cliente Servidor */
+    field c-endmail            as char      /* Endere‡o e-mail remetente - Magnus */
+    field l-dataefetiva        as logical.  /*considera data efetiva - somente ‚ utilizada quando a fun‡Æo caraiba-fo897776 estiver ativada
+                                            pelo programa cd7070*/
+define temp-table tt-processo-imp no-undo
+    field c-nr-proc-imp        as char format "x(12)":U.

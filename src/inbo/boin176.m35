@@ -1,0 +1,113 @@
+PROCEDURE setDespesasItem :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def var de-despesa           as decimal no-undo.
+    def var de-frete             as decimal no-undo.
+    def var l-devol-consig       as logical no-undo.
+    def var de-pedagio           as decimal no-undo.
+    
+
+    run findItem ( RowObject.it-codigo ).
+
+    if  return-value = "NOK":U 
+    or  not avail docum-est then
+        return "NOK":U.
+        
+
+    run findUsuario ( c-seg-usuario ).
+
+    if  return-value = "NOK":U then
+        return "NOK":U.
+   
+
+    if  avail item 
+    and avail natur-oper
+    and natur-oper.transf = no then 
+        assign RowObject.peso-liquido = if  not l-servicos 
+                                        and RowObject.peso-liquido = 0
+                                        then (RowObject.quantidade * item.peso-liquido)
+                                        else RowObject.peso-liquido.
+                           
+    /* Quando a nota tem origem importada e j† possui o preáo de frete definido, n∆o ser† recalculado 
+       o mesmo, dever† ser assumido o que vier na nota - Utilizado no Conversor de NF-e */
+    if  (docum-est.origem <> "i":U AND docum-est.origem <> "AQR":U and docum-est.origem <> "XML":U) or 
+        (not CAN-FIND(FIRST doc-orig-nfe 
+                WHERE doc-orig-nfe.ch-acesso-comp-nfe = docum-est.cod-chave-aces-nf-eletro
+                  AND doc-orig-nfe.idi-orig-trad      = 2) and 
+         (docum-est.origem = "i" or docum-est.origem = "XML") and 
+         RowObject.pr-total-cmi = 0 and RowObject.despesas[1] = 0 and i-pais-impto-usuario = 1)  then do:
+       
+        run rep/re1001r.p (rowid(docum-est),
+                           RowObject.preco-total[1],
+                           3,
+                           output de-despesa).                
+ 
+
+        assign RowObject.despesas[1] = de-despesa.
+
+        run rep/re1001r.p (rowid(docum-est),
+                           if avail param-re and param-re.rateia-frete = 1 
+                           then Rowobject.peso-liquido
+                           else RowObject.preco-total[1],
+                           2,
+                           output de-frete).
+                
+        assign RowObject.pr-total-cmi = de-frete
+               RowObject.despesas[1]  = de-despesa + de-frete.
+    end.
+    
+
+    if  RowObject.numero-ordem <> 0 then
+        run calculateDescontoCC.
+    
+    if  avail natur-oper then do:
+        if  (natur-oper.terceiros
+        and  (   natur-oper.tp-oper-terc = 5   /* retorno beneficiamento */
+              or natur-oper.tp-oper-terc = 2)  /* devoluá∆o consignaá∆o */
+              ) 
+        or   natur-oper.transf then /* transferància */
+            assign l-devol-consig = yes.
+        else
+            assign l-devol-consig = no.
+    end.
+
+    if  param-re.rateia-desc 
+    and docum-est.tot-desconto <> 0
+    and not l-devol-consig then do:
+    
+        run rep/re1001r.p (rowid(docum-est),
+                           RowObject.preco-total[1],
+                           1,
+                           output de-desconto).
+        
+
+        if  de-desconto <> 0 then do:                               
+            assign RowObject.desconto[1] = de-desconto.
+        end.                       
+    end. 
+    
+    if avail param-re
+    and substring(param-re.char-1,21,1) = "1" 
+    and avail natur-oper
+    and natur-oper.tipo-compra = 2 then do:
+    
+        run rep/re1001r.p (rowid(docum-est),
+                           RowObject.preco-total[1],
+                           4,
+                           output de-pedagio).                
+    
+        assign overlay(RowObject.char-2,819,13) = string(de-pedagio).        
+    
+    end.
+    
+    return "OK":U.
+
+END PROCEDURE.
+
+
+
+

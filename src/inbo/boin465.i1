@@ -1,0 +1,46 @@
+PROCEDURE AlterarUnidadeCiclos:
+
+    define parameter buffer b1-ferr-prod for ferr-prod.
+    
+    def buffer b2-ferr-prod    for ferr-prod.
+    def buffer b1-ferr-virtual for ferr-virtual.
+    def buffer b2-ferr-virtual for ferr-virtual.
+    
+    def var v-un-ciclo like ferr-prod.un-ciclo no-undo.
+    
+    for each op-ferram
+        where op-ferram.ferramenta = b1-ferr-prod.cod-ferr-prod exclusive:
+        assign op-ferram.un-ciclo  = b1-ferr-prod.un-ciclo.
+    end.
+    
+    for each op-ferr-pad
+        where op-ferr-pad.ferramenta = b1-ferr-prod.cod-ferr-prod exclusive:
+        assign op-ferr-pad.un-ciclo  = b1-ferr-prod.un-ciclo.
+    end.
+
+    for each  b1-ferr-virtual
+        where b1-ferr-virtual.cod-ferr-prod = b1-ferr-prod.cod-ferr-prod:
+        
+        assign v-un-ciclo = 0.
+        for each  b2-ferr-virtual
+            where b2-ferr-virtual.cod-ferr-virtual = b1-ferr-virtual.cod-ferr-virtual:
+            
+            find first b2-ferr-prod
+                 where b2-ferr-prod.cod-ferr-prod = b2-ferr-virtual.cod-ferr-prod
+                 no-lock no-error.
+            if avail b2-ferr-prod then     
+               assign v-un-ciclo = v-un-ciclo + b2-ferr-prod.un-ciclo.
+        end.
+        
+        find b2-ferr-prod
+             where b2-ferr-prod.cod-ferr-prod = b1-ferr-virtual.cod-ferr-virtual
+             exclusive-lock no-error.
+        if avail  b2-ferr-prod then do:
+           assign b2-ferr-prod.un-ciclo = v-un-ciclo.
+                    
+           run AlterarUnidadeCiclos(buffer b2-ferr-prod).
+        end.
+    end.    
+        
+        
+END PROCEDURE.

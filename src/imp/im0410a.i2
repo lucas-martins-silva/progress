@@ -1,0 +1,82 @@
+/*    
+  Os campos val-peso-liq e val-peso-brut-merc nÆo fazem parte da quebra das adi‡äes, por‚m, sempre que eles forem alterados nas ordens, ‚ preciso regerar as adi‡äes.
+*/
+DEF TEMP-TABLE tt-campos-quebra NO-UNDO
+    FIELD num-di-ems                        LIKE decla-import-ord.num-di-ems
+    FIELD cdd-siscomex-dts                  LIKE decla-import-ord.cdd-siscomex-dts
+    FIELD num-ordem                         LIKE decla-import-ord.num-ordem
+    FIELD num-parcela                       LIKE decla-import-ord.num-parcela
+    FIELD cdn-naladi-sist-harmon            LIKE decla-import-ord.cdn-naladi-sist-harmon
+    FIELD cod-naladi-ncca                   LIKE decla-import-ord.cod-naladi-ncca
+    FIELD cod-nbm                           LIKE decla-import-ord.cod-nbm
+    FIELD cod-licenc-import                 LIKE decla-import-ord.cod-licenc-import
+    FIELD cdn-fabrican                      LIKE decla-import-ord.cdn-fabrican
+    FIELD cdn-pais-proceden                 LIKE decla-import-ord.cdn-pais-proceden
+    FIELD cod-aladi                         LIKE decla-import-ord.cod-aladi
+    FIELD qtd-capac-recip                   LIKE decla-import-ord.qtd-capac-recip
+                                          
+    FIELD log-suspens-impto-import          LIKE decla-import-ord.log-suspens-impto-import
+    FIELD log-suspens-ipi-import            LIKE decla-import-ord.log-suspens-ipi-import
+    &IF '{&bf_mat_versao_ems}' >= '2.09' &THEN
+       FIELD log-suspens-icms               LIKE decla-import-ord.log-suspens-icms
+       FIELD log-suspens-pis                LIKE decla-import-ord.log-suspens-pis
+       FIELD log-suspens-cofins             LIKE decla-import-ord.log-suspens-cofins
+    &ELSE                                 
+       FIELD cod-livre-1                    LIKE decla-import-ord.cod-livre-1
+    &ENDIF                                
+                                                                                           
+    FIELD idi-tributac-icms                 LIKE decla-import-ord.idi-tributac-icms
+    FIELD idi-tributac-ipi                  LIKE decla-import-ord.idi-tributac-ipi
+    FIELD idi-tributac-pis                  LIKE decla-import-ord.idi-tributac-pis
+    FIELD idi-tributac-cofins               LIKE decla-import-ord.idi-tributac-cofins
+    FIELD idi-tributac-impto-import         LIKE decla-import-ord.idi-tributac-impto-import
+                                                     
+    FIELD val-aliq-cofins                   LIKE decla-import-ord.val-aliq-cofins
+    FIELD val-aliq-icms                     LIKE decla-import-ord.val-aliq-icms
+    FIELD val-aliq-ii                       LIKE decla-import-ord.val-aliq-ii
+    FIELD val-aliq-ipi                      LIKE decla-import-ord.val-aliq-ipi
+    FIELD val-aliq-pis                      LIKE decla-import-ord.val-aliq-pis
+                                                     
+    FIELD val-perc-reduc-cofins             LIKE decla-import-ord.val-perc-reduc-cofins
+    FIELD val-perc-reduc-icms               LIKE decla-import-ord.val-perc-reduc-icms
+    FIELD val-perc-reduc-impto-import       LIKE decla-import-ord.val-perc-reduc-impto-import
+    FIELD val-perc-reduc-ipi                LIKE decla-import-ord.val-perc-reduc-ipi
+    FIELD val-perc-reduc-pis                LIKE decla-import-ord.val-perc-reduc-pis
+    
+    FIELD val-unit-pis                      LIKE decla-import-ord.val-unit-pis
+    FIELD val-unit-cofins                   LIKE decla-import-ord.val-unit-cofins
+    FIELD val-unit-ipi                      LIKE decla-import-ord.val-unit-ipi
+    
+    FIELD val-peso-liq                      LIKE decla-import-ord.val-peso-liq    
+    FIELD val-peso-brut-merc                LIKE decla-import-ord.val-peso-brut-merc
+    
+    FIELD idi-ind-pagto                     LIKE decla-import-ord.idi-ind-pagto
+    
+    /* Impostos RT */
+    FIELD c-class-trib-ibs-uf               LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-cst-ibs-uf                      LIKE decla-import-ord-trib.cod-conteudo
+    FIELD cb-idi-tributac-ibs-uf            LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-ibs-uf                    LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-red-ibs-uf                LIKE decla-import-ord-trib.cod-conteudo
+    
+    FIELD c-class-trib-ibs-mun              LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-cst-ibs-mun                     LIKE decla-import-ord-trib.cod-conteudo
+    FIELD cb-idi-tributac-ibs-mun           LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-ibs-mun                   LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-red-ibs-mun               LIKE decla-import-ord-trib.cod-conteudo
+
+    FIELD c-class-trib-cbs                  LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-cst-cbs                         LIKE decla-import-ord-trib.cod-conteudo
+    FIELD cb-idi-tributac-cbs               LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-cbs                       LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-red-cbs                   LIKE decla-import-ord-trib.cod-conteudo
+    
+    FIELD c-class-trib-ibs-uf-reg           LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-cst-ibs-uf-reg                  LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-ibs-uf-reg                LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-class-trib-ibs-mun-reg          LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-cst-ibs-mun-reg                 LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-ibs-mun-reg               LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-class-trib-cbs-reg              LIKE decla-import-ord-trib.cod-conteudo
+    FIELD c-cst-cbs-reg                     LIKE decla-import-ord-trib.cod-conteudo
+    FIELD de-aliq-cbs-reg                   LIKE decla-import-ord-trib.cod-conteudo.

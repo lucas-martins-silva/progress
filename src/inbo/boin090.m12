@@ -1,0 +1,286 @@
+PROCEDURE calculateTotalNota :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Calculo:
+         - Valor Total da Nota (docum-est.tot-valor) 
+         - Valor da Substitui‡Æo Tribut ria das Notas de Frete
+------------------------------------------------------------------------------*/
+
+    def output parameter de-tot-valor like docum-est.tot-valor    no-undo.
+    DEF VAR de-tot-valor-aux-soma     LIKE docum-est.tot-valor    NO-UNDO.
+
+
+    if  i-pais-impto-usuario = 1 then   /**** Brasil *****/
+        RUN verificaModuloImp.
+
+    find first tt-total-item no-lock no-error.
+
+    if  not avail tt-total-item then do:
+        if  not valid-handle(h_boin176) then 
+            run inbo/boin176.p persistent set h_boin176.
+
+        run calculateTotalItem in h_boin176 ( input RowObject.cod-emitente,
+                                              input RowObject.serie-docto,
+                                              input RowObject.nro-docto,
+                                              input RowObject.nat-operacao,
+                                              output table tt-total-item ).                                   
+        find first tt-total-item no-lock.
+    end.
+        
+    IF  AVAIL tt-total-item THEN DO:
+        
+        /* Se USA mœltiplas naturezas no recebimento: */
+        IF  l-mult-natur-receb THEN DO:  /* Var def em cd9701.i */
+            ASSIGN de-tot-valor = tt-total-item.de-tot-valor-calc. /* Valor total da nota calculado com base nos itens e suas naturezas. */
+
+            RUN findNaturOper(RowObject.nat-operacao). /* Busca natur-oper com base na nat do documento */
+
+            IF  RETURN-VALUE = "NOK":U THEN
+                RETURN "NOK":U.
+
+            if  avail natur-oper and natur-oper.tipo-compra = 2 then do: /* Frete */ 
+
+                ASSIGN de-tot-valor = 0.
+
+                /* Procedure auxiliar para calcular o valor total da nota */
+                RUN calculaVlrTotalAux(OUTPUT de-tot-valor).
+
+            END.
+        END.
+        /* Se n’o usa mœlti.Natur: */
+        ELSE DO: /* Var def em cd9701.i */
+            RUN findNaturOper(RowObject.nat-operacao). /* Busca natur-oper com base na nat do documento */
+        
+            IF  RETURN-VALUE = "NOK":U THEN
+                RETURN "NOK":U.
+                       
+            /* Procedure auxiliar para calcular o valor total da nota */
+            RUN calculaVlrTotalAux(OUTPUT de-tot-valor).
+        END.
+        
+    END. /* END IF AVAIL tt-total-item */
+
+    if c-nom-prog-dpc-mg97  <> "" or
+       c-nom-prog-appc-mg97 <> "" or 
+       c-nom-prog-upc-mg97  <> "" then do:
+
+        for each tt-epc where tt-epc.cod-event = "fim-calculateTotalNota":U:
+            delete tt-epc.
+        end.
+    
+        create tt-epc.
+        assign tt-epc.cod-event     = "fim-calculateTotalNota":U
+               tt-epc.cod-parameter = "de-tot-valor":U
+               tt-epc.val-parameter = STRING(de-tot-valor).
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "fim-calculateTotalNota":U
+               tt-epc.cod-parameter = "nro-docto":U
+               tt-epc.val-parameter = STRING(rowObject.nro-docto).
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "fim-calculateTotalNota":U
+               tt-epc.cod-parameter = "nat-operacao":U
+               tt-epc.val-parameter = STRING(rowObject.nat-operacao).
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "fim-calculateTotalNota":U
+               tt-epc.cod-parameter = "cod-emitente":U
+               tt-epc.val-parameter = STRING(rowObject.cod-emitente).
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "fim-calculateTotalNota":U
+               tt-epc.cod-parameter = "serie-docto":U
+               tt-epc.val-parameter = STRING(rowObject.serie-docto).
+    
+        {include/i-epc201.i fim-calculateTotalNota}
+    
+        FIND tt-epc
+            WHERE tt-epc.cod-event = "fim-calculateTotalNota":U 
+              AND tt-epc.cod-parameter = "de-tot-valor":U NO-LOCK NO-ERROR.
+        IF AVAIL tt-epc THEN
+            ASSIGN de-tot-valor = DECIMAL(tt-epc.val-parameter).
+
+    END.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE calculaVlrTotalAux :
+/*------------------------------------------------------------------------------
+  Purpose: Auxiliar no c lculo do total da nota
+  Parameters:  <none>
+  Notes: Procedure auxiliar para realizar o c lculo total do valor dos itens
+         com base na natur-oper que estiver no buffer (pode ser a natureza 
+         fiscal do item ou a natureza do documento)
+------------------------------------------------------------------------------*/
+
+    def output parameter de-tot-valor-aux like docum-est.tot-valor    no-undo.
+
+    def var de-icm-fonte              like docum-est.icm-fonte no-undo.
+    def var l-gera-cred-subs          as log                   no-undo.
+    def var l-icms-deson              as log                   no-undo.
+    def var de-icms-deson             like ct-trib-item-doc-est.val-trib no-undo.    
+
+    {cdp/cd4300.i3}                  /* Variaveis para CD4300.I4  */
+    {cdp/cd0604.i50}                 /* Variaveis para CD0604     */
+
+    /* l-ipi-tot-nota */      
+    {cdp/cd4300.i4  yes natur-oper.char-2}
+    {cdp/cd0604.i51 yes}
+    
+    /* Indica se Gera Cr‚dito para Substitui‡Æo Tribut ria */
+    &if '{&bf_mat_versao_ems}' < '2.08' &then
+            if substr(natur-oper.char-1,147,1) <> "1" then do:
+                    assign l-gera-cred-subs = int(substr(natur-oper.char-2,56,5)) = 1.
+                    
+                     assign de-tot-valor-aux = tt-total-item.valor-mercad
+                                        + tt-total-item.despesa-nota
+                                        - tt-total-item.tot-desconto
+                                        + tt-total-item.valor-subs
+                                        + tt-total-item.total-pis-subst
+                                        + tt-total-item.total-cofins-subs.  
+            end.
+            else do:
+                     assign de-tot-valor-aux = tt-total-item.valor-mercad
+                                + tt-total-item.despesa-nota
+                                - tt-total-item.tot-desconto
+                                + tt-total-item.total-pis-subst
+                                + tt-total-item.total-cofins-subs.                 
+            end.        
+    &else
+            if not natur-oper.log-icms-substto-antecip then do:
+                assign l-gera-cred-subs = int(substr(natur-oper.char-2,56,5)) = 1.
+                
+                assign de-tot-valor-aux = tt-total-item.valor-mercad
+                                        + tt-total-item.despesa-nota
+                                        - tt-total-item.tot-desconto
+                                        + tt-total-item.valor-subs
+                                        + tt-total-item.total-pis-subst
+                                        + tt-total-item.total-cofins-subs.  
+                                        
+                FOR FIRST ext-docum-est NO-LOCK
+                   WHERE ext-docum-est.serie-docto  = RowObject.serie-docto 
+                     AND ext-docum-est.nro-docto    = RowObject.nro-docto   
+                     AND ext-docum-est.cod-emitente = RowObject.cod-emitente
+                     AND ext-docum-est.nat-operacao = RowObject.nat-operacao
+                     AND ext-docum-est.cod-param    = "fcp":U :
+                     ASSIGN de-tot-valor-aux = de-tot-valor-aux + ext-docum-est.val-livre-6. /*valor fcp ST*/ 
+                END.
+            end.     
+            else do:
+                 assign de-tot-valor-aux = tt-total-item.valor-mercad
+                                     + tt-total-item.despesa-nota
+                                     - tt-total-item.tot-desconto
+                                     + tt-total-item.total-pis-subst
+                                     + tt-total-item.total-cofins-subs.  
+            end.   
+    &endif                
+    
+    /* SOMA VALOR DO IPI */
+    if  l-industria or l-devolucao then do:
+    
+    
+        /* IPI Tributado */
+        assign de-tot-valor-aux = de-tot-valor-aux
+                           + (tt-total-item.valor-ipi - tt-total-item.ipi-outras).
+    
+    
+        /* IPI Outros */        
+        assign de-tot-valor-aux = de-tot-valor-aux
+                            + tt-total-item.ipi-outras
+                            * int(    l-ipi-tot-nota         or
+                                 (not natur-oper.terceiros   and
+                                  not natur-oper.transf      and 
+                                  not l-devolucao)).
+    end.
+    
+    
+    /* CALCULO DO ICMS SUBSTITUTO DAS NOTAS DE FRETE */
+    if  natur-oper.tipo-compra = 2 /* Frete */ 
+    and natur-oper.subs-trib then do:
+    
+    
+        if  RowObject.icm-fonte = 0 then
+            run calculateICMSFonte ( input tt-total-item.valor-icm,
+                                     output de-icm-fonte ). 
+        else 
+            assign de-icm-fonte = RowObject.icm-fonte.                                         
+        
+    
+        if  natur-oper.usa-nota-ent then 
+            assign de-tot-valor-aux = de-tot-valor-aux - de-icm-fonte.
+        
+    
+        if  l-gera-cred-subs then
+            assign de-tot-valor-aux = de-tot-valor-aux + de-icm-fonte.
+    end.
+    
+    
+    /* 
+    ** Integra‡Æo M¢dulo Importa‡Æo 
+    ** Verifica parƒmetro "incide icms total da nota" do estabelecimento no parƒmetro de importa‡ƒo 
+    */
+    if  l-imp then do:
+        if  not l-fornec-fundap and not natur-oper.nota-rateio then do:
+            if not valid-handle (h-bocx250) then
+               run cxbo/bocx250.p persistent set h-bocx250.
+            run findCodigo in h-bocx250 (input rowobject.cod-estabel, output c-return).
+            if c-return = "":U then do:
+               run getLogfield in h-bocx250 (input "inc-icms-tot-nf":U,output l-inc-icms-tot-nf).
+    
+               IF  rowobject.origem = "I" and not l-inc-icms-tot-nf then
+                   assign de-tot-valor-aux = de-tot-valor-aux - rowobject.icm-deb-cre.
+               else IF l-inc-icms-tot-nf and rowobject.origem <> "I" THEN
+                   assign de-tot-valor-aux = de-tot-valor-aux + rowobject.icm-deb-cre.
+                   
+               /* ICMS Desonerado nÆo soma no total da nota */
+               IF  rowobject.origem = "I" and not l-inc-icms-tot-nf then do:
+                   ASSIGN de-icms-deson = 0.
+                   FOR EACH ct-trib-item-doc-est NO-LOCK
+                       WHERE ct-trib-item-doc-est.cdn-emitente     = rowobject.cod-emitente
+                         AND ct-trib-item-doc-est.cod-ser-docto    = rowobject.serie-docto
+                         AND ct-trib-item-doc-est.cod-docto        = rowobject.nro-docto
+                         AND ct-trib-item-doc-est.cod-natur-operac = rowobject.nat-operacao:  
+                         IF ct-trib-item-doc-est.cod-tip-trib  = "icms desonerado":U THEN
+                            ASSIGN l-icms-deson  = YES
+                                   de-icms-deson = de-icms-deson + ct-trib-item-doc-est.val-trib.
+                   END.
+                   IF l-icms-deson AND de-icms-deson > 0 THEN
+                      assign de-tot-valor-aux = de-tot-valor-aux - de-icms-deson.                   
+               END.                    
+            end.
+            if valid-handle (h-bocx250) then do:
+               delete procedure h-bocx250.
+               assign h-bocx250 = ?.
+            end.
+        end.
+        else do:
+            IF  rowobject.origem = "I" and 
+                &IF '{&bf_mat_versao_ems}' >= '2.08' &THEN
+                not natur-oper.log-incid-icms-tot-nfr
+                &ELSE
+                SUBSTR(natur-oper.char-2,145,1) <> "1"
+                &ENDIF 
+                and not natur-oper.nota-rateio THEN
+                assign de-tot-valor-aux = de-tot-valor-aux - rowobject.icm-deb-cre.    
+        end.
+    end.
+    
+    /**** INICIO PREPROCESSADOR ******************/
+    /* Diminui valor de ICMS presumido */
+    &IF '{&BF_DIS_VERSAO_EMS}' >= '2.05' &THEN
+        if natur-oper.log-icms-presmdo then
+            assign de-tot-valor-aux = de-tot-valor-aux - tt-total-item.valor-icm-trib.
+    &ENDIF
+    /******** FIM PREPROCESSADOR ******************/ 
+    
+    if  de-tot-valor-aux < 0 then 
+        assign de-tot-valor-aux = 0.
+    
+    RETURN "OK":U.
+
+END PROCEDURE.

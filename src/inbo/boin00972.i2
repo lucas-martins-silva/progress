@@ -1,0 +1,146 @@
+DEFINE VARIABLE  l-validar-abrangen AS LOGICAL            NO-UNDO.
+DEFINE VARIABLE  c-abrangencia      AS CHARACTER EXTENT 8 NO-UNDO.
+DEFINE VARIABLE  cTxtAbrang         AS CHARACTER          NO-UNDO.
+
+
+{utp/ut-liter.i "Ponto Coleta" * }
+ASSIGN c-abrangencia[1] = RETURN-VALUE.
+
+{utp/ut-liter.i "Propriedade" * }
+ASSIGN c-abrangencia[2] = RETURN-VALUE.
+
+{utp/ut-liter.i "Produtor" * }
+ASSIGN c-abrangencia[3] = RETURN-VALUE.
+
+{utp/ut-liter.i "Grupo" * }
+ASSIGN c-abrangencia[4] = RETURN-VALUE.
+
+{utp/ut-liter.i "Rota" * }
+ASSIGN c-abrangencia[5] = RETURN-VALUE.
+
+{utp/ut-liter.i "RegiÆo" * }
+ASSIGN c-abrangencia[6] = RETURN-VALUE.
+
+{utp/ut-liter.i "Estabelecimento" * }
+ASSIGN c-abrangencia[7] = RETURN-VALUE.
+
+{utp/ut-liter.i "Todos" * }
+ASSIGN c-abrangencia[8] = RETURN-VALUE.
+/* Validacao sobreposicao perido vigencia e abrangencia */ 
+IF {&TABELA}.cdn-tipo = 1 OR {&TABELA}.cdn-tipo = 4 THEN DO: /* PREÇO BASE e BÔNUS FIXO */
+   IF  {&TIPO} = "Create":U THEN do:
+       FOR EACH bf{&TableName} 
+           WHERE bf{&TableName}.cdn-abrangen = {&TABELA}.cdn-abrangen
+             AND bf{&TableName}.it-codigo    = {&TABELA}.it-codigo
+             AND bf{&TableName}.cdn-tipo     = {&TABELA}.cdn-tipo
+             AND bf{&TableName}.dat-fim     >= {&TABELA}.dat-inic 
+             AND bf{&TableName}.dat-inic    <= {&TABELA}.dat-fim NO-LOCK:              
+             {inbo/boin00972.i3 &TABELA="{&TABELA}"}             
+       END.
+   END.    
+   ELSE 
+       FOR EACH bf{&TableName} 
+           WHERE bf{&TableName}.cdn-abrangen = {&TABELA}.cdn-abrangen
+             AND bf{&TableName}.it-codigo    = {&TABELA}.it-codigo
+             AND bf{&TableName}.cdn-tipo     = {&TABELA}.cdn-tipo
+             AND bf{&TableName}.dat-fim     >= {&TABELA}.dat-inic 
+             AND bf{&TableName}.dat-inic    <= {&TABELA}.dat-fim 
+             AND ROWID(bf{&TableName})      <> {&TABELA}.r-Rowid NO-LOCK:
+             
+             {inbo/boin00972.i3 &TABELA="{&TABELA}"}             
+      END.
+END.
+ELSE IF {&TABELA}.cdn-tipo = 2 THEN DO: /*VARIACÃO QUALIDADE*/
+    IF  {&TIPO} = "Create":U THEN 
+       FOR EACH bf{&TableName} 
+           WHERE bf{&TableName}.cdn-abrangen   = {&TABELA}.cdn-abrangen
+             AND bf{&TableName}.it-codigo      = {&TABELA}.it-codigo
+             AND bf{&TableName}.cdn-tipo       = {&TABELA}.cdn-tipo
+             AND bf{&TableName}.cod-exame      = {&TABELA}.cod-exame
+             AND bf{&TableName}.cod-comp       = {&TABELA}.cod-comp
+             AND bf{&TableName}.dat-fim       >= {&TABELA}.dat-inic 
+             AND bf{&TableName}.dat-inic      <= {&TABELA}.dat-fim 
+             AND bf{&TableName}.val-faixa-fim >= {&TABELA}.val-faixa-inic 
+             AND bf{&TableName}.val-faixa-inic <= {&TABELA}.val-faixa-fim NO-LOCK:
+             {inbo/boin00972.i3 &TABELA="{&TABELA}"}             
+       END.
+    ELSE 
+       FOR EACH bf{&TableName} 
+           WHERE bf{&TableName}.cdn-abrangen   = {&TABELA}.cdn-abrangen
+             AND bf{&TableName}.it-codigo      = {&TABELA}.it-codigo
+             AND bf{&TableName}.cdn-tipo       = {&TABELA}.cdn-tipo
+             AND bf{&TableName}.cod-exame      = {&TABELA}.cod-exame
+             AND bf{&TableName}.cod-comp       = {&TABELA}.cod-comp             
+             AND bf{&TableName}.dat-fim       >= {&TABELA}.dat-inic 
+             AND bf{&TableName}.dat-inic      <= {&TABELA}.dat-fim 
+             AND bf{&TableName}.val-faixa-fim >= {&TABELA}.val-faixa-inic 
+             AND bf{&TableName}.val-faixa-inic <= {&TABELA}.val-faixa-fim 
+             AND ROWID(bf{&TableName})        <> {&TABELA}.r-Rowid NO-LOCK:
+             {inbo/boin00972.i3 &TABELA="{&TABELA}"}            
+       END.
+END.
+ELSE DO: /* VARIACAO VOLUME */
+   IF  {&TIPO} = "Create":U THEN 
+       FOR EACH bf{&TableName} 
+           WHERE bf{&TableName}.cdn-abrangen   = {&TABELA}.cdn-abrangen
+             AND bf{&TableName}.it-codigo      = {&TABELA}.it-codigo
+             AND bf{&TableName}.cdn-tipo       = {&TABELA}.cdn-tipo
+             AND bf{&TableName}.dat-fim       >= {&TABELA}.dat-inic 
+             AND bf{&TableName}.dat-inic      <= {&TABELA}.dat-fim 
+             AND bf{&TableName}.val-faixa-fim >= {&TABELA}.val-faixa-inic 
+             AND bf{&TableName}.val-faixa-inic <= {&TABELA}.val-faixa-fim NO-LOCK: 
+            {inbo/boin00972.i3 &TABELA="{&TABELA}"}            
+        END.
+    ELSE 
+       FOR FIRST bf{&TableName} 
+           WHERE bf{&TableName}.cdn-abrangen   = {&TABELA}.cdn-abrangen
+             AND bf{&TableName}.it-codigo      = {&TABELA}.it-codigo
+             AND bf{&TableName}.cdn-tipo       = {&TABELA}.cdn-tipo
+             AND bf{&TableName}.dat-fim       >= {&TABELA}.dat-inic 
+             AND bf{&TableName}.dat-inic      <= {&TABELA}.dat-fim 
+             AND bf{&TableName}.val-faixa-fim >= {&TABELA}.val-faixa-inic 
+             AND bf{&TableName}.val-faixa-inic <= {&TABELA}.val-faixa-fim 
+             AND ROWID(bf{&TableName})        <> {&TABELA}.r-Rowid NO-LOCK: 
+            {inbo/boin00972.i3 &TABELA="{&TABELA}"}           
+       END.
+END.
+
+
+    
+IF l-validar-abrangen THEN DO:    
+    /*&1*/
+    {utp/ut-liter.i a_regra * }
+    ASSIGN cTxt = RETURN-VALUE +  ' ' + bf{&TableName}.cod-regra.
+    {utp/ut-liter.i para_a_abrangˆncia * }
+    ASSIGN cTxt = cTxt + ' ' + RETURN-VALUE + ' ' + {ininc/i01in00972.i 04 bf{&TableName}.cdn-abrangen}.
+    {utp/ut-liter.i com_data_em_conflito * }
+    ASSIGN cTxt = cTxt + ' ' + RETURN-VALUE.
+    /* J  existe a regra <codigo_regra> para a mesma abrangˆncia 
+    <codigo_abrangencia> com data em conflito */
+    
+    /*&2*/
+    {utp/ut-liter.i a_regra * }
+    ASSIGN cTxt2 = RETURN-VALUE + ' ' + bf{&TableName}.cod-regra + ' '.
+    {utp/ut-liter.i com_data_em_conflito._C¢d_regra: * }
+    ASSIGN cTxt2 = cTxt2 + ' ' + RETURN-VALUE + ' ' + bf{&TableName}.cod-regra + ','.
+    {utp/ut-liter.i Seq: * }
+    ASSIGN cTxt2 = cTxt2 + ' ' + RETURN-VALUE + ' ' + STRING(bf{&TableName}.cdn-seq) + ','.
+    {utp/ut-liter.i Abrangˆncia: * }
+    ASSIGN cTxt2 = cTxt2 + ' ' + RETURN-VALUE + ' ' + {ininc/i01in00972.i 04 bf{&TableName}.cdn-abrangen} + ','.  
+    IF {&TABELA}.cdn-abrangen < 8 THEN
+        ASSIGN cTxt2 = cTxt2 + ' ' +  cTxtAbrang + ','.    
+    {utp/ut-liter.i Vigˆncia: * }
+    ASSIGN cTxt2 = cTxt2 + ' ' + RETURN-VALUE + ' ' + STRING(bf{&TableName}.dat-inic).
+    {utp/ut-liter.i at‚ * }
+    ASSIGN cTxt2 = cTxt2 + ' ' + RETURN-VALUE + ' ' + STRING(bf{&TableName}.dat-fim) + '.'.
+    
+    {method/svc/errors/inserr.i
+             &ErrorNumber="15560" 
+             &ErrorType="EMS"
+             &ErrorSubType="ERROR"
+             &ErrorParameters="cTxt + ' ~~~~ ' + cTxt2"}
+             ASSIGN lErro = YES.
+END.
+
+
+      

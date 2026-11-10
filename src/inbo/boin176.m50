@@ -1,0 +1,246 @@
+ PROCEDURE setDefaultsUnidadeNegocio:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+ /*  1 Remessa Beneficiamento 
+     2 Retorno Beneficiamento 
+     3 Remessa Consignaá∆o    
+     4 Faturamento Consignaá∆o
+     5 Devoluá∆o Consignaá∆o  
+     6 Reajuste Preáo         
+     7 Drawback               
+     
+     l-ent-cons  --> TERCEIROS + 1 ou 3
+     l-retorno   --> TERCEIROS + 2 ou 5
+     l-ret-fat   --> TERCEIROS + 4
+     l-devolucao --> Devoluá∆o Clientes
+     l-transf    --> Transferància entre estabelecimentos */
+
+     /******** Inicio UPC Banrisul **********/
+     FOR EACH tt-epc 
+         WHERE tt-epc.cod-event = "nao-valida-unid-negoc":U:
+         DELETE tt-epc.
+     END.
+         
+     CREATE tt-epc.
+     ASSIGN tt-epc.cod-event     = "nao-valida-unid-negoc":U
+            tt-epc.cod-parameter = "h-boin176":U
+            tt-epc.val-parameter = STRING(THIS-PROCEDURE:HANDLE).
+     
+     {include/i-epc201.i "nao-valida-unid-negoc"}
+
+     FIND FIRST tt-epc 
+         WHERE tt-epc.cod-event     = "nao-valida-unid-negoc"
+         AND   tt-epc.cod-parameter = "nao-valida"
+         AND   tt-epc.val-parameter = "YES" NO-ERROR.
+     IF AVAIL tt-epc THEN
+         RETURN "OK":U.
+     /******* Fim UPC Banrisul *******/
+     
+     if not valid-handle(h-cdapi024) 
+         or h-cdapi024:type <> "PROCEDURE"
+         or h-cdapi024:file-name <> "cdp/cdapi024.p" then do:
+         run cdp/cdapi024.p persistent set h-cdapi024.
+     end.
+
+     /***** Leitura da Naureza de Operaá∆o *****/
+     run findNaturOper ( RowObject.nat-operacao ).
+
+     /***** Leitura da Ordem de Compra *****/
+     if  RowObject.numero-ordem <> 0 then 
+         run findOrdemCompra ( RowObject.numero-ordem,
+                               input ? ).
+
+    IF RETURN-VALUE = "NOK":U THEN
+        RETURN "NOK":U.
+    
+     if not l-unidade-negocio              /* Funá∆o EMS2-UNIDADE-NEGOCIO n∆o ativa */
+        and ((natur-oper.terceiros 
+              and natur-oper.tp-oper-terc = 1)   /* Entrada Beneficiamento */
+              or l-retorno                      /* Retorno Beneficiamento ou Devoluá∆o Consignaá∆o */
+              or natur-oper.log-oper-triang     /* Operaá∆o Triangular */
+              or l-transf ) then                /* Transferencia */ 
+         next.
+
+     if rowObject.nr-ord-produ > 0       /* Ordem de produá∆o informada */
+         and (l-unidade-negocio         /* Funá∆o EMS2-UNIDADE-NEGOCIO cadastrada e ativa */
+              or (l-ent-cons or l-retorno or l-ret-fat)
+              or l-transf               /* Transferància*/
+              or (l-devolucao and RowObject.nro-comp = "")) then      /* Devoluá∆o Cliente*/
+         run setUnidadeNegocioOrdemProducao.
+     /*Funá∆o unidade-negocio-ems2 n∆o cadastrada OU n∆o ativa OU ordem de produá∆o n∆o informada*/
+     else do:
+         if  l-ent-cons 
+          or (l-devolucao and RowObject.nro-comp = "")
+          or natur-oper.log-oper-triang then do: /* Operaá∆o TriÉngular */
+         
+            if  rowObject.cod-unid-negoc = "" 
+            and valid-handle (h-cdapi024) then do: /* Unidade de Neg¢cio do Item n∆o foi informado */
+        
+                /*Buscar† a unidade de neg¢cio com base no relacionamento item X estabelecimento (item-uni-estab)*/
+                run RetornaUnidadeNegocioExternaliz in h-cdapi024 (input docum-est.cod-estabel,
+                                                                        input rowObject.it-codigo,
+                                                                        input "", /*Dep¢sito*/
+                                                                        output RowObject.cod-unid-negoc).
+             end.
+         end.
+         else do:
+
+             /*Conta informada*/
+             if RowObject.ct-codigo <> "" then do: 
+
+                 /*Conta informada com unidade de neg¢cio n∆o informada*/
+                 if RowObject.cod-unid-negoc = "" then do:
+
+                     /*Ordem de compra informada*/
+                     if (RowObject.numero-ordem <> 0 OR
+                         RowObject.log-1)
+                     and avail ordem-compra then DO:
+                         assign RowObject.cod-unid-negoc = ordem-compra.cod-unid-negoc.
+                         /*IF RowObject.cod-unid-negoc = "" THEN
+                             RUN matrizRateioUnidNegocio(INPUT YES).*/
+                     END.
+                     /*Ordem de compra N«O informada*/
+                     else do:
+                         if valid-handle (h-cdapi024) then do:
+                             /*Buscar† a unidade de neg¢cio com base no relcionamento Item x Estabelecimento X Dep¢sito (unid-negoc-depos)
+                             e se n∆o encontrar buscar† do relacionamento Item x Estabelecimento (item-uni-estab)*/
+                             run RetornaUnidadeNegocioExternaliz in h-cdapi024 (input docum-est.cod-estabel,
+                                                                                input RowObject.it-codigo,
+                                                                                input RowObject.cod-depos,
+                                                                                output RowObject.cod-unid-negoc).
+                         end.
+                     end.
+                 end.
+             end.
+             /*Conta n∆o informada*/
+             else do:
+                 if  not l-devolucao  
+                 and not l-dev-transf 
+                 and not l-ret-fat    
+                 and RowObject.cod-unid-negoc <> "" then do:
+                     /*Atená∆o: ser† desprezada a Unidade de Neg¢cio Informada.
+                     Ser† assumida a Unidade de Neg¢cio do Item X Estabelecimento X Dep¢sito 
+                     ou do Item X Estabelecimento.*/
+                     {method/svc/errors/inserr.i
+                               &ErrorNumber="31323" 
+                               &ErrorType="EMS"
+                               &ErrorSubType="WARNING" }
+                               
+                     assign rowObject.cod-unid-negoc = "".
+                 end.
+             end.
+         end.
+     end.
+
+     if valid-handle(h-cdapi024) then do:
+         delete procedure h-cdapi024.
+         assign h-cdapi024 = ?.
+     end.
+
+     return "OK".
+END PROCEDURE.
+
+PROCEDURE setUnidadeNegocioOrdemProducao:
+/*------------------------------------------------------------------------------
+  Purpose:     Atualiza UN de acordo com a Ordem de Produá∆o
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    
+    /******** Inicio UPC Banrisul **********/
+    FOR EACH tt-epc 
+        WHERE tt-epc.cod-event = "nao-valida-unid-negoc":U:
+        DELETE tt-epc.
+    END.
+        
+    CREATE tt-epc.
+    ASSIGN tt-epc.cod-event     = "nao-valida-unid-negoc":U
+           tt-epc.cod-parameter = "h-boin176":U
+           tt-epc.val-parameter = STRING(THIS-PROCEDURE:HANDLE).
+    
+    {include/i-epc201.i "nao-valida-unid-negoc"}
+
+    FIND FIRST tt-epc 
+         WHERE tt-epc.cod-event     = "nao-valida-unid-negoc"
+         AND   tt-epc.cod-parameter = "nao-valida"
+         AND   tt-epc.val-parameter = "YES" NO-ERROR.
+     IF AVAIL tt-epc THEN
+         RETURN "OK":U.
+    /******* Fim UPC Banrisul *******/
+
+    /***** Leitura da Ordem de Produá∆o *****/
+    if  RowObject.nr-ord-produ <> 0 then 
+        run findOrdProd ( RowObject.nr-ord-produ ).
+
+    IF RETURN-VALUE = "NOK":U THEN
+        RETURN "NOK":U.
+
+    FOR FIRST ord-prod
+        WHERE ord-prod.nr-ord-produ = RowObject.nr-ord-produ NO-LOCK:
+    END.
+    
+    if l-unidade-negocio and avail ord-prod and ord-prod.origem = "MI"
+        and natur-oper.emite-duplic = yes then do:
+        
+        if (not l-ent-cons and not l-retorno and not l-ret-fat and not l-transf               
+        and not l-devolucao) then do:
+        
+            FIND FIRST unid-negoc-om 
+                WHERE unid-negoc-om.num-ord-manut = RowObject.nr-ord-produ NO-LOCK NO-ERROR.
+             
+            IF AVAIL unid-negoc-om THEN DO:
+                IF natur-oper.log-oper-triang THEN DO:
+                    assign RowObject.cod-unid-negoc = unid-negoc-om.cod-unid-negoc.
+                    return "OK".
+                end.
+                ELSE DO: 
+                    assign RowObject.cod-unid-negoc = "".
+                    return "OK".
+                END.
+            END.
+        end.
+    end.
+    else do:
+    
+        if l-unidade-negocio and avail ord-prod and ord-prod.origem = "MV"
+        and natur-oper.emite-duplic = yes then do:
+        
+                if (not l-ent-cons and not l-retorno and not l-ret-fat and not l-transf               
+                and not l-devolucao) then do:
+        
+                        IF NOT VALID-HANDLE(hMMVUnidNegoc) THEN
+                            RUN frbo/bofr134.p PERSISTENT SET hMmvUnidNegoc.
+                
+                        RUN canFindMatrizMMV IN hMMVUnidNegoc (INPUT ord-prod.nr-ord-produ).
+                
+                        IF RETURN-VALUE = "OK":U THEN DO:
+                            ASSIGN RowObject.cod-unid-negoc = "".
+                            RETURN "OK".
+                        END.
+			IF VALID-HANDLE(hMMVUnidNegoc)THEN
+                            RUN destroy IN hMMVUnidNegoc.
+                end.
+        end.
+    end.
+    
+        /* l-unidade-negocio - Funá∆o EMS2-UNIDADE-NEGOCIO cadastrada e ativa
+        e, ordem de produá∆o informado no item                     */
+        if l-unidade-negocio and RowObject.nr-ord-produ > 0 then do:
+        if ord-prod.cod-unid-negoc <> RowObject.cod-unid-negoc
+            and RowObject.cod-unid-negoc <> "" then do:
+        
+            {method/svc/errors/inserr.i
+                               &ErrorNumber="31322" /*Atená∆o: Ser† assumida a Unidade de Neg¢cio da Ordem de Produá∆o*/
+                               &ErrorType="EMS"
+                               &ErrorSubType="WARNING" }
+        end.
+        
+        assign RowObject.cod-unid-negoc = ord-prod.cod-unid-negoc.
+        end.
+    
+
+    return "OK".
+END PROCEDURE.

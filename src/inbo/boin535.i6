@@ -1,0 +1,714 @@
+{cdp/cdcfgman.i}
+{cpp/cpapi001.i} /*tts cpapi001*/
+&GLOBAL-DEFINE excludeFrameDefinition YES
+{cdp/cd0666.i}   /*tt-erro*/
+{sfc/sf9005.i}   /*pi-verifica-acesso*/
+def new global shared var c-seg-usuario as char no-undo.
+{sfc/sf9999.i}
+
+PROCEDURE iniciarRepOperCtrab:
+
+    def input param p-rw-split-operac  as rowid no-undo.
+    def input param p-dat-inic-prepar  as date no-undo.
+    def input param p-hra-inic-prepar  as char format "99:99" no-undo.
+    def input param p-dat-fim-prepar   as date no-undo.
+    def input param p-hra-fim-prepar   as char format "99:99" no-undo.
+    def input param p-cod-ctrab        as char no-undo.
+    def input param p-cod-ferr         as char no-undo.
+    def input param p-equipe           as char no-undo.
+    def input param p-operador         as char no-undo.
+    def input param p-dat-inic-reporte as date no-undo.
+    def input param p-hra-inic-rep     as char format "99:99" no-undo.
+    def output param table for rowErrors.
+   
+    def var c-liter as char no-undo.
+    def var l-mudancas-sfc as log init no no-undo.
+    def var v-val-refer-inic       as dec no-undo.
+    def var i-qtd-segs-inic-operac as int no-undo.
+    def var v-qtd-tempo-proces like split-operac.qtd-operac-aprov no-undo. 
+    DEF VAR c-gm-altern        LIKE grup-maq-altern.gm-altern     NO-UNDO.
+    
+    DEF BUFFER b-ctrab         FOR ctrab.
+    
+    empty temp-table rowErrors.
+   
+    /*Re-executa a preValidaIniciarRepOperCtrab, que Ç chamada no inicio do processo, para garantir as validacoes*/
+    run preValidaIniciarRepOperCtrab(input p-rw-split-operac,
+                                     input p-cod-ctrab,
+                                     output table rowErrors).
+    if can-find(first rowErrors) then
+        return "NOK":U.
+        
+    /*Efetua a validaá∆o dos dados para o In°cio do Split*/
+    /*Obs: estas validaá‰es estavam na tela sf0303j.w*/
+    
+    find first split-operac where rowid(split-operac) = p-rw-split-operac no-lock no-error.
+    if not avail split-operac then do:
+        {utp/ut-liter.i Split_de_Operaá∆o *}
+        run criaErro(input 47,
+                     input return-value).  
+        return "NOK":U.                   
+    end.
+     
+    find first oper-ord
+         where oper-ord.nr-ord-produ   = split-operac.nr-ord-produ
+           and oper-ord.num-operac-sfc = split-operac.num-operac-sfc no-lock no-error.
+    
+    find first ctrab where ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+    if not avail ctrab then do:
+        {utp/ut-liter.i Centro_de_Trabalho *}
+        run criaErro(input 47,
+                     input return-value).  
+        return "NOK":U.      
+    end.
+    
+    /*Validaá∆o de Sobreposiá∆o - MoisÇs - Projeto 130*/
+    IF p-dat-inic-reporte <> ? AND 
+       ctrab.ind-tip-ctrab = 1 then do: /*Monoprocesso*/
+        
+        find param-sfc no-lock no-error.
+
+        if  param-sfc.log-tipo-relogio then do:
+            run pi-formatted-time-to-sec (Input p-hra-inic-rep,
+                                          output i-qtd-segs-inic-operac).
+        end.
+        else
+            assign i-qtd-segs-inic-operac = int(p-hra-inic-rep) * 36.
+        
+        run pi-converte-data-segs-valor (input p-dat-inic-reporte, 
+                                         input i-qtd-segs-inic-operac, 
+                                         output v-val-refer-inic).
+
+        find first rep-oper-ctrab
+            where rep-oper-ctrab.cod-ctrab         = ctrab.cod-ctrab
+              and rep-oper-ctrab.val-refer-fim-rep > v-val-refer-inic no-lock no-error.
+        if  avail rep-oper-ctrab
+        and rep-oper-ctrab.val-refer-inic-rep <= v-val-refer-inic THEN do:
+                run criaErro(input 17558,input "":U).  
+                return "NOK":U.      
+        end.
+    end.
+    
+    if ctrab.ind-reporte-mod = 2 /* Reporta Operador */ then do:
+        find first operador where operador.cod-operador = p-operador no-lock no-error.
+    
+        if  not avail operador then do:
+            {utp/ut-table.i mgind operador 01}
+    
+            run criaErro(input 47,
+                         input return-value).            
+        end.
+        else do:
+             /* Consiste a †rea de produá∆o do centro de trabalho com a do operador.
+                N∆o deixa reportar se for diferente. */        
+             find first area-produc-ctrab
+                 where area-produc-ctrab.cod-ctrab       = ctrab.cod-ctrab
+                   and area-produc-ctrab.dat-inic-valid <= today
+                   and area-produc-ctrab.dat-fim-valid  >  today no-lock no-error.
+            
+             if  operador.cod-area-produc <> ""
+             and operador.cod-area-produc <> area-produc-ctrab.cod-area-produc then do:
+                 {utp/ut-table.i mgind operador 01}
+                 run criaErro(input 17658,
+                              input return-value). 
+             end.        
+        end.
+    end.
+    
+    if ctrab.ind-reporte-mod = 3 /* Reporta Equipe */ then do:
+        find first equipe-prod
+             where equipe-prod.cod-equipe = p-equipe no-lock no-error. 
+    
+        if  not avail equipe-prod then do:
+            {utp/ut-table.i mgind equipe-prod 01}
+            run criaErro(input 47,
+                         input return-value).                 
+        end.
+        else do:
+            /* Consiste a †rea de produá∆o do centro de trabalho com a da equipe.
+               N∆o deixa reportar se for diferente. */
+            find first area-produc-ctrab
+                 where area-produc-ctrab.cod-ctrab       = ctrab.cod-ctrab
+                   and area-produc-ctrab.dat-inic-valid <= today
+                   and area-produc-ctrab.dat-fim-valid  >  today no-lock no-error.
+            
+            if  equipe-prod.cod-area-produc <> ""
+            and equipe-prod.cod-area-produc <> area-produc-ctrab.cod-area-produc then do:
+                {utp/ut-table.i mgind equipe-prod 01}
+                run criaErro(input 17658,
+                             input return-value).
+            end.
+        end.
+    end.
+    
+    assign l-mudancas-sfc = l-glob-novo-sfc.
+    
+    /* Consiste dados preparaá∆o */
+    if  ctrab.log-possui-prepar = yes then do:
+        if p-dat-fim-prepar <> ? or l-mudancas-sfc = no then do:
+        
+             if p-dat-inic-prepar = ? then do:
+                 {utp/ut-liter.i Data_In°cio_Preparaá∆o * R}
+                 run criaErro(input 173,
+                              input return-value).  
+             end.
+
+             if  p-dat-inic-prepar > p-dat-fim-prepar then do:
+                 {utp/ut-liter.i Data_Preparaá∆o * R}
+                 run criaErro(input 142,
+                              input return-value).                
+             end.             
+
+             if  (p-dat-inic-prepar = p-dat-fim-prepar)
+             and (p-hra-fim-prepar < p-hra-inic-prepar) then do:
+                 {utp/ut-liter.i Hora_preparaá∆o * R}
+                 run criaErro(input 142,
+                              input return-value + "~~" + return-value).                  
+             end.
+             
+             if p-dat-inic-reporte < p-dat-fim-prepar  or
+               (p-dat-inic-reporte = p-dat-fim-prepar and
+                p-hra-inic-rep     < p-hra-fim-prepar) then do:
+                {utp/ut-liter.i In°cio_do_Reporte *}
+                assign c-liter = return-value.
+                {utp/ut-liter.i Fim_da_Preparaá∆o *} 
+                 run criaErro(input 7017,
+                              input c-liter + "~~" + return-value). 
+             end.
+        end.
+        else
+             if p-dat-inic-prepar > today then do:                     
+                   {utp/ut-liter.i Data_In°cio_Preparaá∆o *}               
+                   assign c-liter = return-value.                       
+                   {utp/ut-liter.i Data_de_Hoje *}                                   
+                   run criaErro(input 16906,                            
+                                input c-liter + "~~":U + return-value). 
+             end.         
+    end. /* Preparaá∆o */
+    
+    if (ctrab.log-possui-prepar = yes and 
+        p-dat-fim-prepar <> ?) or
+        ctrab.log-possui-prepar = no or
+        l-mudancas-sfc = no then do:
+          
+        if p-dat-inic-reporte = ? then do:
+            {utp/ut-liter.i Data_In°cio_Reporte * R}   
+            run criaErro(input 173,
+                         input return-value).      
+        end.
+        else do:
+            if p-dat-inic-reporte > today then do:
+                  {utp/ut-liter.i Data_In°cio_Reporte *}
+                  assign c-liter = return-value.
+                  {utp/ut-liter.i Data_de_Hoje *}              
+                  run criaErro(input 16906,
+                               input c-liter + "~~":U + return-value).   
+            end.
+        end.    
+    end.    
+    
+    /********************************** Verifica se o CT Ç de GM Alternativo *******************/
+    IF oper-ord.gm-codigo <> ctrab.gm-codigo 
+    THEN DO:
+        ASSIGN c-gm-altern = "".
+        FOR EACH grup-maq-altern USE-INDEX seq 
+           WHERE grup-maq-altern.gm-codigo = oper-ord.gm-codigo NO-LOCK:
+
+            IF CAN-FIND (FIRST b-ctrab use-index grp-maq 
+                         WHERE b-ctrab.gm-codigo = grup-maq-altern.gm-altern 
+                           AND b-ctrab.cod-ctrab = ctrab.cod-ctrab)
+            THEN DO:
+                ASSIGN c-gm-altern = grup-maq-altern.gm-altern. 
+                LEAVE.
+            END.
+        END.
+ 
+        IF c-gm-altern = "" THEN DO:
+           run criaErro(input 32438,                                                      
+                        input "").
+        END.
+    END.
+    ELSE DO:
+        IF oper-ord.gm-codigo <> split-operac.gm-codigo
+        THEN DO:
+           ASSIGN c-gm-altern = oper-ord.gm-codigo.
+        END.
+    END.
+
+    /*******************************************************************************************/
+     
+    find grup-maquina
+        where grup-maquina.gm-codigo = ctrab.gm-codigo no-lock no-error.     
+
+    if grup-maquina.ind-tempo-operac = 4 /* Ferramenta */ OR p-cod-ferr <> "":U then do:
+
+        IF grup-maquina.ind-tempo-operac = 4 /* Ferramenta */ AND p-cod-ferr = "":U THEN DO:
+            {utp/ut-table.i mgind ferr-prod 01}
+            run criaErro(input 47,           
+                         input return-value). 
+        END.
+
+        IF p-cod-ferr <> "":U THEN DO:
+            if not can-find (first ferr-prod
+                             where ferr-prod.cod-ferr-prod = p-cod-ferr) then do:
+                {utp/ut-table.i mgind ferr-prod 01}
+                run criaErro(input 47,input RETURN-VALUE). 
+            end.
+            ELSE DO:
+                if  not can-find (first ctrab-ferram where
+                                        ctrab-ferram.cod-ctrab     = ctrab.cod-ctrab and
+                                        ctrab-ferram.cod-ferr-prod = p-cod-ferr) then do:
+                    {utp/ut-liter.i Ferramenta *}
+                    ASSIGN c-liter = RETURN-VALUE.
+                    {utp/ut-liter.i Centro_de_Trabalho *} 
+                    run criaErro(input 17899,c-liter + "~~":U + RETURN-VALUE).
+                end.
+
+                if  not can-find (first op-ferram
+                                  where op-ferram.num-id-operacao = oper-ord.num-id-operacao
+                                    AND op-ferram.op-altern       = oper-ord.op-altern
+                                    and op-ferram.ferramenta      = p-cod-ferr) AND 
+                    can-find(FIRST op-ferram 
+                             WHERE op-ferram.num-id-operacao = oper-ord.num-id-operacao
+                               AND op-ferram.op-altern       = oper-ord.op-altern)   then do:
+
+                    {utp/ut-liter.i Ferramenta *}
+                    ASSIGN c-liter = RETURN-VALUE.
+                    {utp/ut-liter.i Operaá∆o *} 
+                    run criaErro(input 17899,c-liter + "~~":U + RETURN-VALUE).
+                end.
+            END.
+        END.
+    end.
+
+    if can-find(first rowErrors) then
+        return "NOK":U.    
+
+    /***Fim das Validaá‰es. In°cio da Transaá∆o****/
+      
+    
+    find first param-sfc no-lock no-error.
+    find current split-operac exclusive-lock no-error.
+    find current oper-ord exclusive-lock no-error.
+
+    /*** Alterar o GM do split pelo GM Alternativo  **/
+    IF c-gm-altern <> "" THEN DO:
+        ASSIGN oper-ord.gm-codigo = c-gm-altern.
+        ASSIGN split-operac.gm-codigo = c-gm-altern.
+    END.
+
+    
+    find op-sfc
+        where op-sfc.nr-ord-produ = split-operac.nr-ord-produ exclusive-lock no-error.
+    if  not avail op-sfc then
+        return.
+        
+    find ord-prod
+        where ord-prod.nr-ord-produ = split-operac.nr-ord-produ exclusive-lock no-error.
+    if  not avail ord-prod then
+        return.
+        
+    if p-hra-inic-prepar = ? then
+        assign p-hra-inic-prepar = "0":U.
+    if p-hra-fim-prepar = ? then
+        assign p-hra-fim-prepar = "0":U.
+    if p-hra-inic-rep = ? then
+        assign p-hra-inic-rep = "0":U.
+        
+    if  param-sfc.log-tipo-relogio then do:
+        run pi-formatted-time-to-sec (Input p-hra-inic-prepar,
+                                      output split-operac.qtd-segs-inic-setup).
+                                      
+        run pi-formatted-time-to-sec (Input p-hra-fim-prepar,
+                                      output split-operac.qtd-segs-fim-setup).
+                                      
+        run pi-formatted-time-to-sec (Input p-hra-inic-rep,
+                                      output split-operac.qtd-segs-inic-operac).
+    end.
+    else do:
+        assign split-operac.qtd-segs-inic-setup  = int(p-hra-inic-prepar) * 36
+               split-operac.qtd-segs-fim-setup   = int(p-hra-fim-prepar)  * 36
+               split-operac.qtd-segs-inic-operac = int(p-hra-inic-rep)    * 36.
+    end.           
+
+    assign split-operac.dat-inic-setup   = p-dat-inic-prepar
+           split-operac.dat-fim-setup    = p-dat-fim-prepar
+           split-operac.dat-inic-operac  = p-dat-inic-reporte
+           split-operac.cod-ferr-prod    = p-cod-ferr
+           split-operac.cod-ctrab        = p-cod-ctrab
+           split-operac.ind-estado-split = 4
+           oper-ord.estado               = 2
+           op-sfc.ind-estado-op          = 3
+           ord-prod.estado               = 6.
+
+    if split-operac.dat-fim-setup <> ? and
+       ((split-operac.dat-inic-setup      <> split-operac.dat-fim-setup) or
+        (split-operac.qtd-segs-inic-setup <> split-operac.qtd-segs-fim-setup)) then do:
+        run inbo/boin469a.p (Input split-operac.gm-codigo,
+                             Input ?,
+                             input-output split-operac.dat-fim-setup,
+                             input-output split-operac.qtd-segs-fim-setup,
+                             input-output split-operac.dat-inic-setup,
+                             input-output split-operac.qtd-segs-inic-setup,
+                             input-output v-qtd-tempo-proces).
+        assign split-operac.tempo-real-prepar = v-qtd-tempo-proces.
+    end.
+
+    find ctrab
+        where ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+
+    assign overlay(split-operac.char-1,1,8) = if  ctrab.ind-reporte-mod = 2
+                                             then p-operador
+                                             else p-equipe.
+                                             
+    ASSIGN split-operac.data-1 = p-dat-inic-reporte
+           split-operac.dec-1 = DECIMAL(p-hra-inic-rep).
+                                             
+return "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE cancelarInicioRepOperCtrab:
+
+    def input param p-rw-split-operac  as rowid no-undo.
+    def output param table for rowErrors.
+    
+    
+    find first split-operac where rowid(split-operac) = p-rw-split-operac exclusive-lock no-error.
+    IF NOT AVAIL split-operac THEN DO:
+        {utp/ut-liter.i Split_de_Operaá∆o *}
+        run criaErro (input 47,
+                      input RETURN-VALUE).
+        RETURN "NOK":U.
+    END.   
+    ELSE DO:
+     
+        IF split-operac.ind-estado-split <> 4  
+         AND split-operac.data-1 = ? THEN DO:
+           
+           run criaErro(input 32064,                       
+                        input "":U).                       
+           return "NOK":U.             
+        END. 
+        ELSE DO:
+        
+            ASSIGN split-operac.data-1 = ?
+                   split-operac.dec-1 = 0
+                   split-operac.dat-inic-operac = ?
+                   split-operac.qtd-segs-inic-operac = 0.
+                   
+            IF NOT CAN-FIND(FIRST rep-oper-ctrab
+                            WHERE rep-oper-ctrab.nr-ord-produ     = split-operac.nr-ord-produ
+                              AND rep-oper-ctrab.num-operac-sfc   = split-operac.num-operac-sfc
+                              AND rep-oper-ctrab.num-split-operac = split-operac.num-split-operac) THEN DO:
+                              
+                ASSIGN split-operac.ind-estado-split = 3
+                       split-operac.dat-inic-setup   = ?
+                       split-operac.dat-fim-setup    = ? 
+                       split-operac.qtd-segs-inic-setup = 0
+                       split-operac.qtd-segs-fim-setup  = 0
+                       split-operac.cod-ferr-prod    = "".
+            END.        
+        END.   
+     END.  
+     
+     return "OK":U.
+    
+END PROCEDURE.
+
+procedure preValidaIniciarRepOperCtrab:
+
+     /*Chamada pela tela sf0303f.w, com objetivo de validar se o split pode ser iniciado
+       Chamada na inicializacao da tela*/
+       
+     def input param p-rw-split-operac as rowid no-undo.
+     def input param p-cod-ctrab like area-produc-ctrab.cod-ctrab no-undo.
+     def output param table for rowErrors.
+     def var h-cpapi001 as handle no-undo.
+     def var i-cont     as int    no-undo.
+     def var c-erro     as char   no-undo.
+     def var c-texto    as char   no-undo.
+     def var l-acesso   as log init no no-undo.
+     
+     def buffer bf-split-operac for split-operac.
+     def buffer b-oper-ord for oper-ord.
+     
+     def var l-mudancas-sfc as log init no no-undo.
+     
+     empty temp-table rowErrors.
+     
+     find first split-operac where rowid(split-operac) = p-rw-split-operac no-lock no-error.
+     IF NOT AVAIL split-operac THEN DO:
+         {utp/ut-liter.i Split_de_Operaá∆o *}
+         run criaErro (input 47,
+                       input RETURN-VALUE).
+         RETURN "NOK":U.
+     END.   
+     else do:
+     
+         /*Somente permite iniciar nos estados Programado e Liberado.
+           Caso esteja iniciado, somente continua se a data de in°cio ainda n∆o tiver sido informada*/
+           
+         assign l-mudancas-sfc = l-glob-novo-sfc.
+         
+         IF split-operac.ind-estado-split <= 4 AND 
+            split-operac.data-1 <> ? THEN DO:
+            
+            /*Split j· est· iniciado 56795
+            STRING(split-operac.data-1) + "~~" + STRING(split-operac.dec-1,"9999") + "~~" + split-operac.cod-ctrab
+            */ 
+            run criaErro(input 56795,                       
+                         input STRING(split-operac.data-1) + "~~" + STRING(split-operac.dec-1,"9999") + "~~" + split-operac.cod-ctrab).                       
+            return "NOK":U.              
+            
+         END.
+         
+        /* if split-operac.ind-estado-split <> 2 /*Programado*/ and
+            split-operac.ind-estado-split <> 3 /*Liberado*/ then do:
+             
+             if l-mudancas-sfc = no then do:
+                /*Estado do split inv†lido para iniciar 32042*/ 
+                run criaErro(input 32042,                       
+                             input "":U).                       
+                return "NOK":U.                                 
+             end.
+             else do:
+                
+                if split-operac.ind-estado-split <> 4 /*Iniciado*/ then do:
+                    /*Estado do split inv†lido para iniciar 32042*/                 
+                    run criaErro(input 32042,                                       
+                                 input "":U).                                       
+                    return "NOK":U.                                                 
+                end.
+                else do:
+                    /*Iniciado*/
+                    FIND FIRST ctrab WHERE ctrab.cod-ctrab = p-cod-ctrab NO-LOCK NO-ERROR.
+                    
+                    if avail ctrab and 
+                       ctrab.log-possui-prepar = no or 
+                       (ctrab.log-possui-prepar = yes and
+                        split-operac.dat-inic-operac <> ? and
+                        split-operac.qtd-operac-reptda <> ? and
+                        split-operac.qtd-operac-reptda <> 0) or 
+                        split-operac.tempo-real-operac <> 0 then do:
+                        
+                        /*Estado do split inv†lido para iniciar 32042*/       
+                        run criaErro(input 32042,                             
+                                     input "":U).                             
+                        return "NOK":U.                                                               
+                    end.
+                end.
+             end.
+         end.*/
+
+         FIND FIRST ctrab WHERE ctrab.cod-ctrab = p-cod-ctrab NO-LOCK NO-ERROR.
+         IF NOT AVAIL ctrab THEN DO:
+             {utp/ut-liter.i Centro_de_Trabalho *}
+             run criaErro (input 47,
+                           input RETURN-VALUE).
+             RETURN "NOK":U.
+         END.
+         else do:
+             find first area-produc-ctrab where                                                                  
+                        area-produc-ctrab.gm-codigo       = ctrab.gm-codigo and        
+                        area-produc-ctrab.cod-ctrab       = ctrab.cod-ctrab AND 
+                        area-produc-ctrab.dat-inic-valid <= today  and                                           
+                        area-produc-ctrab.dat-fim-valid   > today NO-LOCK NO-ERROR.   
+             if not avail area-produc-ctrab then do:
+                 run criaErro(input 17562,
+                              input "~~":U + ctrab.cod-ctrab). 
+                 return "NOK":U.  
+             end.            
+         end.
+         
+         if l-mudancas-sfc then do:
+             /*Valida se usu†rio corrente possui permiss∆o para reportar nesta †rea*/
+             RUN pi-verifica-acesso(INPUT area-produc-ctrab.cod-area-produc,
+                                    INPUT c-seg-usuario,
+                                    OUTPUT l-acesso).
+             if l-acesso = no then do:
+                  run criaErro(input 32491,
+                               input c-seg-usuario + "~~":U + area-produc-ctrab.cod-area-produc).
+                  return "NOK":U.
+             end.                                
+         end.
+         
+         find first param-sfc no-lock no-error.
+         if can-find(FIRST oper-ord WHERE oper-ord.nr-ord-produ = split-operac.nr-ord-produ
+                                      AND oper-ord.log-reporte-cp) then do:
+                                      
+                /*Esta ordem j† possui reportes no Produá∆o. Por este motivo, o reporte de todas as 
+                operaá‰es da ordem deve ser feito atravÇs do m¢dulo Produá∆o.*/
+              run criaErro(input 29376,
+                           input "":U).
+              RETURN "NOK":U.
+         end.
+         
+         IF (split-operac.ind-estado-split = 3 /*Liberado*/ OR
+             split-operac.ind-estado-split = 2 /*Programado*/ ) AND
+            ctrab.ind-tip-ctrab = 1 /*Monoprocesso*/ THEN DO:
+             /*Procura algum split j† iniciado para o ctrab do split em questao e q nao possua nenhum reporte*/
+             find first bf-split-operac
+                  where bf-split-operac.cod-ctrab = ctrab.cod-ctrab
+                    and bf-split-operac.ind-estado-split = 4 /* Iniciado */
+                   and not can-find (first rep-oper-ctrab
+                                     where rep-oper-ctrab.nr-ord-produ     = bf-split-operac.nr-ord-produ
+                                       and rep-oper-ctrab.num-operac-sfc   = bf-split-operac.num-operac-sfc
+                                       and rep-oper-ctrab.num-split-operac = bf-split-operac.num-split-operac) no-lock no-error.
+             IF AVAIL bf-split-operac THEN do:
+                  run criaErro (input 28355,
+                                input bf-split-operac.it-codigo + "~~" + string(bf-split-operac.nr-ord-produ)).
+                  return "NOK":U.                           
+             end.
+         END. /*IF split-operac.ind-estado-split = 3 /*Liberado*/ OR...*/
+         
+         /*Se h† parada em aberto para o centro de trabalho, nao deixa continuar*/
+         IF can-find (first rep-parada-ctrab                                   
+                      where rep-parada-ctrab.cod-ctrab      = ctrab.cod-ctrab  
+                        and rep-parada-ctrab.dat-fim-parada = date(12,31,9998)) THEN do:
+              run criaErro (input 32039,
+                            input "":U).                        
+              return "NOK":U.                  
+         end.
+
+         find first param-sfc no-lock no-error.
+         find oper-ord
+             where oper-ord.nr-ord-produ = split-operac.nr-ord-produ
+               and oper-ord.it-codigo    = split-operac.it-codigo 
+               and oper-ord.cod-roteiro  = split-operac.cod-roteiro
+               and oper-ord.op-codigo    = split-operac.op-codigo no-lock no-error.
+               
+         IF l-mudancas-sfc THEN DO:
+
+              find first area-produc 
+                   where area-produc.cod-area-produc = area-produc-ctrab.cod-area-produc no-lock no-error. 
+              find first ord-prod where ord-prod.nr-ord-produ = split-operac.nr-ord-produ no-lock no-error.     
+              if area-produc.cod-estabel <> ord-prod.cod-estabel then do:
+                  run criaErro(input 32495,
+                               input ord-prod.cod-estabel). 
+                  return "NOK":U.           
+              end.             
+
+              if not ord-prod.prototipo and                  
+              can-find(first ctrab-operac-aloc no-lock
+                          where ctrab-operac-aloc.num-id-operacao = oper-ord.num-id-operacao
+                            and ctrab-operac-aloc.op-altern       = oper-ord.op-altern)
+                  and
+                 not can-find(first ctrab-operac-aloc no-lock
+                              where ctrab-operac-aloc.cod-ctrab       = ctrab.cod-ctrab
+                                and ctrab-operac-aloc.num-id-operacao = oper-ord.num-id-operacao
+                                and ctrab-operac-aloc.op-altern       = oper-ord.op-altern) then do:
+                    /*Centro de Trabalho n∆o Ç valido para a Operaá∆o.*/            
+                    run criaErro(input 32544,                                                      
+                                 input ctrab.cod-ctrab).  
+                    return "NOK":U. 
+              end.
+         end.
+         
+         if avail oper-ord and 
+            oper-ord.log-operac-final = yes then do:
+             if  can-find (first b-oper-ord
+                           where b-oper-ord.nr-ord-produ     = split-operac.nr-ord-produ
+                             and b-oper-ord.log-operac-final = yes
+                             and rowid(b-oper-ord)          <> rowid(oper-ord)) then do:
+                 {utp/ut-liter.i v†rias * R}
+                 run criaErro(input 361,
+                              input return-value).                                  
+                 return "NOK":U.
+             end.
+         end.
+          
+         IF l-mudancas-sfc THEN DO:  
+             
+             run cpp/cpapi001.p persistent set h-cpapi001(input-output table tt-rep-prod,
+                                                          input        table tt-refugo,
+                                                          input        table tt-res-neg,
+                                                          INPUT        table tt-apont-mob,
+                                                          input-output table tt-erro,
+                                                          input no). 
+             
+             find first ord-prod where ord-prod.nr-ord-produ = split-operac.nr-ord-produ no-lock no-error.  
+             
+             /*Efetua as validacoes basicas da Ordem para Reporte*/
+             RUN pi-valida-ordem IN h-cpapi001(INPUT NO,
+                                               INPUT split-operac.nr-ord-produ,
+                                               INPUT (IF ord-prod.rep-prod = 1 OR ord-prod.rep-prod = 4          
+                                                          THEN 1                                                 
+                                                          ELSE IF ord-prod.rep-prod = 2 THEN 2                   
+                                                               ELSE 3),
+                                               OUTPUT c-erro,
+                                               OUTPUT c-texto).
+             IF c-erro <> "":U THEN DO:
+                 DO i-cont = 1 TO NUM-ENTRIES(c-erro):
+                     run criaErro (input INT(ENTRY(i-cont,c-erro)),
+                                   input ENTRY(i-cont,c-texto)).
+                 END.
+                 return "NOK":U.
+             END.
+             
+             IF VALID-HANDLE(h-cpapi001)
+             THEN DO:
+                 RUN pi-finalizar in h-cpapi001.
+                 ASSIGN h-cpapi001 = ?.
+             end.
+
+         end.
+     
+     end. /*avail split-operac*/
+end procedure.
+
+procedure criaErro:
+     DEFINE INPUT PARAMETER pErrorNumber      AS INTEGER   NO-UNDO.
+     DEFINE INPUT PARAMETER pErrorParameters  AS CHARACTER NO-UNDO.
+     
+     DEFINE VARIABLE iErrorSequence    AS INTEGER    NO-UNDO.
+     DEFINE VARIABLE cErrorSubType     AS CHARACTER  NO-UNDO.
+     DEFINE VARIABLE cErrorDescription AS CHARACTER  NO-UNDO.
+     DEFINE VARIABLE cErrorHelp        AS CHARACTER  NO-UNDO.
+     
+     /** Busca o Tipo de Mensagem do EMS **/
+     RUN utp/ut-msgs.p (INPUT "TYPE":U,
+                        INPUT pErrorNumber,
+                        INPUT pErrorParameters).
+     CASE {uninc/i01un001.i 06 RETURN-VALUE}:
+         WHEN 1 THEN
+             ASSIGN cErrorSubType = "ERROR":U.
+         WHEN 2 THEN
+             ASSIGN cErrorSubType = "WARNING":U.
+         WHEN 4 THEN
+             ASSIGN cErrorSubType = "INFORMATION":U.
+     END CASE.
+     
+     /** Busca Texto da Mensagem **/
+     RUN utp/ut-msgs.p (INPUT "MSG":U,
+                        INPUT pErrorNumber,
+                        INPUT pErrorParameters).
+     ASSIGN cErrorDescription = RETURN-VALUE.
+     
+     /** Busca Help da Mensagem **/
+     RUN utp/ut-msgs.p (INPUT "HELP":U,
+                        INPUT pErrorNumber,
+                        INPUT pErrorParameters).
+     ASSIGN cErrorHelp = RETURN-VALUE.
+     
+     /*--- Atualiza variòvel de sequ¨ncia de erros ---*/
+     IF CAN-FIND(LAST rowErrors) THEN DO:
+         FIND LAST rowErrors.
+         ASSIGN iErrorSequence = rowErrors.ErrorSequence + 1.
+     END.
+     ELSE
+         ASSIGN iErrorSequence = iErrorSequence + 1.
+     
+     CREATE rowErrors.
+     ASSIGN rowErrors.ErrorSequence    = iErrorSequence
+            rowErrors.ErrorNumber      = pErrorNumber
+            rowErrors.ErrorType        = "EMS":U
+            rowErrors.ErrorSubType     = cErrorSubType
+            rowErrors.ErrorDescription = cErrorDescription
+            rowErrors.ErrorHelp        = cErrorHelp
+            rowErrors.ErrorParameters  = pErrorParameters.
+     
+     return "OK":U.
+end procedure.
+
+{sfc/sf9000.i} /* pi-formatted-time-to-sec */

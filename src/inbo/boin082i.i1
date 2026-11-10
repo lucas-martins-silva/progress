@@ -1,0 +1,37 @@
+/*
+**
+** BOIN082I.I1 - Tratamento para grava‡Æo dos campos livres {2}.char-1 e {2}.char-2
+**
+** {1} - Tabela com os dados de origem
+** {2} - Tabela destino dos dados    
+**
+*/
+
+{ccp/cc9019.i50}
+assign i-mapa-cotacao-i50     = {1}.mapa-cotacao
+       c-cod-incoterm-i50     = {1}.cod-incoterm
+       i-cod-pto-contr-i50    = {1}.cod-pto-contr
+       de-aliq-ii-i50         = {1}.aliq-ii
+       c-class-fiscal-i50     = {1}.class-fiscal
+       c-nbs-i50              = {1}.nbs.
+{ccp/cc9019.i51 "no"}
+{cdp/cd4300.i4 "no" {2}.char-1}
+
+&if '{&bf_mat_versao_ems}' >= '2.062' &then
+    {ocp/oc0201.i50}
+&else
+    {ccp/cc0303.i50}
+&endif
+assign i-cod-fabricante-i50 = {1}.cod-fabricante
+       i-regime-import-i50  = {1}.regime-import.
+       c-data-base-i50      = string({1}.da-entrega-embarque).
+&if '{&bf_mat_versao_ems}' >= '2.062' &then
+    {ocp/oc0201.i51 "no"}
+&else
+    {ccp/cc0303.i51 "no"}
+&endif
+{cdp/cd4300.i4 "no" {2}.char-2}
+
+assign {2}.int-1 = {1}.cod-itiner.
+
+/* BOIN082I.I1 */

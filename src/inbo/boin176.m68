@@ -1,0 +1,279 @@
+PROCEDURE createItemOfRemessaFatAntecip:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Cria os itens da nota de DEVOLUCAO de remessa faturamento antecipado,
+		 a partir do saldo de faturamento antecipado
+------------------------------------------------------------------------------*/
+    def input param piHboin090  as handle                     no-undo.
+    def input param table       for tt-saldo-terc.
+    def input param c-nr-nota-fis-aux    as char   no-undo.
+    def input param c-serie-docto-aux  as char   no-undo.	
+
+    def var i-seq-aux           like item-doc-est.sequencia   no-undo.
+    def var de-proporcao        as dec                        no-undo.
+    def var h-acomp             as handle                     no-undo.
+    def var h-boin368           as handle                     no-undo.
+    DEF VAR c-aux-acomp         as char                       no-undo.
+    DEF VAR c-aux-liter         as char                       no-undo.
+        
+    define var c-seq-comp-aux      like it-nota-fisc.nr-seq-fat           no-undo.
+    define var c-nat-seq-aux       like it-nota-fisc.nat-operacao         no-undo.
+            
+
+    def buffer bf-it-nota-fisc for it-nota-fisc.   
+    def buffer bf-nota-fiscal for nota-fiscal.   
+
+    assign h-boin090 = piHboin090.
+
+    run getKey in piHboin090 ( output i-cod-emitente,
+                               output c-serie-docto,
+                               output c-nro-docto,
+                               output c-nat-operacao ).
+
+    run findDocumento ( i-cod-emitente,
+                        c-serie-docto,
+                        c-nro-docto,
+                        c-nat-operacao ).
+
+    run findNaturOper ( c-nat-operacao ).
+
+    if  not avail param-re then 
+        return "NOK":U.    
+
+    run getSeqItem ( output i-seq-aux ).
+    run utp/ut-acomp.p persistent set h-acomp.
+    
+    {utp/ut-liter.i "Gerando_Itens" *}
+    assign c-aux-acomp = RETURN-VALUE.
+    run pi-inicializar in h-acomp (c-aux-acomp).
+    run pi-desabilita-cancela in h-acomp.
+    
+    {utp/ut-liter.i "Gerando_Itens_da_Nota" *}
+    assign c-aux-acomp = RETURN-VALUE.
+    run pi-acompanhar in h-acomp (c-aux-acomp).
+
+    run openQueryStatic (input "Main":U).
+
+    /* para nao setar os defaults de depos, localiz, refer na setDefaultsEstoque */    
+    assign l-nf-transf-devol-ret = yes.
+
+    bloco:
+    do  trans on error undo, leave:
+        for each tt-saldo-terc exclusive-lock:
+            find first sdo-fatur-antecip 
+                 where rowid(sdo-fatur-antecip) = tt-saldo-terc.rw-saldo-terc no-lock no-error.
+            /*posiciona na nota de fatura da remessa que está sendo devolvida*/
+            FOR FIRST nota-fiscal
+                WHERE nota-fiscal.nr-nota-fis = sdo-fatur-antecip.nr-nota-fis
+                  AND nota-fiscal.serie       = sdo-fatur-antecip.serie-docto
+                  AND nota-fiscal.cod-estabel = sdo-fatur-antecip.cod-estabel NO-LOCK:
+                FOR FIRST it-nota-fisc 
+                    WHERE it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel
+                      AND it-nota-fisc.serie       = nota-fiscal.serie
+                      AND it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis
+                      AND it-nota-fisc.nr-seq-fat  = sdo-fatur-antecip.num-seq
+                      AND it-nota-fisc.it-codigo   = sdo-fatur-antecip.it-codigo NO-LOCK: 	
+                         run findNaturOper ( nota-fiscal.nat-operacao ).
+                END.
+            END.
+
+            /*posiciona no lote da nota que est  sendo devolvida*/
+            FOR FIRST bf-nota-fiscal
+                WHERE bf-nota-fiscal.nr-nota-fis = c-nr-nota-fis-aux
+                  AND bf-nota-fiscal.serie       = c-serie-docto-aux
+                  AND bf-nota-fiscal.cod-estabel = sdo-fatur-antecip.cod-estabel NO-LOCK:
+                FOR FIRST bf-it-nota-fisc 
+                    WHERE bf-it-nota-fisc.cod-estabel = bf-nota-fiscal.cod-estabel
+                      AND bf-it-nota-fisc.serie       = bf-nota-fiscal.serie
+                      AND bf-it-nota-fisc.nr-nota-fis = bf-nota-fiscal.nr-nota-fis
+                      AND bf-it-nota-fisc.nr-seq-fat  = sdo-fatur-antecip.num-seq
+                      AND bf-it-nota-fisc.it-codigo   = sdo-fatur-antecip.it-codigo NO-LOCK: 
+                    FIND FIRST fat-ser-lote
+                         WHERE fat-ser-lote.cod-estabel   = bf-nota-fiscal.cod-estabel
+                           AND fat-ser-lote.serie         = bf-nota-fiscal.serie
+                           AND fat-ser-lote.nr-nota-fis   = bf-nota-fiscal.nr-nota-fis
+                           AND fat-ser-lote.nr-seq-fat    = bf-it-nota-fisc.nr-seq-fat				  
+                           AND fat-ser-lote.it-codigo     = bf-it-nota-fisc.it-codigo
+                           AND fat-ser-lote.cod-refer     = bf-it-nota-fisc.cod-refer NO-LOCK NO-ERROR.	
+                         ASSIGN c-seq-comp-aux = bf-it-nota-fisc.nr-seq-fat
+                                c-nat-seq-aux  = bf-it-nota-fisc.nat-operacao.
+                END.
+            END.
+
+	    if  tt-saldo-terc.quantidade > (it-nota-fisc.qt-faturada[1] - sdo-fatur-antecip.qtd-recebe-fisic) then do:
+	        {utp/ut-liter.i "Quantidade_de_Saldo_na_Fatura_Insuficiente" *}
+		assign c-aux-liter = RETURN-VALUE.
+		/* Quantidade de Saldo na Fatura Insuficiente */
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="17006"
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="c-aux-acomp"}
+
+                delete procedure h-acomp.
+                ASSIGN h-acomp = ?.
+
+                undo bloco, return "NOK":U. /* Desfaz o bloco e retorna com erro */
+            end.                           
+
+            {utp/ut-liter.i "Calculando_Itens: " *}
+            assign c-aux-acomp = RETURN-VALUE.
+
+            run pi-acompanhar in h-acomp (c-aux-acomp + string(i-seq-aux) + " / " 
+                                                      + sdo-fatur-antecip.it-codigo).
+
+            run findItem ( sdo-fatur-antecip.it-codigo ).
+
+            /* Calcula proporcao para conversao da quantidade */
+            assign de-proporcao = tt-saldo-terc.quantidade / sdo-fatur-antecip.qtd-saldo.
+
+			run emptyRowObject.
+            
+            create RowObject.
+            assign RowObject.cod-emitente          = docum-est.cod-emitente
+                   RowObject.serie-docto           = docum-est.serie-docto
+                   RowObject.nro-docto             = docum-est.nro-docto
+                   RowObject.nat-operacao          = docum-est.nat-operacao
+                   RowObject.sequencia             = i-seq-aux
+                   RowObject.it-codigo             = sdo-fatur-antecip.it-codigo
+                   RowObject.cod-refer             = sdo-fatur-antecip.cod-refer
+                   RowObject.baixa-ce              = yes
+                   RowObject.class-fiscal          = it-nota-fisc.class-fiscal
+                   RowObject.quantidade            = tt-saldo-terc.quantidade
+                   RowObject.qt-do-forn            = tt-saldo-terc.quantidade
+                   RowObject.preco-total[1]        = tt-saldo-terc.preco-total
+                   RowObject.preco-unit[1]         = RowObject.preco-total[1] / RowObject.quantidade
+                   RowObject.aliquota-ipi          = it-nota-fisc.aliquota-ipi
+                   RowObject.aliquota-icm          = it-nota-fisc.aliquota-icm
+                   RowObject.cod-depos             = it-nota-fisc.cod-depos
+                   RowObject.cod-localiz           = it-nota-fisc.cod-localiz
+                   RowObject.narrativa             = nota-fiscal.observ-nota      
+                   i-seq-aux                       = i-seq-aux + param-re.inc-seq
+                   RowObject.peso-liquido          = (RowObject.quantidade * it-nota-fisc.peso-liq-fat) / it-nota-fisc.qt-faturada[1]
+                   overlay(RowObject.char-2,1,6)   = string(natur-oper.perc-red-ipi * 10000,"999999")
+                   overlay(RowObject.char-2,7,6)   = string(natur-oper.perc-red-icm * 10000,"999999")
+                   RowObject.cod-unid-negoc        = it-nota-fisc.cod-unid-negoc
+                   RowObject.un                    = it-nota-fisc.un-fatur[1] 
+                   RowObject.numero-ordem          = it-nota-fisc.nr-ordem
+                   RowObject.num-pedido            = it-nota-fisc.nr-pedido
+                   RowObject.parcela               = it-nota-fisc.parcela
+                   RowObject.nro-comp              = c-nr-nota-fis-aux
+                   RowObject.serie-comp            = c-serie-docto-aux
+                   RowObject.seq-comp              = c-seq-comp-aux
+                   RowObject.nat-comp              = c-nat-seq-aux
+                   RowObject.lote                  = fat-ser-lote.nr-serlote. 
+
+            /* Para executar a funcao de decimais e preciso um assign para cada campo */
+            assign RowObject.preco-total[1] = fn_ajust_dec(RowObject.preco-total[1], 0).
+            assign RowObject.desconto[1]    = fn_ajust_dec(RowObject.desconto[1], 0).
+
+            IF RowObject.cod-depos = "":U THEN DO:
+                FIND FIRST item-uni-estab 
+                     WHERE item-uni-estab.it-codigo = sdo-fatur-antecip.it-codigo
+                       AND item-uni-estab.deposito-pad = sdo-fatur-antecip.cod-estabel NO-LOCK NO-ERROR.
+                IF AVAIL item-uni-estab 
+                     AND item-uni-estab.deposito-pad <> "":U THEN
+                   ASSIGN RowObject.cod-depos = item-uni-estab.deposito-pad.
+                ELSE DO:
+                    FIND FIRST item 
+                         WHERE item.it-codigo = sdo-fatur-antecip.it-codigo NO-LOCK NO-ERROR.
+                         IF AVAIL item THEN
+                            ASSIGN RowObject.cod-depos = item.deposito-pad.
+                END.
+            END.
+            
+            run emptyRowErrors. 
+            run createRecord.  /* Cria tabela item-doc-est */
+
+            {utp/ut-liter.i "A_sequˆncia_" *}
+            assign c-aux-liter = RETURN-VALUE.
+
+            if  return-value = "NOK":U then do:
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="6470" /* &1 esta com problemas. */
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="c-aux-liter + string(RowObject.seq-comp)"}            
+
+                delete procedure h-acomp.
+                ASSIGN h-acomp = ?.
+                undo bloco, return "NOK":U. /* Desfaz o bloco e retorna com erro */
+            end.
+
+            RUN findItem (rowObject.it-codigo).
+
+
+            IF  NOT VALID-HANDLE(h-boin368) THEN
+                RUN inbo/boin368.p PERSISTENT SET h-boin368.
+
+            RUN openQueryStatic IN h-boin368("Main":U).
+
+            find sdo-fatur-antecip 
+                where rowid(sdo-fatur-antecip) = tt-saldo-terc.rw-saldo-terc no-lock no-error.
+
+            FOR FIRST nota-fiscal
+                WHERE nota-fiscal.nr-nota-fis = sdo-fatur-antecip.nr-nota-fis
+                AND nota-fiscal.serie       = sdo-fatur-antecip.serie-docto
+                AND nota-fiscal.cod-estabel = sdo-fatur-antecip.cod-estabel NO-LOCK:
+                FOR FIRST it-nota-fisc 
+                    WHERE it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel
+                      AND it-nota-fisc.serie       = nota-fiscal.serie
+                      AND it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis
+                      AND it-nota-fisc.nr-seq-fat  = sdo-fatur-antecip.num-seq
+                      AND it-nota-fisc.it-codigo   = sdo-fatur-antecip.it-codigo NO-LOCK: 	
+                      FOR EACH  rat-ordem 
+                         WHERE  rat-ordem.nro-docto    = sdo-fatur-antecip.nr-nota-fis
+                           AND  rat-ordem.serie-docto  = sdo-fatur-antecip.serie-docto
+                           AND  rat-ordem.nat-operacao = it-nota-fisc.nat-operacao
+                           AND  rat-ordem.cod-emitente = sdo-fatur-antecip.cod-emitente
+                           AND  rat-ordem.sequencia    = it-nota-fisc.nr-seq-fat NO-LOCK:
+
+                           FOR EACH tt-rat-ordem:
+                               DELETE tt-rat-ordem.
+                           END.
+
+                           CREATE tt-rat-ordem.
+                           BUFFER-COPY rat-ordem TO tt-rat-ordem
+                           ASSIGN tt-rat-ordem.nro-docto    = RowObject.nro-docto   
+                                      tt-rat-ordem.nat-operacao = RowObject.nat-operacao
+                                      tt-rat-ordem.serie-docto  = RowObject.serie-docto 
+                                      tt-rat-ordem.cod-emitente = RowObject.cod-emitente
+                                      tt-rat-ordem.sequencia    = RowObject.sequencia.
+
+                           RUN setRecord IN h-boin368(INPUT TABLE tt-rat-ordem).
+
+                           RUN createRecord IN h-boin368.                			
+                      END.  					  
+                END.
+            END.
+        end. /* for each */
+    end. /* do trans */
+
+    if valid-handle (h-boin368) then do:
+        delete procedure h-boin368 no-error.
+        ASSIGN h-boin368 = ?.
+    end.
+
+    {utp/ut-liter.i "Totalizando_Itens-Documento" *}
+    assign c-aux-acomp = RETURN-VALUE.
+    
+    run pi-acompanhar in h-acomp (c-aux-acomp).
+
+    /* A variÿvel i-totaliza indicar o que documento deverÿ ser totalizado **/
+    run getTotalizaNota ( 0 ).
+
+    /* Calculo do ICMS, ICMS Subst, ICMS Complementar e totaliza a NF */
+    run TransferTotalItensNota ( i-cod-emitente,
+                                 c-serie-docto,
+                                 c-nro-docto,
+                                 c-nat-operacao ).
+
+    if valid-handle (h-acomp) then do:
+        delete procedure h-acomp no-error.
+        ASSIGN h-acomp = ?.
+    end.
+
+    return "OK":U.    
+
+END PROCEDURE.

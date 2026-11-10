@@ -1,0 +1,1941 @@
+ /*
+**
+** IM7777 - Integracao entre Importacao e Recebimento (EMS)
+** 
+** Objetivo: Criacao dos arquivos tt-docum-est e tt-item-doc-est para posterior
+**           geracao dos arquivos docum-est e item-doc-est ( EMS: reapi190.p / Magnus: re8888.p).
+**
+*/
+/******************************************** Definições ****************************************/
+{include/i_fncrowid.i}
+{imp/im7777m.i} /* definições temp-tables/variáveis */
+def var i-moeda-material        as int no-undo.
+def var de-tot-vl-docto-aux     like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-tot-vl-docto-mo-aux  like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-dup-tot-aux          like dupli-apagar.vl-a-pagar no-undo.
+def var de-dup-tot-mo-aux       like dupli-apagar.vl-a-pagar no-undo.    
+/******************************************** Execução ******************************************/
+
+/* Temp-table para execução reapi190 */
+&if defined(bf-mat-comex) &then
+    /* 
+    ** Tratamento FUNDAP Magnus
+    */
+    DEF TEMP-TABLE tt-itens-ext NO-UNDO
+        FIELD numero-ordem      LIKE ordens-embarque.numero-ordem
+        FIELD parcela           LIKE ordens-embarque.parcela
+        FIELD seq               AS   INTEGER
+        FIELD preco-total-orig  LIKE item-doc-est.preco-total EXTENT 0
+        INDEX codigo IS UNIQUE
+            numero-ordem
+            parcela
+            seq.
+&else
+    create tt-versao-integr.
+    assign tt-versao-integr.cod-versao-integracao = 003.
+
+/* procedure pi-busca-portador-modalidade */
+{cdp/cd9900.i5}
+&endif
+
+def buffer b-tt-itens for tt-itens.
+def var l-first-numero-ordem as logical no-undo.
+
+find first tt-nota no-error.
+
+assign l-acomp = tt-nota.pl-acomp
+       h-acomp = tt-nota.ph-acomp.
+
+find first param-global no-lock no-error.
+
+find first param-cq     no-lock no-error.
+
+find emitente 
+    where emitente.cod-emitente   = tt-nota.cod-emitente no-lock no-error.
+
+find natur-oper
+    where natur-oper.nat-operacao = tt-nota.nat-operacao no-lock no-error.
+    
+find estabelec
+    where estabelec.cod-estabel = tt-nota.cod-estabel no-lock no-error.
+ 
+find b-emit-estab
+    where b-emit-estab.cod-emitente = estabelec.cod-emitente no-lock no-error.
+    
+find param-re
+    where param-re.usuario = tt-nota.usuario no-lock no-error.
+
+find serie
+    where serie.serie = tt-nota.serie-docto no-lock no-error.
+
+FIND param-imp
+    WHERE param-imp.cod-estabel = tt-nota.cod-estabel NO-LOCK NO-ERROR.
+
+/*
+** Verifica se é operação de FUNDAP
+*/
+if emitente.pais = estabelec.pais then
+    assign l-fornec-fundap = yes.
+
+/*
+** Inicia Acompanhamento
+*/
+&if defined(bf-mat-comex) &then
+&else
+if l-acomp then do:
+    {utp/ut-liter.i Consiste_documento... * L}
+    assign c-acomp = trim(return-value).
+    run pi-acompanhar in h-acomp (input c-acomp).
+end.
+&endif
+
+/* 
+** Consiste se o documento ja existe no recebimento 
+*/
+find docum-est
+    where docum-est.serie-docto  = tt-nota.serie-docto
+      and docum-est.nro-docto    = tt-nota.nro-docto
+      and docum-est.cod-emitente = tt-nota.cod-emitente
+      and docum-est.nat-operacao = tt-nota.nat-operacao no-lock no-error.
+if avail docum-est then do:
+    assign i-msg  = 5569
+           c-msg  = string(tt-nota.nro-docto)
+           c-char = "".
+    run pi-gera-erro.
+end.
+
+/* 
+** Consiste numero da nota 
+*/
+if param-global.modulo-ft and natur-oper.imp-nota then
+    run pi-consiste-numero.
+
+/*Atualiza‡Æo da Condi‡Æo de Pagamento - FO 2005412 - INICIO*/
+{include/i-epc200.i2 &CodEvent='"atualizaCondPagamento"'
+                     &CodParameter='"handle-tt-nota"'
+                     &ValueParameter="STRING(buffer tt-nota:HANDLE)"}
+
+{include/i-epc200.i2 &codevent='"atualizaCondPagamento"'
+                     &codparameter='"handle-tt-itens"'
+                     &valueparameter="STRING(buffer tt-itens:HANDLE)"}                    
+{include/i-epc201.i "atualizaCondPagamento"}
+
+if return-value = "NOK" then
+    leave.
+
+find first tt-nota no-error. /* nao retirar - foi incluido em funcao da EPC acima */
+
+/*Atualiza‡Æo da Condi‡Æo de Pagamento - FO 2005412 - FIM*/
+/* 
+** Cria temp-tables de cabecalho da nota 
+*/
+run pi-gera-docto.
+
+/* 
+** Cria temp-tables de despesas do embarque 
+*/
+run pi-gera-tt-despesas.
+
+if can-find (first tt-erro) then
+    return.
+
+find first tt-docum-est no-error.
+
+/*
+** Cria Itens do Documento
+*/ 
+for each tt-itens
+    break by numero-ordem:
+    
+    assign l-first-numero-ordem = no.
+    if first-of(tt-itens.numero-ordem) then
+        assign l-first-numero-ordem = yes.
+
+    &if defined(bf-mat-comex) &then
+        /* 
+        ** Tratamento FUNDAP 
+        */
+        IF l-fornec-fundap THEN DO:
+            CREATE tt-itens-ext.
+            ASSIGN tt-itens-ext.numero-ordem     = tt-itens.numero-ordem
+                   tt-itens-ext.parcela          = tt-itens.parcela
+                   tt-itens-ext.seq              = tt-itens.seq
+                   tt-itens-ext.preco-total-orig = tt-itens.preco-total.
+        END.
+    &endif
+    
+    find item
+        where item.it-codigo = tt-itens.it-codigo no-lock no-error.
+        
+    find ordem-compra
+        where ordem-compra.numero-ordem = tt-itens.numero-ordem no-lock no-error.
+
+    find ordens-embarque
+        where ordens-embarque.cod-estabel = tt-nota.cod-estabel
+          and ordens-embarque.embarque    = tt-nota.embarque
+          no-lock no-error.
+
+    assign de-frete      = 0
+           de-seguro     = 0
+           de-embal      = 0
+           de-outras     = 0.
+
+    &if defined(bf-mat-comex) &then
+    &else
+        if l-acomp then do:
+            {utp/ut-liter.i Consiste_itens... * L}
+            assign c-acomp = trim(return-value).
+            run pi-acompanhar in h-acomp (input c-acomp).
+        end.
+    
+        find item-uni-estab where
+             item-uni-estab.it-codigo   = ordem-compra.it-codigo and
+             item-uni-estab.cod-estabel = ordem-compra.cod-estabel no-lock no-error.
+        if avail item-uni-estab then
+           assign l-loc-unica = item-uni-estab.loc-unica
+                  c-cod-localiz = item-uni-estab.cod-localiz.
+        else assign l-loc-unica = item.loc-unica
+                    c-cod-localiz = item.cod-localiz.
+    &endif    
+    
+    if i-seq-item-doc-est = 0 then
+        assign i-seq-item-doc-est = param-re.seq-item-um.
+    else
+        assign i-seq-item-doc-est = i-seq-item-doc-est
+                                  + param-re.inc-seq.
+
+    create tt-item-doc-est.
+    
+    assign tt-itens.sequencia               = i-seq-item-doc-est          
+           tt-item-doc-est.cod-emitente     = tt-docum-est.cod-emitente
+           tt-item-doc-est.nat-operacao     = tt-docum-est.nat-operacao
+           tt-item-doc-est.nro-docto        = tt-docum-est.nro-docto
+           tt-item-doc-est.serie-docto      = tt-docum-est.serie-docto
+           tt-item-doc-est.sequencia        = i-seq-item-doc-est
+           tt-item-doc-est.quantidade       = tt-itens.quantidade
+           tt-item-doc-est.lote             = tt-itens.lote
+           tt-item-doc-est.dt-vali-lote     = tt-itens.dt-vali-lote
+           tt-item-doc-est.cod-refer        = tt-itens.cod-refer
+           tt-item-doc-est.encerra-pa       = tt-itens.encerra-pa
+           tt-item-doc-est.parcela          = tt-itens.parcela
+           tt-item-doc-est.cod-depos        = tt-itens.cod-depos
+           tt-item-doc-est.it-codigo        = ordem-compra.it-codigo
+           tt-item-doc-est.numero-ordem     = ordem-compra.numero-ordem           
+           tt-item-doc-est.nr-ord-prod      = ordem-compra.ordem-servic
+           &if defined(bf-mat-comex) &then
+               tt-item-doc-est.narrativa[1] = ordem-compra.narrativa[1]
+               tt-item-doc-est.ct-codigo    = if ordem-compra.ct-codigo = 0
+                                              and (item.tipo-contr = "f":U or item.tipo-contr = "d":U) then item.ct-codigo 
+                                              else ordem-compra.ct-codigo
+               tt-item-doc-est.sc-codigo    = if  ordem-compra.sc-codigo = 0
+                                              and (item.tipo-contr = "f":U or item.tipo-contr = "d":U) then item.sc-codigo
+                                              else ordem-compra.sc-codigo
+               tt-item-doc-est.localizacao  = item.localizacao
+               tt-item-doc-est.nro-comp     = 0
+           &else
+               tt-item-doc-est.narrativa      = ordem-compra.narrativa
+               tt-item-doc-est.ct-codigo      = if  ordem-compra.ct-codigo = ""
+                                                and (item.tipo-contr = 1 or item.tipo-contr = 4) then item.ct-codigo
+                                                else ordem-compra.ct-codigo
+               tt-item-doc-est.sc-codigo      = if  ordem-compra.sc-codigo = ""
+                                                and (item.tipo-contr = 1 or item.tipo-contr = 4) then item.sc-codigo
+                                                else ordem-compra.sc-codigo
+               tt-item-doc-est.cod-localiz    = c-cod-localiz
+               tt-item-doc-est.nro-comp       = "0"
+           &endif
+           tt-item-doc-est.peso-liquido     = item.peso-liquido
+           tt-item-doc-est.nr-proc-imp      = tt-itens.nr-proc-imp
+           tt-item-doc-est.desconto         = 0
+           tt-item-doc-est.baixa-ce         = yes 
+           tt-item-doc-est.valor-iss        = 0
+           tt-item-doc-est.valor-subs       = 0
+           tt-item-doc-est.peso-liquido     = tt-itens.peso-liquido.
+                   
+    &if defined(bf_mat_nf_simp_remes_desp_imp) &then
+        if  tt-nota.l-nf-simples-remessa 
+            and tt-nota.idi-nf-simples-remes = 1 then /** nota mae **/
+            assign tt-item-doc-est.ct-codigo = tt-nota.ct-codigo
+                   tt-item-doc-est.sc-codigo = tt-nota.sc-codigo.
+    &endif
+
+    &if defined(bf-mat-comex) &then
+        if natur-oper.tipo = yes
+    &else
+        if natur-oper.tipo = 1
+    &endif
+          and not natur-oper.terceiros
+          or ( natur-oper.tp-oper-terc <> 1    /* Remessa Beneficiamento   */ 
+          and  natur-oper.tp-oper-terc <> 2    /* Retorno Beneficiamento   */
+          and  natur-oper.tp-oper-terc <> 8    /* Remessa Dep¢sito Fechado */
+          and  natur-oper.tp-oper-terc <> 9    /* Retorno Dep¢sito Fechado */
+          and  natur-oper.tp-oper-terc <> 10   /* Remessa Armaz‚m Geral    */
+          and  natur-oper.tp-oper-terc <> 11 ) /* Retorno Armaz‚m Geral    */ then do:
+          
+            if param-global.modulo-cq and 
+             &if defined(bf-mat-comex) &then
+               param-cq.tipo-cq > 0 and
+             &else
+               param-cq.tipo-cq > 1 and 
+             &endif
+               natur-oper.transf = no and avail item-uni-estab and item-uni-estab.contr-qualid and
+               item.it-codigo <> "" then
+                   run pi-skip-lote.
+        end.
+           
+    find item-fornec where 
+         item-fornec.it-codigo    = tt-item-doc-est.it-codigo and 
+         item-fornec.cod-emitente = tt-item-doc-est.cod-emitente no-lock no-error.
+    if avail item-fornec then
+        assign tt-item-doc-est.qt-do-forn = tt-item-doc-est.quantidade
+                                          * (item-fornec.fator-conver /
+                                             if item-fornec.num-casa-dec = 0 then 1
+                                             else exp(10,item-fornec.num-casa-dec)).
+    else
+        assign tt-item-doc-est.qt-do-forn = tt-item-doc-est.quantidade.
+        
+    if tt-item-doc-est.nr-ord-prod <> 0 then do:
+        find first reservas
+            where reservas.nr-ord-prod = tt-item-doc-est.nr-ord-prod
+              and reservas.it-codigo   = tt-item-doc-est.it-codigo no-lock no-error.
+        if not avail reservas then do:
+            &if defined(bf-mat-comex) &then
+            &else
+                ASSIGN tt-item-doc-est.item-pai = "".
+                /*
+                ** Não exige reserva para ordens de produção de itens de política configurado e controlado por referência
+                */
+                FIND ord-prod
+                    WHERE ord-prod.nr-ord-prod = tt-item-doc-est.nr-ord-prod NO-LOCK NO-ERROR.
+                IF AVAIL ord-prod THEN DO:
+                    FIND b-item 
+                        WHERE b-item.it-codigo = ord-prod.it-codigo NO-LOCK NO-ERROR.
+                    IF AVAIL b-item then do:
+                        if b-item.politica     = 5 AND /* configurado */
+                           b-item.tipo-con-est = 4 THEN /* referência  */
+                           ASSIGN tt-item-doc-est.item-pai = "".
+                        if b-item.tipo-contr = 4 then /* Débito Direto */
+                            ASSIGN tt-item-doc-est.item-pai = "".
+                    end.
+                END.
+
+                IF ITEM.tipo-contr = 4 THEN /* Débito Direto */
+                    ASSIGN tt-item-doc-est.item-pai = "".
+                
+                assign tt-item-doc-est.cod-roteiro = ""
+                       tt-item-doc-est.op-codigo   = 0.
+            &endif
+        end.
+        else do:
+            &if defined(bf-mat-comex) &then
+            &else
+                assign tt-item-doc-est.item-pai    = reservas.item-pai
+                       tt-item-doc-est.cod-roteiro = reservas.cod-roteiro
+                       tt-item-doc-est.op-codigo   = reservas.op-codigo.
+            &endif
+        end.
+    end.
+
+    /*
+    ** Drawback - 2.03
+    **/
+    &if defined (bf_mat_versao_ems) &then
+        assign tt-item-doc-est.nr-ato-concessorio = tt-itens.nr-ato-concessorio.
+    &endif
+    
+    &if defined(bf_mat_nf_simp_remes_desp_imp) &then        
+         if  tt-nota.l-nf-simples-remessa
+         and tt-nota.idi-nf-simples-remes = 2 then  /** nf simples remessa filha **/   
+             assign tt-item-doc-est.nr-ato-concessorio = "":U.        
+    &endif
+    
+    &if defined(bf-mat-comex) &then
+    &else
+        if l-acomp then do:
+            {utp/ut-liter.i Despesas_dos_itens... * L}
+            assign c-acomp = trim(return-value).
+            run pi-acompanhar in h-acomp (input c-acomp).
+        end.
+    &endif
+    
+    /* 
+    ** Despesas dos itens 
+    */ 
+    run pi-despesas.
+    
+    assign de-tot-seguro = de-tot-seguro
+                         + de-seguro
+           de-tot-embal  = de-tot-embal
+                         + de-embal
+           de-tot-outras = de-tot-outras
+                         + de-outras.
+    
+    /*
+    ** Gera tt-it-docto - utilizado p/ calcular os valores dos impostos
+    */ 
+    run pi-gera-tt-it-docto.
+    
+    /*
+    ** Gera tt-it-imposto - utilizado p/ calcular os valores dos impostos
+    */
+    run pi-gera-tt-it-imposto.
+    
+    find last tt-it-docto   no-lock no-error.
+    find last tt-it-imposto no-lock no-error.
+    find last tt-docto      no-lock no-error.
+    
+    /* 
+    ** Acumula totais 
+    */
+    assign tt-item-doc-est.preco-total = tt-it-docto.vl-merc-ori
+           tt-docum-est.tot-peso       = tt-docum-est.tot-peso     + tt-item-doc-est.peso-liquido
+           tt-docum-est.valor-frete    = tt-docum-est.valor-frete  + tt-item-doc-est.vl-frete-cons
+           tt-docum-est.valor-mercad   = tt-docum-est.valor-mercad + tt-itens.preco-total.
+
+end. /* fim for each tt-itens */
+
+if can-find (first tt-erro) then
+    leave.
+    
+if not can-find (first tt-item-doc-est) then 
+    leave.
+
+/* 
+** Arredondamento dos valores das despesas do item 
+*/
+run pi-arredondamento-itens.
+        
+/* 
+** Arredondamento dos valores das despesas no documento 
+*/
+assign tt-docum-est.valor-seguro = de-tot-seguro + (de-tot-seguro-aux - de-tot-seguro)
+       tt-docum-est.valor-embal  = de-tot-embal  + (de-tot-embal-aux  - de-tot-embal)
+       tt-docum-est.valor-outras = de-tot-outras + (de-tot-outras-aux - de-tot-outras).
+
+/*
+** Verifica se será gerado duplicatas 
+*/                                  
+if natur-oper.emite-duplic then
+    run pi-gera-duplicata.
+    
+&if defined(bf-mat-comex) &then
+&else
+    if l-acomp then do:
+       {utp/ut-liter.i Gerando_documento... * L}
+       assign c-acomp = trim(return-value).
+       run pi-acompanhar in h-acomp (input c-acomp).
+    end.
+&endif
+
+/*
+** Executa programa para a geracao do documento no recebimento
+*/
+&if defined(bf-mat-comex) &then    
+    /*
+    ** Magnus
+    */
+    run rep/re8888.p.
+&else
+    /*
+    ** EMS
+    */ 
+    find first tt-versao-integr no-lock no-error.
+        
+    &if defined(bf_mat_versao_ems) &then
+        
+        assign tt-versao-integr.cod-versao-integracao = 004.
+        
+        &if defined(bf_mat_unidade_negocio) &then
+        
+            find first param-mat no-lock no-error.
+            if avail param-mat then
+                if param-mat.ind-unid-neg then
+                    assign tt-docum-est.gera-unid-neg = 1.
+                else 
+                    assign tt-docum-est.gera-unid-neg = 0.
+            if tt-docum-est.gera-unid-neg = 1 then
+                run pi-gera-unid-negocio.
+
+        &endif
+
+        run piCarregarTabelasMexico.
+
+        run rep/reapi316b.p (input  "ADD",
+                             input  table tt-docum-est-int,
+                             input  table tt-rat-docum-int,
+                             input  table tt-item-doc-est-int, 
+                             input  table tt-dupli-apagar-int,
+                             input  table tt-dupli-imp-int,  
+                             output table tt-erro-aux).
+        
+        if not can-find (first tt-erro-aux) then do:
+            run piImpostos.
+                        
+            find first tt-docum-est-int no-error.
+            if avail tt-docum-est-int then do:
+                            
+                find docum-est exclusive-lock
+                     where docum-est.serie-docto  = tt-docum-est-int.serie-docto
+                       and docum-est.nro-docto    = tt-docum-est-int.nro-docto
+                       and docum-est.cod-emitente = tt-docum-est-int.cod-emitente
+                       and docum-est.nat-operacao = tt-docum-est-int.nat-operacao no-error.
+                if avail docum-est then do:
+                    assign docum-est.nro-docto   = trim(docum-est.nro-docto)
+                           docum-est.base-ipi    = 0
+                           docum-est.cod-entrega = ""
+                           docum-est.endereco    = ""
+                           docum-est.bairro      = ""
+                           docum-est.cep         = ""
+                           docum-est.cidade      = ""
+                           docum-est.pais        = ""
+                           docum-est.dt-venc-iss = ?
+                           docum-est.dt-venc-ipi = ?
+                           docum-est.dt-venc-icm = ?
+                           docum-est.esp-fiscal  = "".
+            
+                    for each item-doc-est exclusive-lock
+                       where item-doc-est.serie-docto  = docum-est.serie-docto 
+                         and item-doc-est.nro-docto    = docum-est.nro-docto   
+                         and item-doc-est.cod-emitente = docum-est.cod-emitente
+                         and item-doc-est.nat-operacao = docum-est.nat-operacao:
+                       
+                        assign item-doc-est.class-fiscal  = "" 
+                               item-doc-est.dec-1         = 0         
+                               item-doc-est.val-base-calc-cofins = 0
+                               item-doc-est.base-pis      = 0                                 
+                               item-doc-est.sit-item      = 2 
+                               item-doc-est.icm-outras[1] = 0
+                               item-doc-est.icm-outras[2] = 0
+                               item-doc-est.ipi-outras[1] = 0
+                               item-doc-est.ipi-outras[2] = 0.
+
+                        find rat-lote exclusive-lock
+                             where rat-lote.serie-docto  = item-doc-est.serie-docto 
+                               and rat-lote.nro-docto    = item-doc-est.nro-docto   
+                               and rat-lote.cod-emitente = item-doc-est.cod-emitente
+                               and rat-lote.nat-operacao = item-doc-est.nat-operacao
+                               and rat-lote.sequencia    = item-doc-est.sequencia no-error.
+                        if avail rat-lote then
+                            assign rat-lote.qtd-origin = item-doc-est.quantidade.
+
+                    end.
+                end.        
+            end.
+        end.
+        else do:
+            for each tt-erro-aux:
+                assign i-msg  = tt-erro-aux.cd-erro
+                       c-msg  = tt-erro-aux.desc-erro
+                       c-char = "".
+                run pi-gera-erro.
+            end.
+        end. 
+
+        find first tt-docum-est no-error.
+
+        &if defined(bf_mat_nf_simp_remes_desp_imp) &then        
+            run imp/im9049.p (input tt-docum-est.serie-docto,   
+                              input tt-docum-est.nro-docto,     
+                              input tt-docum-est.cod-emitente,  
+                              input tt-docum-est.nat-operacao,
+                              input tt-nota.l-nf-simples-remessa,
+                              input tt-nota.idi-nf-simples-remes).  
+        &endif                              
+    &endif
+    
+    /* Unidade de Negócio */
+    find first tt-erro no-error.
+    if not avail tt-erro then
+        run pi-gera-unid-negocio.
+
+&endif
+
+/* Ajusta sequencia dos erros com origem na api */
+for each tt-erro 
+    where tt-erro.i-sequen = 0:
+    if  i-seq-erro = 0 then
+        assign i-seq-erro = 1.
+    assign tt-erro.i-sequen = i-seq-erro
+           i-seq-erro       = i-seq-erro + 1.
+end.
+
+/* Elimina as despesas do documento no Importacao quando houve problemas
+na API e o documento nao foi criado no Recebimento */
+if not can-find(docum-est where 
+                docum-est.serie-docto  = tt-docum-est.serie-docto  and 
+                docum-est.nro-docto    = tt-docum-est.nro-docto    and 
+                docum-est.cod-emitente = tt-docum-est.cod-emitente and 
+                docum-est.nat-operacao = tt-docum-est.nat-operacao) then do:
+    for each docum-est-cex
+       where docum-est-cex.serie-docto  = tt-docum-est.serie-docto
+        &if defined(bf-mat-comex) &then
+            and docum-est-cex.nro-docto = string(tt-docum-est.nro-docto)
+        &else
+            and docum-est-cex.nro-docto = tt-docum-est.nro-docto
+        &endif        
+          and docum-est-cex.cod-emitente = tt-docum-est.cod-emitente
+          and docum-est-cex.nat-operacao = tt-docum-est.nat-operacao exclusive-lock:
+        for each item-doc-est-cex 
+           where item-doc-est-cex.serie-docto       = docum-est-cex.serie-docto
+             and item-doc-est-cex.nro-docto         = docum-est-cex.nro-docto
+             and item-doc-est-cex.cod-emitente      = docum-est-cex.cod-emitente
+             and item-doc-est-cex.nat-operacao      = docum-est-cex.nat-operacao
+             and item-doc-est-cex.cod-emitente-desp = docum-est-cex.cod-emitente-desp
+             and item-doc-est-cex.cod-desp          = docum-est-cex.cod-desp exclusive-lock:
+            delete item-doc-est-cex.
+        end.
+        delete docum-est-cex.
+    end.
+    for each dupli-apagar-cex
+        where dupli-apagar-cex.serie-docto = tt-docum-est.serie-docto
+        &if defined(bf-mat-comex) &then
+            and dupli-apagar-cex.nro-docto = string(tt-docum-est.nro-docto)
+        &else
+            and dupli-apagar-cex.nro-docto = tt-docum-est.nro-docto
+        &endif
+        and dupli-apagar-cex.cod-emitente = tt-docum-est.cod-emitente
+        and dupli-apagar-cex.nat-operacao = tt-docum-est.nat-operacao exclusive-lock:
+        delete dupli-apagar-cex.                          
+    end.
+end.
+else do:
+    {include/i-epc200.i2 &codevent='"atualizaDatDespesa"'
+                         &codparameter='"seriedocto"'
+                         &valueparameter="tt-docum-est.serie-docto"}
+                         
+    {include/i-epc200.i2 &codevent='"atualizaDatDespesa"'
+                         &codparameter='"numdocto"'
+                         &valueparameter="tt-docum-est.nro-docto"}
+                         
+    {include/i-epc200.i2 &codevent='"atualizaDatDespesa"'
+                         &codparameter='"codemitente"'
+                         &valueparameter="string(tt-docum-est.cod-emitente)"}
+                         
+    {include/i-epc200.i2 &codevent='"atualizaDatDespesa"'
+                         &codparameter='"natoperacao"'
+                         &valueparameter="tt-docum-est.nat-operacao"}
+    
+    {include/i-epc200.i2 &codevent='"atualizaDatDespesa"'
+                         &codparameter='"dacotacao"'
+                         &valueparameter="string(tt-nota.da-cotacao)"}
+                         
+    {include/i-epc201.i "atualizaDatDespesa"} 
+end.
+/****************************************** Procedures Internas **************************************************/
+
+procedure pi-consiste-numero:
+    /*
+    ** Consiste número do documento de entrada
+    */
+    
+    &if defined(bf-mat-comex) &then                  
+        if serie.forma-emis = yes then do:
+    &else
+        if serie.forma-emis = 1   then do:
+    &endif
+            find ser-estab
+                where ser-estab.serie       = tt-nota.serie-docto
+                  and ser-estab.cod-estabel = tt-nota.cod-estabel no-lock no-error.        
+            if not avail ser-estab then do:
+                assign i-msg = 6514
+                       c-msg = ""
+                       c-char= "".
+                run pi-gera-erro.
+            end.
+            else do:
+              &if defined(bf-mat-comex) &then                      
+                assign c-docto-aux = string(ser-estab.nr-ult-nota + 1). 
+              &else
+                if  tt-nota.pais-impto-usuario = 1 then 
+                    assign c-docto-aux = string(int(ser-estab.nr-ult-nota) + 1,"9999999").                    
+                else 
+                    assign c-docto-aux = string(int(ser-estab.nr-ult-nota) + 1).                         
+              &endif
+              
+              if &if defined(bf-mat-comex) &then
+                     tt-nota.nro-docto = 0
+                 &else
+                     tt-nota.nro-docto = ""
+                 &endif then do:
+                 
+                {include/i-epc200.i2 &CodEvent='"grendeneImportacao"'
+                                     &CodParameter='"serieDocto"'
+                                     &ValueParameter="tt-nota.serie-docto"}
+                                     
+                {include/i-epc200.i2 &CodEvent='"grendeneImportacao"'
+                                     &CodParameter='"numDocto"'
+                                     &ValueParameter="c-docto-aux"}
+                                     
+                {include/i-epc200.i2 &CodEvent='"grendeneImportacao"'
+                                     &CodParameter='"codEmitente"'
+                                     &ValueParameter="string(tt-nota.cod-emitente)"}
+                                     
+                {include/i-epc200.i2 &CodEvent='"grendeneImportacao"'
+                                     &CodParameter='"natOperacao"'
+                                     &ValueParameter="tt-nota.nat-operacao"}
+                
+                {include/i-epc201.i "grendeneImportacao"} 
+                
+                find first tt-epc 
+                    where tt-epc.cod-event     = "grendeneImportacao"
+                      and tt-epc.cod-parameter = "numeroNota" no-lock no-error.
+                if avail tt-epc then 
+                    assign c-docto-aux = tt-epc.val-parameter.            
+                    
+                find docum-est             
+                    where docum-est.serie-docto  = tt-nota.serie-docto 
+                    &if defined(bf-mat-comex) &then                   
+                      and docum-est.nro-docto    = int(c-docto-aux)
+                    &else
+                      and docum-est.nro-docto    = c-docto-aux
+                    &endif
+                      and docum-est.cod-emitente = tt-nota.cod-emitente
+                      and docum-est.nat-operacao = tt-nota.nat-operacao no-lock no-error.        
+                if avail docum-est then do:
+                    assign i-msg = 5569
+                         &if defined(bf-mat-comex) &then                      
+                           c-msg = string(c-docto-aux)
+                         &else
+                           c-msg = c-docto-aux                       
+                         &endif
+                           c-char= "".
+                    run pi-gera-erro.
+                end.
+                else do:
+                  &if defined(bf-mat-comex) &then                                  
+                    assign tt-nota.nro-docto = int(c-docto-aux).    
+                  &else
+                    assign tt-nota.nro-docto = c-docto-aux.                     
+                  &endif
+                    run utp/ut-msgs.p (input "msg":U,
+                                       input 52512,
+                                       input c-docto-aux).
+                    create tt-retorno.
+                    assign tt-retorno.i-sequen = 1
+                           tt-retorno.cd-erro  = 52512
+                           tt-retorno.mensagem = return-value                           
+                           tt-retorno.parametros = c-docto-aux.            
+                end.
+              end. /*if nro-docto = ""*/
+            end.
+        end.
+                
+end procedure.
+
+procedure pi-gera-docto:
+    /* 
+    ** Cabeçalho para a API do Recebimento 
+    */
+    
+    find embarque-imp where
+         embarque-imp.cod-estabel = tt-nota.cod-estabel and
+         embarque-imp.embarque    = tt-nota.embarque no-lock no-error.
+    
+    find estabelec where
+         estabelec.cod-estab = tt-nota.cod-estabel no-lock no-error.         
+
+    create tt-docum-est.
+    assign tt-docum-est.cod-emitente   = tt-nota.cod-emitente
+           tt-docum-est.uf             = if avail estabelec then estabelec.estado else ""
+           tt-docum-est.nat-operacao   = tt-nota.nat-operacao
+           tt-docum-est.nro-docto      = tt-nota.nro-docto
+           tt-docum-est.serie-docto    = tt-nota.serie-docto
+           tt-docum-est.cod-estabel    = tt-nota.cod-estabel
+           tt-docum-est.dt-emissao     = tt-nota.dt-emissao
+           tt-docum-est.dt-trans       = tt-nota.dt-trans           
+           tt-docum-est.usuario        = tt-nota.usuario
+           &if defined(bf-mat-comex) &then
+               tt-docum-est.ct-transit    = tt-nota.ct-transit
+               tt-docum-est.sc-transit    = tt-nota.sc-transit
+               tt-docum-est.cod-observa   = 0 /* industria */
+               tt-docum-est.esp-docto     = "NFE":U
+               tt-docum-est.mod-frete     = yes
+           &else
+               tt-docum-est.ct-transit = tt-nota.ct-transit
+               tt-docum-est.sc-transit = tt-nota.sc-transit
+               tt-docum-est.cod-observa   = 1 /* industria */
+               tt-docum-est.esp-docto     = 21
+               tt-docum-est.mod-frete     = 1
+               tt-docum-est.cotacao-dia   = tt-nota.cotacao-dia
+           &endif
+           tt-docum-est.embarque       = tt-nota.embarque
+           tt-docum-est.nff            = no
+           tt-docum-est.valor-embal    = 0
+           tt-docum-est.pais-origem    = "RE1001":U
+           tt-docum-est.efetua-calculo = 0
+           tt-docum-est.rec-fisico     = no
+           tt-docum-est.origem         = "I":U
+           tt-docum-est.via-transp     = tt-nota.via-transp.
+
+    /* 
+    ** Cabecalho utilizado para calculos de impostos no Recebimento 
+    */               
+    create tt-docto.  
+    &if defined(bf-mat-comex) &then           
+        assign tt-docto.ind-tip-nota = "R":U
+               tt-docto.cod-portador = emitente.portador   
+               tt-docto.modalidade   = emitente.modalidade. 
+    &else
+        run pi-busca-portador-modalidade (buffer emitente,
+                                          output i-portador-emit,
+                                          output i-modalidade-emit).
+    
+        assign tt-docto.seq-tt-docto    = 1
+               tt-docto.dt-trans        = tt-docum-est.dt-trans
+               tt-docto.ind-tip-nota    = 8
+               tt-docto.cod-portador    = i-portador-emit
+               tt-docto.modalidade      = i-modalidade-emit.
+    &endif
+  
+    assign tt-docto.cod-estabel     = tt-docum-est.cod-estabel
+           tt-docto.serie           = tt-docum-est.serie-docto
+           tt-docto.nr-nota         = tt-docum-est.nro-docto
+           tt-docto.cod-emitente    = tt-docum-est.cod-emitente
+           tt-docto.nat-operacao    = tt-docum-est.nat-operacao  
+           tt-docto.dt-emis-nota    = tt-docum-est.dt-trans
+           tt-docto.nome-abrev      = emitente.nome-abrev
+           tt-docto.usuario         = tt-docum-est.usuario  
+           tt-docto.inc-seq         = param-re.inc-seq
+           tt-docto.seq-item-um     = param-re.seq-item-um
+           tt-docto.estado          = estabelec.estado
+           tt-docto.cidade          = estabelec.cidade
+           tt-docto.pais            = estabelec.pais                                                                   
+           tt-docto.cod-des-merc    = if natur-oper.consum-final then 2 /* Consumo */
+                                                                 else 1 /* Industralizacao */
+           tt-docto.esp-docto       = tt-docum-est.esp-docto
+           tt-docto.cod-msg         = natur-oper.cod-mensagem
+           tt-docto.ind-lib-nota    = yes
+           tt-docto.perc-desco1     = if tt-docum-est.tot-desconto <> 0 then 1
+                                                                        else 0.
+
+end procedure.
+
+procedure pi-gera-tt-despesas:
+    /* 
+    ** Criacao das temp-tables com as despesas e os valores calculados para rateio 
+    */    
+    def var h-im0091 as handle no-undo.
+    
+    /* Rateio das despesas informadas para o embarque */
+    run imp/im0091.p persistent set h-im0091.
+    run setaValorinicial in h-im0091 (input tt-nota.da-cotacao,
+                                      input tt-nota.cod-estabel).
+    RUN setTTitens IN h-im0091 (INPUT TABLE tt-itens).
+    run rateioEmbarque   in h-im0091 (input tt-nota.cod-estabel,
+                                      input tt-nota.embarque,
+                                      input tt-nota.nat-operacao,
+                                      output table tt-desp-rateio).
+                                      
+    /*nova procedure*/                                      
+    run geradiferencavalores in h-im0091 (output table tt-itens-rateio).
+    
+    run getTTdesp-totais   in h-im0091 (output table tt-desp-totais).
+    run getTTordens-totais in h-im0091 (output table tt-ordens-totais).
+    run getTTbo-erro       in h-im0091 (output table tt-bo-erro).
+    delete procedure h-im0091.
+    
+    for each tt-bo-erro:
+        assign i-msg = tt-bo-erro.cd-erro
+               c-msg = tt-bo-erro.parametros
+               c-char= "".
+        run pi-gera-erro.     
+    end.
+    
+end procedure.
+
+procedure pi-skip-lote:
+    /* 
+    ** Atualiza o campo cod-depos se o item for controlado por CQ
+    */
+    def var l-sugere-cq as log no-undo.
+    def var i-indice-cq   like param-estoq.ins-pref-x extent 0 no-undo.
+    def var l-leitura-item-fornec-estab as log no-undo.    
+    
+    assign l-sugere-cq = yes.
+    &if defined(bf-mat-comex) &then
+        if param-cq.tipo-cq = 2 then do: /* CQ Total */
+    &else
+        if param-cq.tipo-cq = 3 then do: /* CQ Total */
+    &endif    
+          
+        ASSIGN l-leitura-item-fornec-estab = NO.
+
+        IF CAN-FIND(FIRST funcao
+                    WHERE funcao.cd-funcao = "spp-cq-itfornest"
+                    AND   funcao.ativo     = YES NO-LOCK) THEN DO:
+            ASSIGN l-leitura-item-fornec-estab = YES.
+        END.
+    
+        ASSIGN l-leitura-item-fornec-estab = YES.
+
+        IF l-leitura-item-fornec-estab THEN DO:                    
+            find first item-fornec-estab 
+                 where item-fornec-estab.it-codigo    = tt-item-doc-est.it-codigo 
+                   and item-fornec-estab.cod-emitente = tt-item-doc-est.cod-emitente 
+                   and item-fornec-estab.cod-estabel  = tt-nota.cod-estabel exclusive-lock no-error.
+            if avail item-fornec-estab then do:
+                if  item-fornec-estab.tp-inspecao > 3 then do:
+                    &if defined(bf-mat-comex) &then
+                       if item.criticidade = "X":U then
+                    &else
+                       if item.criticidade = 1 then
+                    &endif
+                        assign i-indice-cq = param-cq.ins-pref-x
+                                             [item-fornec-estab.tp-inspecao - 3].
+                    else 
+                      &if defined(bf-mat-comex) &then
+                         if item.criticidade = "Y":U then
+                      &else
+                         if item.criticidade = 1 then
+                      &endif
+                            assign i-indice-cq = param-cq.ins-pref-y
+                                                 [item-fornec-estab.tp-inspecao - 3].
+                         else 
+                            &if defined(bf-mat-comex) &then
+                               if item.criticidade = "Z":U then
+                            &else
+                               if item.criticidade = 1 then
+                            &endif
+                                assign i-indice-cq = param-cq.ins-pref-z
+                                                     [item-fornec-estab.tp-inspecao - 3].
+         
+                &if defined(bf-mat-comex) &then
+                    if  param-cq.log-1 = no then
+                &else
+                    if  param-cq.tp-skip-lot = 1 then
+                &endif
+                        assign l-sugere-cq = ( random(0,100) <= i-indice-cq ).
+                    else do:
+                         assign l-sugere-cq = no.
+                         if  i-indice-cq <= item-fornec-estab.niv-inspecao 
+                         then 
+                             assign l-sugere-cq = yes
+                                    item-fornec-estab.niv-inspecao = 0.
+                    end.
+                    if  l-sugere-cq = no then 
+                        assign item-fornec-estab.niv-inspecao =
+                               item-fornec-estab.niv-inspecao + 1.
+                end.
+                else assign l-sugere-cq = yes.
+            end.          
+            ELSE 
+                ASSIGN l-leitura-item-fornec-estab = NO.
+        END.
+        
+        IF NOT l-leitura-item-fornec-estab THEN DO:
+            find item-fornec 
+                 where item-fornec.it-codigo = tt-item-doc-est.it-codigo 
+                   and item-fornec.cod-emite = tt-item-doc-est.cod-emitente exclusive-lock no-error.
+            if  avail item-fornec then do:
+                if  item-fornec.tp-inspecao > 3 then do:
+                    &if defined(bf-mat-comex) &then
+                       if item.criticidade = "X":U then
+                    &else
+                       if item.criticidade = 1 then
+                    &endif
+                        assign i-indice-cq = param-cq.ins-pref-x
+                                             [item-fornec.tp-inspecao - 3].
+                    else 
+                      &if defined(bf-mat-comex) &then
+                         if item.criticidade = "Y":U then
+                      &else
+                         if item.criticidade = 1 then
+                      &endif
+                            assign i-indice-cq = param-cq.ins-pref-y
+                                                 [item-fornec.tp-inspecao - 3].
+                         else 
+                            &if defined(bf-mat-comex) &then
+                               if item.criticidade = "Z":U then
+                            &else
+                               if item.criticidade = 1 then
+                            &endif
+                                assign i-indice-cq = param-cq.ins-pref-z
+                                                     [item-fornec.tp-inspecao - 3].
+         
+                &if defined(bf-mat-comex) &then
+                    if  param-cq.log-1 = no then
+                &else
+                    if  param-cq.tp-skip-lot = 1 then
+                &endif
+                        assign l-sugere-cq = ( random(0,100) <= i-indice-cq ).
+                    else do:
+                         assign l-sugere-cq = no.
+                         if  i-indice-cq <= item-fornec.niv-inspecao 
+                         then 
+                             assign l-sugere-cq = yes
+                                    item-fornec.niv-inspecao = 0.
+                    end.
+                    if  l-sugere-cq = no then 
+                        assign item-fornec.niv-inspecao =
+                               item-fornec.niv-inspecao + 1.
+                end.
+                else assign l-sugere-cq = yes.
+            end.
+        end.
+    end.
+    
+    if  l-sugere-cq then do:
+        assign tt-item-doc-est.cod-depos = estabelec.deposito-cq.
+
+        &if defined(bf-mat-comex) &then        
+           if item.loc-unica = no then
+               assign tt-item-doc-est.localizacao = "".
+        &else 
+           if  l-loc-unica = no then
+               assign tt-item-doc-est.cod-localiz = "".
+        &endif
+    end.
+
+end procedure.
+
+procedure pi-despesas:
+    /*
+    ** Calcula despesas para os itens da nota
+    */
+    def var de-tot-despesa-aux like desp-embarque.val-desp  no-undo.
+    def var de-tot-frete-aux   like desp-embarque.val-desp  no-undo.
+    def var de-val-desp-inc    like desp-embarque.val-desp  no-undo.
+    def var de-val-desp-fre    like desp-embarque.val-desp  no-undo.
+    def var de-val-desp-rateio like desp-embarque.val-desp  no-undo.
+    def var de-val-desp-rateio-dif like desp-embarque.val-desp  no-undo.
+    def var de-val-maior           like prazo-compra.quantidade no-undo.
+    def var i-numero-ordem         like prazo-compra.numero-ordem no-undo.
+    def var i-parcela              like prazo-compra.parcela      no-undo.
+    def var i-seq                  as int no-undo.
+    def var i-cod-desp             like desp-embarque.cod-desp no-undo.
+    
+    for each tt-desp-rateio
+        where tt-desp-rateio.numero-ordem = tt-item-doc-est.numero-ordem
+          and tt-desp-rateio.parcela      = tt-item-doc-est.parcela
+          break by cod-desp:
+                
+        find tt-desp-totais
+            where tt-desp-totais.cod-desp = tt-desp-rateio.cod-desp NO-ERROR.
+            
+        find tt-ordens-totais
+            where tt-ordens-totais.numero-ordem = tt-item-doc-est.numero-ordem
+              and tt-ordens-totais.parcela      = tt-item-doc-est.parcela NO-ERROR.
+               
+        
+        if l-first-numero-ordem then do:
+            for each   tt-itens-rateio where
+                       tt-itens-rateio.numero-ordem = tt-desp-rateio.numero-ordem and
+                       tt-itens-rateio.parcela      = tt-desp-rateio.parcela      and                           
+                       tt-itens-rateio.cod-desp     = tt-desp-rateio.cod-desp     no-lock:
+                     
+                      assign de-val-desp-rateio = de-val-desp-rateio + round(tt-itens-rateio.val-desp,2).
+            end.
+            
+            if de-val-desp-rateio <> tt-desp-rateio.val-desp then do:
+            
+                    assign de-val-desp-rateio-dif = if (de-val-desp-rateio - tt-desp-rateio.val-desp) < 0 then
+                                                    (de-val-desp-rateio - tt-desp-rateio.val-desp) * (-1) 
+                                                    else (de-val-desp-rateio - tt-desp-rateio.val-desp).
+                                                    
+                    for each tt-itens-rateio  where
+                             tt-itens-rateio.numero-ordem = tt-desp-rateio.numero-ordem and      
+                             tt-itens-rateio.parcela      = tt-desp-rateio.parcela      and     
+                             /*tt-itens-rateio.seq        = tt-itens.seq                and*/       
+                             tt-itens-rateio.cod-desp     = tt-desp-rateio.cod-desp     no-lock:
+                             
+                             if tt-itens-rateio.quantidade > de-val-maior then
+                                assign i-numero-ordem = tt-itens-rateio.numero-ordem
+                                       i-parcela      = tt-itens-rateio.parcela
+                                       i-seq          = tt-itens-rateio.seq
+                                       i-cod-desp     = tt-itens-rateio.cod-desp
+                                       de-val-maior   = tt-itens-rateio.quantidade.
+    
+                    end.         
+                    
+                    find first tt-itens-rateio where                                                               
+                               tt-itens-rateio.numero-ordem = i-numero-ordem and      
+                               tt-itens-rateio.parcela      = i-parcela      and      
+                               tt-itens-rateio.seq          = i-seq          and
+                               tt-itens-rateio.cod-desp     = i-cod-desp     no-lock no-error. 
+                    
+                    assign tt-itens-rateio.val-desp = tt-itens-rateio.val-desp - de-val-desp-rateio-dif.
+                    
+            end.                 
+        end.
+        
+        find first tt-itens-rateio where                                          
+                   tt-itens-rateio.numero-ordem = tt-desp-rateio.numero-ordem and 
+                   tt-itens-rateio.parcela      = tt-desp-rateio.parcela      and              
+                   tt-itens-rateio.seq          = tt-itens.seq                and                
+                   tt-itens-rateio.cod-desp     = tt-desp-rateio.cod-desp     no-lock no-error.
+        
+        assign de-val-desp-rateio = 0
+               i-numero-ordem     = 0
+               i-parcela          = 0
+               i-seq              = 0
+               i-cod-desp         = 0
+               de-val-maior       = 0
+               de-val-desp-rateio-dif = 0.
+               
+        find docum-est-cex
+            where docum-est-cex.serie-docto       = tt-docum-est.serie-docto
+            &if defined(bf-mat-comex) &then
+              and docum-est-cex.nro-docto         = string(tt-docum-est.nro-docto)
+            &else
+              and docum-est-cex.nro-docto         = tt-docum-est.nro-docto
+            &endif
+              and docum-est-cex.cod-emitente      = tt-docum-est.cod-emitente
+              and docum-est-cex.nat-operacao      = tt-docum-est.nat-operacao
+              and docum-est-cex.cod-emitente-desp = tt-desp-totais.cod-emitente-desp
+              and docum-est-cex.cod-desp          = tt-desp-rateio.cod-desp exclusive-lock no-error.              
+        if not avail docum-est-cex then do:            
+            create docum-est-cex.
+            assign docum-est-cex.serie-docto       = tt-docum-est.serie-docto
+                 &if defined(bf-mat-comex) &then           
+                   docum-est-cex.nro-docto         = string(tt-docum-est.nro-docto)
+                 &else
+                   docum-est-cex.nro-docto         = tt-docum-est.nro-docto          
+                 &endif
+                   docum-est-cex.cod-emitente      = tt-docum-est.cod-emitente
+                   docum-est-cex.nat-operacao      = tt-docum-est.nat-operacao
+                   docum-est-cex.cod-emitente-desp = tt-desp-totais.cod-emitente-desp
+                   docum-est-cex.cod-desp          = tt-desp-rateio.cod-desp
+                   docum-est-cex.mo-codigo         = 0
+                   docum-est-cex.cod-cond-pag      = tt-desp-totais.cod-cond-pag
+                   docum-est-cex.cotacao           = 1.        
+        end.            
+            assign docum-est-cex.val-desp          = docum-est-cex.val-desp 
+                                                   + tt-itens-rateio.val-desp /*round((tt-item-doc-est.quantidade 
+                                                   * tt-desp-rateio.val-desp)
+                                                   / tt-ordens-totais.quantidade,2)*/ .
+            
+        create item-doc-est-cex.
+        assign item-doc-est-cex.serie-docto       = tt-docum-est.serie-docto
+             &if defined(bf-mat-comex) &then
+               item-doc-est-cex.nro-docto         = string(tt-docum-est.nro-docto)
+             &else
+               item-doc-est-cex.nro-docto         = tt-docum-est.nro-docto
+             &endif
+               item-doc-est-cex.cod-emitente      = tt-docum-est.cod-emitente
+               item-doc-est-cex.nat-operacao      = tt-docum-est.nat-operacao
+               item-doc-est-cex.sequencia         = tt-item-doc-est.sequencia
+               item-doc-est-cex.cod-emitente-desp = tt-desp-totais.cod-emitente-desp
+               item-doc-est-cex.cod-desp          = tt-desp-rateio.cod-desp
+               item-doc-est-cex.mo-codigo         = 0
+               item-doc-est-cex.cotacao           = 1
+               item-doc-est-cex.val-desp          = tt-itens-rateio.val-desp /*(tt-item-doc-est.quantidade 
+                                                  * tt-desp-rateio.val-desp)
+                                                  / tt-ordens-totais.quantidade,2)*/ .
+
+        run pi-rateio-item-desp (input tt-desp-rateio.cod-desp,
+                                 input item-doc-est-cex.val-desp,
+                                 output de-val-desp-inc,
+                                 output de-val-desp-fre).
+                                 
+        assign de-tot-despesa-aux = de-tot-despesa-aux + de-val-desp-inc
+               de-tot-frete-aux   = de-tot-frete-aux   + de-val-desp-fre.
+    end.    
+    assign de-tot-resto       = de-tot-resto       + (de-tot-despesa-aux - tt-item-doc-est.despesas)
+           de-tot-resto-frete = de-tot-resto-frete + (de-tot-frete-aux   - tt-item-doc-est.vl-frete-cons).
+end procedure.
+
+procedure pi-rateio-item-desp:
+    /*
+    ** Rateia o valor da despesa para o item do documento
+    */
+    def input  parameter p-cod-desp     like desp-imp.cod-desp      no-undo.
+    def input  parameter p-val-desp     like desp-embarque.val-desp no-undo.
+    def output parameter p-val-desp-inc like desp-embarque.val-desp no-undo.
+    def output parameter p-val-desp-fre like desp-embarque.val-desp no-undo.
+    
+    find desp-imp
+        where desp-imp.cod-desp = p-cod-desp no-lock no-error.
+    if avail desp-imp then do:
+        if desp-imp.inc-val-frete or
+           desp-imp.inc-val-seguro or 
+           desp-imp.inc-val-embal or
+           desp-imp.inc-val-outras-desp then do:
+            assign tt-item-doc-est.despesas = tt-item-doc-est.despesas + p-val-desp
+                   p-val-desp-inc           = p-val-desp.
+            if desp-imp.inc-val-frete then
+                assign tt-item-doc-est.vl-frete-cons = tt-item-doc-est.vl-frete-cons + p-val-desp
+                       de-frete                      = de-frete                      + p-val-desp
+                       p-val-desp-fre                = p-val-desp.
+            if desp-imp.inc-val-seguro then
+                assign de-seguro         = de-seguro         + p-val-desp
+                       de-tot-seguro-aux = de-tot-seguro-aux + p-val-desp.
+            if desp-imp.inc-val-embal then
+                assign de-embal          = de-embal         + p-val-desp
+                       de-tot-embal-aux  = de-tot-embal-aux + p-val-desp.
+            if desp-imp.inc-val-outras-desp then
+                assign de-outras         = de-outras         + p-val-desp
+                       de-tot-outras-aux = de-tot-outras-aux + p-val-desp.
+        end.
+     end.
+end procedure.
+
+procedure pi-gera-tt-it-docto.
+    /*
+    ** Temp-table para cálculo do imposto 
+    */
+
+    create tt-it-docto.
+    &if defined(bf-mat-comex) &then               
+        assign tt-it-docto.ct-codigo = tt-item-doc-est.ct-codigo    
+               tt-it-docto.sc-codigo = tt-item-doc-est.sc-codigo.           
+    &else   
+        assign tt-it-docto.seq-tt-it-docto = i-seq-aux
+               tt-it-docto.ct-codigo  = tt-item-doc-est.ct-codigo
+               tt-it-docto.sc-codigo = tt-item-doc-est.sc-codigo.        
+    &endif    
+    assign tt-it-docto.cod-emitente    = tt-docum-est.cod-emitente           
+           tt-it-docto.nr-nota         = tt-docum-est.nro-docto
+           tt-it-docto.serie           = tt-docum-est.serie
+           tt-it-docto.cod-estabel     = tt-docum-est.cod-estabel
+           tt-it-docto.nat-operacao    = tt-docum-est.nat-operacao
+           tt-it-docto.calcula         = yes
+           i-seq-aux                   = i-seq-aux + 1   
+           tt-it-docto.nr-sequencia    = tt-item-doc-est.sequencia
+           tt-it-docto.quantidade      = tt-item-doc-est.quantidade
+           tt-it-docto.vl-frete        = tt-item-doc-est.vl-frete-cons            
+           tt-it-docto.vl-despes-it    = tt-item-doc-est.despesas
+           tt-it-docto.vl-embalagem    = de-embal
+           tt-it-docto.calcula         = yes                      
+           tt-it-docto.it-codigo       = tt-item-doc-est.it-codigo
+           tt-it-docto.nro-comp        = tt-item-doc-est.nro-comp
+           tt-it-docto.serie-comp      = tt-item-doc-est.serie-comp
+           tt-it-docto.nat-comp        = tt-item-doc-est.nat-comp
+           tt-it-docto.seq-comp        = tt-item-doc-est.seq-comp           
+           tt-it-docto.data-comp       = tt-item-doc-est.data-comp
+           tt-it-docto.nr-ord-prod     = tt-item-doc-est.nr-ord-prod
+           tt-it-docto.numero-ordem    = tt-item-doc-est.numero-ordem
+           tt-it-docto.parcela         = tt-item-doc-est.parcela
+           tt-it-docto.cod-refer       = tt-item-doc-est.cod-refer
+           tt-it-docto.encerra-pa      = tt-item-doc-est.encerra-pa 
+           &if defined(bf-mat-comex) &then           
+               tt-it-docto.narrativa[1] = tt-item-doc-est.narrativa[1]
+           &else
+               tt-it-docto.item-pai    = tt-item-doc-est.item-pai           
+               tt-it-docto.cod-roteiro = tt-item-doc-est.cod-roteiro
+               tt-it-docto.op-codigo   = tt-item-doc-est.op-codigo
+               tt-it-docto.narrativa   = tt-item-doc-est.narrativa               
+           &endif    
+           tt-it-docto.desconto        = tt-item-doc-est.desconto
+           tt-it-docto.per-des-item    = int(tt-item-doc-est.desconto > 0)
+           tt-it-docto.vl-preuni       = tt-itens.preco-unit - tt-item-doc-est.desconto
+           tt-it-docto.vl-preori       = tt-itens.preco-unit             
+           tt-it-docto.vl-merc-liq     = tt-itens.preco-total - tt-item-doc-est.desconto
+           tt-it-docto.vl-merc-ori     = tt-itens.preco-total
+           tt-it-docto.vl-seguro       = de-seguro.
+           
+    /* 
+    ** Char-1 utilizado apenas para que a integracao c/ importacao seja feita apenas
+    ** quando no momento da geracao do documento atraves do programa 
+    ** IM7777 - Desembarque/Geracao de Documentos
+    */
+    assign tt-it-docto.char-1          = "im7777":U.
+           
+    /*
+    ** Tratamento Fundap
+    */
+    if l-fornec-fundap then do:
+        create tt-it-docto-aux.
+        buffer-copy tt-it-docto to tt-it-docto-aux.
+    end.
+           
+end procedure.
+
+procedure pi-gera-tt-it-imposto:
+    /*
+    ** Temp-table para cálculo dos impostos
+    */
+    
+    create tt-it-imposto.
+        
+    &if defined(bf-mat-comex) &then           
+        assign tt-it-imposto.r-tt-it-docto   = &IF {&ROWID_READY} = YES &THEN
+                                                    ROWID(tt-it-docto)
+                                               &ELSE
+                                                    recid(tt-it-docto)
+                                               &ENDIF.
+    &else
+        assign tt-it-imposto.seq-tt-it-docto = tt-it-docto.seq-tt-it-docto.
+    &endif
+    
+    /*
+    ** Tratamento Fundap
+    */
+    if l-fornec-fundap then do:
+        create tt-it-imposto-aux.
+        buffer-copy tt-it-imposto to tt-it-imposto-aux.
+    end.
+           
+end procedure.
+
+procedure pi-arredondamento-itens:
+/*
+** Arredonda o valor das despesas dos itens para que o valor da despesa na nota fique correto
+*/
+def var i-maior-sequencia as   integer                  no-undo.
+def var de-val-despesas   like tt-item-doc-est.despesas no-undo.
+
+assign de-val-despesas = 0.
+for each tt-item-doc-est:
+    if de-val-despesas < tt-item-doc-est.despesas then
+        assign de-val-despesas   = tt-item-doc-est.despesas
+               i-maior-sequencia = tt-item-doc-est.sequencia.
+end.
+
+find tt-item-doc-est 
+    where tt-item-doc-est.sequencia = i-maior-sequencia no-error.
+if avail tt-item-doc-est then do:
+    assign tt-item-doc-est.despesas      = tt-item-doc-est.despesas       + de-tot-resto 
+           tt-item-doc-est.vl-frete-cons = tt-item-doc-est.vl-frete-cons  + de-tot-resto-frete.
+end.               
+
+end procedure.
+
+procedure pi-gera-duplicata:
+    /* 
+    ** Gera duplicatas para o material 
+    */
+    
+    def var de-tot-vl-docto    like dupli-apagar-cex.vl-a-pagar no-undo.
+    def var de-tot-vl-docto-mo like dupli-apagar-cex.vl-a-pagar no-undo.
+    def var r-cotacao-item     as rowid                         no-undo.
+    
+    def var de-total-dup     like dupli-apagar.vl-a-pagar no-undo.
+    def var de-total-dup-mo  like dupli-apagar.vl-a-pagar no-undo.
+    def var de-dup-tot       like dupli-apagar.vl-a-pagar no-undo.
+    def var de-dup-tot-mo    like dupli-apagar.vl-a-pagar no-undo.    
+    def var de-vl-docto      like dupli-apagar.vl-a-pagar no-undo.
+    def var de-vl-docto-mo   like dupli-apagar.vl-a-pagar no-undo.    
+    def var da-data          as date                      no-undo extent 12.
+    def var da-partida       as date                      no-undo.    
+        
+    DEF VAR i-cod-emitente-desp-ant LIKE emitente.cod-emitente NO-UNDO.
+    DEF VAR da-dt-vencto-ant        AS   DATE                  NO-UNDO INIT ?.
+    
+    &if defined(bf-mat-comex) &then
+    &else
+        if l-acomp then do:
+           {utp/ut-liter.i Gerando_duplicatas... * L}
+           assign c-acomp = trim(return-value).
+           run pi-acompanhar in h-acomp (input c-acomp).
+        end.
+    &endif
+    
+    for each tt-dupli:
+        delete tt-dupli.
+    end.
+    
+    for each tt-dupli-apagar:
+        delete tt-dupli-apagar.
+    end.
+
+    FIND CURRENT param-imp NO-LOCK NO-ERROR.
+
+	{cdp/cd4300.i4 "yes" param-imp.char-1}
+	{cxbo/bocx250.i51 "yes"}
+        
+    find historico-embarque 
+        where historico-embarque.cod-estabel   = tt-docum-est.cod-estabel
+          and historico-embarque.embarque      = tt-docum-est.embarque
+          and historico-embarque.cod-itiner    = tt-nota.cod-itiner
+          and historico-embarque.cod-pto-contr = tt-nota.cod-pto-contr-base
+          no-lock no-error.          
+    
+    for each tt-item-doc-est
+        where tt-item-doc-est.serie-docto  = tt-docum-est.serie-docto
+          and tt-item-doc-est.nro-docto    = tt-docum-est.nro-docto
+          and tt-item-doc-est.cod-emitente = tt-docum-est.cod-emitente
+          and tt-item-doc-est.nat-operacao = tt-docum-est.nat-operacao:                    
+          
+        find tt-itens
+            where tt-itens.numero-ordem = tt-item-doc-est.numero-ordem
+              and tt-itens.parcela      = tt-item-doc-est.parcela
+              and tt-itens.sequencia    = tt-item-doc-est.sequencia NO-ERROR.
+              
+        assign de-vl-docto        = tt-itens.preco-total
+                                  - tt-item-doc-est.desconto.
+        &if defined(bf-mat-comex) &then
+            /* especifico FUNDAP ************************************************/
+            IF l-fornec-fundap THEN DO:
+                FIND tt-itens-ext
+                    WHERE tt-itens-ext.numero-ordem = tt-itens.numero-ordem
+                      AND tt-itens-ext.parcela      = tt-itens.parcela
+                      AND tt-itens-ext.seq          = tt-itens.seq NO-ERROR.
+                ASSIGN de-vl-docto    = tt-itens-ext.preco-total-orig
+                                      - tt-item-doc-est.desconto.
+            END.
+            /********************************************************************/
+        &endif
+        assign de-tot-vl-docto    = de-tot-vl-docto
+                                  + de-vl-docto
+               de-vl-docto-mo     = 0
+               de-tot-vl-docto-mo = de-tot-vl-docto-mo 
+                                  + tt-itens.preco-total-mo.
+                                  
+        find cond-pagto
+            where cond-pagto.cod-cond-pag = tt-nota.cod-cond-pag no-lock no-error.
+        if not avail cond-pagto then do:
+        
+            find cond-especif
+                where cond-especif.num-pedido = tt-itens.num-pedido no-lock no-error.
+            if not avail cond-especif then 
+                next.
+            else do:
+                do  i-ind = 1 to 6:
+                    if  cond-especif.data-pagto[i-ind] <> ? then do:                        
+                        create tt-dupli.
+                        assign tt-dupli.dt-vencim    = cond-especif.data-pagto[i-ind]
+                               tt-dupli.tp-despesa   = emitente.tp-desp-padrao
+                               tt-dupli.vl-apagar    = de-vl-docto 
+                                                     * cond-especif.perc-pagto[i-ind] / 100 
+                               tt-dupli.mo-codigo    = tt-nota.mo-codigo                               
+                               tt-dupli.vl-apagar-mo = tt-itens.preco-total-mo
+                                                     * cond-especif.perc-pagto[i-ind]
+                                                     / 100.
+                               
+                    end.
+                end.
+            end.
+        end.
+        else do:
+
+            assign da-data = today.
+            
+            if not avail historico-embarque then
+                assign da-partida = tt-docum-est.dt-emissao.
+            else
+                assign da-partida = if historico-embarque.dt-efetiva <> ? then historico-embarque.dt-efetiva
+                                    else tt-docum-est.dt-emissao.
+
+            {cdp/cd9020.i7 tt-docum-est.cod-estabel a} /* calculo data de vencimento */
+            
+            do  i-ind = 1 to cond-pagto.num-parcelas:
+            
+                if da-data[i-ind] < today then 
+                    assign da-data[i-ind] = tt-docum-est.dt-emissao.
+                    
+                create tt-dupli.
+                assign tt-dupli.dt-vencim    = da-data[i-ind]
+                       tt-dupli.tp-despesa   = tt-itens.tp-despesa
+                       tt-dupli.vl-apagar    = de-vl-docto 
+                                             * cond-pagto.per-pg-dup[i-ind] / 100
+                       tt-dupli.mo-codigo    = tt-nota.mo-codigo                       
+                       tt-dupli.vl-apagar-mo = tt-itens.preco-total-mo
+                                             * cond-pagto.per-pg-dup[i-ind]
+                                             / 100.
+            end.            
+        end.
+    end.
+    
+    for each tt-dupli 
+        break by tt-dupli.mo-codigo              
+              by tt-dupli.dt-vencim:
+    
+        if  first-of(tt-dupli.dt-vencim) then do:
+            assign de-total-dup    = 0
+                   de-total-dup-mo = 0
+                   i-parcela       = i-parcela + 1.
+        end.
+
+        assign de-total-dup    = de-total-dup    + tt-dupli.vl-apagar
+               de-total-dup-mo = de-total-dup-mo + tt-dupli.vl-apagar-mo.
+
+        if  last-of(tt-dupli.mo-codigo) or            
+            last-of(tt-dupli.dt-vencim) then do:
+            create tt-dupli-apagar.
+            assign tt-dupli-apagar.cod-emitente  = tt-docum-est.cod-emitente
+                   tt-dupli-apagar.dt-vencim     = tt-dupli.dt-vencim
+                   tt-dupli-apagar.nat-operacao  = tt-docum-est.nat-operacao
+                   tt-dupli-apagar.nro-docto     = tt-docum-est.nro-docto
+                   tt-dupli-apagar.parcela       = string(i-parcela)
+                   tt-dupli-apagar.serie-docto   = tt-docum-est.serie-docto
+                   tt-dupli-apagar.nr-duplic     = tt-docum-est.nro-docto
+                   tt-dupli-apagar.tp-despesa    = tt-dupli.tp-despesa
+                   tt-dupli-apagar.cod-esp       = param-imp.esp-tit-rec
+                   tt-dupli-apagar.vl-a-pagar    = de-total-dup
+                   tt-dupli-apagar.vl-a-pagar-mo = de-total-dup-mo
+                   tt-dupli-apagar.mo-codigo     = tt-nota.mo-codigo.
+                   
+        end.
+        
+    end.    
+    
+    /* Ajuste das diferenças do total das duplicatas com o valor do material */
+    assign de-dup-tot    = 0
+           de-dup-tot-mo = 0.
+    for each tt-dupli-apagar:
+        assign de-dup-tot    = de-dup-tot
+                             + tt-dupli-apagar.vl-a-pagar 
+               de-dup-tot-mo = de-dup-tot-mo 
+                             + tt-dupli-apagar.vl-a-pagar-mo.
+    end.
+    
+    if  de-tot-vl-docto <> de-dup-tot then do:
+        find last tt-dupli-apagar no-error.
+        assign tt-dupli-apagar.vl-a-pagar = tt-dupli-apagar.vl-a-pagar
+                                          + (de-tot-vl-docto - de-dup-tot).
+    end.
+    
+    if de-tot-vl-docto-mo <> de-dup-tot-mo then do:
+        find last tt-dupli-apagar no-error.
+        assign tt-dupli-apagar.vl-a-pagar-mo = tt-dupli-apagar.vl-a-pagar-mo
+                                              + ( de-tot-vl-docto-mo - de-dup-tot-mo ).
+    end.
+    
+    {imp/im7777.i3 "tt-item-doc-est" "dupli-apagar-cex"} /* Duplicatas das despesas */
+    
+    assign i-cont = 0.
+    for each tt-dupli-apagar no-lock
+            break by tt-dupli-apagar.dt-vencim:
+            assign i-cont = i-cont + 1.
+            assign tt-dupli-apagar.parcela = string(i-cont).
+    end.
+       
+end procedure.
+
+PROCEDURE pi-gera-unid-negocio:
+    /* 
+    ** Gera Unidade de Negócio
+    */
+    
+  &if defined(bf_mat_unidade_negocio) &then
+  
+    find first param-mat no-lock no-error.
+    if not avail param-mat then
+        leave.
+    else
+        if not param-mat.ind-unid-neg then
+            leave.  
+  
+    &if defined(bf_mat_versao_ems) &then
+            
+        assign tt-versao-integr.cod-versao-integracao = 004.
+        
+        if avail param-mat then
+            if param-mat.ind-unid-neg then
+                assign tt-docum-est.gera-unid-neg = 1.
+            else
+                assign tt-docum-est.gera-unid-neg = 0.
+                
+        for each tt-item-doc-est:
+            for each unid-neg-ordem
+                where unid-neg-ordem.numero-ordem = tt-item-doc-est.numero-ordem no-lock:
+                create tt-unid-neg-nota.
+                assign tt-unid-neg-nota.registro       = 5
+                       tt-unid-neg-nota.cod-emitente   = tt-item-doc-est.cod-emitente
+                       tt-unid-neg-nota.serie-docto    = tt-item-doc-est.serie-docto
+                       tt-unid-neg-nota.nro-docto      = tt-item-doc-est.nro-docto
+                       tt-unid-neg-nota.nat-operacao   = tt-item-doc-est.nat-operacao
+                       tt-unid-neg-nota.sequencia      = tt-item-doc-est.sequencia
+                       tt-unid-neg-nota.cod_unid_negoc = unid-neg-ordem.cod_unid_negoc
+                       tt-unid-neg-nota.perc-unid-neg  = unid-neg-ordem.perc-unid-neg.
+            end.
+        end.
+                    
+        leave.
+            
+    &endif
+    
+    def var l-erro-conexao as logical no-undo.    
+            
+    assign l-conecta-emsbas = no
+           l-conecta-emsuni = no.
+                 
+    run pi-conecta-ems5 ( 1, output l-erro-conexao ).
+    
+    if not l-erro-conexao then
+        for each tt-item-doc-est:
+            find item-doc-est
+                where item-doc-est.serie-docto  = tt-item-doc-est.serie-docto
+                  and item-doc-est.nro-docto    = tt-item-doc-est.nro-docto
+                  and item-doc-est.cod-emitente = tt-item-doc-est.cod-emitente
+                  and item-doc-est.nat-operacao = tt-item-doc-est.nat-operacao
+                  and item-doc-est.sequencia    = tt-item-doc-est.sequencia 
+                  no-lock no-error.
+            if avail item-doc-est then
+                 run cdp/cd9760.p ( input 3,   /* Item-doc-est */
+                                    input item-doc-est.it-codigo,
+                                    input rowid(item-doc-est) ).
+        end.
+        
+    run pi-conecta-ems5 ( 2, output l-erro-conexao).        
+    
+  &endif
+
+END PROCEDURE.
+
+&if defined(bf_mat_unidade_negocio) &then
+
+    PROCEDURE pi-conecta-ems5:
+        /*
+        ** Conecta/Disconecta Bancos EMS 5
+        */
+        def input param p-conexao as integer no-undo.
+        def output param l-erro   as logical no-undo.    
+        
+        DEF VAR h-btb009za AS HANDLE.
+        
+        if not avail param-global then
+            find first param-global no-lock no-error.
+        
+        RUN btb/btb009za.p PERSISTENT SET h-btb009za.    
+        run pi-conecta-bco IN h-btb009za (Input 1,
+                                          Input p-conexao,
+                                          Input param-global.empresa-prin,
+                                          Input "all":U,
+                                          Output Table tt_erros_conexao).    
+        if return-value <> "OK":U then do:
+            for each tt_erros_conexao:
+                if tt_erros_conexao.cd-erro = 25821 or
+                   tt_erros_conexao.cd-erro = 25822 then 
+                    next.
+                assign i-msg         = tt_erros_conexao.cd-erro
+                       c-msg         = tt_erros_conexao.param-1
+                       c-char        = ""
+                       l-erro        = yes.
+                run pi-gera-erro.
+            end.
+        end.
+        DELETE PROCEDURE h-btb009za.
+        
+    END PROCEDURE.
+
+&endif
+
+procedure piCarregarTabelasMexico:
+    
+    for each tt-docum-est:
+
+        create tt-docum-est-int.
+        assign tt-docum-est-int.cod-emitente    = tt-docum-est.cod-emitente   
+               tt-docum-est-int.serie-docto     = tt-docum-est.serie-docto    
+               tt-docum-est-int.nro-docto       = tt-docum-est.nro-docto      
+               tt-docum-est-int.nat-operacao    = tt-docum-est.nat-operacao   
+               tt-docum-est-int.esp-docto       = tt-docum-est.esp-docto      
+               tt-docum-est-int.cod-observa     = tt-docum-est.cod-observa    
+               tt-docum-est-int.cod-estabel     = tt-docum-est.cod-estabel                   
+               tt-docum-est-int.dt-trans        = tt-docum-est.dt-trans       
+               tt-docum-est-int.dt-emissao      = tt-docum-est.dt-emissao     
+               tt-docum-est-int.uf              = tt-docum-est.uf
+               tt-docum-est-int.ct-transit      = tt-docum-est.ct-transit  
+               tt-docum-est-int.sc-transit      = tt-docum-est.sc-transit  
+               tt-docum-est-int.via-transp      = tt-docum-est.via-transp     
+               tt-docum-est-int.nff             = l-nff 
+               tt-docum-est-int.embarque        = tt-docum-est.embarque
+               tt-docum-est-int.mo-codigo       = tt-nota.mo-codigo                     
+               tt-docum-est-int.cotacao-dia     = tt-nota.cotacao-dia    
+               tt-docum-est-int.dat-validade    = 12.31.9999
+               tt-docum-est-int.valor-frete-me  = tt-docum-est.valor-frete / tt-nota.cotacao-dia 
+               tt-docum-est-int.valor-frete     = tt-docum-est.valor-frete    
+               tt-docum-est-int.valor-seguro-me = tt-docum-est.valor-seguro / tt-nota.cotacao-dia
+               tt-docum-est-int.valor-seguro    = tt-docum-est.valor-seguro   
+               tt-docum-est-int.valor-embal-me  = tt-docum-est.valor-embal / tt-nota.cotacao-dia
+               tt-docum-est-int.valor-embal     = tt-docum-est.valor-embal
+               tt-docum-est-int.valor-outras-me = tt-docum-est.valor-outras / tt-nota.cotacao-dia
+               tt-docum-est-int.valor-outras    = tt-docum-est.valor-outras
+               tt-docum-est-int.despesa-nota-me = (tt-docum-est.valor-frete + tt-docum-est.valor-seguro + tt-docum-est.valor-embal + tt-docum-est.valor-outras) / tt-nota.cotacao-dia
+               tt-docum-est-int.despesa-nota    = (tt-docum-est.valor-frete + tt-docum-est.valor-seguro + tt-docum-est.valor-embal + tt-docum-est.valor-outras)
+               tt-docum-est-int.valor-mercad-me = tt-docum-est.valor-mercad / tt-nota.cotacao-dia
+               tt-docum-est-int.valor-mercad    = tt-docum-est.valor-mercad
+               tt-docum-est-int.tot-valor-me    = tt-docum-est-int.valor-mercad-me + tt-docum-est-int.despesa-nota-me               
+               tt-docum-est-int.origem          = "i"
+               tt-docum-est-int.mod-frete       = tt-docum-est.mod-frete
+               tt-docum-est-int.log-memorando   = no.
+                       
+        {rep/re1001a.i50}  /* variaveis e informacoes utilizadas pelo re1001a.i51 */
+        assign c-embarque = tt-docum-est-int.embarque.
+        {rep/re1001a.i51 "no"}
+        {cdp/cd4300.i4  "no" tt-docum-est-int.char-1}     
+
+    end.
+
+    for each tt-item-doc-est:
+    
+        find tt-itens
+            where tt-itens.numero-ordem = tt-item-doc-est.numero-ordem
+              and tt-itens.parcela      = tt-item-doc-est.parcela
+              and tt-itens.sequencia    = tt-item-doc-est.sequencia no-error.        
+
+        find first cotacao-item no-lock
+             where cotacao-item.numero-ordem = tt-item-doc-est.numero-ordem
+               and cotacao-item.cod-emitente = tt-item-doc-est.cod-emitente
+               and cotacao-item.it-codigo    = tt-item-doc-est.it-codigo no-error.               
+
+        create tt-item-doc-est-int.                 
+        assign tt-item-doc-est-int.serie-docto    = tt-item-doc-est.serie-docto  
+               tt-item-doc-est-int.nro-docto      = tt-item-doc-est.nro-docto    
+               tt-item-doc-est-int.cod-emitente   = tt-item-doc-est.cod-emitente 
+               tt-item-doc-est-int.nat-operacao   = tt-item-doc-est.nat-operacao 
+               tt-item-doc-est-int.sequencia      = tt-item-doc-est.sequencia    
+               tt-item-doc-est-int.it-codigo      = tt-item-doc-est.it-codigo    
+               tt-item-doc-est-int.cod-refer      = tt-item-doc-est.cod-refer    
+               tt-item-doc-est-int.num-pedido     = if avail tt-itens then tt-itens.num-pedido else 0
+               tt-item-doc-est-int.numero-ordem   = tt-item-doc-est.numero-ordem                
+               tt-item-doc-est-int.seq-evento     = 0
+               tt-item-doc-est-int.parcela        = tt-item-doc-est.parcela      
+               tt-item-doc-est-int.baixa-ce       = tt-item-doc-est.baixa-ce     
+               tt-item-doc-est-int.nr-ord-prod    = tt-item-doc-est.nr-ord-prod  
+               tt-item-doc-est-int.item-pai       = tt-item-doc-est.item-pai     
+               tt-item-doc-est-int.cod-roteiro    = tt-item-doc-est.cod-roteiro  
+               tt-item-doc-est-int.op-codigo      = tt-item-doc-est.op-codigo    
+               /*tt-item-doc-est-int.conta-contab   = tt-item-doc-est.conta-contab*/
+               tt-item-doc-est-int.ct-codigo      = tt-item-doc-est.ct-codigo
+               tt-item-doc-est-int.sc-codigo      = tt-item-doc-est.sc-codigo
+               tt-item-doc-est-int.qt-do-forn     = tt-item-doc-est.qt-do-forn
+               tt-item-doc-est-int.un             = if avail cotacao-item then cotacao-item.un else ""
+               tt-item-doc-est-int.quantidade     = tt-item-doc-est.quantidade
+               tt-item-doc-est-int.preco-unit-me  = if avail tt-itens then tt-itens.preco-unit / tt-nota.cotacao-dia else 0
+               tt-item-doc-est-int.preco-unit[1]  = if avail tt-itens then tt-itens.preco-unit else 0
+               tt-item-doc-est-int.preco-total-me = tt-item-doc-est.preco-total / tt-nota.cotacao-dia
+               tt-item-doc-est-int.preco-total[1] = tt-item-doc-est.preco-total
+               tt-item-doc-est-int.peso-liquido   = tt-item-doc-est.peso-liquido
+               tt-item-doc-est-int.narrativa      = tt-item-doc-est.narrativa                              
+               tt-item-doc-est-int.cod-depos      = tt-item-doc-est.cod-depos
+               tt-item-doc-est-int.lote           = tt-item-doc-est.lote
+               tt-item-doc-est-int.dt-vali-lote   = tt-item-doc-est.dt-vali-lote
+               tt-item-doc-est-int.quantidade     = tt-item-doc-est.quantidade
+               tt-item-doc-est-int.qt-saldo       = tt-item-doc-est-int.quantidade.
+               
+    end.
+
+    return "OK":U.
+
+end procedure.
+
+procedure piImpostos:
+
+    run cdp/cdapi027.p persistent set h-cdapi027.                 
+
+    for each tt-docum-est-int:
+
+        for each tt-item-doc-est-int 
+           where tt-item-doc-est-int.serie-docto  = tt-docum-est-int.serie-docto
+             and tt-item-doc-est-int.nro-docto    = tt-docum-est-int.nro-docto
+             and tt-item-doc-est-int.cod-emitente = tt-docum-est-int.cod-emitente
+             and tt-item-doc-est-int.nat-operacao = tt-docum-est-int.nat-operacao:
+
+            empty temp-table tt-imposto.
+            empty temp-table tt-impto-item-docto.
+             
+            find first item 
+                 where item.it-codigo = tt-item-doc-est-int.it-codigo no-lock no-error.          
+            if avail item then
+                assign c-item    = item.it-codigo
+                       c-familia = item.fm-codigo.
+            
+            find first estabelec 
+                 where estabelec.cod-estabel = docum-est.cod-estabel no-lock no-error.
+            if avail estabelec then 
+                assign c-estabel = estabelec.cod-estabel.
+    
+            find first emitente 
+                 where emitente.cod-emitente = docum-est.cod-emitente no-lock no-error.
+            if avail emitente then
+                assign i-emitente   = emitente.cod-emitente
+                       i-emit-natur = emitente.natureza
+                       c-pais       = emitente.pais    when c-pais = ""             
+                       c-uf         = emitente.estado  when c-uf = ""  
+                       c-cidade     = emitente.cidade  when c-cidade = "".
+                
+            find first natur-oper 
+                 where natur-oper.nat-operacao = tt-docum-est-int.nat-operacao no-lock no-error.
+    
+            if avail natur-oper 
+                 and natur-oper.tipo-trib = 2 /* normal */
+                 and (tt-docum-est-int.nff 
+                 or  (not tt-docum-est-int.nff and natur-oper.emite-duplic)) then do:
+                                           
+                run pi-busca-impostos in h-cdapi027(input c-estabel,
+                                                    input c-nat-oper,
+                                                    input c-pais,
+                                                    input c-uf,
+                                                    input c-cidade,
+                                                    input c-familia,
+                                                    input c-item,
+                                                    input-output table tt-imposto,
+                                                    input-output table tt-erro-aux-2).  
+            end.    
+            
+            find first tt-imposto no-error.
+    
+            if not can-find(first impto-remito-fatur
+                            where impto-remito-fatur.cod-estabel  = c-estabel 
+                              and impto-remito-fatur.nat-operacao = c-nat-oper
+                              and impto-remito-fatur.nome-pais    = c-pais    
+                              and impto-remito-fatur.cod-estado   = c-uf      
+                              and impto-remito-fatur.nom-cidade   = c-cidade  
+                              and impto-remito-fatur.fm-codigo    = c-familia 
+                              and impto-remito-fatur.it-codigo    = c-item) and not avail tt-imposto then do:
+                                                        
+                if avail natur-oper 
+                     and natur-oper.tipo-trib = 2 /* normal */
+                     and (tt-docum-est-int.nff 
+                     or  (not tt-docum-est-int.nff and natur-oper.emite-duplic)) then do:
+                    
+                    for first item-mat fields(cod-tax)
+                        where item-mat.it-codigo = item.it-codigo
+                        and   item-mat.cod-tax > 0 no-lock: end.
+                        assign i-cod-tax-aux = if avail item-mat then item-mat.cod-tax else 0.
+                                               
+                    for first nat-imp fields(cod-imposto)
+                        where nat-imp.nat-operacao = natur-oper.nat-operacao 
+                          and nat-imp.cod-imposto > 0 no-lock: end.
+                        assign i-nat-imp = if avail nat-imp then nat-imp.cod-imposto else 0. 
+                                        
+                    if avail item 
+                         and item.cod-tax-serv > 0 and 
+                             i-emit-natur      = 1 then 
+                        assign i-imp-retido = item.cod-tax-serv.
+                                                         
+                    find first tt-imposto where tt-imposto.cdn-imposto = i-cod-tax-aux no-lock no-error.
+                    if not avail tt-imposto then do:                                                                                                                    
+                        for first btipo-tax fields(tipo) no-lock where
+                                  btipo-tax.cod-tax = i-cod-tax-aux: 
+                                                                 
+                            create tt-imposto.
+                            assign tt-imposto.cdn-imposto  = i-cod-tax-aux
+                                   tt-imposto.tipo-imposto = btipo-tax.tipo
+                                   tt-imposto.cod-estabel  = c-estabel
+                                   tt-imposto.nat-operacao = c-nat-oper
+                                   tt-imposto.nome-pais    = c-pais
+                                   tt-imposto.cod-estado   = c-uf
+                                   tt-imposto.nom-cidade   = c-cidade
+                                   tt-imposto.fm-codigo    = c-familia
+                                   tt-imposto.it-codigo    = c-item.
+                        end.                                               
+                    end.
+                        
+                    find first tt-imposto where tt-imposto.cdn-imposto  = i-nat-imp no-lock no-error.
+                    if not avail tt-imposto then do:                    
+                       for first btipo-tax fields(tipo) no-lock where
+                                 btipo-tax.cod-tax = i-nat-imp: 
+
+                           create tt-imposto.
+                           assign tt-imposto.cdn-imposto  = i-nat-imp
+                                  tt-imposto.tipo-imposto = btipo-tax.tipo
+                                  tt-imposto.cod-estabel  = c-estabel
+                                  tt-imposto.nat-operacao = c-nat-oper
+                                  tt-imposto.nome-pais    = c-pais
+                                  tt-imposto.cod-estado   = c-uf
+                                  tt-imposto.nom-cidade   = c-cidade
+                                  tt-imposto.fm-codigo    = c-familia
+                                  tt-imposto.it-codigo    = c-item.
+                       end.
+                    end.           
+               
+                    find first tt-imposto where tt-imposto.cdn-imposto = i-imp-retido no-lock no-error.
+                    if not avail tt-imposto then do:
+                       for first btipo-tax fields(tipo) no-lock where
+                                 btipo-tax.cod-tax = i-imp-retido: 
+
+                           create tt-imposto.
+                           assign tt-imposto.cdn-imposto  = i-imp-retido
+                                  tt-imposto.tipo-imposto = btipo-tax.tipo
+                                  tt-imposto.cod-estabel  = c-estabel
+                                  tt-imposto.nat-operacao = c-nat-oper
+                                  tt-imposto.nome-pais    = c-pais
+                                  tt-imposto.cod-estado   = c-uf
+                                  tt-imposto.nom-cidade   = c-cidade
+                                  tt-imposto.fm-codigo    = c-familia
+                                  tt-imposto.it-codigo    = c-item.
+                       end.
+                    end.
+                end.
+            end.
+                    
+            for each tt-imposto where tt-imposto.cdn-imposto <> 0 no-lock by tt-imposto.tipo-imposto desc:
+                find first tipo-tax where
+                           tipo-tax.cod-tax = tt-imposto.cdn-imposto no-lock no-error.
+                  
+                if tipo-tax.tipo                = 1 and
+                   tipo-tax.idi-val-base-retenc = 2 then do:
+                    for each tt-impto-item-docto 
+                       where tt-impto-item-docto.serie-docto  = tt-docum-est-int.serie-docto   
+                         and tt-impto-item-docto.nro-docto    = tt-docum-est-int.nro-docto     
+                         and tt-impto-item-docto.cod-emitente = tt-docum-est-int.cod-emitente  
+                         and tt-impto-item-docto.nat-operacao = tt-docum-est-int.nat-operacao  
+                         and tt-impto-item-docto.num-seq      = tt-item-doc-est-int.sequencia,
+                        first btipo-tax no-lock 
+                        where btipo-tax.cod-tax = tt-impto-item-docto.cdn-imposto 
+                          and btipo-tax.tipo    = 2:
+                        assign  l-iva-normal = yes.
+                    end.                        
+                    if not l-iva-normal then next.
+                end.
+
+                create tt-impto-item-docto.
+                assign tt-impto-item-docto.serie-docto  = tt-docum-est-int.serie-docto
+                       tt-impto-item-docto.nro-docto    = tt-docum-est-int.nro-docto
+                       tt-impto-item-docto.cod-emitente = tt-docum-est-int.cod-emitente
+                       tt-impto-item-docto.nat-operacao = tt-docum-est-int.nat-operacao
+                       tt-impto-item-docto.num-seq      = tt-item-doc-est-int.sequencia
+                       tt-impto-item-docto.cdn-imposto  = tt-imposto.cdn-imposto
+                       tt-impto-item-docto.perc-imposto = if avail tipo-tax then tipo-tax.tax-perc else 0.
+        
+                run rep/re0412.p (input tt-item-doc-est-int.preco-total-me,
+                                  input tt-item-doc-est-int.desconto-me,
+                                  input tt-impto-item-docto.cdn-imposto,
+                                  input tt-impto-item-docto.perc-imposto,
+                                  input table tt-impto-item-docto,
+                                  input tt-docum-est-int.mo-codigo,
+                                  input tt-docum-est-int.cotacao-dia,
+                                  output de-vl-base-calc,
+                                  output de-vl-imposto,
+                                  output de-vl-imposto-me).
+                
+                assign tt-impto-item-docto.val-impto-merc-ext = de-vl-imposto-me
+                       tt-impto-item-docto.val-impto          = de-vl-imposto.       
+            end.
+                            
+            for each tt-impto-item-docto:
+                
+                find first impto-item-docto where 
+                           impto-item-docto.serie-docto  = tt-item-doc-est-int.serie-docto  and
+                           impto-item-docto.nro-docto    = tt-item-doc-est-int.nro-docto    and
+                           impto-item-docto.cod-emitente = tt-item-doc-est-int.cod-emitente and
+                           impto-item-docto.nat-operacao = tt-item-doc-est-int.nat-operacao and
+                           impto-item-docto.num-seq      = tt-item-doc-est-int.sequencia    and
+                           impto-item-docto.cdn-imposto  = tt-impto-item-docto.cdn-imposto exclusive-lock no-error.
+                if not avail impto-item-docto then do:
+                    create impto-item-docto.
+                    assign impto-item-docto.serie-docto        = tt-item-doc-est-int.serie-docto        
+                           impto-item-docto.nro-docto          = tt-item-doc-est-int.nro-docto          
+                           impto-item-docto.cod-emitente       = tt-item-doc-est-int.cod-emitente       
+                           impto-item-docto.nat-operacao       = tt-item-doc-est-int.nat-operacao       
+                           impto-item-docto.num-seq            = tt-item-doc-est-int.sequencia
+                           impto-item-docto.cdn-imposto        = tt-impto-item-docto.cdn-imposto        
+                           impto-item-docto.perc-imposto       = tt-impto-item-docto.perc-imposto       
+                           impto-item-docto.val-impto-merc-ext = tt-impto-item-docto.val-impto-merc-ext 
+                           impto-item-docto.val-impto          = tt-impto-item-docto.val-impto.
+                end.
+                else do:                  
+                   assign impto-item-docto.perc-imposto       = tt-impto-item-docto.perc-imposto       
+                          impto-item-docto.val-impto-merc-ext = tt-impto-item-docto.val-impto-merc-ext 
+                          impto-item-docto.val-impto          = tt-impto-item-docto.val-impto.
+                end.
+            end.
+        end.            
+    end.                           
+    
+    if valid-handle (h-cdapi027) then do:
+        delete procedure h-cdapi027.
+        assign h-cdapi027 = ?.
+    end.
+
+    return "OK":U.
+
+end procedure.
+
+procedure pi-gera-erro:
+    assign i-seq-erro = i-seq-erro + 1.
+    run utp/ut-msgs.p (input "msg":U,
+                       input i-msg,
+                       input c-msg).
+    do transaction:
+        create tt-erro.
+        assign tt-erro.i-sequen = i-seq-erro
+               tt-erro.cd-erro  = i-msg
+               tt-erro.mensagem = return-value + c-char.
+    end.
+end procedure.
+
+/* IM7777.P */
+

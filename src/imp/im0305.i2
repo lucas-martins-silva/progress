@@ -1,0 +1,654 @@
+/****************************************************************************
+**
+**  IM0305.I2 - Define frame de parametros e variaveis para traducao
+**
+****************************************************************************/
+
+/** Defini‡äes busca valores cotacao-item.char-1 **/
+{cdp/cd4300.i3}
+{ccp/cc9019.i50}
+
+def var c-num-pedido         as char no-undo format "x(9)":U. 
+def var c-cod-banco          as char no-undo format "x(3)":U.
+def var c-pto-embarque       as char no-undo format "x(6)":U.
+def var c-cod-cond-pag       as char no-undo format "x(3)":U.
+def var c-cod-transp         as char no-undo format "x(6)":U.
+def var c-cod-despachante    as char no-undo format "x(9)":U.
+def var c-pto-desembarque    as char no-undo format "x(6)":U.
+def var c-cod-exportador     as char no-undo format "x(9)":U.
+def var c-cod-agente-cargas  as char no-undo format "x(9)":U.
+def var c-formato-data       as char no-undo format "x(12)":U.
+def var c-cb-round           as char no-undo format "x(1)":U.
+
+def var l-param         like param-global.exp-cep no-undo.
+
+def var c-lb-processo    as char no-undo format "x(22)".
+def var c-lb-natureza    as char no-undo format "x(22)".
+def var c-lb-dt-ped      as char no-undo format "x(22)".
+def var c-lb-dt-emb      as char no-undo format "x(22)".
+def var c-lb-cond-pag    as char no-undo format "x(22)".
+def var c-lb-incoterm    as char no-undo format "x(22)".
+def var c-lb-transp      as char no-undo format "x(22)".
+def var c-lb-via-transp  as char no-undo format "x(22)".
+def var c-lb-frete       as char no-undo format "x(22)".
+def var c-lb-despac      as char no-undo format "x(22)".
+def var c-lb-embarque    as char no-undo format "x(22)".
+def var c-lb-desembarque as char no-undo format "x(22)".
+
+def var c-lb-codigo           as char no-undo format "x(15)".
+def var c-lb-estabel          as char no-undo format "x(15)".
+def var c-lb-codigo-agente    as char no-undo format "x(15)".
+
+def var c-lb-endereco         as char no-undo format "x(15)".
+def var c-lb-endereco2        as char no-undo format "x(15)".
+def var c-lb-endereco-agente  as char no-undo format "x(15)".
+
+def var c-lb-bairro           as char no-undo format "x(7)".
+def var c-lb-bairro2          as char no-undo format "x(7)".
+def var c-lb-bairro-agente    as char no-undo format "x(7)".
+
+def var c-lb-cidade           as char no-undo format "x(15)".
+def var c-lb-cidade2          as char no-undo format "x(15)".
+def var c-lb-cidade-agente    as char no-undo format "x(15)".
+
+def var c-lb-estado           as char no-undo format "x(8)".
+def var c-lb-estado2          as char no-undo format "x(8)".
+def var c-lb-estado-agente    as char no-undo format "x(8)".
+
+def var c-lb-pais             as char no-undo format "x(8)".
+def var c-lb-pais2            as char no-undo format "x(8)".
+def var c-lb-pais-agente      as char no-undo format "x(8)".
+
+def var c-lb-cep              as char no-undo format "x(15)".
+def var c-lb-cep2             as char no-undo format "x(15)".
+def var c-lb-cep-agente       as char no-undo format "x(15)".
+
+def var c-lb-cx-postal        as char no-undo format "x(15)".
+def var c-lb-cx-postal2       as char no-undo format "x(15)".
+def var c-lb-cx-postal-agente as char no-undo format "x(15)".
+
+def var c-lb-telefone         as char no-undo format "x(15)".
+def var c-lb-telefone2        as char no-undo format "x(15)".
+def var c-lb-telefone-agente  as char no-undo format "x(15)".
+
+def var c-lb-telefax          as char no-undo format "x(7)".
+def var c-lb-telefax2         as char no-undo format "x(7)".
+def var c-lb-telefax-agente   as char no-undo format "x(7)".
+
+def var c-lb-banco     as char no-undo format "x(22)".
+def var c-lb-total     as char no-undo format "x(15)".
+def var c-lb-tot-ped   as char no-undo format "x(15)".
+def var c-lb-tot-desp  as char no-undo format "x(15)".
+
+def var c-lb-ordem     as char no-undo format "x(5)".
+def var c-lb-item-for  as char no-undo format "x(18)".
+def var c-lb-item      as char no-undo format "x(10)".
+def var c-lb-desc      as char no-undo format "x(11)".
+def var c-lb-descricao as char no-undo format "x(11)".
+def var c-lb-pr-unit   as char no-undo format "x(14)".
+def var c-lb-conta     as char no-undo format "x(7)".
+def var c-lb-pa        as char no-undo format "x(3)".
+def var c-lb-qtde      as char no-undo format "x(10)".
+def var c-lb-un        as char no-undo format "x(2)".
+def var c-lb-prc-unit  as char no-undo format "x(10)".
+def var c-lb-moeda     as char no-undo format "x(12)".
+def var c-lb-pedido    as char no-undo format "x(22)".
+def var c-lb-pedido-c  as char no-undo format "x(22)".
+
+def var c-lb-despesas  as char no-undo format "x(11)".
+def var c-lb-desp      as char no-undo format "x(07)".
+def var c-lb-descr     as char no-undo format "x(22)".
+def var c-lb-forn      as char no-undo format "x(12)".
+def var c-lb-mo        as char no-undo format "x(12)".
+def var c-lb-val       as char no-undo format "x(19)".
+
+def var c-lb-vl-desc   as char no-undo format "x(12)".
+def var c-lb-vl-enc    as char no-undo format "x(12)".
+def var c-lb-ref       as char no-undo format "x(3)".
+
+def var c-lb-prc-tot      as char no-undo format "x(11)".
+def var c-lb-data-entrega as char no-undo format "x(17)". 
+def var c-lb-inc          as char no-undo format "x(7)".
+def var c-lb-msg          as char no-undo format "x(18)".
+def var c-lb-coment       as char no-undo format "x(20)".
+
+def var c-lb-comentarios as char no-undo format "x(11)".
+def var c-nome-desp      as char no-undo format "x(12)".
+def var c-via-transp     as char no-undo format "x(20)".
+def var c-frete          as char no-undo format "x(10)".
+def var c-cond-descricao as char no-undo format "x(30)".
+def var da-data-prev-emb as date no-undo format "99/99/9999".
+def var c-embarque       as char no-undo format "x(25)".
+def var c-desembarque    as char no-undo format "x(30)".
+def var c-banco          as char no-undo format "x(25)".
+
+def var i-pto-emb        as integer no-undo.
+def var i-dias           as integer no-undo.
+
+def var c-lb-tit-par     as char format "x(12)" no-undo.
+def var c-lb-tit-sel     as char format "x(12)" no-undo.
+def var c-lb-tit-imp     as char format "x(12)" no-undo.
+def var c-lb-ped         as char format "x(12)" no-undo.
+def var c-lb-ord         as char format "x(12)" no-undo.
+def var c-lb-destino     as char format "x(12)" no-undo.
+def var c-lb-usuario     as char format "x(12)" no-undo.
+def var c-lb-narra       as char format "x(12)" no-undo.
+
+def var c-lb-alteracoes  as char format "x(25)" no-undo.
+def var c-lb-formato     as char format "x(12)" no-undo.
+def var c-lb-cb-round    as char format "x(12)" no-undo.
+def var c-lb-tit-par-imp as char format "x(20)" no-undo. 
+def var c-lb-par-imp     as char format "x(20)" no-undo.
+def var c-lb-traduz      as char format "x(20)" no-undo.
+
+
+def var c-acompanha      as char no-undo.
+def var l-imprime-desp   as log  no-undo.
+def var l-imp-ordem      as log  no-undo.
+def var d-dia            as integer.
+
+def var de-quant like prazo-compra.quantidade no-undo.
+def var de-tot-val-desp like cotacao-item-cex.val-desp no-undo.
+
+def var cod-emitente-agente like emitente.cod-emitente no-undo.
+def var nome-emit-agente    like emitente.nome-emit    no-undo.
+def var nome-abrev-agente   like emitente.nome-abrev   no-undo.
+def var endereco-agente     like emitente.endereco     no-undo.
+def var bairro-agente       like emitente.bairro       no-undo.
+def var cidade-agente       like emitente.cidade       no-undo.
+def var cep-agente          like emitente.cep          no-undo.
+def var estado-agente       like emitente.estado       no-undo.
+def var pais-agente         like emitente.pais         no-undo.
+def var caixa-postal-agente like emitente.caixa-postal no-undo.
+def var telefone-agente1    like emitente.telefone extent 1 no-undo.
+def var telefone-agente2    like emitente.telefone extent 1 no-undo.
+def var ramal-agente1       like emitente.ramal    extent 1 no-undo.
+def var ramal-agente2       like emitente.ramal    extent 1 no-undo.
+def var telefax-agente      like emitente.telefax  no-undo.
+
+def var caixa-postal-estab like emitente.caixa-postal no-undo.
+def var telefone-estab1    like emitente.telefone extent 1 no-undo.
+def var telefone-estab2    like emitente.telefone extent 1 no-undo.
+def var ramal-estab1       like emitente.ramal    extent 1 no-undo.
+def var ramal-estab2       like emitente.ramal    extent 1 no-undo.
+def var telefax-estab      like emitente.telefax  no-undo.
+
+def var c-texto-follow as char format "x(120)" no-undo.
+
+def temp-table tt-desp no-undo
+     field cod-desp   like cotacao-item-cex.cod-desp
+     field desc-desp  like desp-imp.descricao
+     field forn-desp  like emitente.nome-abrev
+     field desc-moeda like moeda.descricao
+     field total-desp like cotacao-item-cex.val-desp 
+     index despesa cod-desp.
+
+{utp/ut-liter.i Purchase_Order * r}.
+assign c-acompanha = return-value.
+{utp/ut-liter.i Processo * r}
+assign c-lb-processo = trim(return-value).
+{utp/ut-liter.i Natureza * r}
+assign c-lb-natureza = trim(return-value).
+{utp/ut-liter.i Data_Pedido * r}
+assign c-lb-dt-ped = trim(return-value).
+{utp/ut-liter.i Data_Prevista_Embarque * r}
+assign c-lb-dt-emb = trim(return-value).
+{utp/ut-liter.i Condi‡Æo_Pagto * r}
+assign c-lb-cond-pag = trim(return-value).
+{utp/ut-liter.i Incoterm * r}
+assign c-lb-incoterm = trim(return-value).
+{utp/ut-liter.i Transportador * r}
+assign c-lb-transp = trim(return-value).
+{utp/ut-liter.i Via_Transporte * r}
+assign c-lb-via-transp = trim(return-value).
+{utp/ut-liter.i Frete * r}
+assign c-lb-frete = trim(return-value).
+{utp/ut-liter.i Despachante * r}
+assign c-lb-despac = trim(return-value).
+{utp/ut-liter.i Banco * r}
+assign c-lb-banco = trim(return-value).
+{utp/ut-liter.i Embarque * r}
+assign c-lb-embarque = trim(return-value).
+{utp/ut-liter.i Nacionaliza‡Æo * r}
+assign c-lb-desembarque = trim(return-value).
+
+{utp/ut-liter.i Exportador * r}
+assign c-lb-codigo = trim(return-value).
+{utp/ut-liter.i Agente_Cargas * r}
+assign c-lb-codigo-agente = trim(return-value).
+{utp/ut-liter.i Entrega * l}
+assign c-lb-estabel = trim(return-value).
+
+{utp/ut-liter.i Endere‡o * L}
+assign c-lb-endereco        = trim(return-value).
+assign c-lb-endereco2       = trim(return-value).
+assign c-lb-endereco-agente = trim(return-value).
+
+{utp/ut-liter.i Bairro * L}
+assign c-lb-bairro          = trim(return-value).
+assign c-lb-bairro2         = trim(return-value).
+assign c-lb-bairro-agente   = trim(return-value).
+
+{utp/ut-liter.i Cidade * l}
+assign c-lb-cidade          = trim(return-value).
+assign c-lb-cidade2         = trim(return-value).
+assign c-lb-cidade-agente   = trim(return-value).
+
+{utp/ut-liter.i Estado * l}
+assign c-lb-estado          = trim(return-value).
+assign c-lb-estado2         = trim(return-value).
+assign c-lb-estado-agente   = trim(return-value).
+
+{utp/ut-liter.i Pais * l}
+assign c-lb-pais            = trim(return-value).
+assign c-lb-pais2           = trim(return-value).
+assign c-lb-pais-agente     = trim(return-value).
+
+{utp/ut-liter.i CEP * l}
+assign c-lb-cep         = trim(return-value).
+assign c-lb-cep2        = trim(return-value).
+assign c-lb-cep-agente  = trim(return-value).
+
+{utp/ut-liter.i Caixa_Postal * l}
+assign c-lb-cx-postal        = trim(return-value).
+assign c-lb-cx-postal2       = trim(return-value).
+assign c-lb-cx-postal-agente = trim(return-value).
+
+{utp/ut-liter.i Telefone * l}
+assign c-lb-telefone        = trim(return-value).
+assign c-lb-telefone2       = trim(return-value).
+assign c-lb-telefone-agente = trim(return-value).
+
+{utp/ut-liter.i Fax * l}
+assign c-lb-telefax         = trim(return-value).
+assign c-lb-telefax2        = trim(return-value).
+assign c-lb-telefax-agente  = trim(return-value).
+
+{utp/ut-liter.i Item_do_Fornecedor * r}
+assign c-lb-item-for = trim(return-value).
+
+{utp/ut-liter.i Item * r}
+assign c-lb-item = trim(return-value).
+
+{utp/ut-liter.i Descri‡Æo * r}
+assign c-lb-desc = trim(return-value).
+assign c-lb-descricao = trim(return-value).
+assign c-lb-descr = trim(return-value).
+
+{utp/ut-liter.i Conta * r}
+assign c-lb-conta = trim(return-value).
+
+{utp/ut-liter.i Pre‡o_Unit * r}
+assign c-lb-pr-unit = trim(return-value).
+
+{utp/ut-liter.i Pa * r}
+assign c-lb-pa = trim(return-value).
+
+{utp/ut-liter.i Quantidade * r}
+assign c-lb-qtde = trim(return-value).
+
+{utp/ut-liter.i Un * r}
+assign c-lb-un = trim(return-value).
+
+{utp/ut-liter.i Moeda * r}
+assign c-lb-moeda = trim(return-value).
+assign c-lb-mo    = trim(return-value).
+
+{utp/ut-liter.i Pre‡o_Unit * r}
+assign c-lb-prc-unit = trim(return-value).
+
+{utp/ut-liter.i Pre‡o_Total * r}
+assign c-lb-prc-tot = trim(return-value).
+
+{utp/ut-liter.i Data_entrega * r}
+assign c-lb-data-entrega = trim(return-value).
+
+{utp/ut-liter.i Despesas * r}
+assign c-lb-despesas = trim(return-value).
+
+{utp/ut-liter.i Despesa * r}
+assign c-lb-desp = trim(return-value).
+
+{utp/ut-liter.i Fornecedor * r}
+assign c-lb-forn = trim(return-value).
+
+{utp/ut-liter.i Valor_Despesa * r}
+assign c-lb-val = trim(return-value).
+
+{utp/ut-liter.i Mensagem_do_Pedido * r}
+assign c-lb-msg = trim(return-value).
+
+{utp/ut-liter.i Coment rio_do_Pedido * r}
+assign c-lb-coment = trim(return-value).
+
+{utp/ut-liter.i Coment rios * r}
+assign c-lb-comentarios = trim(return-value).
+
+{utp/ut-liter.i Total_Geral * r}
+assign c-lb-total = trim(return-value).
+
+{utp/ut-liter.i Total * r}
+assign c-lb-tot-ped = trim(return-value).
+
+{utp/ut-liter.i Total_Despesas * r}
+assign c-lb-tot-desp = trim(return-value).
+
+{utp/ut-liter.i Pedido_Cliente * r}
+assign c-lb-pedido = trim(return-value).
+
+{utp/ut-liter.i Pedido * r}
+assign c-lb-pedido-c = trim(return-value).
+
+{utp/ut-liter.i PAR¶METROS * r}
+assign c-lb-tit-par = trim(return-value).
+
+{utp/ut-liter.i Narrativa * r}
+assign c-lb-narra = trim(return-value).
+
+{utp/ut-liter.i SELE€ÇO * r}
+assign c-lb-tit-sel = trim(return-value).
+
+{utp/ut-liter.i IMPRESSÇO * r}
+assign c-lb-tit-imp = trim(return-value).
+
+{utp/ut-liter.i Destino * r}
+assign c-lb-destino = trim(return-value).
+
+{utp/ut-liter.i Usu rio * r}
+assign c-lb-usuario = trim(return-value).
+
+{utp/ut-liter.i Pedido * r}
+assign c-lb-ped = trim(return-value).
+
+{utp/ut-liter.i Alteracoes_do_Pedido * r}
+assign c-lb-alteracoes = trim(return-value).
+{utp/ut-liter.i Formato_Data * r}
+assign c-lb-formato = trim(return-value).
+{utp/ut-liter.i Decimais * r}
+assign c-lb-cb-round = trim(return-value).
+{utp/ut-liter.i PAR¶METROS_IMPRESSÇO * r}
+assign c-lb-tit-par-imp = trim(return-value).
+{utp/ut-liter.i Traduz_Relat¢rio * r}
+assign c-lb-traduz = trim(return-value).
+{utp/ut-liter.i Imprime_Parƒmetros * r}
+assign c-lb-par-imp = trim(return-value).
+
+/******************************************* Frames ***********************************************/
+
+form header 
+     c-traco[1] at 3
+     c-traco[2] at 43
+     c-traco[3] at 83
+     c-nome[1]  at 5
+     c-nome[2]  at 45
+     c-nome[3]  at 85
+     c-cargo[1] at 5
+     c-cargo[2] at 45
+     c-cargo[3] at 85
+     with no-box page-bottom no-label width 132 stream-io frame f-assinatura.
+     
+form header
+     fill("-", 94)       format "x(94)" skip
+     c-lb-tot-ped     at 52  space(0) ":" 
+     de-tot-ger       format ">>>>>,>>>,>>9.99" at 70 skip
+     c-lb-tot-desp    at 52  space(0) ":"
+     de-tot-desp      format ">>>>>,>>>,>>9.99" at 70 skip
+     c-lb-total       at 52  space(0) ":"
+     de-tot-total     format ">>>>>,>>>,>>9.99" at 70 skip(1) 
+     with no-box page-bottom no-label width 95 stream-io frame f-total2.
+     
+form header
+     fill("-", 94)       format "x(94)" skip
+     c-lb-tot-ped     at 52 space(0) ":" 
+     de-tot-ger       format ">>>>>,>>>,>>9.999" at 70 skip
+     c-lb-tot-desp    at 52 space(0) ":"
+     de-tot-desp      format ">>>>>,>>>,>>9.999" at 70 skip
+     c-lb-total       at 52 space(0) ":"
+     de-tot-total     format ">>>>>,>>>,>>9.999" at 70 skip(1) 
+     with no-box page-bottom no-label width 95 stream-io frame f-total3.     
+     
+form header
+     fill("-", 94)       format "x(94)" skip
+     c-lb-tot-ped     at 52 space(0) ":" 
+     de-tot-ger       format ">>>>>,>>>,>>9.9999" at 70 skip
+     c-lb-tot-desp    at 52 space(0) ":"
+     de-tot-desp      format ">>>>>,>>>,>>9.9999" at 70 skip
+     c-lb-total       at 52 space(0) ":"
+     de-tot-total     format ">>>>>,>>>,>>9.9999" at 70 skip(1) 
+     with no-box page-bottom no-label width 95 stream-io frame f-total4.     
+     
+form header
+     fill("-", 94)       format "x(94)" skip
+     c-lb-tot-ped     at 52 space(0) ":" 
+     de-tot-ger       format ">>>>>,>>>,>>9.99999" at 70 skip
+     c-lb-tot-desp    at 52 space(0) ":"
+     de-tot-desp      format ">>>>>,>>>,>>9.99999" at 70 skip
+     c-lb-total       at 52 space(0) ":"
+     de-tot-total     format ">>>>>,>>>,>>9.99999" at 70 skip(1) 
+     with no-box page-bottom no-label width 95 stream-io frame f-total5.     
+     
+form header
+     c-msg         at 72 skip
+     with no-box page-bottom no-label width 95 stream-io frame f-msg.     
+
+form with no-box no-label 1 down width 95 stream-io frame f-lb-ped.
+
+form 
+     /* Informacoes do Pedido */
+     c-lb-processo                at 10 ":" at 32 processo-imp.nr-proc-imp
+     c-lb-pedido-c                at 70 ":" at 92 processo-imp.num-pedido skip
+     
+     c-lb-dt-ped                  at 10 ":" at 32 c-dt-pedido           
+     c-lb-dt-emb                  at 70 ":" at 92 c-prev-emb            skip
+     
+     c-lb-incoterm                at 10 ":" at 32 c-cod-incoterm-i50    
+     c-lb-frete                   at 70 ":" at 92 c-frete               skip
+     
+     c-lb-via-transp              at 10 ":" at 32 c-via-transp          
+     c-lb-cond-pag                at 70 ":" at 92 c-cod-cond-pag "-"
+                                                  c-cond-descricao             skip
+     c-lb-natureza                at 10 ":" at 32 c-natureza             
+     c-lb-transp                  at 70 ":" at 92 c-cod-transp "-"
+                                                  transporte.nome-abrev        skip
+     c-lb-banco                   at 10 ":" at 32 c-cod-banco "-"
+                                                  c-banco
+     c-lb-despac                  at 70 ":" at 92 c-cod-despachante "-" 
+                                                  c-nome-desp skip
+     c-lb-embarque                at 10 ":" at 32 c-pto-embarque "-"
+                                                  c-embarque
+     c-lb-desembarque             at 70 ":" at 92 c-pto-desembarque  "-" 
+                                                  c-desembarque skip(1)
+                                                  
+     /* Informacoes do emitente */                                                         
+     c-lb-codigo                  at 2  ": " at 17    c-cod-exportador  "-" 
+                                                      emitente.nome-emit                    "-" 
+                                                      emitente.nome-abrev                                skip
+     c-lb-endereco                at 2  ": " at 17    emitente.endereco      
+     c-lb-bairro                  at 63 ":"  at 70    emitente.bairro                                    skip 
+     c-lb-cidade                  at 2  ": " at 17    emitente.cidade       
+     c-lb-estado                  ":"        at 54    emitente.estado              
+     c-lb-pais                    ":"        at 69    emitente.pais                                      skip
+     c-lb-cep                     at 2 ": "  at 17    emitente.cep          
+     c-lb-cx-postal               at 33 ":"  at 48    emitente.caixa-postal                              skip
+     c-lb-telefone                at 2 ": "  at 17    emitente.telefone[1]  
+         emitente.ramal[1] "-"            
+         emitente.telefone[2]         
+         emitente.ramal[2]          space(1)
+     c-lb-telefax                 ":"        at 73    emitente.telefax                                   skip(1)
+     
+     /* Estabelecimento */
+     c-lb-estabel                 at 2 ": " at 17    estabelec.cod-estabel
+                                                     estabelec.nome                                     skip
+     c-lb-endereco2               at 2 ": " at 17    estabelec.endereco   
+     c-lb-bairro2                 at 63 ":" at 70    estabelec.bairro                                   skip
+     c-lb-cidade2                 at 2 ": " at 17    estabelec.Cidade     
+     c-lb-estado2                 ":"       at 54    estabelec.estado              
+     c-lb-pais2                   ":"       at 69    estabelec.pais                                     skip
+     c-lb-cep2                    at 2 ": " at 17    estabelec.cep        
+     c-lb-cx-postal2              at 33 ":" at 48    caixa-postal-estab                              skip
+     c-lb-telefone2               at 2 ": "  at 17   telefone-estab1      
+         ramal-estab1 "-"
+         telefone-estab2         
+         ramal-estab2          space(1)
+     c-lb-telefax2                ":"        at 73   telefax-estab                                      skip(1)
+                                                     
+     /* Agente Cargas */
+     c-lb-codigo-agente           at 2  ": " at 17   c-cod-agente-cargas  
+         nome-emit-agente           "-" 
+         nome-abrev-agente          skip
+     c-lb-endereco-agente         at 2 ": " at 17  endereco-agente        
+     c-lb-bairro-agente           at 63 ":" at 70  bairro-agente                                        skip
+     c-lb-cidade-agente           at 2 ": " at 17  cidade-agente          
+     c-lb-estado-agente           ":"       at 54  estado-agente              
+     c-lb-pais-agente             ":"       at 69  pais-agente                                          skip
+     c-lb-cep-agente              at 2 ": " at 17  cep-agente             
+     c-lb-cx-postal-agente        at 33 ":" at 48  caixa-postal-agente        skip
+     c-lb-telefone-agente         at 2 ": " at 17  telefone-agente1       
+                                                   ramal-agente1 "-"           
+                                                   telefone-agente2
+                                                   ramal-agente2              space(1)
+     c-lb-telefax-agente          ":"       at 73  telefax-agente                                       skip(2)
+     with no-box no-label 1 down width 132 stream-io frame f-pedido.
+     
+form c-lb-ordem      at 1
+     c-lb-item-for   at 11
+     c-lb-item       at 32 
+     c-lb-desc       at 49
+     c-lb-pa         at 5
+     c-lb-qtde       at 13
+     c-lb-un         at 24
+     c-lb-moeda      at 27 
+     c-lb-prc-unit   at 49 
+     c-lb-prc-tot    at 68 
+     c-lb-data-entrega at 84 
+     "---------------------------------------------------------------------------------------------------" at 1
+     with no-box no-label width 132 stream-io frame f-labels.
+     
+form c-lb-desp at 4
+     c-lb-descr at 12
+     c-lb-forn at 43
+     c-lb-val  at 56 skip
+     "-------" at 4 space(1)
+     "------------------------------" space(1)
+     "------------" space(1)
+     "-------------------" skip     
+     with no-box no-label width 132 stream-io frame f-lb-desp.
+
+def var c-lb-alter as char format "x(22)" no-undo.
+    
+{utp/ut-liter.i Altera‡äes_do_Pedido * r}
+assign c-lb-alter = trim(return-value).
+     
+form
+   tt-desp.cod-desp   at 4
+   tt-desp.desc-desp  at 12
+   tt-desp.forn-desp  at 43
+   tt-desp.total-desp at 56
+   with no-box no-label width 132 stream-io frame f-despesa.
+
+form tt-editor.conteudo at 4
+     with no-box no-label width 132 stream-io frame f-narrativa.
+
+form c-texto-follow at 4
+     with no-box no-label width 132 stream-io frame f-narrativa-1.
+     
+form
+    prazo-compra.parcela      at 2 space(0)
+    prazo-compra.qtd-sal-forn format ">>>>>>>,>>9.9999" space(1)
+    cotacao-item.un           space(1)
+    c-moeda                   /*space(1)*/
+    &if defined(bf-mat-comex) &then    
+        de-preco-unit             to 57
+        de-preco-total            to 77 
+    &else
+        de-preco-unit             to 58
+        de-preco-total            to 78 
+    &endif
+    c-dt-entrega              at 84 
+    with no-box no-label width 132 stream-io frame f-parcela-5.
+
+form
+    prazo-compra.parcela      at 2 space(0)
+    prazo-compra.qtd-sal-forn format ">>>>>>>,>>9.9999" space(1)
+    cotacao-item.un           space(1)
+    c-moeda                   space(1)
+    &if defined(bf-mat-comex) &then    
+        de-preco-unit             to 58
+        de-preco-total            to 78 
+    &else
+        de-preco-unit             to 59
+        de-preco-total            to 79 
+    &endif             
+    c-dt-entrega              at 84
+    with no-box no-label width 132 stream-io frame f-parcela-4.
+
+form
+    prazo-compra.parcela      at 2 space(0)
+    prazo-compra.qtd-sal-forn format ">>>>>>>,>>9.9999" space(1)
+    cotacao-item.un           space(1)
+    c-moeda                   space(1)
+    de-preco-unit             to 60
+    de-preco-total            to 80 
+    &if defined(bf-mat-comex) &then    
+        de-preco-unit             to 59
+        de-preco-total            to 79 
+    &else
+        de-preco-unit             to 60
+        de-preco-total            to 80 
+    &endif             
+    c-dt-entrega              at 84
+    with no-box no-label width 132 stream-io frame f-parcela-3.
+
+form
+    prazo-compra.parcela      at 2 space(0)
+    prazo-compra.qtd-sal-forn format ">>>>>>>,>>9.9999" space(1)
+    cotacao-item.un           space(1)
+    c-moeda                   space(1)
+    &if defined(bf-mat-comex) &then    
+        de-preco-unit             to 60
+        de-preco-total            to 80 
+    &else
+        de-preco-unit             to 61
+        de-preco-total            to 81 
+    &endif             
+    c-dt-entrega              at 84  
+    with no-box no-label width 132 stream-io frame f-parcela-2.
+
+
+form 
+/*Sele‡Æo*/
+     skip(1)                                   
+     c-lb-tit-sel skip  
+     c-lb-ped  at 5 ": " space(1)
+     tt-param.i-pedi-i  "|< >|" at 40  space(1)
+     tt-param.i-pedi-f                 
+/*parƒmetros*/
+     skip(1)
+     c-lb-tit-par  at 1 skip
+     c-lb-narra  at 5 ": "
+     tt-param.l-narrativa
+     c-lb-alteracoes at 5 ": "
+     tt-param.l-alteracoes
+     c-lb-formato at 5 ": "
+     c-formato-data
+     c-lb-cb-round at 5 ": "
+     c-cb-round
+     
+/*impressÆo*/
+     skip(1)
+     c-lb-tit-imp     at 1 skip     
+     c-lb-destino     at 5 ": " 
+     tt-param.c-destino " - " tt-param.arquivo format "x(20)" skip
+     c-lb-usuario     at 5 ": " 
+     tt-param.usuario format "x(20)"
+     
+/*parƒmetros da impressÆo*/
+     skip(1)
+     c-lb-tit-par-imp at 1 skip
+     c-lb-traduz      at 5 ": " 
+     tt-param.l-traduz
+     c-lb-par-imp     at 5 ": "
+     tt-param.l-impressao
+     with width 132 no-labels stream-io frame f-param.     
+     
+/* IM0305.I2 */

@@ -1,0 +1,800 @@
+/*******************************************************************************************
+  Definicao da tt-pedido-compr e tt-pedido-compr-aux
+********************************************************************************************/
+
+DEFINE TEMP-TABLE tt-pedido-compr no-undo
+    FIELD num-pedido                        LIKE pedido-compr.num-pedido
+    FIELD cod-estabel                       LIKE pedido-compr.cod-estabel
+    FIELD num-ped-benef                     LIKE pedido-compr.num-ped-benef
+    FIELD data-pedido                       LIKE pedido-compr.data-pedido  
+    FIELD cod-emitente                      LIKE pedido-compr.cod-emitente 
+    FIELD end-entrega                       LIKE pedido-compr.end-entrega  
+    FIELD end-cobranca                      LIKE pedido-compr.end-cobranca 
+    FIELD cod-cond-pag                      LIKE pedido-compr.cod-cond-pag 
+    FIELD cod-emit-terc                     LIKE pedido-compr.cod-emit-terc
+    FIELD responsavel                       LIKE pedido-compr.responsavel  
+    FIELD desc-situacao                     AS CHAR
+    FIELD cod-mens-ped                      LIKE pedido-compr.cod-mensagem
+    FIELD cod-estabel-gestor                LIKE pedido-compr.cod-estab-gestor
+    FIELD desc-natureza                     AS CHAR FORMAT "x(40)"
+    FIELD desc-frete                        AS CHAR FORMAT "x(40)"    
+    FIELD nome-emit-entr                    LIKE emitente.nome-emit    
+    FIELD endereco-emit-entr                LIKE emitente.endereco     
+    FIELD bairro-emit-entr                  LIKE emitente.bairro       
+    FIELD cidade-emit-entr                  LIKE emitente.cidade       
+    FIELD pais-emit-entr                    LIKE emitente.pais         
+    FIELD cep-emit-entr                     LIKE emitente.cep          
+    FIELD cgc-emit-entr                     LIKE emitente.cgc          
+    FIELD estado-emit-entr                  LIKE emitente.estado       
+    FIELD ins-estadual-emit-entr            LIKE emitente.ins-estadual 
+    FIELD ins-municipal-emit-entr           LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-entr            LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-entr                  LIKE emitente.e-mail       
+    FIELD cod-aba-emit-entr                 LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-entr               LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-entr               LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-entr                  LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-entr                  LIKE emitente.ramal[2]     
+    FIELD home-page-emit-entr               LIKE emitente.home-page    
+    FIELD telefax-emit-entr                 LIKE emitente.telefax      
+    FIELD ramal-fax-emit-entr               LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-entr               LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-entr               LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-entr             LIKE emitente.telef-modem  
+    FIELD ramal-modem-emit-entr             LIKE emitente.ramal-modem  
+    FIELD nome-estab-entr                   LIKE estabelec.nome         
+    FIELD endereco-estab-entr               LIKE estabelec.endereco     
+    FIELD bairro-estab-entr                 LIKE estabelec.bairro       
+    FIELD cidade-estab-entr                 LIKE estabelec.cidade       
+    FIELD pais-estab-entr                   LIKE estabelec.pais         
+    FIELD cep-estab-entr                    LIKE estabelec.cep          
+    FIELD cgc-estab-entr                    LIKE estabelec.cgc          
+    FIELD estado-estab-entr                 LIKE estabelec.estado       
+    FIELD ins-estadual-estab-entr           LIKE estabelec.ins-estadual 
+    FIELD ins-municipal-estab-entr          LIKE estabelec.ins-municipal
+    FIELD cod-suframa-estab-entr            LIKE estabelec.cod-suframa  
+    FIELD cod-emit-estab-entr               LIKE estabelec.cod-emitente 
+    FIELD nome-emit-estab-entr              LIKE emitente.nome-emit     
+    FIELD endereco-emit-estab-entr          LIKE emitente.endereco     
+    FIELD bairro-emit-estab-entr            LIKE emitente.bairro       
+    FIELD cidade-emit-estab-entr            LIKE emitente.cidade       
+    FIELD pais-emit-estab-entr              LIKE emitente.pais         
+    FIELD cep-emit-estab-entr               LIKE emitente.cep          
+    FIELD cgc-emit-estab-entr               LIKE emitente.cgc          
+    FIELD estado-emit-estab-entr            LIKE emitente.estado       
+    FIELD ins-estadual-emit-estab-entr      LIKE emitente.ins-estadual 
+    FIELD ins-municipal-emit-estab-entr     LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-estab-entr      LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-estab-entr            LIKE emitente.e-mail       
+    FIELD cod-aba-emit-estab-entr           LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-estab-entr         LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-estab-entr         LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-estab-entr            LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-estab-entr            LIKE emitente.ramal[2]     
+    FIELD home-page-emit-estab-entr         LIKE emitente.home-page    
+    FIELD telefax-emit-estab-entr           LIKE emitente.telefax      
+    FIELD ramal-fax-emit-estab-entr         LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-estab-entr         LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-estab-entr         LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-estab-entr       LIKE emitente.telef-modem  
+    FIELD ramal-modem-emit-estab-entr       LIKE emitente.ramal-modem
+    FIELD nome-estab-cobr                   LIKE estabelec.nome         
+    FIELD endereco-estab-cobr               LIKE estabelec.endereco     
+    FIELD bairro-estab-cobr                 LIKE estabelec.bairro       
+    FIELD cidade-estab-cobr                 LIKE estabelec.cidade       
+    FIELD pais-estab-cobr                   LIKE estabelec.pais         
+    FIELD cep-estab-cobr                    LIKE estabelec.cep          
+    FIELD cgc-estab-cobr                    LIKE estabelec.cgc          
+    FIELD estado-estab-cobr                 LIKE estabelec.estado       
+    FIELD ins-estadual-estab-cobr           LIKE estabelec.ins-estadual 
+    FIELD ins-municipal-estab-cobr          LIKE estabelec.ins-municipal
+    FIELD cod-suframa-estab-cobr            LIKE estabelec.cod-suframa  
+    FIELD nome-emit-estab-cobr              LIKE emitente.nome-emit    
+    FIELD endereco-emit-estab-cobr          LIKE emitente.endereco     
+    FIELD bairro-emit-estab-cobr            LIKE emitente.bairro       
+    FIELD cidade-emit-estab-cobr            LIKE emitente.cidade       
+    FIELD pais-emit-estab-cobr              LIKE emitente.pais         
+    FIELD cep-emit-estab-cobr               LIKE emitente.cep          
+    FIELD cgc-emit-estab-cobr               LIKE emitente.cgc          
+    FIELD estado-emit-estab-cobr            LIKE emitente.estado       
+    FIELD ins-estadual-emit-estab-cobr      LIKE emitente.ins-estadual 
+    FIELD ins-municipal-emit-estab-cobr     LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-estab-cobr      LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-estab-cobr            LIKE emitente.e-mail       
+    FIELD cod-aba-emit-estab-cobr           LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-estab-cobr         LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-estab-cobr         LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-estab-cobr            LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-estab-cobr            LIKE emitente.ramal[2]     
+    FIELD home-page-emit-estab-cobr         LIKE emitente.home-page    
+    FIELD telefax-emit-estab-cobr           LIKE emitente.telefax      
+    FIELD ramal-fax-emit-estab-cobr         LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-estab-cobr         LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-estab-cobr         LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-estab-cobr       LIKE emitente.telef-modem  
+    FIELD Ramal-modem-emit-estab-cobr       LIKE emitente.ramal-modem
+    FIELD nome-estab-gest                   LIKE estabelec.nome          
+    FIELD endereco-estab-gest               LIKE estabelec.endereco      
+    FIELD bairro-estab-gest                 LIKE estabelec.bairro        
+    FIELD cidade-estab-gest                 LIKE estabelec.cidade        
+    FIELD pais-estab-gest                   LIKE estabelec.pais          
+    FIELD cep-estab-gest                    LIKE estabelec.cep           
+    FIELD cgc-estab-gest                    LIKE estabelec.cgc           
+    FIELD estado-estab-gest                 LIKE estabelec.estado        
+    FIELD ins-estadual-estab-gest           LIKE estabelec.ins-estadual  
+    FIELD ins-municipal-estab-gest          LIKE estabelec.ins-municipal 
+    FIELD cod-suframa-estab-gest            LIKE estabelec.cod-suframa   
+    FIELD nome-emit-estab-gest              LIKE emitente.nome-emit    
+    FIELD endereco-emit-estab-gest          LIKE emitente.endereco     
+    FIELD bairro-emit-estab-gest            LIKE emitente.bairro       
+    FIELD cidade-emit-estab-gest            LIKE emitente.cidade       
+    FIELD pais-emit-estab-gest              LIKE emitente.pais         
+    FIELD cep-emit-estab-gest               LIKE emitente.cep          
+    FIELD cgc-emit-estab-gest               LIKE emitente.cgc          
+    FIELD estado-emit-estab-gest            LIKE emitente.estado       
+    FIELD ins-estadual-emit-estab-gest      LIKE emitente.ins-estadual 
+    FIELD ins-municipal-emit-estab-gest     LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-estab-gest      LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-estab-gest            LIKE emitente.e-mail       
+    FIELD cod-aba-emit-estab-gest           LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-estab-gest         LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-estab-gest         LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-estab-gest            LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-estab-gest            LIKE emitente.ramal[2]     
+    FIELD home-page-emit-estab-gest         LIKE emitente.home-page    
+    FIELD telefax-emit-estab-gest           LIKE emitente.telefax      
+    FIELD ramal-fax-emit-estab-gest         LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-estab-gest         LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-estab-gest         LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-estab-gest       LIKE emitente.telef-modem  
+    FIELD ramal-modem-emit-estab-gest       LIKE emitente.ramal-modem  
+    FIELD desc-mensagem-ped	                LIKE mensagem.descricao   
+    FIELD texto-mensag-ped	                LIKE mensagem.texto-mensag
+    FIELD nr-proc-imp                       LIKE processo-imp.nr-proc-imp                
+    FIELD cod-itiner                        LIKE processo-imp.cod-itiner                 
+    FIELD dt-emissao                        LIKE processo-imp.dt-emissao                 
+    FIELD dt-implantacao                    LIKE processo-imp.dt-implantacao              
+    FIELD dt-autorizacao                    LIKE processo-imp.dt-autorizacao             
+    FIELD cod-despachante                   LIKE processo-imp.cod-despachante            
+    FIELD cod-exportador                    LIKE processo-imp.cod-exportador             
+    FIELD cod-consignatario                 LIKE processo-imp.cod-consignatario          
+    FIELD cod-transportador                 LIKE processo-imp.cod-transportador          
+    FIELD carta-credito                     LIKE processo-imp.carta-credito              
+    FIELD narrativa                         LIKE processo-imp.narrativa                  
+    FIELD cod-banco                         LIKE processo-imp.cod-banco                  
+    FIELD nr-rof                            LIKE processo-imp.nr-rof                     
+    FIELD desc-via-transp                   AS CHAR FORMAT "x(40)"
+    FIELD estab-fisc                        LIKE processo-imp.estab-fisc                 
+    FIELD contrato-cambio                   LIKE processo-imp.contrato-cambio            
+    FIELD cod-idioma                        LIKE processo-imp.cod-idioma                 
+    FIELD situacao-proc-imp                 AS CHAR FORMAT "x(40)"
+    FIELD cod-agente                        LIKE processo-imp.cod-agente                 
+    FIELD cod-mens-proc-imp                 LIKE processo-imp.cod-mensagem
+    FIELD texto-mens-proc-imp               LIKE processo-imp.texto-mensag
+    FIELD destino-documentacao              LIKE processo-imp.destino-documentacao       
+    FIELD cdn-corretor-cambio-import        LIKE processo-imp.cdn-corretor-cambio-import 
+    FIELD cdn-despa-exter-import            LIKE processo-imp.cdn-despa-exter-import     
+    FIELD cdn-segurad-import                LIKE processo-imp.cdn-segurad-import         
+    FIELD cdn-corretor-import               LIKE processo-imp.cdn-corretor-import
+    FIELD nome-import                       LIKE estabelec.nome         
+    FIELD endereco-import                   LIKE estabelec.endereco     
+    FIELD bairro-import                     LIKE estabelec.bairro       
+    FIELD cidade-import                     LIKE estabelec.cidade       
+    FIELD pais-import                       LIKE estabelec.pais         
+    FIELD cep-import                        LIKE estabelec.cep          
+    FIELD cgc-import                        LIKE estabelec.cgc          
+    FIELD estado-import                     LIKE estabelec.estado       
+    FIELD ins-estadual-import               LIKE estabelec.ins-estadual 
+    FIELD ins-municipal-import              LIKE estabelec.ins-municipal
+    FIELD cod-suframa-import                LIKE estabelec.cod-suframa  
+    field cod-emit-import                   like estabelec.cod-emitente
+    FIELD nome-emit-import                  LIKE emitente.nome-emit    
+    FIELD endereco-emit-import              LIKE emitente.endereco     
+    FIELD bairro-emit-import                LIKE emitente.bairro       
+    FIELD cidade-emit-import                LIKE emitente.cidade       
+    FIELD pais-emit-import                  LIKE emitente.pais         
+    FIELD cep-emit-import                   LIKE emitente.cep          
+    FIELD cgc-emit-import                   LIKE emitente.cgc          
+    FIELD estado-emit-import                LIKE emitente.estado       
+    FIELD ins-estadual-emit-import          LIKE emitente.ins-estadual 
+    FIELD ins-municipal-emit-import         LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-import          LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-import                LIKE emitente.e-mail       
+    FIELD cod-aba-emit-import               LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-import             LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-import             LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-import                LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-import                LIKE emitente.ramal[2]     
+    FIELD home-page-emit-import             LIKE emitente.home-page    
+    FIELD telefax-emit-import               LIKE emitente.telefax      
+    FIELD ramal-fax-emit-import             LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-import             LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-import             LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-import           LIKE emitente.telef-modem  
+    FIELD ramal-modem-emit-import           LIKE emitente.ramal-modem  
+    FIELD nome-emit-export                  LIKE emitente.nome-emit    
+    FIELD endereco-emit-export              LIKE emitente.endereco     
+    FIELD bairro-emit-export                LIKE emitente.bairro       
+    FIELD cidade-emit-export                LIKE emitente.cidade       
+    FIELD pais-emit-export                  LIKE emitente.pais         
+    FIELD cep-emit-export                   LIKE emitente.cep          
+    FIELD cgc-emit-export                   LIKE emitente.cgc          
+    FIELD estado-emit-export                LIKE emitente.estado       
+    FIELD ins-estadual-emit-export          LIKE emitente.ins-estadual 
+    FIELD ins-municipal-emit-export         LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-export          LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-export                LIKE emitente.e-mail       
+    FIELD cod-aba-emit-export               LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-export             LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-export             LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-export                LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-export                LIKE emitente.ramal[2]     
+    FIELD home-page-emit-export             LIKE emitente.home-page    
+    FIELD telefax-emit-export               LIKE emitente.telefax      
+    FIELD ramal-fax-emit-export             LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-export             LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-export             LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-export           LIKE emitente.telef-modem  
+    FIELD ramal-modem-emit-export           LIKE emitente.ramal-modem  
+    FIELD desc-incoterm                     LIKE inco-cx.descricao
+    FIELD cod-incoterm                      LIKE inco-cx.cod-incoterm
+    FIELD desc-itiner                       LIKE itinerario.descricao
+    FIELD distancia                         LIKE itinerario.distancia
+    FIELD nr-dias                           LIKE itinerario.nr-dias
+    FIELD desc-mensagem-proc                LIKE mensagem.descricao
+    FIELD texto-mensag-proc                 LIKE mensagem.texto-mensag
+    FIELD peso-liquido-total-ped            AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD peso-bruto-total-ped              AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD preco-fornec-liq-total-ped        AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD preco-interno-liq-total-ped       AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD preco-fornec-bru-total-ped        AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD preco-interno-bru-total-ped       AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD ocupacao-total-ped                AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD tot-desp-ped                      AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD tot-desp-fornec-liq-total-ped     AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD tot-desp-interno-liq-total-ped    AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD tot-desp-fornec-bru-total-ped     AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    FIELD tot-desp-interno-bru-total-ped    AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999":U
+    INDEX pedido IS UNIQUE PRIMARY num-pedido.
+
+DEFINE TEMP-TABLE tt-pedido-compr-aux-Emitente no-undo
+    FIELD num-pedido                        LIKE pedido-compr.num-pedido
+    FIELD cod-idioma                        LIKE processo-imp.cod-idioma
+    FIELD ramal-fax-transp                  LIKE transporte.ramal-fax
+    FIELD nome-emit-despach                 LIKE emitente.nome-emit    
+    FIELD endereco-emit-despach             LIKE emitente.endereco     
+    FIELD bairro-emit-despach               LIKE emitente.bairro       
+    FIELD cidade-emit-despach               LIKE emitente.cidade       
+    FIELD pais-emit-despach                 LIKE emitente.pais         
+    FIELD cep-emit-despach                  LIKE emitente.cep          
+    FIELD cgc-emit-despach                  LIKE emitente.cgc          
+    FIELD estado-emit-despach               LIKE emitente.estado       
+    FIELD Ins-estadual-emit-despach         LIKE emitente.ins-estadual 
+    FIELD Ins-municipal-emit-despach        LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-despach         LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-despach               LIKE emitente.e-mail       
+    FIELD cod-aba-emit-despach              LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-despach            LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-despach            LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-despach               LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-despach               LIKE emitente.ramal[2]     
+    FIELD home-page-emit-despach            LIKE emitente.home-page    
+    FIELD telefax-emit-despach              LIKE emitente.telefax      
+    FIELD ramal-fax-emit-despach            LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-despach            LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-despach            LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-despach          LIKE emitente.telef-modem  
+    FIELD ramal-modem-emit-despach          LIKE emitente.ramal-modem  
+    FIELD nome-agente                       LIKE emitente.nome-emit     
+    FIELD endereco-agente                   LIKE emitente.endereco      
+    FIELD bairro-agente                     LIKE emitente.bairro        
+    FIELD cidade-agente                     LIKE emitente.cidade        
+    FIELD pais-agente                       LIKE emitente.pais          
+    FIELD cep-agente                        LIKE emitente.cep           
+    FIELD cgc-agente                        LIKE emitente.cgc           
+    FIELD estado-agente                     LIKE emitente.estado        
+    FIELD ins-estadual-agente               LIKE emitente.ins-estadual  
+    FIELD ins-municipal-agente              LIKE emitente.ins-municipal 
+    FIELD caixa-postal-agente               LIKE emitente.caixa-postal  
+    FIELD e-mail-agente                     LIKE emitente.e-mail        
+    FIELD cod-aba-agente                    LIKE emitente-cex.cod-aba   
+    FIELD telefone1-agente                  LIKE emitente.telefone[1]   
+    FIELD telefone2-agente                  LIKE emitente.telefone[2]   
+    FIELD ramal1-agente                     LIKE emitente.ramal[1]      
+    FIELD ramal2-agente                     LIKE emitente.ramal[2]      
+    FIELD home-page-agente                  LIKE emitente.home-page     
+    FIELD telefax-agente                    LIKE emitente.telefax       
+    FIELD ramal-fax-agente                  LIKE emitente.ramal-fax     
+    FIELD telef-fac-agente                  LIKE emitente.telef-fac     
+    FIELD ramal-fac-agente                  LIKE emitente.ramal-fac     
+    FIELD telef-modem-agente                LIKE emitente.telef-modem   
+    FIELD ramal-modem-agente                LIKE emitente.ramal-modem   
+    FIELD nome-corretor-cam                 LIKE emitente.nome-emit     
+    FIELD endereco-corretor-cam             LIKE emitente.endereco      
+    FIELD bairro-corretor-cam               LIKE emitente.bairro        
+    FIELD cidade-corretor-cam               LIKE emitente.cidade        
+    FIELD pais-corretor-cam                 LIKE emitente.pais          
+    FIELD cep-corretor-cam                  LIKE emitente.cep           
+    FIELD cgc-corretor-cam                  LIKE emitente.cgc           
+    FIELD estado-corretor-cam               LIKE emitente.estado        
+    FIELD ins-estadual-corretor-cam         LIKE emitente.ins-estadual  
+    FIELD ins-municipal-corretor-cam        LIKE emitente.ins-municipal 
+    FIELD caixa-postal-corretor-cam         LIKE emitente.caixa-postal  
+    FIELD e-mail-corretor-cam               LIKE emitente.e-mail        
+    FIELD cod-aba-corretor-cam              LIKE emitente-cex.cod-aba   
+    FIELD telefone1-corretor-cam            LIKE emitente.telefone[1]   
+    FIELD telefone2-corretor-cam            LIKE emitente.telefone[2]   
+    FIELD ramal1-corretor-cam               LIKE emitente.ramal[1]      
+    FIELD ramal2-corretor-cam               LIKE emitente.ramal[2]      
+    FIELD home-page-corretor-cam            LIKE emitente.home-page     
+    FIELD telefax-corretor-cam              LIKE emitente.telefax       
+    FIELD ramal-fax-corretor-cam            LIKE emitente.ramal-fax     
+    FIELD telef-fac-corretor-cam            LIKE emitente.telef-fac     
+    FIELD ramal-fac-corretor-cam            LIKE emitente.ramal-fac     
+    FIELD telef-modem-corretor-cam          LIKE emitente.telef-modem   
+    FIELD ramal-modem-corretor-cam          LIKE emitente.ramal-modem  
+    FIELD nome-despach-ext                  LIKE emitente.nome-emit     
+    FIELD endereco-despach-ext              LIKE emitente.endereco      
+    FIELD bairro-despach-ext                LIKE emitente.bairro        
+    FIELD cidade-despach-ext                LIKE emitente.cidade        
+    FIELD pais-despach-ext                  LIKE emitente.pais          
+    FIELD cep-despach-ext                   LIKE emitente.cep           
+    FIELD cgc-despach-ext                   LIKE emitente.cgc           
+    FIELD estado-despach-ext                LIKE emitente.estado        
+    FIELD ins-estadual-despach-ext          LIKE emitente.ins-estadual  
+    FIELD ins-municipal-despach-ext         LIKE emitente.ins-municipal 
+    FIELD caixa-postal-despach-ext          LIKE emitente.caixa-postal  
+    FIELD e-mail-despach-ext                LIKE emitente.e-mail        
+    FIELD cod-aba-despach-ext               LIKE emitente-cex.cod-aba   
+    FIELD telefone1-despach-ext             LIKE emitente.telefone[1]   
+    FIELD telefone2-despach-ext             LIKE emitente.telefone[2]   
+    FIELD ramal1-despach-ext                LIKE emitente.ramal[1]      
+    FIELD ramal2-despach-ext                LIKE emitente.ramal[2]      
+    FIELD home-page-despach-ext             LIKE emitente.home-page     
+    FIELD telefax-despach-ext               LIKE emitente.telefax       
+    FIELD ramal-fax-despach-ext             LIKE emitente.ramal-fax     
+    FIELD telef-fac-despach-ext             LIKE emitente.telef-fac     
+    FIELD ramal-fac-despach-ext             LIKE emitente.ramal-fac     
+    FIELD telef-modem-despach-ext           LIKE emitente.telef-modem   
+    FIELD ramal-modem-despach-ext           LIKE emitente.ramal-modem   
+    FIELD nome-segurad                      LIKE emitente.nome-emit     
+    FIELD endereco-segurad                  LIKE emitente.endereco      
+    FIELD bairro-segurad                    LIKE emitente.bairro        
+    FIELD cidade-segurad                    LIKE emitente.cidade        
+    FIELD pais-segurad                      LIKE emitente.pais          
+    FIELD cep-segurad                       LIKE emitente.cep           
+    FIELD cgc-segurad                       LIKE emitente.cgc           
+    FIELD estado-segurad                    LIKE emitente.estado        
+    FIELD ins-estadual-segurad              LIKE emitente.ins-estadual  
+    FIELD ins-municipal-segurad             LIKE emitente.ins-municipal 
+    FIELD caixa-postal-segurad              LIKE emitente.caixa-postal  
+    FIELD e-mail-segurad                    LIKE emitente.e-mail        
+    FIELD cod-aba-segurad                   LIKE emitente-cex.cod-aba   
+    FIELD telefone1-segurad                 LIKE emitente.telefone[1]   
+    FIELD telefone2-segurad                 LIKE emitente.telefone[2]   
+    FIELD ramal1-segurad                    LIKE emitente.ramal[1]      
+    FIELD ramal2-segurad                    LIKE emitente.ramal[2]      
+    FIELD home-page-segurad                 LIKE emitente.home-page     
+    FIELD telefax-segurad                   LIKE emitente.telefax       
+    FIELD ramal-fax-segurad                 LIKE emitente.ramal-fax     
+    FIELD telef-fac-segurad                 LIKE emitente.telef-fac     
+    FIELD ramal-fac-segurad                 LIKE emitente.ramal-fac     
+    FIELD telef-modem-segurad               LIKE emitente.telef-modem   
+    FIELD ramal-modem-segurad               LIKE emitente.ramal-modem  
+    FIELD nome-corretor-imp                 LIKE emitente.nome-emit    
+    FIELD endereco-corretor-imp             LIKE emitente.endereco     
+    FIELD bairro-corretor-imp               LIKE emitente.bairro       
+    FIELD cidade-corretor-imp               LIKE emitente.cidade       
+    FIELD pais-corretor-imp                 LIKE emitente.pais         
+    FIELD cep-corretor-imp                  LIKE emitente.cep          
+    FIELD cgc-corretor-imp                  LIKE emitente.cgc          
+    FIELD estado-corretor-imp               LIKE emitente.estado       
+    FIELD ins-estadual-corretor-imp         LIKE emitente.ins-estadual 
+    FIELD ins-municipal-corretor-imp        LIKE emitente.ins-municipal
+    FIELD caixa-postal-corretor-imp         LIKE emitente.caixa-postal 
+    FIELD e-mail-corretor-imp               LIKE emitente.e-mail       
+    FIELD cod-aba-corretor-imp              LIKE emitente-cex.cod-aba  
+    FIELD telefone1-corretor-imp            LIKE emitente.telefone[1]  
+    FIELD telefone2-corretor-imp            LIKE emitente.telefone[2]  
+    FIELD ramal1-corretor-imp               LIKE emitente.ramal[1]     
+    FIELD ramal2-corretor-imp               LIKE emitente.ramal[2]     
+    FIELD home-page-corretor-imp            LIKE emitente.home-page    
+    FIELD telefax-corretor-imp              LIKE emitente.telefax      
+    FIELD ramal-fax-corretor-imp            LIKE emitente.ramal-fax    
+    FIELD telef-fac-corretor-imp            LIKE emitente.telef-fac    
+    FIELD ramal-fac-corretor-imp            LIKE emitente.ramal-fac    
+    FIELD telef-modem-corretor-imp          LIKE emitente.telef-modem  
+    FIELD ramal-modem-corretor-imp          LIKE emitente.ramal-modem  
+    FIELD desc-banco                        LIKE banco.nome-banco
+    FIELD ag-banco                          LIKE agencia.agencia
+    FIELD desc-agencia                      LIKE agencia.nome
+    FIELD nome-consig                       LIKE emitente.nome-emit    
+    FIELD endereco-consig                   LIKE emitente.endereco     
+    FIELD bairro-consig                     LIKE emitente.bairro       
+    FIELD cidade-consig                     LIKE emitente.cidade       
+    FIELD pais-consig                       LIKE emitente.pais         
+    FIELD cep-consig                        LIKE emitente.cep          
+    FIELD cgc-consig                        LIKE emitente.cgc          
+    FIELD estado-consig                     LIKE emitente.estado       
+    FIELD Ins-estadual-consig               LIKE emitente.ins-estadual 
+    FIELD Ins-municipal-consig              LIKE emitente.ins-municipal
+    FIELD caixa-postal-consig               LIKE emitente.caixa-postal 
+    FIELD e-mail-consig                     LIKE emitente.e-mail       
+    FIELD cod-aba-consig                    LIKE emitente-cex.cod-aba  
+    FIELD telefone1-consig                  LIKE emitente.telefone[1]  
+    FIELD telefone2-consig                  LIKE emitente.telefone[2]  
+    FIELD ramal1-consig                     LIKE emitente.ramal[1]     
+    FIELD ramal2-consig                     LIKE emitente.ramal[2]     
+    FIELD home-page-consig                  LIKE emitente.home-page    
+    FIELD telefax-consig                    LIKE emitente.telefax      
+    FIELD ramal-fax-consig                  LIKE emitente.ramal-fax    
+    FIELD telef-fac-consig                  LIKE emitente.telef-fac    
+    FIELD ramal-fac-consig                  LIKE emitente.ramal-fac    
+    FIELD telef-modem-consig                LIKE emitente.telef-modem  
+    FIELD ramal-modem-consig                LIKE emitente.ramal-modem  
+    FIELD nome-estab-fis                    LIKE estabelec.nome         
+    FIELD endereco-estab-fis                LIKE estabelec.endereco     
+    FIELD bairro-estab-fis                  LIKE estabelec.bairro       
+    FIELD cidade-estab-fis                  LIKE estabelec.cidade       
+    FIELD pais-estab-fis                    LIKE estabelec.pais         
+    FIELD cep-estab-fis                     LIKE estabelec.cep          
+    FIELD cgc-estab-fis                     LIKE estabelec.cgc          
+    FIELD estado-estab-fis                  LIKE estabelec.estado       
+    FIELD ins-estadual-estab-fis            LIKE estabelec.ins-estadual 
+    FIELD ins-municipal-estab-fis           LIKE estabelec.ins-municipal
+    FIELD cod-suframa-estab-fis             LIKE estabelec.cod-suframa  
+    FIELD cod-emit-estab-fis                LIKE estabelec.cod-emitente
+    FIELD nome-emit-estab-fis               LIKE emitente.nome-emit    
+    FIELD endereco-emit-estab-fis           LIKE emitente.endereco     
+    FIELD bairro-emit-estab-fis             LIKE emitente.bairro       
+    FIELD cidade-emit-estab-fis             LIKE emitente.cidade       
+    FIELD pais-emit-estab-fis               LIKE emitente.pais         
+    FIELD cep-emit-estab-fis                LIKE emitente.cep          
+    FIELD cgc-emit-estab-fis                LIKE emitente.cgc          
+    FIELD estado-emit-estab-fis             LIKE emitente.estado       
+    FIELD Ins-estadual-emit-estab-fis       LIKE emitente.ins-estadual 
+    FIELD Ins-municipal-emit-estab-fis      LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-estab-fis       LIKE emitente.caixa-postal 
+    FIELD e-mail-emit-estab-fis             LIKE emitente.e-mail       
+    FIELD cod-aba-emit-estab-fis            LIKE emitente-cex.cod-aba  
+    FIELD telefone1-emit-estab-fis          LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-estab-fis          LIKE emitente.telefone[2]  
+    FIELD ramal1-emit-estab-fis             LIKE emitente.ramal[1]     
+    FIELD ramal2-emit-estab-fis             LIKE emitente.ramal[2]     
+    FIELD home-page-emit-estab-fis          LIKE emitente.home-page    
+    FIELD telefax-emit-estab-fis            LIKE emitente.telefax      
+    FIELD ramal-fax-emit-estab-fis          LIKE emitente.ramal-fax    
+    FIELD telef-fac-emit-estab-fis          LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-estab-fis          LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-estab-fis        LIKE emitente.telef-modem  
+    FIELD ramal-modem-emit-estab-fis        LIKE emitente.ramal-modem.
+
+/* esta quebra foi feito para nao dar o erro ** More than <value> items in a single statement. Use the -tok parameter. (136) */
+DEFINE TEMP-TABLE tt-pedido-compr-aux no-undo like tt-pedido-compr-aux-Emitente
+    FIELD nome-assinat1                     LIKE param-compra.nome-ass[1]
+    FIELD nome-assinat2                     LIKE param-compra.nome-ass[2]
+    FIELD nome-assinat3                     LIKE param-compra.nome-ass[3]
+    FIELD cargo-assinat1                    LIKE param-compra.cargo-ass[1]
+    FIELD cargo-assinat2                    LIKE param-compra.cargo-ass[2]
+    FIELD cargo-assinat3                    LIKE param-compra.cargo-ass[3]
+    FIELD pto-embarque                      LIKE itinerario.pto-embarque
+    FIELD desc-pto-embarque                 LIKE pto-contr.descricao
+    FIELD pto-desembarque                   LIKE itinerario.pto-desembarque
+    FIELD desc-pto-desembarque              LIKE pto-contr.descricao
+    field data-prev-embarque                like historico-proc-imp.dt-efetiva
+    FIELD desc-moeda-inf                    LIKE moeda.descricao
+    FIELD sigla-moeda-inf                   LIKE moeda.sigla
+    FIELD mo-codigo-inf                     LIKE moeda.mo-codigo
+    FIELD nome-transp                       LIKE transporte.nome           
+    FIELD nome-abrev-transp                 LIKE transporte.nome-abrev
+    FIELD endereco-transp                   LIKE transporte.endereco
+    FIELD bairro-transp                     LIKE transporte.bairro
+    FIELD cidade-transp                     LIKE transporte.cidade
+    FIELD pais-transp                       LIKE transporte.pais
+    FIELD cep-transp                        LIKE transporte.cep            
+    FIELD cgc-transp                        LIKE transporte.cgc            
+    FIELD estado-transp                     LIKE transporte.estado
+    FIELD ins-estadual-transp               LIKE transporte.ins-estadual
+    FIELD caixa-postal-transp               LIKE transporte.cx-postal
+    FIELD contato-transp                    LIKE transporte.contato
+    FIELD telefone-transp                   LIKE transporte.telefone
+    FIELD ramal-transp                      LIKE transporte.ramal
+    FIELD telefax-transp                    LIKE transporte.telefax
+    FIELD telex-transp                      LIKE transporte.telex
+    FIELD ins-municipal-transp              LIKE transporte.ins-municipal
+    FIELD zip-code-transp                   LIKE transporte.zip-code
+    FIELD e-mail-transp                     LIKE transporte.e-mail
+    FIELD telef-modem-transp                LIKE transporte.telef-modem
+    FIELD home-page-transp                  LIKE transporte.home-page  
+    FIELD ramal-modem-transp                LIKE transporte.ramal-modem
+    INDEX pedido IS UNIQUE PRIMARY num-pedido.
+
+DEFINE TEMP-TABLE tt-pedido-compr-aux2 no-undo
+    FIELD num-pedido                        LIKE pedido-compr.num-pedido
+    FIELD desc-cond-pagto	                LIKE cond-pagto.descricao
+    FIELD narrativa-cond-pagto	            LIKE narrativa.descricao
+    INDEX pedido IS UNIQUE PRIMARY num-pedido.
+
+DEFINE TEMP-TABLE tt-ordem-compra no-undo
+    FIELD num-pedido                    LIKE pedido-compr.num-pedido
+    FIELD numero-ordem                  LIKE ordem-compra.numero-ordem
+    FIELD r-rowid-ordem-compra          AS ROWID
+    FIELD nr-proc-imp                   LIKE processo-imp.nr-proc-imp    
+    FIELD it-codigo	                    LIKE ordem-compra.it-codigo
+    FIELD data-emissao	                LIKE ordem-compra.data-emissao
+    FIELD narrat-ordem	                LIKE ordem-compra.narrativa 
+    FIELD data-cotacao	                LIKE ordem-compra.data-cotacao
+    FIELD mo-codigo	                    LIKE ordem-compra.mo-codigo
+    FIELD aliquota-ipi-ordem	        LIKE ordem-compra.aliquota-ipi
+    FIELD taxa-financ	                LIKE ordem-compra.taxa-financ
+    FIELD valor-taxa	                LIKE ordem-compra.valor-taxa
+    FIELD perc-descto	                LIKE ordem-compra.perc-descto
+    FIELD prazo-entreg	                LIKE ordem-compra.prazo-entreg
+    FIELD contato	                    LIKE ordem-compra.contato
+    FIELD data-atualiz	                LIKE ordem-compra.data-atualiz
+    FIELD hora-atualiz	                LIKE ordem-compra.hora-atualiz
+    FIELD cod-refer	                    LIKE ordem-compra.cod-refer
+    FIELD valor-descto	                LIKE ordem-compra.valor-descto
+    FIELD nr-dias-taxa	                LIKE ordem-compra.nr-dias-taxa
+    FIELD licenca-import	            LIKE ordem-compra.licenca-import
+    FIELD loc-entrega	                LIKE ordem-compra.loc-entrega
+    FIELD valor-descto-mo-inf          LIKE ordem-compra.valor-descto
+    FIELD cod-pto-contr-base	        LIKE historico-proc-imp.cod-pto-contr
+    FIELD aliquota-ii	                LIKE ITEM.aliquota-ii
+    FIELD regime-import	                LIKE cotacao-item.regime-impot
+    FIELD un-fornec	                    LIKE cotacao-item.un
+    FIELD cdn-pais-orig 	            LIKE cotacao-item.cdn-pais-orig
+    FIELD cod-fabricante	            LIKE emitente.cod-emitente
+    FIELD desc-pto-contr-base	        LIKE pto-contr.descricao
+    FIELD nome-fabric	                LIKE emitente.nome-emit
+    FIELD endereco-fabric	            LIKE emitente.endereco
+    FIELD bairro-fabric	                LIKE emitente.bairro
+    FIELD cidade-fabric	                LIKE emitente.cidade
+    FIELD pais-fabric	                LIKE emitente.pais
+    FIELD cep-fabric	                LIKE emitente.cep
+    FIELD cgc-fabric	                LIKE emitente.cgc
+    FIELD estado-fabric	                LIKE emitente.estado
+    FIELD ins-estadual-fabric	        LIKE emitente.ins-estadual
+    FIELD ins-municipal-fabric	        LIKE emitente.ins-municipal
+    FIELD caixa-postal-fabric	        LIKE emitente.caixa-postal    
+    FIELD e-mail-fabric	                LIKE emitente.e-mail      
+    FIELD cod-aba-fabric	            LIKE emitente-cex.cod-aba 
+    FIELD telefone1-fabric	            LIKE emitente.telefone[1] 
+    FIELD telefone2-fabric	            LIKE emitente.telefone[2] 
+    FIELD ramal1-fabric	                LIKE emitente.ramal[1]    
+    FIELD ramal2-fabric	                LIKE emitente.ramal[2]    
+    FIELD home-page-fabric	            LIKE emitente.home-page   
+    FIELD telefax-fabric	            LIKE emitente.telefax     
+    FIELD ramal-fax-fabric	            LIKE emitente.ramal-fax   
+    FIELD telef-fac-fabric	            LIKE emitente.telef-fac   
+    FIELD ramal-fac-fabric	            LIKE emitente.ramal-fac   
+    FIELD telef-modem-fabric	        LIKE emitente.telef-modem 
+    FIELD ramal-modem-fabric  	        LIKE emitente.ramal-modem    
+    FIELD nome-pais-orig	            LIKE pais.nome-pais
+    FIELD desc-moeda	                LIKE moeda.descricao
+    FIELD sigla-moeda	                LIKE moeda.sigla
+    FIELD desc-item	                    LIKE item.descricao-1
+    FIELD peso-liquido	                LIKE item.peso-liquido
+    FIELD peso-bruto	                LIKE item.peso-bruto
+    FIELD altura	                    LIKE item.altura
+    FIELD comprim	                    LIKE item.comprim
+    FIELD largura	                    LIKE item.largura
+    FIELD ge-codigo	                    LIKE item.ge-codigo
+    FIELD fm-codigo	                    LIKE item.fm-codigo
+    FIELD fm-cod-com	                LIKE item.fm-codigo
+    FIELD un	                        LIKE item.un
+    FIELD narrativa	                    LIKE narrativa.descricao
+    FIELD desc-grup-estoq	            LIKE grup-estoque.descricao
+    FIELD desc-familia	                LIKE familia.descricao
+    FIELD desc-fam-comerc	            LIKE familia.descricao
+    FIELD item-fornec	                LIKE item-fornec.item-do-forn
+    FIELD cod-embal	                    LIKE item-fornec.cod-embal
+    FIELD fator-conver	                LIKE item-fornec.fator-conver
+    FIELD num-casa-dec	                LIKE item-fornec.num-casa-dec
+    FIELD narrat-item-fornec	        LIKE item-fornec.narrativa
+    FIELD desc-item-fornec              LIKE ITEM.desc-item
+    FIELD desc-un-interno	            LIKE tab-unidade.descricao
+    FIELD desc-un-fornec	            LIKE tab-unidade.descricao
+    FIELD sigla-embalag	                LIKE embalag.sigla-emb
+    FIELD desc-embalag	                LIKE embalag.descricao
+    FIELD peso-embalag	                LIKE embalag.peso-embal
+    field peso-liquido-total            like item.peso-liquido 
+    FIELD peso-bruto-total              like item.peso-bruto   
+    FIELD preco-fornec-liq               like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-liq              like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-bru               like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-bru              like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-liq-total         like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-liq-total        like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-bru-total         like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-bru-total        like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-liq-mo-inf        like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-liq-mo-inf       like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-bru-mo-inf        like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-bru-mo-inf       like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-liq-total-mo-inf  like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-liq-total-mo-inf like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-bru-total-mo-inf  like cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-bru-total-mo-inf like cotacao-item.preco-fornec /*item.preco-base*/
+    field ocupacao-total                 like item.volume
+    FIELD quantidade	                 LIKE prazo-compra.quantidade
+    FIELD qtd-do-forn 	                 LIKE prazo-compra.qtd-do-forn
+    field class-fiscal                   as char format "9999.99.99" 
+    INDEX codigo IS PRIMARY UNIQUE
+          numero-ordem.
+                                    
+DEFINE TEMP-TABLE tt-prazo-compra no-undo
+    FIELD numero-ordem	                LIKE prazo-compra.numero-ordem
+    FIELD parcela	                    LIKE prazo-compra.parcela
+    FIELD it-codigo	                    LIKE prazo-compra.it-codigo
+    FIELD un	                        LIKE prazo-compra.un
+    FIELD quantid-orig	                LIKE prazo-compra.quantid-orig
+    FIELD quantidade	                LIKE prazo-compra.quantidade
+    FIELD quant-saldo	                LIKE prazo-compra.quant-saldo
+    FIELD quant-rejeit	                LIKE prazo-compra.quant-rejeit
+    FIELD quant-receb	                LIKE prazo-compra.quant-receb
+    FIELD qtd-do-forn	                LIKE prazo-compra.qtd-do-forn
+    FIELD qtd-sal-forn	                LIKE prazo-compra.qtd-sal-forn
+    FIELD qtd-rej-forn	                LIKE prazo-compra.qtd-rej-forn
+    FIELD qtd-rec-forn	                LIKE prazo-compra.qtd-rec-forn
+    FIELD data-orig	                    LIKE prazo-compra.data-orig
+    FIELD data-entrega	                LIKE prazo-compra.data-entrega
+    FIELD data-alter	                LIKE prazo-compra.data-alter
+    FIELD quant-a-ped	                LIKE prazo-compra.quant-a-ped
+    FIELD qtd-a-ped-forn	            LIKE prazo-compra.qtd-a-ped-forn
+    FIELD cc-codigo	                    LIKE prazo-compra.cc-codigo
+    FIELD item-cotacao	                LIKE prazo-compra.item-cotacao
+    FIELD qtd-aloc-forn	                LIKE prazo-compra.qtd-aloc-forn
+    FIELD quant-alocada	                LIKE prazo-compra.quant-alocada    
+    FIELD data-emissao	                LIKE ordem-compra.data-emissao
+    FIELD narrat-ordem	                LIKE ordem-compra.narrativa 
+    FIELD data-cotacao	                LIKE ordem-compra.data-cotacao
+    FIELD mo-codigo	                    LIKE ordem-compra.mo-codigo
+    FIELD aliquota-ipi-ordem	        LIKE ordem-compra.aliquota-ipi
+    FIELD taxa-financ	                LIKE ordem-compra.taxa-financ
+    FIELD valor-taxa	                LIKE ordem-compra.valor-taxa
+    FIELD perc-descto	                LIKE ordem-compra.perc-descto
+    FIELD prazo-entreg	                LIKE ordem-compra.prazo-entreg
+    FIELD contato	                    LIKE ordem-compra.contato
+    FIELD data-atualiz	                LIKE ordem-compra.data-atualiz
+    FIELD hora-atualiz	                LIKE ordem-compra.hora-atualiz
+    FIELD cod-refer	                    LIKE ordem-compra.cod-refer
+    FIELD valor-descto-mo-inf          LIKE ordem-compra.valor-descto
+    FIELD valor-descto	                LIKE ordem-compra.valor-descto
+    FIELD nr-dias-taxa	                LIKE ordem-compra.nr-dias-taxa
+    FIELD licenca-import	            LIKE ordem-compra.licenca-import
+    FIELD loc-entrega	                LIKE ordem-compra.loc-entrega
+    FIELD cod-pto-contr-base	        LIKE historico-proc-imp.cod-pto-contr
+    FIELD aliquota-ii	                LIKE ITEM.aliquota-ii
+    FIELD regime-import	                LIKE cotacao-item.regime-impot
+    FIELD un-fornec	                    LIKE cotacao-item.un
+    FIELD cdn-pais-orig 	            LIKE cotacao-item.cdn-pais-orig
+    FIELD desc-pto-contr-base	        LIKE pto-contr.descricao
+    FIELD nome-pais-orig	            LIKE pais.nome-pais  
+    FIELD desc-moeda	                LIKE moeda.descricao
+    FIELD sigla-moeda	                LIKE moeda.sigla
+    FIELD desc-item	                    LIKE item.descricao-1
+    FIELD peso-liquido	                LIKE item.peso-liquido
+    FIELD peso-bruto	                LIKE item.peso-bruto
+    FIELD altura	                    LIKE item.altura
+    FIELD comprim	                    LIKE item.comprim
+    FIELD largura	                    LIKE item.largura
+    FIELD ge-codigo	                    LIKE item.ge-codigo
+    FIELD fm-codigo	                    LIKE item.fm-codigo
+    FIELD fm-cod-com	                LIKE item.fm-codigo
+    FIELD narrativa	                    LIKE narrativa.descricao
+    FIELD desc-grup-estoq	            LIKE grup-estoq.descricao
+    FIELD desc-familia	                LIKE familia.descricao
+    FIELD desc-fam-comerc	            LIKE familia.descricao
+    FIELD item-fornec	                LIKE item-fornec.item-do-forn
+    FIELD desc-item-fornec              LIKE ITEM.desc-item
+    FIELD cod-embal	                    LIKE item-fornec.cod-embal
+    FIELD fator-conver	                LIKE item-fornec.fator-conver
+    FIELD num-casa-dec	                LIKE item-fornec.num-casa-dec
+    FIELD narrat-item-fornec	        LIKE item-fornec.narrativa
+    FIELD desc-un-interno	            LIKE tab-unidade.descricao
+    FIELD desc-un-fornec	            LIKE tab-unidade.descricao
+    FIELD sigla-embalag	                LIKE embalag.sigla-emb
+    FIELD desc-embalag	                LIKE embalag.descricao
+    FIELD peso-embalag	                LIKE embalag.peso-embal   
+    FIELD preco-fornec-liq              LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-liq             LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-bru              LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-bru             LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-liq-mo-inf       LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-liq-mo-inf      LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-bru-mo-inf       LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-bru-mo-inf      LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD peso-liquido-total            LIKE ITEM.peso-liquido
+    FIELD peso-bruto-total              LIKE ITEM.peso-bruto
+    FIELD preco-fornec-liq-total        LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-liq-total       LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-fornec-bru-total        LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD preco-interno-bru-total       LIKE cotacao-item.preco-fornec /*item.preco-base*/
+    FIELD ocupacao-total                LIKE ITEM.volume
+    field class-fiscal                  as char format "9999.99.99" 
+    INDEX ch-primary IS PRIMARY UNIQUE numero-ordem parcela.
+
+DEFINE TEMP-TABLE tt-despesa no-undo
+    FIELD num-pedido                      LIKE pedido-compr.num-pedido
+    FIELD numero-ordem                    LIKE cotacao-item-cex.numero-ordem     
+    FIELD it-codigo                       LIKE cotacao-item-cex.it-codigo        
+    FIELD seq-cotac                       LIKE cotacao-item-cex.seq-cotac        
+    FIELD data-cotacao                    LIKE cotacao-item-cex.data-cotacao     
+    FIELD mapa-cotacao                    LIKE cotacao-item-cex.mapa-cotacao     
+    FIELD cod-incoterm                    LIKE cotacao-item-cex.cod-incoterm     
+    FIELD cod-itiner                      LIKE cotacao-item-cex.cod-itiner       
+    FIELD sequencia                       LIKE cotacao-item-cex.sequencia        
+    FIELD cod-emitente-desp               LIKE cotacao-item-cex.cod-emitente-desp
+    FIELD cod-desp                        LIKE cotacao-item-cex.cod-desp
+    FIELD val-desp	                      LIKE cotacao-item-cex.val-desp
+    FIELD cod-cond-pag	                  LIKE cotacao-item-cex.cod-cond-pag
+    FIELD data-cotacao-desp	              LIKE cotacao-item-cex.data-cotacao-desp
+    FIELD mo-codigo	                      LIKE cotacao-item-cex.mo-codigo
+    FIELD cod-pto-contr	                  LIKE cotacao-item-cex.cod-pto-contr
+    FIELD val-desp-mo-inf                 LIKE desp-imp.val-desp
+    FIELD nome-emit-desp	              LIKE emitente.nome-emit
+    FIELD endereco-emit-desp              LIKE emitente.endereco
+    FIELD bairro-emit-desp	              LIKE emitente.bairro
+    FIELD cidade-emit-desp	              LIKE emitente.cidade
+    FIELD pais-emit-desp	              LIKE emitente.pais
+    FIELD cep-emit-desp	                  LIKE emitente.cep
+    FIELD cgc-emit-desp	                  LIKE emitente.cgc
+    FIELD estado-emit-desp	              LIKE emitente.estado
+    FIELD ins-estadual-emit-desp          LIKE emitente.ins-estadual
+    FIELD ins-municipal-emit-desp         LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-desp          LIKE emitente.caixa-postal
+    FIELD e-mail-emit-desp	              LIKE emitente.e-mail
+    FIELD cod-aba-emit-desp	              LIKE emitente-cex.cod-aba
+    FIELD telefone1-emit-desp	          LIKE emitente.telefone[1]
+    FIELD telefone2-emit-desp	          LIKE emitente.telefone[2]
+    FIELD ramal1-emit-desp	              LIKE emitente.ramal[1]
+    FIELD ramal2-emit-desp	              LIKE emitente.ramal[2]
+    FIELD home-page-emit-desp	          LIKE emitente.home-page
+    FIELD telefax-emit-desp	              LIKE emitente.telefax
+    FIELD ramal-fax-emit-desp	          LIKE emitente.ramal-fax
+    FIELD telef-fac-emit-desp	          LIKE emitente.telef-fac
+    FIELD ramal-fac-emit-desp	          LIKE emitente.ramal-fac
+    FIELD telef-modem-emit-desp	          LIKE emitente.telef-modem
+    FIELD ramal-modem-emit-desp	          LIKE emitente.ramal-modem
+    FIELD desc-despesa	                  LIKE despesa.des-despesa
+    FIELD desc-pto-contr-base	          LIKE pto-contr.descricao
+    FIELD desc-cond-pagto	              LIKE cond-pagto.descricao
+    FIELD narrativa-cond-pagto            LIKE narrativa.descricao
+    FIELD desc-moeda	                  LIKE moeda.descricao
+    FIELD sigla-moeda	                  LIKE moeda.sigla
+    INDEX ch-primary IS PRIMARY UNIQUE 
+          mo-codigo   
+          cod-cond-pag
+          cod-pto-contr
+          cod-desp.
+
+DEFINE TEMP-TABLE tt-texto-follow-up no-undo
+    FIELD ind-tip-doc       LIKE texto-follow-up.ind-tip-doc  
+    FIELD nr-requisicao     LIKE texto-follow-up.nr-requisicao
+    FIELD sequencia         LIKE texto-follow-up.sequencia    
+    FIELD it-codigo         LIKE texto-follow-up.it-codigo     
+    FIELD numero-ordem      LIKE texto-follow-up.numero-ordem  
+    FIELD num-pedido        LIKE texto-follow-up.num-pedido    
+    FIELD cod-emitente      LIKE texto-follow-up.cod-emitente  
+    FIELD des-narrativa     LIKE texto-follow-up.des-narrativa 
+    FIELD char-1            LIKE texto-follow-up.char-1        
+    FIELD char-2            LIKE texto-follow-up.char-2        
+    FIELD dec-1             LIKE texto-follow-up.dec-1         
+    FIELD dec-2             LIKE texto-follow-up.dec-2         
+    FIELD int-1             LIKE texto-follow-up.int-1         
+    FIELD int-2             LIKE texto-follow-up.int-2         
+    FIELD log-1             LIKE texto-follow-up.log-1         
+    FIELD log-2             LIKE texto-follow-up.log-2         
+    FIELD data-1            LIKE texto-follow-up.data-1        
+    FIELD data-2            LIKE texto-follow-up.data-2        
+    FIELD nr-trans          LIKE texto-follow-up.nr-trans      
+    FIELD parcela           LIKE texto-follow-up.parcela       
+    FIELD seq-narra         LIKE texto-follow-up.seq-narra     
+    INDEX texto-follow-up IS PRIMARY
+        ind-tip-doc
+        nr-requisicao
+        sequencia
+        it-codigo
+    INDEX texto-follow-up-u  IS UNIQUE
+        nr-trans.

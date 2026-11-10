@@ -1,0 +1,27 @@
+/*
+** IM0305.I5 - Defini‡Æo de Temp-tables de parƒmetros de entrada
+*/
+
+define temp-table tt-param
+    field destino          as integer
+    field arquivo          as char
+    field diretorio        as char
+    field usuario          as char
+    field data-exec        as date
+    field hora-exec        as integer
+    field i-pedi-i         as integer
+    field i-pedi-f         as integer
+    field l-narrativa      as logical
+    field l-descricao      as logical
+    field l-impressao      as logical
+    field l-traduz         as logical
+    field i-param-c        as integer
+    field l-envia          as logical
+    field c-destino        as char 
+    field p-round          as integer
+    field l-alteracoes     as logical
+    field l-formato-data   as integer
+    field c-data-exec      as char
+    field c-endmail        as char.
+
+/* IM0305.I5 */

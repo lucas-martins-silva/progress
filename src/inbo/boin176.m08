@@ -1,0 +1,284 @@
+PROCEDURE afterDeleteRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Elimina todos as tabelas relacionadas ao item-doc-est, que s’o:
+         - rat-ordem
+         - rat-lote
+         - unid-neg-nota (Unidade de Neg½cio)
+         - item-doc-est-tribut
+------------------------------------------------------------------------------*/
+	def buffer bf-docum-est-fut for docum-est.
+	def buffer bf-natur-oper-fut for natur-oper.
+    /**********************************************************
+    ** Desenvolvimento Engenharia Controle de Seriais        **
+    ** Variavel indicara se a funcao SPP-SERIAIS-NF estara   **
+    ** ativa ou nao.                                         **
+    **********************************************************/
+    DEFINE VARIABLE l-funcao-spp-seriais-nf AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE h-boin735               AS HANDLE  NO-UNDO.
+    
+    FIND FIRST funcao
+         WHERE funcao.cd-funcao = "spp-seriais-nf":U AND
+               funcao.ativo     = YES                NO-LOCK NO-ERROR.
+               
+    IF AVAIL funcao THEN
+        ASSIGN l-funcao-spp-seriais-nf = YES.
+    ELSE
+        ASSIGN l-funcao-spp-seriais-nf = NO.
+        
+    /*****************************************
+    ** Nova Funcionalidade Controle Seriais **
+    *****************************************/
+    &IF '{&bf_mat_versao_ems}' >= '2.05' &THEN
+        IF l-funcao-spp-seriais-nf THEN DO:
+            FOR EACH item-doc-est-serial
+               WHERE item-doc-est-serial.cod-ser-docto    = RowObject.serie-docto  AND
+                     item-doc-est-serial.cod-docto        = RowObject.nro-docto    AND
+                     item-doc-est-serial.cdn-emitente     = RowObject.cod-emitente AND
+                     item-doc-est-serial.cod-natur-operac = RowObject.nat-operacao AND
+                     item-doc-est-serial.num-seq          = RowObject.sequencia    EXCLUSIVE-LOCK:
+                DELETE item-doc-est-serial.
+            END.
+        END.
+    &ENDIF
+
+    for each rat-ordem exclusive-lock
+       where rat-ordem.cod-emitente = RowObject.cod-emitente
+         and rat-ordem.nro-docto    = RowObject.nro-docto
+         and rat-ordem.nat-operacao = RowObject.nat-operacao
+         and rat-ordem.serie-docto  = RowObject.serie-docto
+         and rat-ordem.sequencia    = RowObject.sequencia:
+
+        if  can-find(docum-est where docum-est.cod-emitente = RowObject.cod-emitente 
+                                 and docum-est.serie-docto  = RowObject.serie-docto 
+                                 and docum-est.nro-docto    = RowObject.nro-docto
+                                 and docum-est.nat-operacao = RowObject.nat-operacao 
+                                 and docum-est.rec-fisico   = yes ) then 
+            assign rat-ordem.nat-operacao = " " .
+        else 
+            delete rat-ordem.
+    end.
+    for each rat-lote exclusive-lock
+       where rat-lote.cod-emitente = RowObject.cod-emitente
+         and rat-lote.nro-docto    = RowObject.nro-docto
+         and rat-lote.nat-operacao = RowObject.nat-operacao
+         and rat-lote.serie-docto  = RowObject.serie-docto
+         and rat-lote.sequencia    = RowObject.sequencia:
+     
+
+        if  can-find(docum-est where docum-est.cod-emitente = RowObject.cod-emitente 
+                                 and docum-est.serie-docto  = RowObject.serie-docto 
+                                 and docum-est.nro-docto    = RowObject.nro-docto
+                                 and docum-est.nat-operacao = RowObject.nat-operacao 
+                                 and docum-est.rec-fisico   = yes ) then 
+            assign rat-lote.nat-operacao = " ".
+        else  
+            delete rat-lote.
+    end.
+
+    /* Unidade de Negocio */
+    for each unid-neg-nota exclusive-lock
+       where unid-neg-nota.cod-emitente = RowObject.cod-emitente
+         and unid-neg-nota.serie-docto  = RowObject.serie-docto 
+         and unid-neg-nota.nro-docto    = RowObject.nro-docto 
+         and unid-neg-nota.nat-operacao = RowObject.nat-operacao
+         and unid-neg-nota.sequencia    = RowObject.sequencia  :
+     
+
+        if  can-find(docum-est where docum-est.cod-emitente = RowObject.cod-emitente 
+                                 and docum-est.serie-docto  = RowObject.serie-docto 
+                                 and docum-est.nro-docto    = RowObject.nro-docto
+                                 and docum-est.nat-operacao = RowObject.nat-operacao 
+                                 and docum-est.rec-fisico   = yes ) then 
+            assign unid-neg-nota.nat-operacao = " ".
+        else 
+            delete unid-neg-nota.
+    end.          
+
+    /* Consist¼ncias da nota */
+    for each consist-nota exclusive-lock
+       where consist-nota.cod-emitente = RowObject.cod-emitente
+         and consist-nota.serie-docto  = RowObject.serie-docto 
+         and consist-nota.nro-docto    = RowObject.nro-docto
+         and consist-nota.nat-operacao = RowObject.nat-operacao 
+         and consist-nota.int-1        = RowObject.sequencia:
+         
+
+        delete consist-nota.
+    end. 
+
+    
+
+    /*--- Elimina as despesas do item a partir da vers’o 2.04B ---*/
+    &if defined(bf_mat_despesa_compra_inter) &then
+        for each  desp-item-doc-est 
+            where desp-item-doc-est.serie-docto  = RowObject.serie-docto
+              and desp-item-doc-est.nat-operacao = RowObject.nat-operacao 
+              and desp-item-doc-est.nro-docto    = RowObject.nro-docto
+              and desp-item-doc-est.cod-emitente = RowObject.cod-emitente 
+              and desp-item-doc-est.sequencia    = RowObject.sequencia exclusive-lock:
+              delete desp-item-doc-est no-error.
+        end.
+    &endif
+        
+    /***********************************************************
+    **                   Produto Frotas                       **
+    ***********************************************************/
+    if l-frota-implantado then do:
+        run piFrotas in this-procedure (input 3). /* Elimina‡Æo */
+    end.
+    /**********************************************************/
+
+
+    run getFatAntecipEntFutura (input  RowObject.nat-operacao,
+                                output l-fatura-fat-antecip,
+                                output l-remessa-fat-antecip,
+                                output l-fatura-ent-futura,
+                                output l-remessa-ent-futura).
+								
+    for first bf-docum-est-fut
+        {cdp/cd8900.i bf-docum-est-fut rowObject} exclusive-lock: end.
+        
+    /* Se for remessa de faturamento antecipado:
+       Diminui a quantidade do documento a qtd-receb-fisic da sdo-fatur-antecip (bodi578) */
+    IF  l-remessa-fat-antecip OR (l-fatura-fat-antecip and AVAIL bf-docum-est-fut AND bf-docum-est-fut.esp-docto = 20 /*NFD*/) THEN DO:
+        IF NOT VALID-HANDLE(h-bodi578) THEN
+            RUN dibo/bodi578.p PERSISTENT SET h-bodi578.		
+	
+        FOR FIRST movto-fatur-antecip
+	    WHERE movto-fatur-antecip.nr-nota-fis  = RowObject.nro-comp
+	      AND movto-fatur-antecip.cod-estabel  = bf-docum-est-fut.cod-estabel
+	      AND movto-fatur-antecip.serie-docto  = RowObject.serie-comp 
+	      AND movto-fatur-antecip.cod-emitente = RowObject.cod-emitente 
+	      AND movto-fatur-antecip.nat-operacao = RowObject.nat-comp
+	      AND movto-fatur-antecip.it-codigo    = RowObject.it-codigo
+	      AND movto-fatur-antecip.cod-refer    = RowObject.cod-refer  
+	      AND movto-fatur-antecip.num-seq      = RowObject.seq-comp             NO-LOCK:
+               
+              RUN atualizaSaldoFisicoItem IN h-bodi578 (input movto-fatur-antecip.num-id-sdo,
+	   						input "",
+	   						input "",
+	   						input "",
+	   						input 0,
+	   						input "",
+	   						input "",
+	   						input 0,
+	   						input (RowObject.quantidade * -1)). 
+        END.      
+        DELETE PROCEDURE h-bodi578.  		
+    END.   
+	/*Atualiza a quantidade digitada no recebimento fisico*/
+	IF  l-fatura-ent-futura 
+	and natur-oper.tipo-compra = 3 THEN DO:
+                FOR FIRST nota-fiscal
+		    WHERE nota-fiscal.nr-nota-fis  = RowObject.nro-comp
+		      AND nota-fiscal.serie        = RowObject.serie-comp 
+	              AND nota-fiscal.cod-estabel  = bf-docum-est-fut.cod-estabel NO-LOCK:
+		      FOR FIRST bf-natur-oper-fut
+		          WHERE bf-natur-oper-fut.nat-operacao = nota-fiscal.nat-operacao NO-LOCK:
+                          /*** localiza o componente da nota de fatura para encontrar a saldo-terc ***/
+		          FOR FIRST componente
+                              WHERE componente.nro-docto     = RowObject.nro-comp
+		         	AND componente.nat-operacao  = bf-natur-oper-fut.nat-comp
+				AND componente.cod-emitente  = RowObject.cod-emitente
+				AND componente.serie-docto   = RowObject.serie-comp
+					  AND componente.it-codigo     = RowObject.it-codigo    NO-LOCK:
+                                /*** Localiza a saldo-terc para atualizacao do saldo digitado ***/
+				FOR FIRST saldo-terc
+                                    WHERE saldo-terc.nro-docto    = componente.nro-docto   				  
+				      AND saldo-terc.cod-emitente = componente.cod-emitente
+				      AND saldo-terc.serie-docto  = componente.serie-docto 
+				      AND saldo-terc.sequencia    = componente.sequencia   EXCLUSIVE-LOCK:
+				      assign saldo-terc.dec-1   = saldo-terc.dec-1 - RowObject.quantidade.								 
+				END.
+			  END.
+		      END.
+		END.
+	END.
+        
+    /* Elimina‡Æo da nota-fisc-adc para a devolu‡Æo de Exporta‡Æo - NF-e Controle de Exporta‡Æo por item */       
+    
+    for each nota-fisc-adc exclusive-lock
+       where nota-fisc-adc.cod-estab        = docum-est.cod-estabel
+         and nota-fisc-adc.cod-serie        = docum-est.serie-docto
+         and nota-fisc-adc.cod-nota-fisc    = docum-est.nro-docto
+         and nota-fisc-adc.idi-tip-dado     = 21:
+             delete nota-fisc-adc.
+    end.
+
+    /* Fim da Elimina‡Æo de Exporta‡Æo */ 
+
+    /* NT2015/003 - Elimina‡Æo das informa‡äes do ICMS de Partilha - DIFAL e FCP */
+    FOR EACH item-nf-adc EXCLUSIVE-LOCK
+        WHERE item-nf-adc.cod-estab        = docum-est.cod-estabel
+          AND item-nf-adc.cod-serie        = docum-est.serie-docto
+          AND item-nf-adc.cod-nota-fisc    = docum-est.nro-docto
+          AND item-nf-adc.cdn-emitente     = docum-est.cod-emitente
+          AND item-nf-adc.cod-natur-operac = (if RowObject.nat-of <> "" then RowObject.nat-of else RowObject.nat-operacao)
+          AND item-nf-adc.num-seq-item-nf  = RowObject.sequencia:
+        DELETE item-nf-adc.
+    END.
+    
+    /* Configurador de Tributos */
+    FOR EACH ct-trib-item-doc-est EXCLUSIVE-LOCK
+        WHERE ct-trib-item-doc-est.cdn-emitente      = docum-est.cod-emitente 
+          AND ct-trib-item-doc-est.cod-ser-docto     = docum-est.serie-docto  
+          AND ct-trib-item-doc-est.cod-docto         = docum-est.nro-docto
+          AND ct-trib-item-doc-est.cod-natur-operac  = docum-est.nat-operacao
+          AND ct-trib-item-doc-est.num-seq           = RowObject.sequencia: 
+          DELETE ct-trib-item-doc-est.
+    END.
+
+    FOR EACH ext-item-doc-est EXCLUSIVE-LOCK
+       WHERE ext-item-doc-est.serie-docto   = docum-est.serie-docto 
+         AND ext-item-doc-est.nro-docto     = docum-est.nro-docto   
+         AND ext-item-doc-est.cod-emitente  = docum-est.cod-emitente
+         AND ext-item-doc-est.nat-operacao  = docum-est.nat-operacao
+         AND ext-item-doc-est.sequencia     = RowObject.sequencia:
+
+        if  can-find(docum-est where docum-est.cod-emitente = RowObject.cod-emitente 
+                                 and docum-est.serie-docto  = RowObject.serie-docto 
+                                 and docum-est.nro-docto    = RowObject.nro-docto
+                                 and docum-est.nat-operacao = RowObject.nat-operacao 
+                                 and docum-est.rec-fisico   = yes ) then 
+            assign ext-item-doc-est.nat-operacao = " " .
+        else          
+            DELETE ext-item-doc-est.
+    END.
+    
+    /* Item-doc-est-Tribut - Elimina a tabela de tributos*/
+    for each item-doc-est-tribut exclusive-lock
+       where item-doc-est-tribut.cod-serie-docto  = RowObject.serie-docto 
+         and item-doc-est-tribut.cod-num-docto    = RowObject.nro-docto
+         and item-doc-est-tribut.cdn-emitente     = RowObject.cod-emitente
+         and item-doc-est-tribut.cod-natur-operac = RowObject.nat-operacao 
+         and item-doc-est-tribut.num-seq          = RowObject.sequencia:
+         
+         FOR EACH tt-item-doc-est-tribut OF item-doc-est-tribut EXCLUSIVE-LOCK:
+            DELETE tt-item-doc-est-tribut.
+         END.
+         
+        delete item-doc-est-tribut.
+    end. 
+
+    IF CAN-FIND (FIRST funcao NO-LOCK 
+                 WHERE funcao.cd-funcao = "spp-NT2024002"
+                   AND funcao.ativo     = YES) 
+    AND NOT CAN-FIND (FIRST item-doc-est-tribut NO-LOCK
+                      WHERE item-doc-est-tribut.cod-serie-docto  = RowObject.serie-docto 
+                        AND item-doc-est-tribut.cod-num-docto    = RowObject.nro-docto
+                        AND item-doc-est-tribut.cdn-emitente     = RowObject.cod-emitente
+                        AND item-doc-est-tribut.cod-natur-operac = RowObject.nat-operacao ) THEN DO:
+                           
+        FOR EACH docum-est-tribut EXCLUSIVE-LOCK
+           WHERE docum-est-tribut.cod-serie-docto  = RowObject.serie-docto 
+             AND docum-est-tribut.cod-num-docto    = RowObject.nro-docto
+             AND docum-est-tribut.cdn-emitente     = RowObject.cod-emitente
+             AND docum-est-tribut.cod-natur-operac = RowObject.nat-operacao :
+            DELETE docum-est-tribut.
+        END.                           
+    END.
+    return "OK":U.
+
+END PROCEDURE.

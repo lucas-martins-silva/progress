@@ -1,0 +1,11 @@
+DEFINE TEMP-TABLE {1} NO-UNDO
+    FIELD cod-estab-ini      LIKE estabelec.cod-estabel 
+    FIELD cod-estab-fim      LIKE estabelec.cod-estabel
+    FIELD cdn-embarq-ini     LIKE embarque-imp.embarque
+    FIELD cdn-embarq-fim     LIKE embarque-imp.embarque
+    FIELD num-pedido-ini     LIKE pedido-compr.num-pedido
+    FIELD num-pedido-fim     LIKE pedido-compr.num-pedido
+    FIELD numero-ordem-ini   LIKE ordem-compra.numero-ordem
+    FIELD numero-ordem-fim   LIKE ordem-compra.numero-ordem
+    FIELD nr-proc-ini        LIKE processo-imp.nr-proc-imp
+    FIELD nr-proc-fim        LIKE processo-imp.nr-proc-imp.

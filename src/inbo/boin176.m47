@@ -1,0 +1,334 @@
+PROCEDURE validateValoresIpiPisCofins :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    def var de-vl-ipi-outras   like item-doc-est.ipi-outras[1]  no-undo.
+    def var de-calculado       as decimal                       no-undo.
+    def var de-informado       as decimal                       no-undo.
+
+    run validateImportacao.
+    
+    run beforeValidateBoin060 (input 1). /* Instancia */
+    
+    find tb-wt-it-imposto
+        where tb-wt-it-imposto.seq-wt-docto    = 1
+          and tb-wt-it-imposto.seq-wt-it-docto = RowObject.sequencia 
+        exclusive-lock no-error.
+
+    /* valor do pis / cofins */
+    for each tb-ct-trib-wt-item-docto:    
+        case tb-ct-trib-wt-item-docto.cod-tip-trib:
+            when "PIS" then assign de-base-pis = tb-ct-trib-wt-item-docto.val-base-calc
+                                   de-vl-pis   = tb-ct-trib-wt-item-docto.val-trib.
+            when "COFINS" then assign de-base-cofins = tb-ct-trib-wt-item-docto.val-base-calc
+                                      de-vl-cofins   = tb-ct-trib-wt-item-docto.val-trib.
+        end case.     
+    END.
+
+    if  avail tb-wt-it-imposto then do:
+
+        if (RowObject.ipi-ntrib[1]  <> tb-wt-it-imposto.vl-ipint-it 
+        or  RowObject.base-ipi[1]   <> tb-wt-it-imposto.vl-bipi-it    
+        or  RowObject.valor-ipi[1]  <> tb-wt-it-imposto.vl-ipi-it  
+        or  RowObject.ipi-outras[1] <> tb-wt-it-imposto.vl-ipiou-it )
+        and not l-servicos then do:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="18798"  /*Valor de IPI nao confere com o calculado.*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="WARNING"}
+        end.
+        
+
+        if  RowObject.valor-ipi[1]  <> tb-wt-it-imposto.vl-ipi-it then do:
+            assign de-val-aux = abs( RowObject.valor-ipi[1] - tb-wt-it-imposto.vl-ipi-it ).
+
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 no,
+                                                 tb-wt-it-imposto.vl-ipi-it,
+                                                 RowObject.valor-ipi[1],
+                                                 5507,
+                                                 ( if de-val-aux > param-re.dec-1 then 1 else 2)).
+        end.
+
+        if  RowObject.ipi-ntrib[1]  <> tb-wt-it-imposto.vl-ipint-it 
+        or  RowObject.base-ipi[1]   <> tb-wt-it-imposto.vl-bipi-it 
+        or  RowObject.ipi-outras[1] <> tb-wt-it-imposto.vl-ipiou-it then do:
+ 
+
+            if  RowObject.base-ipi[1]   <> tb-wt-it-imposto.vl-bipi-it then
+                assign de-calculado = tb-wt-it-imposto.vl-bipi-it
+                       de-informado = RowObject.base-ipi[1].
+            else
+            if  RowObject.ipi-outras[1] <> tb-wt-it-imposto.vl-ipiou-it then
+                assign de-calculado = tb-wt-it-imposto.vl-ipiou-it
+                       de-informado = RowObject.ipi-outras[1].
+            else
+            if  RowObject.ipi-ntrib[1]  <> tb-wt-it-imposto.vl-ipint-it then
+                assign de-calculado = tb-wt-it-imposto.vl-ipint-it
+                       de-informado = RowObject.ipi-ntrib[1].
+
+            assign de-val-aux = abs( de-informado - de-calculado ).               
+
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 no,
+                                                 de-calculado,
+                                                 de-informado,
+                                                 5506,
+                                                 ( if de-val-aux > param-re.dec-1 then 1 else 2)).
+        end.       
+        else do:
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 yes,
+                                                 0,
+                                                 0,
+                                                 5507,
+                                                 2).
+
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 yes,
+                                                 0,
+                                                 0,
+                                                 5506,
+                                                 2).
+        end.
+    end.
+
+    /* Validaá∆o Base e Valor de PIS e COFINS diferente do calculado */
+    if  avail natur-oper
+    and natur-oper.tipo-compra <> 3      /* Devoluá∆o Cliente */
+    and not l-imp then do:               /* Nota n∆o veio do m¢dulo de importaá∆o */
+    
+        if &IF '{&bf_dis_versao_ems}' >= '2.06' &THEN
+                de-base-pis <> RowObject.base-pis then do:
+           &else
+                de-base-pis  <> dec(substr(RowObject.char-2,27,14)) then do:
+           &endif
+
+            
+            {method/svc/errors/inserr.i
+                        &ErrorNumber="27968"  /*Base de PIS nao confere com o calculado.*/
+                        &ErrorType="EMS"
+                        &ErrorSubType="WARNING"}
+                        
+            ASSIGN de-calculado = de-base-pis
+                   de-informado = &IF "{&bf_dis_versao_ems}":U >= "2.06":U &THEN
+                                      RowObject.base-pis
+                                  &ELSE
+                                      DECIMAL(SUBSTRING(RowObject.char-2,27,14))
+                                  &ENDIF
+                   de-val-aux   = ABSOLUTE(de-informado - de-calculado).
+                   
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 no,
+                                                 de-calculado,
+                                                 de-informado,
+                                                 27970,
+                                                 ( if de-val-aux > param-re.dec-1 then 1 else 2)).
+        end.       
+        else 
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 yes,
+                                                 0,
+                                                 0,
+                                                 27970,
+                                                 2).
+    
+        if round(de-vl-pis,2) <> RowObject.valor-pis then do:
+                
+            {method/svc/errors/inserr.i
+                        &ErrorNumber="27967"  /*Valor de PIS nao confere com o calculado.*/
+                        &ErrorType="EMS"
+                        &ErrorSubType="WARNING"}
+    
+
+            assign de-calculado = de-vl-pis
+                   de-informado = RowObject.valor-pis
+                   de-val-aux   = abs( de-informado - de-calculado ).               
+    
+
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                  no,
+                                                 de-calculado,
+                                                 de-informado,
+                                                 27969,
+                                                 ( if de-val-aux > param-re.dec-1 then 1 else 2)).
+        
+
+        end.
+        else 
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 yes,
+                                                 0,
+                                                 0,
+                                                 27969,
+                                                 2).
+    
+        
+        if &IF '{&bf_dis_versao_ems}' >= '2.06' &THEN 
+                de-base-cofins  <> RowObject.val-base-calc-cofins then do:
+           &else
+                de-base-cofins  <> dec(substr(RowObject.char-2,89,14)) then do:
+           &endif     
+                
+            {method/svc/errors/inserr.i
+                        &ErrorNumber="29367"  /*Valor Base de Cofins nao confere com o calculado.*/
+                        &ErrorType="EMS"
+                        &ErrorSubType="WARNING"}
+                        
+            assign de-calculado = de-base-cofins
+                   de-informado = &IF '{&bf_dis_versao_ems}' >= '2.06' &THEN 
+                                      RowObject.val-base-calc-cofins  
+                                  &else
+                                      dec(substr(RowObject.char-2,89,14))
+                                  &endif   
+                   de-val-aux = abs( de-informado - de-calculado ).               
+            
+        
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 no,
+                                                 de-calculado,
+                                                 de-informado,
+                                                 29368,
+                                                ( if de-val-aux > param-re.dec-1 then 1 else 2)).
+        end.       
+        else 
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 yes,
+                                                 0,
+                                                 0,
+                                                 29368,
+                                                 2).
+    
+
+        if round(de-vl-cofins,2) <> RowObject.val-cofins then do:
+
+            {method/svc/errors/inserr.i
+                        &ErrorNumber="29369"  /*Valor COFINS nao confere com o calculado.*/
+                        &ErrorType="EMS"
+                        &ErrorSubType="WARNING"}
+    
+
+            assign de-calculado = de-vl-cofins
+                   de-informado = RowObject.val-cofins
+                   de-val-aux = abs( de-informado - de-calculado ).               
+    
+
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                  no,
+                                                 de-calculado,
+                                                 de-informado,
+                                                 29370,
+                                                 ( if de-val-aux > param-re.dec-1 then 1 else 2)).
+        
+        
+        end.
+        else 
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 yes,
+                                                 0,
+                                                 0,
+                                                 29370,
+                                                 2).
+     
+    end.        
+    
+    run beforeValidateBoin060 (input 2). /* Elimina */
+    
+END PROCEDURE.
+
+
+PROCEDURE validateImportacao :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    {cdp/cd4300.i3}    /* Variaveis para CD4300.I4  */    
+    {rep/re1001a.i50}
+        
+    if  docum-est.origem = "i":U
+    AND avail param-global 
+    and param-global.modulo-07 then do:
+        
+        if  avail docum-est then do:
+            {cdp/cd4300.i4 "yes" docum-est.char-1}
+            {rep/re1001a.i51 "yes"}
+          
+            if  c-embarque <> "":U then
+                assign l-imp = yes.
+            else assign l-imp = no.
+        end.
+    end.     
+
+    /* Inclus∆o Ponto UPC */
+    
+    FOR EACH   tt-epc:
+        DELETE tt-epc.
+    END.
+
+    {include/i-epc200.i2 &CodEvent       = '"SetaLImp"'
+                         &CodParameter   = '"docum-est rowid"'
+                         &ValueParameter = string(rowid(docum-est))}.
+    {include/i-epc201.i "SetaLImp"}
+
+    FIND  tt-epc WHERE 
+          tt-epc.cod-event     = "RetornaLImp" AND   
+          tt-epc.cod-parameter = "l-imp" NO-ERROR.
+    IF AVAIL tt-epc THEN
+        ASSIGN l-imp = (tt-epc.val-parameter="YES").
+
+    /* Fim Ponto UPC */
+
+
+END PROCEDURE.

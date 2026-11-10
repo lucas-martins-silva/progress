@@ -1,0 +1,13 @@
+CREATE tt-dados.
+ASSIGN tt-dados.ep-codigo    = estabelec.ep-codigo
+       tt-dados.cod-estabel  = pc-cod-estabel
+       tt-dados.it-codigo    = p-it-codigo-org-ctrl
+       tt-dados.dat-movto    = docum-est.dt-emissao     
+       tt-dados.cod-item-pf  = fnNCM()
+       tt-dados.un-pf        = item-orgao-control.cod-unid-medid-agpf
+       tt-dados.densidade    = item-orgao-control.cdd-densidade-agpf
+       tt-dados.concentracao = item-orgao-control.cdd-concentr-agpf     
+       tt-dados.tipo-reg     = {1}
+       tt-dados.id           = {2}
+       tt-dados.linha        = c-linha.
+                                     

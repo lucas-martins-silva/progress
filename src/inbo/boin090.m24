@@ -1,0 +1,133 @@
+PROCEDURE validateTypeMovto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def input param pi-transf   as logical no-undo.
+    
+    def buffer bf-estabelec     for estabelec.
+    def var l-erro              as logical no-undo.
+    
+
+    if  not avail emitente
+    or  not avail natur-oper then
+        return "NOK":U.
+
+    if  i-pais-impto-usuario = 1 then   /**** Brasil *****/
+        assign l-erro = yes.
+    else         
+        assign l-erro = no.
+    
+    for first bf-estabelec fields ( estado ) 
+        where bf-estabelec.cod-estabel = RowObject.cod-estabel no-lock: end.
+    if  avail bf-estabelec then do:    
+            
+        if  rowobject.uf = bf-estabelec.estado 
+        and (  natur-oper.nat-operacao begins "1"
+            or natur-oper.nat-operacao begins "5") then
+            assign l-erro = no.
+
+        else 
+            if  rowobject.uf <> bf-estabelec.estado
+            and emitente.natureza = 3 /*"E"*/
+            and (  natur-oper.nat-operacao begins "3"
+                or natur-oper.nat-operacao begins "7") then
+                assign l-erro = no.
+
+            else
+                if  rowobject.uf <> bf-estabelec.estado
+                and emitente.natureza <> 3 /*"E"*/
+                and (  natur-oper.nat-operacao begins "2"
+                    or natur-oper.nat-operacao begins "6") then
+                    assign l-erro = no.
+
+        if  l-erro then do:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="19235"
+                                &ErrorType="EMS":U
+                                &ErrorSubType="WARNING":U}
+        end.                            
+    end.
+    
+    return "OK":U.
+
+END PROCEDURE.
+
+PROCEDURE validateDadosNFe:
+    
+    IF CAN-FIND(FIRST funcao 
+                WHERE funcao.cd-funcao = "spp-nfe" 
+                  AND funcao.ativo = YES) THEN DO: /* Funcao NFe Ativa */
+
+        FIND FIRST estabelec WHERE      
+                   estabelec.cod-estabel = rowObject.cod-estabel NO-LOCK NO-ERROR. 
+        IF AVAIL estabelec AND 
+                 &IF "{&bf_dis_versao_ems}":U >= "2.07":U &THEN
+                     (estabelec.idi-tip-emis-nf-eletro = 3 OR estabelec.idi-tip-emis-nf-eletro = 2)
+                 &ELSE
+                     (SUBSTRING(estabelec.char-1,168,1) = "3" OR SUBSTRING(estabelec.char-1,168,1) = "2") 
+                 &ENDIF THEN DO: /* Estabelecimento em Producao ou Homologacao */
+                 
+            IF &IF "{&bf_dis_versao_ems}":U >= "2.07":U &THEN                    
+                &IF "{&bf_dis_versao_ems}":U >= "2.071":U &THEN                  
+                    estabelec.idi-control-emis-nfe = 2                             
+                &ELSE                                                             
+                    SUBSTRING(estabelec.char-1,170,1) = "2"                        
+                &ENDIF                                                            
+            OR &IF "{&bf_dis_versao_ems}":U >= "2.071":U &THEN               
+                   estabelec.idi-control-emis-nfe = 1                         
+                &ELSE                                                         
+                   SUBSTRING(estabelec.char-1,170,1) = "1"                    
+                &ENDIF                                                        
+            &ELSE
+                SUBSTRING(estabelec.char-1,170,1) = "2" OR 
+                SUBSTRING(estabelec.char-1,170,1) = "1" 
+            &ENDIF
+            THEN DO: /* Controle Total ou Controle Parcial e Fornecedor Emite ou Cliente Recebe NF-e */
+                FIND FIRST natur-oper                                            
+                     WHERE natur-oper.nat-operacao = rowObject.nat-operacao NO-LOCK NO-ERROR.
+                IF AVAIL natur-oper AND natur-oper.imp-nota = YES THEN DO: /* Natureza de operacao gera nota no Faturamento */
+                 IF CAN-FIND(FIRST ser-estab WHERE                                     
+                                      ser-estab.cod-estabel   = rowObject.cod-estabel AND 
+                                      ser-estab.serie         = rowObject.serie-docto AND 
+                                      ser-estab.log-nf-eletro = YES )THEN DO:
+
+                        &IF "{&bf_dis_versao_ems}":U >= "2.07":U &THEN
+                        IF natur-oper.cod-model-nf-eletro <> "55" THEN DO:
+                        &ELSE
+                        IF SUBSTRING(natur-oper.char-2,120,2) <> "55" THEN DO:
+                        &ENDIF  /* Para gerar NF-e tem que ser modelo 55 */
+                                {method/svc/errors/inserr.i
+                                        &ErrorNumber="55095"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U
+                                        &ErrorParameters="estabelec.cod-estabel + '~~~~' + natur-oper.nat-operacao"}
+                        END.
+                 END.
+                    IF CAN-FIND(FIRST ser-estab WHERE                                     
+                                      ser-estab.cod-estabel   = rowObject.cod-estabel AND 
+                                      ser-estab.serie         = rowObject.serie-docto AND 
+                                      &IF "{&bf_dis_versao_ems}":U >= "2.07":U &THEN
+                                          ser-estab.log-nf-eletro = NO
+                                      &ELSE
+                                          SUBSTRING(ser-estab.char-1,1,3) <> "yes"
+                                      &ENDIF
+                                ) THEN DO:
+                            {method/svc/errors/inserr.i
+                                        &ErrorNumber="51532"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="Information":U}
+                    END.
+                END.    
+            END.
+        END.
+    END.
+    
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+
+

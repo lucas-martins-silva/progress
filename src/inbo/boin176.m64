@@ -1,0 +1,146 @@
+PROCEDURE createRatLoteByRatSaldoTerc:
+
+    def input param table       for tt-rat-saldo-terc-dep.
+    
+    def var c-cod-depos           as char                            no-undo.
+    def var de-qtd-saldo          as dec                             no-undo.
+    def var c-cod-localiz         like tt-rat-saldo-terc.cod-localiz no-undo.
+        
+    if  not valid-handle(h-boin006) then 
+        run inbo/boin006.p persistent set h-boin006.
+    
+    if  not valid-handle(h-boin367) then 
+        run inbo/boin367.p persistent set h-boin367.
+
+    RUN setConstraintOfDocumEst IN h-boin367(INPUT RowObject.cod-emitente,
+                                             INPUT RowObject.serie-docto,  
+                                             INPUT RowObject.nro-docto,
+                                             INPUT RowObject.nat-operacao).
+                                              
+    RUN openQueryStatic IN h-boin367(INPUT "OfDocumEst").
+    
+    for each tt-rat-saldo-terc-dep 
+       WHERE tt-rat-saldo-terc-dep.it-codigo = saldo-terc.it-codigo
+         AND tt-rat-saldo-terc-dep.cod-refer = saldo-terc.cod-refer
+         AND tt-rat-saldo-terc-dep.sequencia = saldo-terc.sequencia
+         AND tt-rat-saldo-terc-dep.qtd-digitada > 0: /* N√O CRIA QUANTIDADE ZERADA*/
+    
+        empty temp-table tt-rat-lote.
+    
+        if  item.tipo-con-est = 2 then do: /* n£mero de sÇrie */
+             for first saldo-estoq fields (it-codigo lote qtidade-atu)
+                 where saldo-estoq.it-codigo = tt-rat-saldo-terc-dep.it-codigo
+                   and saldo-estoq.lote      = tt-rat-saldo-terc-dep.lote
+                   and saldo-estoq.qtidade-atu > 0 no-lock:
+             end.
+             if avail saldo-estoq then /* item controlado por nro de serie */
+                 next.
+        end.
+
+        assign c-cod-depos   = if  tt-rat-saldo-terc-dep.cod-depos <> " " 
+                               then tt-rat-saldo-terc-dep.cod-depos       
+                               else RowObject.cod-depos
+               c-cod-localiz = tt-rat-saldo-terc-dep.cod-localiz.             
+
+        /* Busca a rat-lote para o dep¢sito encontrado acima e localizaá∆o do envio */
+        find rat-lote where rat-lote.serie-docto  = RowObject.serie-docto
+                        and rat-lote.nro-docto    = RowObject.nro-docto
+                        and rat-lote.cod-emitente = RowObject.cod-emitente
+                        and rat-lote.nat-operacao = RowObject.nat-operacao
+                        and rat-lote.sequencia    = RowObject.sequencia
+                        and rat-lote.it-codigo    = tt-rat-saldo-terc-dep.it-codigo
+                        and rat-lote.cod-depos    = c-cod-depos
+                        and rat-lote.cod-localiz  = c-cod-localiz
+                        and rat-lote.lote         = tt-rat-saldo-terc-dep.lote
+                        and rat-lote.cod-refer    = tt-rat-saldo-terc-dep.cod-refer exclusive-lock no-error.
+                        
+        if  not avail rat-lote then do:
+            /* Esta l¢gica foi inclu°da para que, quando a localizacao do envio n∆o exista para o dep¢sito
+               informado no retorno, e isso aconteáa para mais de um registro, as quantidades sejam
+               somadas para o mesmo item e apenas 1 registro seja criado na rat-lote */            
+
+            IF  NOT l-devolucao
+            AND NOT l-retorno THEN DO:
+                /* Se n∆o encontra, sugere o dep¢sito e localizacao da item-uni-estab */
+                run sugereItemUniEstab (input docum-est.cod-estabel,
+                                        input tt-rat-saldo-terc-dep.it-codigo,
+                                        input-output c-cod-depos,
+                                        input-output c-cod-localiz).                         
+                
+                /* Busca novamente rat-lote,mas agora para dep¢sito/localizaá∆o sugeridos na item-uni-estab */
+                find rat-lote where rat-lote.serie-docto  = RowObject.serie-docto
+                                and rat-lote.nro-docto    = RowObject.nro-docto
+                                and rat-lote.cod-emitente = RowObject.cod-emitente
+                                and rat-lote.nat-operacao = RowObject.nat-operacao
+                                and rat-lote.sequencia    = RowObject.sequencia
+                                and rat-lote.it-codigo    = tt-rat-saldo-terc-dep.it-codigo
+                                and rat-lote.cod-depos    = c-cod-depos
+                                and rat-lote.cod-localiz  = c-cod-localiz
+                                and rat-lote.lote         = tt-rat-saldo-terc-dep.lote
+                                and rat-lote.cod-refer    = tt-rat-saldo-terc-dep.cod-refer exclusive-lock no-error.                            
+            END.
+
+            if  not avail rat-lote then do:            
+                  
+                create tt-rat-lote.
+                assign tt-rat-lote.serie-docto  = RowObject.serie-docto
+                       tt-rat-lote.nro-docto    = RowObject.nro-docto
+                       tt-rat-lote.nat-operacao = RowObject.nat-operacao
+                       tt-rat-lote.cod-emitente = RowObject.cod-emitente 
+                       tt-rat-lote.sequencia    = RowObject.sequencia
+                       tt-rat-lote.cod-refer    = tt-rat-saldo-terc-dep.cod-refer
+                       tt-rat-lote.it-codigo    = tt-rat-saldo-terc-dep.it-codigo 
+                       tt-rat-lote.cod-depos    = c-cod-depos
+                       tt-rat-lote.cod-localiz  = c-cod-localiz
+                       tt-rat-lote.lote         = tt-rat-saldo-terc-dep.lote
+                       tt-rat-lote.dt-vali-lote = tt-rat-saldo-terc-dep.dt-vali-lote
+                       tt-rat-lote.quantidade   = tt-rat-saldo-terc-dep.qtd-digitada
+                       /* tt-rat-lote.per-ppm      = e-per-ppm */.
+                    
+                run setRecord      in h-boin367 ( input table tt-rat-lote).
+                run getFieldsItem  in h-boin367 ( RowObject.baixa-ce,
+                                                  tt-rat-saldo-terc-dep.quantidade ).
+
+                run setExecutaEngine in h-boin367 (input (RowObject.cod-depos = "" or l-executa-engine)).
+                
+                run emptyRowErrors in h-boin367.
+                run createRecord   in h-boin367. /* Cria tabela rat-lote */
+
+
+                run getRowErrors in h-boin367 ( output table tt-RowErrorsAux ).
+                FOR EACH tt-RowErrorsAux NO-LOCK:                
+                    CREATE RowErrors.
+                    BUFFER-COPY tt-RowErrorsAux TO RowErrors.
+                END.
+
+                find first rowErrors no-lock no-error.
+                if  avail rowErrors and
+                    rowErrors.ErrorSubType = "ERROR":U then do:       
+                    
+                    run eliminaHandle.
+                    return "NOK":U.
+                end.
+                
+            end.
+            else
+                /* Quando o rat-lote estiver criado apenas soma a quantidade */
+                assign rat-lote.quantidade = rat-lote.quantidade + tt-rat-saldo-terc-dep.quantidade.          
+            
+            run updateQtdAloc in h-boin006 ( RowObject.serie-comp ,  
+                                             RowObject.nro-comp,  
+                                             RowObject.nat-comp,  
+                                             RowObject.seq-comp,
+                                             RowObject.cod-emitente,
+                                             tt-rat-saldo-terc-dep.it-codigo, 
+                                             tt-rat-saldo-terc-dep.cod-refer, 
+                                             tt-rat-saldo-terc-dep.lote,                                              
+                                             "aloca",
+                                             tt-rat-saldo-terc-dep.qtd-digitada).
+        end.
+    end.
+
+    IF VALID-HANDLE(h-boin367) THEN
+            DELETE PROCEDURE h-boin367.
+    IF VALID-HANDLE(h-boin006) THEN
+            DELETE PROCEDURE h-boin006.
+END PROCEDURE.

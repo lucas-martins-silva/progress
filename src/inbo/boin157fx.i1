@@ -1,0 +1,25 @@
+/*********************************************************************
+ * ce0704.3 - Calcula valores para variaá∆o
+ * {1} -> {1} ou pr-it-per
+ * {2} -> Mensal (m), On-line (o) ou Padr∆o (p).
+ **********************************************************************/
+
+assign de-vcontabil = ({1}.val-unit-mat-{2}[i-mo]
+                    +  {1}.val-unit-mob-{2}[i-mo]
+                    +  {1}.val-unit-ggf-{2}[i-mo])
+                    *  de-qcontabil.
+
+if (({1}.val-unit-mat-{2}[i-mo]
+   + {1}.val-unit-mob-{2}[i-mo]
+   + {1}.val-unit-ggf-{2}[i-mo]) <> 0) then
+   assign de-vapurado = ({1}.val-unit-mat-{2}[i-mo]
+                      +  {1}.val-unit-mob-{2}[i-mo]
+                      +  {1}.val-unit-ggf-{2}[i-mo])
+                      *  de-qapurado.
+else
+    assign de-vapurado = (inventario.valor-mat-{2}[i-mo]
+                       +  inventario.valor-mob-{2}[i-mo]
+                       +  inventario.valor-ggf-{2}[i-mo])
+                       *  de-qapurado.
+
+/* Fim do ce0704.i3 ************************************/

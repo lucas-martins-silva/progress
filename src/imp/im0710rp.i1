@@ -1,0 +1,218 @@
+/* Adicao */
+
+FORM HEADER
+    c-cd-mercadoria-ncm         AT 1
+    c-cd-merc-nbm-sh            AT 14
+    c-cd-merc-naladi-sh         AT 27
+    c-cd-merc-naladi-ncc        AT 38
+    c-cd-moeda-negociada        AT 52
+    c-cd-incoterms-venda        AT 64
+    c-pl-mercadoria             AT 75
+    c-qt-parc-financ-360        AT 94
+    c-qt-period-pgto-360        AT 104
+    c-nr-rof                    AT 120 SKIP
+    c-vl-tot-financ-360         AT 1
+    c-qt-un-estatistica         AT 20
+    c-nm-loc-cond-venda         AT 41
+    fill("-",132) format "x(132)" at 01
+    WITH WIDTH 132 STREAM-IO NO-LABEL no-box FRAME  fr-adicao.
+
+
+{utp/ut-liter.i Classif_Ncm * R}
+ASSIGN c-cd-mercadoria-ncm = return-value.
+{utp/ut-liter.i Nbm/SH * R}
+ASSIGN c-cd-merc-nbm-sh = return-value.
+{utp/ut-liter.i Naladi/Sh * R}
+ASSIGN c-cd-merc-naladi-sh = return-value.
+{utp/ut-liter.i Naladi/Ncca * R}
+ASSIGN c-cd-merc-naladi-ncc = return-value.
+{utp/ut-liter.i Moeda_Neg * R}
+ASSIGN c-cd-moeda-negociada = return-value.    
+{utp/ut-liter.i Incoterm * R}
+ASSIGN c-cd-incoterms-venda = return-value.
+{utp/ut-liter.i Peso_L¡quido * R}
+ASSIGN  c-pl-mercadoria = return-value.
+{utp/ut-liter.i Nr_Parc * R}
+ASSIGN  c-qt-parc-financ-360 = return-value.
+{utp/ut-liter.i Per¡odicidade * R}
+ASSIGN  c-qt-period-pgto-360 = return-value.
+{utp/ut-liter.i Nr_Rof * R}
+ASSIGN c-nr-rof = return-value.
+{utp/ut-liter.i Vl_Pago * R}
+ASSIGN c-vl-tot-financ-360 = return-value.
+{utp/ut-liter.i Vl_Financiado * R}
+ASSIGN c-vl-tot-financ-360 = return-value.
+{utp/ut-liter.i Qt_Med_Estat¡stica * R}
+ASSIGN c-qt-un-estatistica = return-value.
+{utp/ut-liter.i Local_Responsavel * R}
+ASSIGN c-nm-loc-cond-venda = return-value.
+
+
+form header
+    c-exportador            AT 1
+    c-fabricante            AT 52
+    c-agente                AT 103 SKIP
+    c-nm-forn-estr          AT 1   ":"          AT 16   tt-adicao.nm-forn-estr        FORMAT "x(32)"   AT 18
+    c-nm-fabricante-merc    AT 52  ":"          AT 67   tt-adicao.nm-fabricante-merc  FORMAT "x(32)"   AT 69
+    c-cd-tipo-agente-imp    AT 103 ":"          AT 112  tt-adicao.desc-agente         format "x(15)"   AT 113 SKIP
+    c-ed-logr-forn-estr     AT 1   ".......:"   AT 09   tt-adicao.ed-logr-forn-estr   FORMAT "x(32)"   AT 18
+    c-ed-logr-fabric        AT 52  ".......:"   AT 60   tt-adicao.ed-logr-fabric      FORMAT "x(32)"   AT 69
+    c-nr-agente-imp         AT 103 ":"          AT 112  tt-adicao.nr-agente-imp       FORMAT "x(18)"   at 113 SKIP
+    c-ed-cidad-forn-estr    AT 1   ".........:" AT 07   tt-adicao.ed-cidad-forn-estr  FORMAT "x(22)"   AT 18
+    c-ed-cidad-fabric       AT 52  ".........:" AT 58   tt-adicao.ed-cidad-fabric     FORMAT "x(22)"   AT 69
+    c-cd-banc-agente-imp    AT 103 "....:"      AT 108  tt-adicao.cd-banc-agente-imp  FORMAT "9999999999"   AT 113 SKIP
+    c-ed-estad-forn-estr    AT 1   ".........:" AT 07   tt-adicao.ed-estad-forn-estr  FORMAT "x(22)"   AT 18
+    c-ed-estado-fabric      AT 52  ".........:" AT 58   tt-adicao.ed-estado-fabric    FORMAT "x(22)"   AT 69
+    c-cd-agenc-agente-imp   AT 103 "..:"        AT 110  tt-adicao.cd-agenc-agente-imp FORMAT "x(10)"   AT 113 SKIP 
+    WITH WIDTH 132 STREAM-IO NO-LABEL FRAME fr-adicao-2.
+
+{utp/ut-liter.i Exportador * R}
+ASSIGN c-exportador = return-value.
+{utp/ut-liter.i Fabricante * R}
+ASSIGN c-fabricante = return-value.
+{utp/ut-liter.i Agente * R}
+ASSIGN c-agente = return-value.
+{utp/ut-liter.i Nome_Exportador * R}
+ASSIGN c-nm-forn-estr = return-value.
+{utp/ut-liter.i Nome_Fabricante * R}
+ASSIGN c-nm-fabricante-merc = return-value.
+{utp/ut-liter.i Tp_Agente * R}
+ASSIGN c-cd-tipo-agente-imp = return-value.
+{utp/ut-liter.i Endere‡o * R}
+ASSIGN c-ed-logr-forn-estr = return-value.
+{utp/ut-liter.i Endere‡o * R}
+ASSIGN c-ed-logr-fabric = return-value.
+{utp/ut-liter.i Id_Agente * R}
+ASSIGN c-nr-agente-imp = return-value.
+{utp/ut-liter.i Cidade * R}
+ASSIGN c-ed-cidad-forn-estr = return-value.
+{utp/ut-liter.i Cidade * R}
+ASSIGN c-ed-cidad-fabric = return-value.
+{utp/ut-liter.i Banco * R}
+ASSIGN c-cd-banc-agente-imp = return-value.
+{utp/ut-liter.i Estado * R}
+ASSIGN c-ed-estad-forn-estr = return-value.
+{utp/ut-liter.i Estado * R}
+ASSIGN c-ed-estado-fabric = return-value.
+{utp/ut-liter.i Agencia * R}
+ASSIGN c-cd-agenc-agente-imp = return-value.
+
+
+/* Acrescimos */
+
+FORM HEADER
+     c-acr-descricao    AT 1 SKIP
+     c-acr-denominacao  AT 1
+     c-acr-moeda        AT 24
+     c-acr-vl-moeda     AT 34
+     c-acr-vl-real      AT 54
+     fill("-",66) format "x(66)" at 01
+     SKIP WITH WIDTH 132 STREAM-IO NO-LABELS FRAME fr-acrescimos.
+
+{utp/ut-liter.i Acrescimos * R}
+ASSIGN c-acr-descricao = return-value.
+{utp/ut-liter.i Denomina‡Æo * R}
+ASSIGN c-acr-denominacao = return-value.
+{utp/ut-liter.i Moeda * R}
+ASSIGN c-acr-moeda = return-value.
+{utp/ut-liter.i Valor_na_Moeda * R}
+ASSIGN c-acr-vl-moeda = return-value.
+{utp/ut-liter.i Valor_em_Real * R}
+ASSIGN c-acr-vl-real = return-value.
+
+/* Dedu‡äes */
+
+FORM HEADER                    
+        c-ded-descricao    AT 1 SKIP
+        c-ded-denominacao  AT 1
+        c-ded-moeda        AT 24
+        c-ded-vl-moeda     AT 34
+        c-ded-vl-real      AT 54
+        fill("-",47) format "x(47)" at 01
+        SKIP WITH WIDTH 132 STREAM-IO NO-LABELS FRAME fr-deducoes.
+
+{utp/ut-liter.i Dedu‡äes * R}
+ASSIGN c-ded-descricao = return-value.
+{utp/ut-liter.i Denomina‡Æo * R}
+ASSIGN c-ded-denominacao = return-value.
+{utp/ut-liter.i Moeda * R}
+ASSIGN c-ded-moeda = return-value.
+{utp/ut-liter.i Valor_na_Moeda * R}
+ASSIGN c-ded-vl-moeda = return-value.
+{utp/ut-liter.i Valor_em_Real * R}
+ASSIGN c-ded-vl-real = return-value.
+{utp/ut-liter.i Trib * R}
+ASSIGN c-trib = return-value.
+
+/* Tributos */
+
+FORM HEADER   
+     c-tributos                  at 01 skip              
+     c-receita                   at 01
+     c-cd-tipo-benef-ipi-1       AT 12 
+     c-pc-aliq-norm-adval-1      AT 25
+     c-pc-aliq-reduzida          AT 38 
+     c-trib                      at 50 skip
+     fill("-",53) format "x(53)" at 01
+     WITH WIDTH 132 STREAM-IO NO-LABELS FRAME fr-tributos.
+
+{utp/ut-liter.i Tributos * R}
+ASSIGN c-tributos = return-value.
+{utp/ut-liter.i Receita * R}
+ASSIGN c-receita = return-value.
+{utp/ut-liter.i Ad_Valorem * R}
+ASSIGN c-pc-aliq-norm-adval-1 = return-value.
+{utp/ut-liter.i Benef¡cio * R}
+ASSIGN c-cd-tipo-benef-ipi-1 = return-value.
+{utp/ut-liter.i Ad_Valorem * R}
+ASSIGN c-pc-aliq-norm-adval-1 = return-value.
+{utp/ut-liter.i Reduzida_% * R}
+ASSIGN c-pc-aliq-reduzida = return-value.
+
+/* Parcelas */
+
+FORM HEADER 
+    c-dt-prev-pgto-360  AT 1
+    c-vl-prev-pgto-360  AT 14 SKIP 
+    fill("-",27) format "x(27)" at 01
+    WITH WIDTH 132 STREAM-IO NO-LABELS FRAME fr-parcelas. 
+
+{utp/ut-liter.i Data_Prev * R}
+ASSIGN c-dt-prev-pgto-360 = return-value.
+{utp/ut-liter.i Valor_Previsto * R}
+ASSIGN c-vl-prev-pgto-360 = return-value.
+
+/* Mercadorias */
+
+FORM HEADER  
+     c-mercadoria          at 01 skip
+     c-cd-mercadoria       AT 1
+     c-qt-merc-un-comerc   AT 20
+     c-nm-un-medid-comer   AT 34
+     c-vl-unid-cond-venda  AT 49
+     c-nr-adicao           AT 64
+     c-seq-item            AT 75
+     fill("-",85) format "x(85)" at 01
+    SKIP WITH WIDTH 132 STREAM-IO NO-LABELS FRAME fr-mecadorias.
+run utp/ut-trfrrp.p (input frame fr-adicao:handle).
+run utp/ut-trfrrp.p (input frame fr-adicao-2:handle).
+run utp/ut-trfrrp.p (input frame fr-acrescimos:handle).
+run utp/ut-trfrrp.p (input frame fr-deducoes:handle).
+run utp/ut-trfrrp.p (input frame fr-tributos:handle).
+run utp/ut-trfrrp.p (input frame fr-parcelas:handle).
+run utp/ut-trfrrp.p (input frame fr-mecadorias:handle).
+
+{utp/ut-liter.i Mercadoria * R}
+ASSIGN c-mercadoria = return-value.
+{utp/ut-liter.i Item * R}
+ASSIGN c-cd-mercadoria = return-value.
+{utp/ut-liter.i Qt_Un_Comerc * R}
+ASSIGN  c-qt-merc-un-comerc = return-value.
+{utp/ut-liter.i Un * R}
+ASSIGN  c-nm-un-medid-comer = return-value.
+{utp/ut-liter.i Vl_Unit rio * R}
+ASSIGN c-vl-unid-cond-venda = return-value.
+{utp/ut-liter.i Nr_Adi‡Æo * R}
+ASSIGN c-nr-adicao = return-value.
+{utp/ut-liter.i Seq_Item_Ad * R}
+ASSIGN c-seq-item = return-value.

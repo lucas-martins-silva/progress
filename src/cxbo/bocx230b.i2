@@ -1,0 +1,164 @@
+/*
+** BOCX230B.I2 - Rotina para filtro dos embarques
+**
+** Utilizado para Consulta e Relat¢rios (IM0655RP.P)
+**
+*/
+    def var i-cod-itiner  like itinerario.cod-itiner   no-undo.       
+    def var i-pto-chegada like pto-contr.cod-pto-contr no-undo.
+    def var l-ok          as logical                   no-undo.       
+
+    /* Embarque */
+    for each embarque-imp where embarque-imp.cod-estabel >= p-est-ini and
+                                embarque-imp.cod-estabel <= p-est-fim and
+                                embarque-imp.embarque    >= p-embarque-ini and
+                                embarque-imp.embarque    <= p-embarque-fim no-lock:                                    
+
+        assign l-ok = yes.
+                                        
+        if p-sit-emb <> 3 then /* situa‡Æo "3" ‚ todos */
+            if embarque-imp.situacao <> p-sit-emb
+                then next.                
+            
+        if  p-fatura-ini <> "" or
+            p-fatura-fim <> "zzzzzzzzzzzz" then do:
+            if  not can-find(invoice-emb-imp where
+                invoice-emb-imp.embarque = embarque-imp.embarque and
+                invoice-emb-imp.nr-invoice >= p-fatura-ini or
+                invoice-emb-imp.nr-invoice <= p-fatura-fim) then
+                next.
+                end.
+                
+        if  p-decl-ini <> "" or
+            p-decl-fim <> "zzzzzzzzzzzzzzzzzzzz" then
+            if  embarque-imp.declaracao-import < p-decl-ini or
+                embarque-imp.declaracao-import > p-decl-fim then
+                next.
+                
+        &IF "{&bf_dis_versao_ems}" >= "2.05" &THEN
+            if  p-conhechouse-ini <> "" or
+                p-conhechouse-fim <> "zzzzzzzzzzzzzzzzzzzzzzzzz" then
+                if  embarque-imp.cod-conhecto-house < p-conhechouse-ini or
+                    embarque-imp.cod-conhecto-house > p-conhechouse-fim then
+                    next.
+            if  p-conhecmaster-ini <> "" or
+                p-conhecmaster-fim <> "zzzzzzzzzzzzzzzzzzzzzzzzz" then
+                if  embarque-imp.cod-conhecto-master < p-conhecmaster-ini or
+                    embarque-imp.cod-conhecto-master > p-conhecmaster-fim then
+                    next.
+        &ELSE
+            if  p-conhec-ini <> "" or
+                p-conhec-fim <> "zzzzzzzzzzzzzzz" then
+                if  embarque-imp.nr-conhecimento < p-conhec-ini or
+                    embarque-imp.nr-conhecimento > p-conhec-fim then
+                    next.
+        &ENDIF
+            
+        /* Historico */
+        find last historico-embarque 
+            where historico-embarque.cod-estabel   = embarque-imp.cod-estabel and
+                  historico-embarque.embarque      = embarque-imp.embarque
+                  no-lock no-error.
+        if not avail historico-embarque then next.    
+                  
+        /* Processos */                  
+        if p-atraso = 1 then /* atrasados */
+            if historico-embarque.dt-ult-prev <= historico-embarque.dt-previsao then next.
+        if p-atraso = 2 then /* adiantados */
+            if historico-embarque.dt-ult-prev >= historico-embarque.dt-previsao then next.        
+        
+        for each tt-historico-tmp:
+            delete tt-historico-tmp.
+        end.
+        
+        create tt-historico-tmp.
+        buffer-copy historico-embarque to tt-historico-tmp.
+        assign tt-historico-tmp.r-rowid = rowid(historico-embarque).        
+
+        /* Itinerario */
+        if historico-embarque.cod-itiner < p-itiner-ini or
+           historico-embarque.cod-itiner > p-itiner-fim
+            then next.
+        find itinerario where itinerario.cod-itiner = historico-embarque.cod-itiner no-lock no-error.
+        if not avail itinerario then next.
+        else do:    
+            assign i-cod-itiner  = itinerario.cod-itiner
+                   i-pto-chegada = embarque-imp.cdn-pto-chegad.
+            if embarque-imp.cdn-pto-embarq < p-pto-emb-ini or
+               embarque-imp.cdn-pto-embarq > p-pto-emb-fim then next.
+            if embarque-imp.cdn-pto-embarq < p-pto-des-ini or
+               embarque-imp.cdn-pto-embarq > p-pto-des-fim then next.
+        end.
+        if p-local <> 0 then
+            find historico-embarque
+                where historico-embarque.cod-estabel   = embarque-imp.cod-estabel and
+                      historico-embarque.embarque      = embarque-imp.embarque and 
+                      historico-embarque.cod-itiner    = i-cod-itiner and
+                      historico-embarque.cod-pto-contr = i-local              
+                      no-lock no-error.
+        else do:
+            find historico-embarque
+                where historico-embarque.cod-estabel   = embarque-imp.cod-estabel and
+                      historico-embarque.embarque      = embarque-imp.embarque and 
+                      historico-embarque.cod-itiner    = i-cod-itiner and
+                      historico-embarque.cod-pto-contr = i-pto-chegada
+                      no-lock no-error.
+        end.                  
+        if avail historico-embarque then do:
+            if historico-embarque.dt-efetiva <> ? then
+                if historico-embarque.dt-efetiva < da-data-ini or
+                   historico-embarque.dt-efetiva > da-data-fim then
+                    next.
+            else
+                if historico-embarque.dt-ult-prev <> ? then
+                    if historico-embarque.dt-ult-prev < da-data-ini or 
+                       historico-embarque.dt-ult-prev > da-data-fim then
+                        next.                            
+        end.
+        
+        if p-item-ini <> "" or 
+           p-item-fim <> "zzzzzzzzzzzzzzzz" then
+            assign l-ok = no.
+            
+        if p-proc-ini <> "" or 
+           p-proc-fim <> "zzzzzzzzzzzz" then
+            assign l-ok = no.            
+            
+        for each ordens-embarque no-lock 
+            where ordens-embarque.embarque = embarque-imp.embarque:
+            
+            assign l-ok = no.
+            
+            if ordens-embarque.nr-proc-imp < p-proc-ini or
+               ordens-embarque.nr-proc-imp > p-proc-fim then next.
+            
+            find ordem-compra where ordem-compra.numero-ordem = ordens-embarque.numero-ordem no-lock no-error.
+            if not avail ordem-compra then next.            
+            if ordem-compra.cod-emitente < p-exp-ini or 
+               ordem-compra.cod-emitente > p-exp-fim then next.
+               
+            if ordem-compra.it-codigo < p-item-ini or
+               ordem-compra.it-codigo > p-item-fim then next.
+            find item where item.it-codigo = ordem-compra.it-codigo no-lock no-error.
+            if not avail item then next.
+            if item.ge-codigo < p-grupo-ini or
+               item.ge-codigo > p-grupo-fim then next.
+            if item.fm-codigo < p-fam-ini or
+               item.fm-codigo > p-fam-fim then next.
+            
+            find processo-imp where processo-imp.num-pedido   = ordem-compra.num-pedido  no-lock no-error.
+            if not avail processo-imp then next.
+            if p-situacao <> 5 then
+                if processo-imp.situacao <> p-situacao then next.
+                
+            assign l-ok = yes.                
+        end.
+        
+        if not l-ok then next.        
+        
+        create tt-historico.
+        buffer-copy tt-historico-tmp to tt-historico.
+                
+    end.
+
+/* BOCX230B.I2 */

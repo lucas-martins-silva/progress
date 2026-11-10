@@ -1,0 +1,30 @@
+PROCEDURE getValidaCcusto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEF INPUT  PARAM p-ccuto       AS CHAR NO-UNDO.
+    DEF OUTPUT PARAM p-desc-ccusto AS CHAR NO-UNDO.
+
+    ASSIGN p-desc-ccusto = ''.
+
+    run prgint/utb/utb742za.py persistent set h_api_ccusto.
+
+    run pi_busca_dados_ccusto in h_api_ccusto (input  STRING(i-empresa),  /* EMPRESA EMS2 */
+                                               input  "",                 /* CODIGO DO PLANO CCUSTO */
+                                               input  p-ccuto,            /* CCUSTO */
+                                               input  RowObject.dt-trans, /* DATA DE TRANSACAO */
+                                               output v_des_ccusto,       /* DESCRICAO DO CCUSTO */
+                                               output table tt_log_erro). /* ERROS */
+    delete object h_api_ccusto.
+    
+    IF RETURN-VALUE = "NOK" THEN
+        RETURN "NOK".
+    
+    ASSIGN p-desc-ccusto = v_des_ccusto.
+
+
+    RETURN "ok".
+
+END PROCEDURE.

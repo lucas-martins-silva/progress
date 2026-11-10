@@ -1,0 +1,43 @@
+PROCEDURE determinaTipoDFe:
+    DEFINE INPUT  PARAM pNatOperacao LIKE docum-est.nat-operacao NO-UNDO.
+    DEFINE OUTPUT PARAM cTipoDfe     LIKE docum-est.tipo-dfe-docto NO-UNDO. 
+
+    DEFINE BUFFER b-nfe-natur-oper   FOR natur-oper.
+
+    DEF VAR log-nfse-nacional        AS LOGICAL   NO-UNDO.
+
+    ASSIGN cTipoDfe = "".
+    
+    FIND FIRST b-nfe-natur-oper
+         WHERE b-nfe-natur-oper.nat-operacao = pNatOperacao NO-LOCK NO-ERROR.
+
+    IF  AVAIL b-nfe-natur-oper THEN DO:
+    
+        CASE b-nfe-natur-oper.cod-model-nf-eletro:
+            WHEN "55" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFe.
+            WHEN "57" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:CTe.
+            WHEN "62" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFCom.
+            WHEN "65" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFCe.
+            WHEN "66" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NF3e.
+            WHEN "67" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:CTeOS.
+            WHEN "75" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFAg.
+            WHEN "76" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFGas.
+            WHEN "77" THEN ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFeABI.
+        END CASE.
+      
+        /*Se nao foi preenchido o DFe, verificar se pode ser NFS-e Municipal ou NFS-e Nacional, considerando os parametros da natureza de operacao*/
+        IF  cTipoDfe = "" THEN DO:
+            /* Verifica se a natureza de opera‡Æo esta habilitada como padrao nacional */
+            RUN VerificaPadraoNacional (INPUT pNatOperacao,
+                                        OUTPUT log-nfse-nacional).    
+      
+            IF  log-nfse-nacional THEN 
+                ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFSeNacional.
+         
+            IF  NOT log-nfse-nacional AND (b-nfe-natur-oper.cod-model-nf-eletro = "56" OR RowObject.cod-observa = 4) THEN
+                ASSIGN cTipoDfe = rep.list.TipoDfeDoctoList:NFSeMunicipal.
+        END.
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.

@@ -1,0 +1,92 @@
+/**************************************************************************************
+**
+** IM0656.I2 - Defini‡äes Frames
+**
+***************************************************************************************/
+
+def var c-lb-tit-sel    as char no-undo.
+def var c-lb-tit-imp    as char format "x(15)" no-undo.
+def var c-lb-destino    as char format "x(10)" no-undo.
+def var c-lb-tit-par    as char format "x(10)" no-undo.
+def var c-lb-usuario    as char format "x(10)" no-undo.
+def var c-erros         as char format "x(60)" no-undo.
+
+define temp-table tt-despesa no-undo
+    field cod-grup-desp like grupo-desp.cod-grup-desp
+    field desc-despesa  like grupo-desp.desc-despesa
+    field cod-desp      like desp-embarque.cod-desp
+    field descricao     like desp-imp.descricao
+    field valor         like desp-imp.val-desp.
+     
+form 
+     lb-cod-itiner       at 05
+     lb-descricao        at 17 
+     lb-num-ocorren      at 50 
+     lb-previsao         at 60
+     lb-efetiva          at 66
+     lb-diferenca        at 72
+     lb-percentual       at 79
+     lb-ponto-critico    at 85
+     with stream-io no-box no-label down width 100 frame f-itiner-label.
+     
+     
+form 
+     lb-periodo           at 05
+     tt-param.d-data-ini  at 14
+     lb-literal           at 25
+     tt-param.d-data-fim  at 27
+     with stream-io no-box no-label down width 100 frame f-periodo.
+     
+form 
+     lb-cod-grup-desp           at 05
+     tt-despesa.cod-grup-desp   at 23
+     tt-despesa.desc-despesa    at 27
+     with stream-io no-box no-label down width 100 frame f-grupo. 
+     
+form 
+     tt-despesa.cod-desp   at 05
+     tt-despesa.descricao  at 13 
+     tt-despesa.valor      at 44
+     with stream-io no-box down width 100 frame f-despesa.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-despesa:HANDLE).
+
+     
+form 
+     lb-tot-grup-desp      at 28
+     valor-grupo-tot       at 44
+     with stream-io no-box no-label down width 100 frame f-grupo-tot.     
+
+  
+form 
+/*Sele‡Æo*/
+     skip(1)                                   
+     c-lb-tit-sel                    no-label skip(1) 
+     tt-param.i-cod-est-ini          colon 30
+     "|< >|"                         at 50
+     tt-param.i-cod-est-fim          no-label
+     tt-param.i-cod-grup-ini         colon 30
+     "|< >|"                         at 50
+     tt-param.i-cod-grup-fim         no-label
+     tt-param.d-data-ini             colon 30
+     "|< >|"                         at 50
+     tt-param.d-data-fim             no-label
+/*Parƒmetros*/
+     skip(1)
+     c-lb-tit-par                    no-label skip(1)
+     tt-param.i-moeda                colon 30
+     tt-param.dt-cotacao             colon 30
+     c-considera                     colon 30
+/*impressÆo*/
+     skip(1)
+     c-lb-tit-imp                    no-label skip(1)
+     c-lb-destino                    at 19 no-label ": " 
+     tt-param.destino  no-label                   
+     " - " 
+     tt-param.arquivo                no-label skip 
+     c-lb-usuario                    at 19 no-label ": "
+     tt-param.usuario                no-label skip(1) 
+     with width 80 side-labels frame f-param stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-param:HANDLE).
+

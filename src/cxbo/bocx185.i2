@@ -1,0 +1,15 @@
+/*******************************************************************************
+**  BOCX185.i2
+**
+**  PROCESSO-EXP    -  Defini‡Æo de Temp-tables c lculo peso do acondicionamento
+********************************************************************************/
+
+DEF TEMP-TABLE tt-valores-acond NO-UNDO
+    FIELD cod-estabel          LIKE proces-acond.cod-estabel
+    FIELD nr-proc-exp          LIKE proces-acond.nr-proc-exp
+    FIELD cod-acond            LIKE proces-acond.cod-acond
+    FIELD peso-liq-tot         LIKE ITEM.peso-liquido
+    FIELD peso-bruto-tot       LIKE ITEM.peso-bruto
+    FIELD peso-liq-tot-acond   LIKE item.peso-liquido 
+    FIELD peso-bruto-tot-acond LIKE item.peso-bruto. 
+    

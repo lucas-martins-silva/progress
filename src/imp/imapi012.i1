@@ -1,0 +1,70 @@
+
+
+DEF TEMP-TABLE ttTitulos NO-UNDO
+    FIELD numSeqTitulo              AS INTEGER   FORMAT '>>>>>>>>9'  /* Sequencia para cria‡Æo de titulos */
+    FIELD codModulo                 AS CHARACTER FORMAT 'x(3)'  /* M¢dulo: ACR ou APB */
+    FIELD codTipoReg                AS CHARACTER FORMAT 'x(3)'  /* Tipo Registro (Branco) "", IMPL ou AVA - Apenas para Modulo ACR */
+    FIELD codRefer                  AS CHARACTER FORMAT 'x(10)'  /* In¡cio Referˆncia (3 letras, exemplo IMP, JUR, TAX, etc) */
+    FIELD codEmpresa                AS CHARACTER FORMAT 'x(3)'  /* Empresa */
+    FIELD codEstabel                AS CHARACTER FORMAT 'x(5)'  /* Estabelecimento */
+    FIELD cdnFornecedor             AS INTEGER   FORMAT '>>>>>>>>9'  /* Fornecedor */
+    FIELD codEspecie                AS CHARACTER FORMAT 'x(5)'  /* Especie */
+    FIELD codSerie                  AS CHARACTER FORMAT 'x(5)'  /* Serie */
+    FIELD nroDocto                  AS CHARACTER FORMAT 'x(16)'  /* Num.Documento */
+    FIELD parcela                   AS CHARACTER FORMAT 'x(2)'  /* Parcela */
+    FIELD codDoctoWarrant           AS CHARACTER FORMAT 'x(16)' /* N£mero do Warrant (apenas para APB: previsÆo e antecipa‡Æo). Gravar "W" no n£mero do documento. */
+    FIELD numMoeda                  AS INTEGER   FORMAT '>9'  /* Moeda */
+    FIELD valTitulo                 AS DECIMAL   FORMAT '->>>>>>>,>>9.99'  /* Valor T¡tulo */
+    FIELD valTituloOrigin           AS DECIMAL   FORMAT '->>>>>>>,>>9.99'  /* Valor T¡tulo Original */
+    FIELD valCotacao                AS DECIMAL   FORMAT '->>>>>>>,>>9.9999999999'  /* Cota‡Æo */
+    FIELD codUnidNegoc              AS CHARACTER FORMAT 'x(3)'  /* Unidade de Neg¢cio  */
+    FIELD codPortador               AS CHARACTER FORMAT 'x(8)'  /* Portador */
+    FIELD codModalidade             AS CHARACTER FORMAT 'x(8)'  /* Modalidade */
+    FIELD datTransacao              AS DATE      FORMAT '99/99/9999'  /* Data transa‡Æo */
+    FIELD datEmissao                AS DATE      FORMAT '99/99/9999'  /* Data emissÆo */
+    FIELD datVencto                 AS DATE      FORMAT '99/99/9999'  /* Data vencimento */
+    FIELD codContrato               AS CHARACTER FORMAT 'x(20)'  /* Contrato */
+    FIELD codSafra                  AS CHARACTER FORMAT '9999/9999'  /* Safra */
+    FIELD codPlanoCta               AS CHARACTER FORMAT 'x(8)'   /* Plano de Conta */
+    FIELD codCtaCtbl                AS CHARACTER FORMAT 'x(20)'  /* C¢digo da Conta */
+    FIELD codPlanoCcusto            AS CHARACTER FORMAT 'x(8)'   /* Plano Centro de Custo */
+    FIELD codCentroCusto            AS CHARACTER FORMAT 'x(20)'  /* Centro de Custo */
+    FIELD cdnTpDespRec              AS INTEGER   FORMAT '>9'  /* Tipo de Despesa ou Receita */
+    FIELD cdnTpPagto                AS INTEGER   FORMAT '>9'  /* Tipo Pagamento (somente para antecipa‡Æo no APB, bordero ou cheque) */
+    FIELD cdnFavorecido             AS INTEGER   FORMAT '>>>>>>>>9'  /* Favorecido Cheque (somente para antecipa‡Æo no APB, com tipo de pagamento cheque) */
+    FIELD nomFavorecido             AS CHARACTER FORMAT 'x(40)'  /* Nome Favorecido Cheque (somente para antecipa‡Æo no APB, com tipo de pagamento cheque) */
+    FIELD numCheque                 AS INTEGER   FORMAT '>>>>>>>>9'  /* Nœmero do Cheque (somente para antecipa‡Æo no APB, com tipo de pagamento cheque) */
+    FIELD numTalonario              AS INTEGER   FORMAT '>>>>>>>>9'  /* Nœmero do Talon rio do Cheque (somente para antecipa‡Æo no APB, com tipo de pagamento cheque) */
+    FIELD numIdTitPrevisao          AS INTEGER   FORMAT '>>>>>>>>9'  /* Num-id do t¡tulo de PrevisÆo a ser abatido (opcional) */
+    FIELD codModTitOrigem           AS CHARACTER FORMAT 'x(03)'  /* M¢dulo do t¡tulo de Origem (opcional: juros) */
+    FIELD numIdTitOrigem            AS INTEGER   FORMAT '>>>>>>>>9'  /* Num-id do t¡tulo de Origem (opcional:juros) */
+    FIELD numIdTitGerado            AS INTEGER   FORMAT '>>>>>>>>9'  /* Num-id do t¡tulo Gerado no EMS 5 */
+    FIELD desHistorico              AS CHARACTER FORMAT 'x(2000)'  /* Hist¢rico (opcional) */
+    FIELD desChaveAcesso            AS CHARACTER FORMAT 'x(80)'  /* Chave: (opcional) */
+    FIELD numIdAdiant               AS INTEGER   FORMAT '>>>>>>>>9'  /* cdn-adiant (opcional) */
+    FIELD idiCalculo                AS INTEGER   FORMAT '>9'         /* 1 - Varia‡Æo,   2 - Juros */
+    FIELD logGerado                 AS LOGICAL   FORMAT 'Sim/N’o'   /* Controle interno: Verificar se o titulo j  foi gerado */
+    FIELD codLivre1                 AS CHARACTER FORMAT 'x(200)'    /* Campo Livre*/
+    FIELD valTituloAprop            AS DECIMAL   FORMAT '->>>>>>>,>>9.99' /* Valor Apropria‡Æo Cont bil */
+    INDEX pk01 IS PRIMARY
+          numIdAdiant           ASCENDING
+          numSeqTitulo          ASCENDING
+    .
+
+DEF TEMP-TABLE ttImptoTitulos NO-UNDO
+    FIELD numSeqTitulo              AS INTEGER   FORMAT '>>>>>>>>9' /* Sequencia para cria»’o de titulos */
+    FIELD cdnImposto                AS INTEGER   FORMAT '>>>>>>>>9' /* C½digo do Imposto */
+    FIELD valBaseImposto            AS DECIMAL   FORMAT '->>>>>>>,>>9.99' /* Valor Base do Imposto */
+    FIELD valAliqImposto            AS DECIMAL   FORMAT '>>9.99' /* Aliquota do Imposto */
+    FIELD valImposto                AS DECIMAL   FORMAT '->>>>>>>,>>9.99' /* Valor do Imposto */
+    FIELD codPlanoCta               AS CHARACTER FORMAT 'x(8)'   /* Plano de Conta */
+    FIELD codCtaCtbl                AS CHARACTER FORMAT 'x(20)'  /* Conta */
+    FIELD codCentroCusto            AS CHARACTER FORMAT 'x(20)'  /* Centro de Custo */
+    .
+
+DEF TEMP-TABLE tt_tit_acr_rateio_baixa NO-UNDO
+    FIELD num_seq_titulo     AS INTEGER
+    FIELD cod_cta_ctbl       AS CHAR FORMAT "x(20)" 
+    FIELD cod_ccusto         AS CHAR FORMAT "x(20)"
+    FIELD val_aprop_ctbl     AS DEC.
+

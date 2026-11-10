@@ -1,0 +1,415 @@
+/***ATEN€AO: a partir da release 205, o objeto correspondente a este ‚ o BOMF528.p.
+    Assim, manuten‡äes dadas nesta include devem ser repassadas para a procedure correspondente na bo
+    acima citada. ***************************************************************************************/
+
+{cdp/cdcfgman.i}
+&if defined(bf_man_204) &then
+   {sfc/sfapi010.i} /** Temp-table de reporte de parada **/
+   def temp-table tt-erro-aux no-undo
+      field i-sequen as int             
+      field cd-erro  as int
+      field mensagem as char format "x(255)".
+   DEFINE TEMP-TABLE RowErrorsAux NO-UNDO
+       FIELD ErrorSequence    AS INTEGER
+       FIELD ErrorNumber      AS INTEGER
+       FIELD ErrorDescription AS CHARACTER
+       FIELD ErrorParameters  AS CHARACTER
+       FIELD ErrorType        AS CHARACTER
+       FIELD ErrorHelp        AS CHARACTER
+       FIELD ErrorSubType     AS CHARACTER
+       index seq ErrorSequence.
+   def temp-table rowErrorsAuxb no-undo like rowErrorsAux.    
+&endif
+def var l-atualiza-rep-ger-err as log init no no-undo.
+
+/**********************************************************************************************************
+** 
+** PROCEDURE   CriarReporteParadaGeral
+** Objetivo:   Atualiza o campo chave £nica da tabela Reporte Parada Geral
+** Parƒmetros: Entrada rw-parada (rowid da nova parada criada)
+**             
+**********************************************************************************************************/
+Procedure CriarReporteParadaGeral:
+    
+    def parameter buffer b-rep-parada-geral for rep-parada-geral.
+    
+    def buffer b2-last-rep        for rep-parada-geral.
+         
+    find last b2-last-rep use-index token no-lock no-error.
+    
+    assign b-rep-parada-geral.num-id-parada-geral = if avail b2-last-rep 
+                                                    then b2-last-rep.num-id-parada-geral + 1
+                                                    else 1.           
+
+End procedure.
+
+/**********************************************************************************************************
+** 
+** PROCEDURE   EliminarReporteParadaGeral
+** Objetivo:   Elimina Reporte Parada Centro Trabalho relacionados a Parada Geral
+** Parƒmetros: Entrada b-rep-parada.
+**             
+**********************************************************************************************************/
+Procedure EliminarReporteParadaGeral:
+
+    def parameter buffer b-rep-parada for rep-parada-geral.
+    
+    for each  rep-parada-ctrab
+        where rep-parada-ctrab.num-id-parada-geral = b-rep-parada.num-id-parada-geral exclusive-lock:
+        run EliminarReporteParada (buffer rep-parada-ctrab).
+    end.
+
+End procedure.
+
+/**********************************************************************************************************
+** 
+** PROCEDURE   AtualizarRepParadaGeral
+** Objetivo:   Atualiza Reporte Parada Geral e cria Reporte Parada Centro Trabalho
+** Parƒmetros: Entrada tt-rep-parada-ctrab (gera rep-parada-ctrab)
+**             Entrada b-rep-parada-geral
+**             
+**********************************************************************************************************/
+Procedure AtualizarRepParadaGeral:
+
+    def input parameter table for tt-rep-parada-ctrab.
+    def parameter buffer b-rep-parada-geral for rep-parada-geral.
+    
+    def var v-val-refer-inic like rep-parada-ctrab.val-refer-inic-parada no-undo.
+    def var v-val-refer-fim  like rep-parada-ctrab.val-refer-fim-parada  no-undo.
+    def var de-qtd-segs-inic like rep-parada-ctrab.qtd-segs-inic no-undo.
+    def var de-qtd-segs-fim  like rep-parada-ctrab.qtd-segs-fim  no-undo.
+    def var da-data-fim      like rep-parada-ctrab.dat-fim-parada no-undo.
+    def var da-data-inic     like rep-parada-ctrab.dat-inic-parada no-undo.
+    def var h-sfapi010       as handle no-undo.
+    def var r-row-parada     as rowid  no-undo.
+    def var i-cont           as int no-undo.
+    
+    find first param-sfc no-lock no-error.
+    
+    if param-sfc.log-tipo-relogio then do:
+       run pi-formatted-time-to-sec (input  b-rep-parada-geral.hra-inic-parada, 
+                                     output b-rep-parada-geral.qtd-segs-inic-parada).
+       run pi-formatted-time-to-sec (input  b-rep-parada-geral.hra-fim-parada, 
+                                     output b-rep-parada-geral.qtd-segs-fim-parada).                                     
+    end. 
+    else
+       assign b-rep-parada-geral.qtd-segs-inic-parada = int(string(b-rep-parada-geral.hra-inic-parada)) * 36
+              b-rep-parada-geral.qtd-segs-fim-parada  = int(string(b-rep-parada-geral.hra-fim-parada)) * 36.
+
+    run pi-converte-data-segs-valor (input b-rep-parada-geral.dat-inic-parada,
+                                     input b-rep-parada-geral.qtd-segs-inic-parada,
+                                     output v-val-refer-inic).
+
+    run pi-converte-data-segs-valor (input b-rep-parada-geral.dat-fim-parada,
+                                     input b-rep-parada-geral.qtd-segs-fim-parada,
+                                     output v-val-refer-fim).
+                                     
+    &if defined(bf_man_204) &then
+        run sfc/sfapi010.p PERSISTENT SET h-sfapi010 (input  {&versao}, /*versao definida na sfapi010.i*/
+                                                      input  table tt-import-rep-parada,
+                                                      output table tt-erro-aux).      
+        if l-atualiza-rep-ger-err then
+            RUN setaGeraRowErrors IN h-sfapi010. 
+
+        for each rowErrorsAux: delete rowErrorsAux. end.
+
+    &endif
+
+    for each tt-rep-parada-ctrab,
+        first ctrab of tt-rep-parada-ctrab no-lock:
+
+        assign de-qtd-segs-inic = b-rep-parada-geral.qtd-segs-inic-parada
+               de-qtd-segs-fim  = b-rep-parada-geral.qtd-segs-fim-parada
+               da-data-inic     = b-rep-parada-geral.dat-inic-parada
+               da-data-fim      = b-rep-parada-geral.dat-fim-parada.
+
+        /*** As paradas gerais sÆo cadastradas somente para m quinas, 
+             e nÆo para postos manuais ***/
+        if  ctrab.ind-tip-ctrab = 4 then do:
+            if l-atualiza-rep-ger-err then
+                 run criaRowErrors(32306,
+                                   ctrab.cod-ctrab).
+            next.
+        end.
+
+        /*** NÆo pode existir reporte de opera‡Æo no intervalo da parada geral ***/
+        find first rep-oper-ctrab
+            where  rep-oper-ctrab.cod-ctrab           = tt-rep-parada-ctrab.cod-ctrab
+              and  rep-oper-ctrab.val-refer-inic-rep >= v-val-refer-inic
+              and  rep-oper-ctrab.val-refer-fim-rep  <= v-val-refer-fim no-lock no-error.
+        if  avail rep-oper-ctrab then do:
+            if l-atualiza-rep-ger-err then 
+                 run criaRowErrors(32307,
+                                   ctrab.cod-ctrab).
+            next.
+        end.
+
+        /*** Se existe alguma parada do ctrab que cobre completamente a parada geral,
+             nÆo ser  gerada mais uma parada para o ctrab. ***/
+        find last rep-parada-ctrab
+            where rep-parada-ctrab.cod-ctrab              = tt-rep-parada-ctrab.cod-ctrab
+              and rep-parada-ctrab.val-refer-inic-parada <= v-val-refer-inic
+              and rep-parada-ctrab.val-refer-fim-parada  >= v-val-refer-fim no-lock no-error.
+        if  avail rep-parada-ctrab then do:
+            if l-atualiza-rep-ger-err then
+                run criaRowErrors(32308,
+                                  ctrab.cod-ctrab).
+            next.
+        end.
+        
+        find last rep-parada-ctrab
+            where rep-parada-ctrab.cod-ctrab               = tt-rep-parada-ctrab.cod-ctrab
+              and rep-parada-ctrab.val-refer-inic-parada   < v-val-refer-inic no-lock no-error.
+        
+        if available rep-parada-ctrab and
+                     rep-parada-ctrab.val-refer-fim-parada > v-val-refer-inic then 
+            assign da-data-inic     = rep-parada-ctrab.dat-fim-parada
+                   de-qtd-segs-inic = rep-parada-ctrab.qtd-segs-fim.           
+        
+        bloco:
+        do transaction on error undo, return "NOK":U:
+            blocob:
+            for each rep-parada-ctrab
+                where rep-parada-ctrab.cod-ctrab               = tt-rep-parada-ctrab.cod-ctrab
+                  and rep-parada-ctrab.val-refer-inic-parada  >= v-val-refer-inic
+                  and rep-parada-ctrab.val-refer-inic-parada  <  v-val-refer-fim exclusive-lock:
+        
+                /*** As paradas que come‡am e terminam no meio da parada geral serÆo eliminadas ***/
+                if  rep-parada-ctrab.val-refer-inic-parada >= v-val-refer-inic
+                and rep-parada-ctrab.val-refer-fim-parada  <= v-val-refer-fim then do:
+                    run EliminarReporteParada (buffer rep-parada-ctrab).
+                   next blocob.
+                end.
+        
+                /* Atualiza a hora de in¡cio da parada de acordo com a hora de termino da parada anterior */
+                if  rep-parada-ctrab.val-refer-fim-parada > v-val-refer-fim then do:
+                    assign da-data-fim     = rep-parada-ctrab.dat-inic-parada 
+                           de-qtd-segs-fim = rep-parada-ctrab.qtd-segs-inic.
+                    leave blocob.
+                end.           
+            end.
+            
+            &if defined(bf_man_204) &then
+               for each tt-import-rep-parada: delete tt-import-rep-parada. end.
+               for each tt-erro-aux: delete tt-erro-aux. end. 
+               
+               create tt-import-rep-parada.
+               assign tt-import-rep-parada.tipo-rep        = 1
+                      tt-import-rep-parada.cod-ctrab       = tt-rep-parada-ctrab.cod-ctrab
+                      tt-import-rep-parada.cod-parada      = b-rep-parada-geral.cod-parada
+                      tt-import-rep-parada.dat-inic-parada = da-data-inic
+                      tt-import-rep-parada.hr-inic-parada  = de-qtd-segs-inic
+                      tt-import-rep-parada.dat-fim-parada  = da-data-fim
+                      tt-import-rep-parada.hr-fim-parada   = de-qtd-segs-fim
+                      tt-import-rep-parada.cod-operador    = tt-rep-parada-ctrab.cod-operador
+                      tt-import-rep-parada.cod-equipe      = tt-rep-parada-ctrab.cod-equipe.
+               
+               run pi-inicializa IN h-sfapi010 (INPUT  no,
+                                                INPUT  no,
+                                                INPUT  no,
+                                                INPUT  no,
+                                              &IF DEFINED(bf_man_205) &THEN
+                                                input yes,
+                                              &ELSE
+                                                input no,
+                                              &ENDIF
+                                                INPUT  0,
+                                                INPUT  TABLE tt-import-rep-parada,
+                                                OUTPUT TABLE tt-erro-aux).                            
+                                                
+               if not can-find(first tt-erro-aux) then do:
+                    run retornaRowidParadaInc in h-sfapi010(output r-row-parada).
+                    find first rep-parada-ctrab where rowid(rep-parada-ctrab) = r-row-parada exclusive-lock no-error.
+                    if avail rep-parada-ctrab then
+                        assign rep-parada-ctrab.num-id-parada-geral = b-rep-parada-geral.num-id-parada-geral.
+               end.   
+               else do:
+                    for each rowErrorsAuxb: delete rowErrorsAuxb. end.
+                    RUN retornaRowErrors IN h-sfapi010(OUTPUT TABLE rowErrorsAuxb).
+                    
+                    find last rowErrorsAux no-error.
+                    if avail rowErrorsAux then 
+                         assign i-cont = rowErrorsAux.errorSequence + 1.
+                    else assign i-cont = 1.
+                    for each rowErrorsAuxb:
+                         create rowErrorsAux.
+                         buffer-copy rowErrorsAuxb except errorSequence to rowErrorsAux.
+                         assign rowErrorsAux.errorSequence = i-cont
+                                i-cont = i-cont + 1. 
+                         delete rowErrorsAuxb.
+                    end.
+                    undo bloco.
+               end.                           
+            &else
+               create rep-parada-ctrab.
+               assign rep-parada-ctrab.cod-ctrab           = tt-rep-parada-ctrab.cod-ctrab
+                      rep-parada-ctrab.num-id-parada-geral = b-rep-parada-geral.num-id-parada-geral
+                      rep-parada-ctrab.cod-parada          = b-rep-parada-geral.cod-parada
+                      rep-parada-ctrab.dat-inic-parada     = da-data-inic
+                      rep-parada-ctrab.qtd-segs-inic       = de-qtd-segs-inic
+                      rep-parada-ctrab.dat-fim-parada      = da-data-fim
+                      rep-parada-ctrab.qtd-segs-fim        = de-qtd-segs-fim.
+               
+               run inbo/boin530a.p (input rowid(rep-parada-ctrab)).
+            &endif   
+        end. /*bloco*/         
+    end.   
+    
+    if valid-handle(h-sfapi010) then do:
+       run finalizaAPI in h-sfapi010.
+       delete procedure h-sfapi010 no-error.
+    end.
+    
+End Procedure.
+
+&if defined(bf_man_204) &then
+
+procedure AtualizarRepParadaGerErros:
+
+    def input parameter table for tt-rep-parada-ctrab.
+    def parameter buffer b-rep-parada-geral for rep-parada-geral.
+    def output param table for rowErrorsAux.
+    
+    empty temp-table rowErrorsAux.
+
+    assign l-atualiza-rep-ger-err = yes.
+    run AtualizarRepParadaGeral(input table tt-rep-parada-ctrab,
+                                buffer b-rep-parada-geral).
+    assign l-atualiza-rep-ger-err = no.
+    
+return "OK":U.
+end procedure.
+
+&endif /*204*/
+
+procedure criaRowErrors:
+    define input parameter p-num-msg   as integer  no-undo.
+    define input parameter p-texto   as character format "x(255)" no-undo.
+    
+    &if defined(bf_man_204) &then 
+
+        DEFINE VARIABLE iErrorSequence    AS INTEGER    NO-UNDO.
+        DEFINE VARIABLE cErrorSubType     AS CHARACTER  NO-UNDO.
+        DEFINE VARIABLE cErrorDescription AS CHARACTER  NO-UNDO.
+        DEFINE VARIABLE cErrorHelp        AS CHARACTER  NO-UNDO.
+        
+        run utp/ut-msgs.p (input "msg":U,
+                       input p-num-msg,
+                       input p-texto).                       
+        assign cErrorDescription = RETURN-VALUE.
+        
+        /** Busca o Tipo de Mensagem do EMS **/
+        RUN utp/ut-msgs.p (INPUT "TYPE":U,
+                       INPUT p-num-msg,
+                       INPUT p-texto).
+        CASE {uninc/i01un001.i 06 RETURN-VALUE}:
+        WHEN 1 THEN
+            ASSIGN cErrorSubType = "ERROR":U.
+        WHEN 2 THEN
+            ASSIGN cErrorSubType = "WARNING":U.
+        WHEN 3 THEN
+            ASSIGN cErrorSubType = "QUESTION":U.
+        WHEN 4 THEN
+            ASSIGN cErrorSubType = "INFORMATION":U.
+        END CASE.
+        
+        /** Busca Help da Mensagem **/
+        RUN utp/ut-msgs.p (INPUT "HELP":U,
+                       INPUT p-num-msg,  
+                       INPUT p-texto).   
+        ASSIGN cErrorHelp = RETURN-VALUE.
+        
+        /*--- Atualiza variÙvel de sequªncia de erros ---*/
+        IF CAN-FIND(LAST rowErrorsAux) THEN DO:
+        FIND LAST rowErrorsAux.
+        ASSIGN iErrorSequence = rowErrorsAux.ErrorSequence + 1.
+        END.
+        ELSE
+        ASSIGN iErrorSequence = iErrorSequence + 1.
+        
+        CREATE rowErrorsAux.
+        ASSIGN rowErrorsAux.ErrorSequence    = iErrorSequence
+           rowErrorsAux.ErrorNumber      = p-num-msg
+           rowErrorsAux.ErrorType        = "EMS":U
+           rowErrorsAux.ErrorSubType     = cErrorSubType
+           rowErrorsAux.ErrorDescription = cErrorDescription
+           rowErrorsAux.ErrorHelp        = cErrorHelp
+           rowErrorsAux.ErrorParameters  = p-texto.
+           
+    &endif
+
+return "OK":U.
+END PROCEDURE.
+
+&if defined(bf_man_204) &then
+procedure reanaliseParadaGeral:
+
+   def input param p-row-parada-geral as rowid no-undo.
+   def input param p-novo-cod-parada as char no-undo.
+   def output param table for rowErrorsAux.
+   
+   def var h-sfapi010 as handle no-undo.
+   
+   for each rowErrorsAux: delete rowErrorsAux. end.
+   
+   find first rep-parada-geral no-lock
+        where rowid(rep-parada-geral) = p-row-parada-geral no-error.
+        
+   if not avail rep-parada-geral then do:
+   
+        {utp/ut-liter.i Parada_Geral *}
+        run criaRowErrors(2,
+                          return-value).
+        return "NOK":U.              
+   end.
+   
+   if not can-find(first motiv-parada no-lock 
+                   where motiv-parada.cod-parada = p-novo-cod-parada) then do:
+                   
+        {utp/ut-liter.i Motivo_Parada *} 
+        run criaRowErrors(47,
+                          return-value).
+        return "NOK":U.  
+                                  
+   end.                
+   
+   run sfc/sfapi010.p PERSISTENT SET h-sfapi010 (input  {&versao}, /*versao definida na sfapi010.i*/
+                                                 input  table tt-import-rep-parada,
+                                                 output table tt-erro-aux).      
+   RUN setaGeraRowErrors IN h-sfapi010. 
+   
+   for each rowErrorsAux: delete rowErrorsAux. end.
+   
+   bloco:
+   do transaction on error undo, return "NOK":U:
+   
+       for each rep-parada-ctrab no-lock
+          where rep-parada-ctrab.num-id-parada-geral = rep-parada-geral.num-id-parada-geral:
+          
+            RUN pi-re-analise-parada IN h-sfapi010(INPUT rowid(rep-parada-ctrab),
+                                                   INPUT p-novo-cod-parada,
+                                                   input ?,
+                                                   input 0,
+                                                   input 0).
+            IF RETURN-VALUE = "NOK":U THEN DO:
+                
+                RUN retornaRowErrors IN h-sfapi010(OUTPUT TABLE rowErrorsAux).
+                               
+                run finalizaAPI in h-sfapi010.                             
+                undo bloco, RETURN "NOK":U.
+            END.
+       end.
+       
+       find current rep-parada-geral exclusive-lock no-error.
+       assign rep-parada-geral.cod-parada = p-novo-cod-parada.
+
+   end. /*fim bloco*/    
+   
+   run finalizaAPI in h-sfapi010.    
+   
+return "OK":U.
+end procedure.
+&endif
+
+{inbo/boin536.i5} /* AtualizarTempoRepOper */
+{inbo/boin536.i6} /* pi-sfc-tempo-paradas-maq */

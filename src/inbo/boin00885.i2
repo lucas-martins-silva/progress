@@ -1,0 +1,14 @@
+/*:T--------------------------------------------------------------------------    
+    Purpose    : Include que cont‚m defini‡Æo da temptable da tabela
+                 item mas apenas com o campo it-codigo
+
+    Parameters :
+
+    Notes      :
+  ------------------------------------------------------------------------*/
+/*          This .W file was created with the Progress UIB.               */
+/*------------------------------------------------------------------------*/
+
+/* ***************************  Definitions  **************************** */
+DEFINE TEMP-TABLE {1} NO-UNDO
+        FIELD it-codigo LIKE item.it-codigo.

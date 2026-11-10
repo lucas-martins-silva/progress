@@ -1,0 +1,2060 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+
+/*
+**  BOCX205.P
+**
+**  proc-desp-itiner - Despesas do Ponto de Itiner rio, no Processo de Exporta‡Æo
+**
+**  Ultima altera‡Æo: 04/05/99 - GeraBO
+**  Ultima altera‡Æo: 11/05/99 - brv9586
+*/
+
+def buffer b-proc-desp-itiner for proc-desp-itiner.
+
+DEFINE VAR c-cod-estabel   like proc-desp-itiner.cod-estabel       no-undo.
+DEFINE VAR c-nr-proc-exp   like proc-desp-itiner.nr-proc-exp       no-undo.
+DEFINE VAR c-cod-incoterm  like processo-exp.cod-incoterm          no-undo.
+DEFINE VAR i-cod-itiner    like proc-desp-itiner.cod-itiner        no-undo.
+DEFINE VAR i-nr-sequencia  like proc-desp-itiner.sequencia         no-undo.
+DEFINE VAR i-cod-pto-contr like proc-desp-itiner.cod-pto-contr     no-undo.
+DEFINE VAR i-cod-desp      like proc-desp-itiner.cod-desp          no-undo.
+DEFINE VAR i-cod-emit-desp like proc-desp-itiner.cod-emitente-desp no-undo.
+DEFINE VAR r-chave         as   rowid                              no-undo.
+DEFINE VARIABLE h-cdapi050 AS HANDLE                               NO-UNDO.
+DEFINE VARIABLE h-bocx200  AS HANDLE                               NO-UNDO.
+DEFINE VARIABLE d-date     AS DATE                                 NO-UNDO.
+
+def var h-bocx095c as handle no-undo.
+def var h-bocx358 as handle no-undo.
+define var c-function      as char                                 no-undo.
+define var l-modo-exec     as log init no                          no-undo.
+define var lAlteracaoItinerario as logical                         no-undo.
+define variable l-ex3001c as logical initial no no-undo.
+
+{cdp/cdcfgdis.i}
+{cdp/cdcfgmat.i}
+{cdp/cdcfgcex.i}
+{utp/ut-glob.i}
+
+{cxbo/bocx095a.i}
+
+&if defined(bf_comex206b-1) &then
+    DEFINE TEMP-TABLE tt-despes-fatur NO-UNDO
+        FIELD cdn-despes   LIKE ped-venda-desp.cdn-despes
+        FIELD val-despes   LIKE ped-venda-desp.val-despes
+        FIELD mo-codigo    LIKE ped-venda-desp.mo-codigo.
+&endif
+
+DEFINE TEMP-TABLE tt-campo-erro NO-UNDO
+    FIELD campo       AS CHARACTER.
+
+def var de-quantidade like tt-parametros.quantidade no-undo.
+def var de-valor      like tt-parametros.valor      no-undo.
+def var de-peso       like tt-parametros.peso       no-undo.
+def var de-volume     like tt-parametros.volume     no-undo.
+def var d-resultado as decimal decimals 5 format "->>>,>>>,>>>,>>9.99999" no-undo.
+def var c-processo-orig like processo-exp.nr-proc-exp no-undo.
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.001
+&scoped-define FIRST-TABLE-IN-QUERY proc-desp-itiner
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME proc-desp-itiner
+
+{include/boini.i}
+
+{cxbo/bocx205.i rowobject}
+DEFINE TEMP-TABLE tt-historico-proc-exp no-undo like historico-proc-exp
+       field r-rowid  as rowid.
+       
+&if defined(bf-dis-comex) &then
+    DEFINE TEMP-TABLE tt-proc-desp-itiner no-undo
+    /*like proc-desp-itiner. */
+        field  char-1               like proc-desp-itiner.char-1  
+        field  char-2               like proc-desp-itiner.char-2  
+        field  check-sum            like proc-desp-itiner.check-sum    
+        field  cod-cond-pag         like proc-desp-itiner.cod-cond-pag  
+        field  cod-desp             like proc-desp-itiner.cod-desp  
+        field  cod-emitente-desp    like proc-desp-itiner.cod-emitente-desp  
+        field  cod-estabel          like proc-desp-itiner.cod-estabel  
+        field  cod-itiner           like proc-desp-itiner.cod-itiner  
+        field  cod-pto-contr        like proc-desp-itiner.cod-pto-contr  
+        field  confirmada           like proc-desp-itiner.confirmada  
+        field  contato              like proc-desp-itiner.contato  
+        field  data-1               like proc-desp-itiner.data-1  
+        field  data-2               like proc-desp-itiner.data-2  
+        field  data-cotacao-desp    like proc-desp-itiner.data-cotacao-desp
+        field  dec-1                like proc-desp-itiner.dec-1  
+        field  dec-2                like proc-desp-itiner.dec-2  
+        field  int-1                like proc-desp-itiner.int-1  
+        field  int-2                like proc-desp-itiner.int-2  
+        field  l-forma-preco        like proc-desp-itiner.l-forma-preco  
+        field  log-1                like proc-desp-itiner.log-1  
+        field  log-2                like proc-desp-itiner.log-2  
+        field  mo-codigo            like proc-desp-itiner.mo-codigo  
+        field  nr-dias-taxa         like proc-desp-itiner.nr-dias-taxa  
+        field  nr-proc-exp          like proc-desp-itiner.nr-proc-exp  
+        field  nr-tab               like proc-desp-itiner.nr-tab  
+        field  perc-descto          like proc-desp-itiner.perc-descto  
+        field  perc-taxa            like proc-desp-itiner.perc-taxa  
+        field  sequencia            like proc-desp-itiner.sequencia  
+        field  taxa-financ          like proc-desp-itiner.taxa-financ  
+        field  val-desp             like proc-desp-itiner.val-desp  
+        field  val-min              like proc-desp-itiner.val-min  
+        field  val-min-desp         like proc-desp-itiner.val-min-desp     
+        field  classif-despesa      as integer
+        field r-rowid               as rowid.
+    
+    DEFINE TEMP-TABLE tt-del-proc-desp-itiner no-undo
+    /*like proc-desp-itiner. */
+        field  char-1               like proc-desp-itiner.char-1  
+        field  char-2               like proc-desp-itiner.char-2  
+        field  check-sum            like proc-desp-itiner.check-sum    
+        field  cod-cond-pag         like proc-desp-itiner.cod-cond-pag  
+        field  cod-desp             like proc-desp-itiner.cod-desp  
+        field  cod-emitente-desp    like proc-desp-itiner.cod-emitente-desp  
+        field  cod-estabel          like proc-desp-itiner.cod-estabel  
+        field  cod-itiner           like proc-desp-itiner.cod-itiner  
+        field  cod-pto-contr        like proc-desp-itiner.cod-pto-contr  
+        field  confirmada           like proc-desp-itiner.confirmada  
+        field  contato              like proc-desp-itiner.contato  
+        field  data-1               like proc-desp-itiner.data-1  
+        field  data-2               like proc-desp-itiner.data-2  
+        field  data-cotacao-desp    like proc-desp-itiner.data-cotacao-desp  
+        field  dec-1                like proc-desp-itiner.dec-1  
+        field  dec-2                like proc-desp-itiner.dec-2  
+        field  int-1                like proc-desp-itiner.int-1  
+        field  int-2                like proc-desp-itiner.int-2  
+        field  l-forma-preco        like proc-desp-itiner.l-forma-preco  
+        field  log-1                like proc-desp-itiner.log-1  
+        field  log-2                like proc-desp-itiner.log-2  
+        field  mo-codigo            like proc-desp-itiner.mo-codigo  
+        field  nr-dias-taxa         like proc-desp-itiner.nr-dias-taxa  
+        field  nr-proc-exp          like proc-desp-itiner.nr-proc-exp  
+        field  nr-tab               like proc-desp-itiner.nr-tab  
+        field  perc-descto          like proc-desp-itiner.perc-descto  
+        field  perc-taxa            like proc-desp-itiner.perc-taxa  
+        field  sequencia            like proc-desp-itiner.sequencia  
+        field  taxa-financ          like proc-desp-itiner.taxa-financ  
+        field  val-desp             like proc-desp-itiner.val-desp  
+        field  val-min              like proc-desp-itiner.val-min  
+        field  val-min-desp         like proc-desp-itiner.val-min-desp     
+        field  classif-despesa      as integer
+        field r-rowid               as rowid.
+&else
+{cxbo/bocx205.i tt-proc-desp-itiner}
+{cxbo/bocx205.i tt-del-proc-desp-itiner}
+&endif        
+
+
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+&if defined(bf-dis-comex) &then
+&else
+
+    /*
+    ** EPC
+    */
+    {include/i-epc200.i bocx205}
+    
+&endif    
+
+procedure setConstraint1:
+
+end procedure.
+
+PROCEDURE setConstraint2:
+
+    DEFINE input parameter p-cod-estabel   like proc-desp-itiner.cod-estabel   no-undo.
+    DEFINE input parameter p-nr-proc-exp   like proc-desp-itiner.nr-proc-exp   no-undo.
+    DEFINE input parameter p-cod-itiner    like proc-desp-itiner.cod-itiner    no-undo.
+    DEFINE input parameter p-nr-sequencia  like proc-desp-itiner.sequencia     no-undo.
+    DEFINE input parameter p-cod-pto-contr like proc-desp-itiner.cod-pto-contr no-undo.
+    DEFINE input parameter p-cod-desp      like proc-desp-itiner.cod-desp      no-undo.
+    DEFINE input parameter p-cod-emit-desp like proc-desp-itiner.cod-emitente-desp no-undo.
+
+    assign c-cod-estabel    = p-cod-estabel
+           c-nr-proc-exp    = p-nr-proc-exp
+           i-cod-itiner     = int(p-cod-itiner)
+           i-nr-sequencia   = int(p-nr-sequencia)
+           i-cod-pto-contr  = int(p-cod-pto-contr)
+           i-cod-desp       = int(p-cod-desp)
+           i-cod-emit-desp  = int(p-cod-emit-desp).
+
+END PROCEDURE.
+
+PROCEDURE setConstraint3:
+
+  DEFINE input parameter p-chave as rowid no-undo.
+
+  assign r-chave = p-chave.
+
+END PROCEDURE.
+
+PROCEDURE setConstraint4:
+
+    DEFINE input parameter p-cod-estabel   like proc-desp-itiner.cod-estabel   no-undo.
+    DEFINE input parameter p-nr-proc-exp   like proc-desp-itiner.nr-proc-exp   no-undo.
+    DEFINE input parameter p-cod-itiner    like proc-desp-itiner.cod-itiner    no-undo.
+    DEFINE input parameter p-cod-pto-contr like proc-desp-itiner.cod-pto-contr no-undo.
+
+    assign c-cod-estabel    = p-cod-estabel
+           c-nr-proc-exp    = p-nr-proc-exp
+           i-cod-itiner     = int(p-cod-itiner)
+           i-cod-pto-contr  = int(p-cod-pto-contr).
+
+
+END PROCEDURE.
+
+PROCEDURE setConstraint5:
+
+    DEFINE input parameter p-cod-estabel   like proc-desp-itiner.cod-estabel   no-undo.
+    DEFINE input parameter p-nr-proc-exp   like proc-desp-itiner.nr-proc-exp   no-undo.
+    DEFINE input parameter p-cod-itiner    like proc-desp-itiner.cod-itiner    no-undo.
+    
+    assign c-cod-estabel   = p-cod-estabel
+           c-nr-proc-exp   = p-nr-proc-exp
+           i-cod-itiner    = int(p-cod-itiner).
+
+
+END PROCEDURE.
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    case i-abertura:
+        when 1 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock.
+        when 2 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where
+                                         proc-desp-itiner.cod-estabel   >= c-cod-estabel  and
+                                         proc-desp-itiner.nr-proc-exp   >= c-nr-proc-exp  and
+                                         proc-desp-itiner.cod-itiner    >= i-cod-itiner   and
+                                         proc-desp-itiner.sequencia     >= i-nr-sequencia and
+                                         proc-desp-itiner.cod-pto-contr >= i-cod-pto-contr and
+                                         proc-desp-itiner.cod-desp      >= i-cod-desp      and
+                                         proc-desp-itiner.cod-emitente-desp >= i-cod-emit-desp no-lock.
+        when 3 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock where
+                                          rowid(proc-desp-itiner) = r-chave.
+        when 4 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where
+                 proc-desp-itiner.cod-estabel   = c-cod-estabel  and
+                 proc-desp-itiner.nr-proc-exp   = c-nr-proc-exp  and
+                 proc-desp-itiner.cod-itiner    = i-cod-itiner   and
+                 proc-desp-itiner.cod-pto-contr = i-cod-pto-contr no-lock.
+        when 5 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where
+                 proc-desp-itiner.cod-estabel   = c-cod-estabel  and
+                 proc-desp-itiner.nr-proc-exp   = c-nr-proc-exp  and
+                 proc-desp-itiner.cod-itiner    = i-cod-itiner   no-lock.                
+    end case.
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-dis-comex) &then
+&else
+    {include/bocomver.i}
+    {include/bogetver.i}
+&endif
+
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+{include/boexecre.i}
+/*{include/boexeupt.i}*/
+{include/boexedel.i}
+/*{include/bovalupt.i}*/
+/*{include/bovaldel.i}*/
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+
+    run startMethod ("initializeValidade").
+
+    run endMethod   ("initializeValidade").
+end procedure.
+
+procedure findCh_proc_desp_itiner:
+
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter i-cod-itiner as inte no-undo.
+    def input parameter i-sequencia as inte no-undo.
+    def input parameter i-cod-pto-contr as inte no-undo.
+    def input parameter i-cod-desp as inte no-undo.
+    def input parameter c-cod-estabel as char no-undo.
+    def input parameter c-nr-proc-exp as char no-undo.
+    def output parameter c-return as char no-undo.
+
+    find proc-desp-itiner
+         where proc-desp-itiner.cod-itiner    = i-cod-itiner
+           and proc-desp-itiner.sequencia     = i-sequencia
+           and proc-desp-itiner.cod-pto-contr = i-cod-pto-contr
+           and proc-desp-itiner.cod-desp      = i-cod-desp
+           and proc-desp-itiner.cod-estabel   = c-cod-estabel
+           and proc-desp-itiner.nr-proc-exp   = c-nr-proc-exp no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        {utp/ut-table.i mgcex proc-desp-itiner 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+
+end procedure.
+              
+procedure findPk_proc_desp_itiner:
+
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter c-cod-estabel as char no-undo.
+    def input parameter c-nr-proc-exp as char no-undo.
+    def input parameter i-cod-itiner as inte no-undo.
+    def input parameter i-sequencia as inte no-undo.
+    def input parameter i-cod-pto-contr as inte no-undo.
+    def input parameter i-cod-desp as inte no-undo.
+    def output parameter c-return as char no-undo.
+
+    find proc-desp-itiner
+         where proc-desp-itiner.cod-estabel   = c-cod-estabel
+           and proc-desp-itiner.nr-proc-exp   = c-nr-proc-exp
+           and proc-desp-itiner.cod-itiner    = i-cod-itiner
+           and proc-desp-itiner.sequencia     = i-sequencia
+           and proc-desp-itiner.cod-pto-contr = i-cod-pto-contr
+           and proc-desp-itiner.cod-desp      = i-cod-desp
+           no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        {utp/ut-table.i mgcex proc-desp-itiner 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+
+end procedure.
+
+procedure findCodigo:
+
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter c-cod-estabel as char no-undo.
+    def input parameter c-nr-proc-exp as char no-undo.
+    def input parameter i-cod-itiner as int no-undo.
+    def input parameter i-cod-pto-contr as inte no-undo.
+    def input parameter i-cod-desp as int no-undo.
+    def input parameter i-cod-emit-desp as int no-undo.
+    def output parameter c-return as char no-undo.
+
+    find proc-desp-itiner
+         where proc-desp-itiner.cod-estabel   = c-cod-estabel
+           and proc-desp-itiner.nr-proc-exp   = c-nr-proc-exp
+           and proc-desp-itiner.cod-itiner    = i-cod-itiner
+           and proc-desp-itiner.cod-pto-contr = i-cod-pto-contr
+           and proc-desp-itiner.cod-desp      = i-cod-desp
+           and proc-desp-itiner.cod-emitente-desp = i-cod-emit-desp
+           no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        {utp/ut-table.i mgcex proc-desp-itiner 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+
+end procedure.
+
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+
+    run startMethod ("validateFields").
+
+    find first rowObject  no-lock no-error.
+    empty temp-table tt-campo-erro.
+
+    if rowObject.cod-estabel = ? or rowObject.cod-estabel = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex proc-desp-itiner cod-estabel 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "cod-estabel":U.
+    end.
+
+    if rowObject.cod-itiner = ? or rowObject.cod-itiner = 0 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex proc-desp-itiner cod-itiner 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "cod-itiner":U.
+    end.
+    
+    if not can-find(first historico-proc-exp
+                    where historico-proc-exp.cod-estabel   = rowObject.cod-estabel  
+                      and historico-proc-exp.nr-proc-exp   = rowObject.nr-proc-exp  
+                      and historico-proc-exp.cod-itiner    = rowObject.cod-itiner   
+                      and historico-proc-exp.cod-pto-contr = rowObject.cod-pto-contr) then do:
+       assign i-seq-erro = i-seq-erro + 1.
+       run utp/ut-msgs.p (input "msg",
+                          input 54667, 
+                          input ?).
+       create tt-bo-erro.
+       assign tt-bo-erro.i-sequen = i-seq-erro
+              tt-bo-erro.cd-erro  = 54667  
+              tt-bo-erro.mensagem = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "cod-pto-contr":U.
+    end.
+
+    if rowObject.nr-proc-exp = ? or rowObject.nr-proc-exp = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex proc-desp-itiner nr-proc-exp 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "nr-proc-exp":U.
+    end.
+
+    if rowObject.sequencia = ? or rowObject.sequencia = 0 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex proc-desp-itiner sequencia 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "sequencia":U.
+    end.
+    
+    if not can-find(itinerario where itinerario.cod-itiner = rowObject.cod-itiner) then do:
+       assign i-seq-erro = i-seq-erro + 1.
+       {utp/ut-liter.i Itinerario * R}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,  /* NÆo encontrado(a) &1, para a chave informada*/
+                          input return-value).
+       create tt-bo-erro.
+       assign tt-bo-erro.i-sequen = i-seq-erro
+              tt-bo-erro.cd-erro  = 2  /* NÆo encontrado(a) &1, para a chave informada*/
+              tt-bo-erro.mensagem = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "cod-itiner":U.
+    end.
+    
+    if rowObject.cod-emitente-desp > 0 then do:
+        if not can-find (first emitente
+                         where emitente.cod-emitente = rowObject.cod-emitente-desp) then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                {utp/ut-field.i mgcex proc-desp-itiner cod-emitente-desp 1}
+                run utp/ut-msgs.p (input "msg",
+                                   input 2,
+                                   input return-value).
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 2
+                       tt-bo-erro.mensagem     = return-value.
+                create tt-campo-erro.
+                assign tt-campo-erro.campo = "cod-emitente-desp":U.
+        end.
+    end.
+    
+    if rowObject.cod-cond-pag <> 0 and
+       not can-find(cond-pagto where cond-pagto.cod-cond-pag = rowObject.cod-cond-pag) then do:
+       assign i-seq-erro = i-seq-erro + 1.
+       {utp/ut-liter.i Condi‡Æo_de_Pagamento * R}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,  /* NÆo encontrado(a) &1, para a chave informada*/
+                          input return-value).
+       create tt-bo-erro.
+       assign tt-bo-erro.i-sequen = i-seq-erro
+              tt-bo-erro.cd-erro  = 2  /* NÆo encontrado(a) &1, para a chave informada*/
+              tt-bo-erro.mensagem = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "cod-cond-pag":U.
+    end.    
+
+    find first processo-exp no-lock 
+         where processo-exp.cod-estabel = rowObject.cod-estabel 
+           and processo-exp.nr-proc-exp = rowObject.nr-proc-exp no-error.
+
+    &if defined(bf_comex206b-1) &then
+
+        if  rowObject.log-despes-integr-ap 
+        and rowObject.cod-cond-pag = 0 then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            create tt-bo-erro.
+            run utp/ut-msgs.p (input "msg":u,
+                               input 2118,
+                               input "").
+
+            assign tt-bo-erro.i-sequen   = i-seq-erro
+                   tt-bo-erro.cd-erro    = 2118
+                   tt-bo-erro.mensagem   = trim(return-value).
+            create tt-campo-erro.
+            assign tt-campo-erro.campo = "cod-cond-pag":U.
+        end.
+        
+        if rowObject.dat-base-cobr-despes = ? then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-field.i mgcex proc-desp-itiner dat-base-cobr-despes 1}
+
+            create tt-bo-erro.
+            assign tt-bo-erro.parametros = return-value.
+
+            run utp/ut-msgs.p (input "msg":u,
+                               input 822,
+                               input return-value).
+
+            assign tt-bo-erro.i-sequen   = i-seq-erro
+                   tt-bo-erro.cd-erro    = 822
+                   tt-bo-erro.mensagem   = return-value.
+        end.
+        
+        if not l-ex3001c then do:
+            if avail processo-exp then do:
+               if rowObject.dat-base-cobr-despes < processo-exp.dat-impl-proces-export then do:
+                  run utp/ut-msgs.p (input "msg":u,
+                                     input 31825,
+                                     input string(processo-exp.dat-impl-proces-export)).
+                  create tt-bo-erro.
+                  assign tt-bo-erro.parametros   = string(processo-exp.dat-impl-proces-export)
+                         i-seq-erro              = i-seq-erro + 1
+                         tt-bo-erro.i-sequen     = i-seq-erro
+                         tt-bo-erro.cd-erro      = 31825
+                         tt-bo-erro.mensagem     = return-value.
+               end.
+            end.
+        end.
+
+    &endif
+
+    if rowObject.data-cotacao-desp = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex proc-desp-itiner data-cotacao-desp 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+    
+    if rowObject.classif-despesa < 1 or rowObject.classif-despesa > 4 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex proc-desp-itiner classif-despesa 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 158,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 158
+               tt-bo-erro.mensagem     = return-value.
+        {utp/ut-field.i mgcex proc-desp-itiner classif-despesa 1}
+        assign tt-bo-erro.parametros   = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "classif-despesa":U.
+    end.
+    
+    if not can-find(moeda where moeda.mo-codigo = rowObject.mo-codigo) then do:
+       assign i-seq-erro = i-seq-erro + 1.
+       {utp/ut-liter.i Moeda * R}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,
+                          input return-value).
+       create tt-bo-erro.
+       assign tt-bo-erro.i-sequen = i-seq-erro
+              tt-bo-erro.cd-erro  = 2
+              tt-bo-erro.mensagem = return-value.
+       create tt-campo-erro.
+       assign tt-campo-erro.campo = "mo-codigo":U.
+    end.
+    
+    if rowObject.cod-desp = ? or rowObject.cod-desp = 0 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex proc-desp-itiner cod-desp 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+         create tt-campo-erro.
+         assign tt-campo-erro.campo = "cod-desp":U.
+    end.
+    else if not can-find(desp-imp where desp-imp.cod-desp = rowObject.cod-desp) then do:
+       assign i-seq-erro = i-seq-erro + 1.
+       {utp/ut-liter.i Despesa * R}
+       run utp/ut-msgs.p (input "msg",
+                          input 2,
+                          input return-value).
+       create tt-bo-erro.
+       assign tt-bo-erro.i-sequen = i-seq-erro
+              tt-bo-erro.cd-erro  = 2
+              tt-bo-erro.mensagem = return-value.
+       create tt-campo-erro.
+       assign tt-campo-erro.campo = "cod-desp":U.
+    end.    
+    
+    if rowObject.cod-desp <> 0 and rowObject.cod-desp <> ?
+    and (rowObject.descricao = ? or trim(rowObject.descricao) = "":U) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex historico-proc-exp descricao 1}
+        /******************************************/
+        create tt-bo-erro.
+        assign tt-bo-erro.parametros = return-value.        
+        run utp/ut-msgs.p (input "msg":u,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+        create tt-campo-erro.
+        assign tt-campo-erro.campo = "descricao":U.
+    end.
+
+    if not l-modo-exec then do:
+            if rowObject.l-forma-preco then do:
+                if avail processo-exp and processo-exp.cod-sit-proc = 3 then do:
+                    assign i-seq-erro = i-seq-erro + 1.
+                    {utp/ut-table.i mgcex proc-desp-itiner 1}
+                    create tt-bo-erro.
+                    assign tt-bo-erro.parametros = return-value.
+                    run utp/ut-msgs.p (input "msg",
+                                       input 26283,
+                                       input return-value).
+                    assign tt-bo-erro.i-sequen     = i-seq-erro
+                           tt-bo-erro.cd-erro      = 26283
+                           tt-bo-erro.mensagem     = return-value.              
+                end.
+            end.
+    end.
+
+    &if defined(bf-dis-comex) &then
+    &else
+        /*
+        ** Tratamento Chamada UPC
+        */
+        IF c-nom-prog-upc-mg97 <> "" then do:        
+           
+            for each tt-epc:
+                delete tt-epc.
+            end.
+            
+            /*
+            ** Tratamento Chamada UPC/Grendene
+            */
+            create tt-epc.
+            assign tt-epc.cod-event     = "grDespesasProcesso":U
+                   tt-epc.cod-parameter = "lDpc"
+                   tt-epc.val-parameter = "no".
+            {include/i-epc201.i "grdespesasprocesso"}
+            for each tt-epc
+                where tt-epc.cod-event = "grDespesasProcesso":U:
+                if tt-epc.cod-parameter = "lDpc":U and
+                   tt-epc.val-parameter = "yes" then do:
+                    find tt-bo-erro
+                        where tt-bo-erro.cd-erro = 26283 no-error.
+                    if avail tt-bo-erro then 
+                        delete tt-bo-erro.                           
+                end.
+            end.
+           
+        END.
+    &endif
+    
+    if  RowObject.l-forma-preco   = yes
+    and RowObject.classif-despesa = 1 then do: /*nÆo permite cria‡Æo de despesa de exporta‡Æo com classifica‡Æo "nenhum"*/
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-liter.i Classifica‡Æo_da_Despesa * R}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 33332,
+                           input trim(return-value)).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 33332
+               tt-bo-erro.mensagem     = trim(return-value).
+    end.
+
+    
+    run endMethod ("validateFields").
+end procedure.
+
+procedure validateCreate:
+    /*
+    **  Valida cria‡Æo da tabela/duplicidade de registro.
+    */
+    
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    def output parameter r-chave as rowid.
+
+    run startMethod ("validateCreate").
+    run initializeValidate.
+
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+    assign i-seq-erro = 0.
+
+    run validateFields.
+    find first tt-bo-erro no-error.
+    if not avail tt-bo-erro then do:
+        find first proc-desp-itiner
+             where proc-desp-itiner.cod-estabel = rowObject.cod-estabel
+               and proc-desp-itiner.nr-proc-exp = rowObject.nr-proc-exp
+               and proc-desp-itiner.cod-itiner  = rowObject.cod-itiner
+               and proc-desp-itiner.sequencia   = rowObject.sequencia
+               and proc-desp-itiner.cod-desp    = rowObject.cod-desp
+               no-lock no-error.
+        if not avail proc-desp-itiner then do:
+           find first proc-desp-itiner
+                where proc-desp-itiner.cod-estabel   = rowObject.cod-estabel
+                  and proc-desp-itiner.nr-proc-exp   = rowObject.nr-proc-exp
+                  and proc-desp-itiner.cod-itiner    = rowObject.cod-itiner
+                  and proc-desp-itiner.cod-desp      = rowObject.cod-desp no-lock no-error.
+        end.
+        if avail proc-desp-itiner then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-table.i mgcex proc-desp-itiner 1}
+            run utp/ut-msgs.p (input "msg",
+                               input 8,
+                               input return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 8
+                   tt-bo-erro.mensagem     = return-value.
+        end.
+    end.
+    
+    find first tt-bo-erro no-lock no-error.
+    if not avail tt-bo-erro then do:
+       run executeCreate.
+        /*Siscoserv*/
+        run pi-grava-siscoserv.
+        /*Siscoserv*/
+       
+       &if defined(bf_comex206b-1) &then
+           /*Marca o processo para ser recalculado*/
+           run marcaRecalculaProcesso (input rowobject.cod-estabel,
+                                       input rowobject.nr-proc-exp).
+       &endif
+    
+       assign r-chave = to-rowid(return-value).
+    end.
+    
+    &if defined(bf_comex206b-1) &then
+        run pi-gera-log-despesas-export-apos-embarque.
+    &endif
+        
+    run endMethod ("validateCreate").
+
+end procedure.
+
+
+procedure pi-grava-siscoserv:
+   /*------------------------------------------------------------------------------
+     Purpose:     Procedure para a grava‡Æo da tabela ExtensÆo do Siscoserv
+     Parameters:  <none>
+     Notes:       
+   ------------------------------------------------------------------------------*/
+   /*
+     Inicio Siscoserv
+     Grava as informa‡äees na tabela de extensÆo para depois enviar para o siscoserv
+   */
+   IF NOT VALID-HANDLE(h-bocx200) THEN DO:
+      RUN cxbo/bocx200.p PERSISTENT SET h-bocx200.
+   END.
+   
+   IF NOT VALID-HANDLE(h-cdapi050) THEN DO:
+      RUN cdp/cdapi050.p PERSISTENT SET h-cdapi050.
+   END.
+   RUN pi-siscoserv-ativo IN h-cdapi050.
+   
+   IF RETURN-VALUE = "OK":U THEN DO:
+       IF CAN-FIND (FIRST emitente
+                WHERE emitente.cod-emitente = RowObject.cod-emitente-desp
+                AND UPPER(emitente.pais) <> "BRASIL":U) THEN DO:
+        
+           RUN findPk_proc_pto IN h-bocx200 (INPUT RowObject.cod-estabel,
+                                             INPUT RowObject.nr-proc-exp,
+                                             INPUT RowObject.cod-itiner,
+                                             INPUT RowObject.sequencia,
+                                             OUTPUT c-return).
+           IF c-return = "":U THEN DO:
+               RUN getDateField IN h-bocx200 (INPUT "dt-previsao":U,
+                                              OUTPUT d-date).
+                 
+               RUN pi-grava-despes-export-sis IN h-cdapi050 (INPUT RowObject.cod-estabel,
+                                                             INPUT RowObject.nr-proc-exp,
+                                                             INPUT RowObject.cod-itiner,   
+                                                             INPUT RowObject.cod-pto-contr,
+                                                             INPUT RowObject.cod-desp,
+                                                             INPUT RowObject.cod-emitente-desp,
+                                                             INPUT RowObject.sequencia,
+                                                             INPUT d-date).
+           END.
+       END.            
+   END.
+   IF VALID-HANDLE(h-bocx200) THEN DO:
+      DELETE PROCEDURE h-bocx200.
+      ASSIGN h-bocx200 = ?.
+   END.
+  
+   IF VALID-HANDLE(h-cdapi050) THEN DO:
+      DELETE PROCEDURE h-cdapi050.
+      ASSIGN h-cdapi050 = ?.
+   END.
+   /*
+       Fim - Siscoserv
+   */
+end.
+
+
+
+procedure validateUpdate:
+    /*
+    **  Valida Update
+    */
+    def input parameter table for RowObject.
+    def input parameter r-chave as rowid no-undo.
+    def output parameter table for tt-bo-erro.
+    
+    def var c-return1      as char    no-undo.
+    def var l-erro-desp-ap as logical no-undo.
+    def var l-erro-desp    as logical no-undo.
+    def var l-existe-log   as logical no-undo.
+    
+    run startMethod("validateUpdate":U).
+ 
+    run InitializeValidate.
+ 
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+    assign i-seq-erro = 0.
+    
+    run validateFields.
+
+    &if defined(bf_comex206b-1) &then
+        assign l-erro-desp-ap    = no
+               l-erro-desp       = no.
+
+        if  rowObject.l-forma-preco then do:
+            run cxbo/bocx358.p persistent set h-bocx358.
+            run piRetornaDespesasFaturadas in h-bocx358 (input rowobject.cod-estabel,
+                                                         input rowobject.nr-proc-exp,
+                                                         input rowobject.cod-desp,
+                                                         output table tt-despes-fatur).
+             
+            find first tt-despes-fatur where
+                 tt-despes-fatur.cdn-despes  = rowobject.cod-desp no-error.
+            if avail tt-despes-fatur then do:
+               if rowObject.val-desp < tt-despes-fatur.val-despes then do:
+                    {utp/ut-liter.i Valor_da_Despesa * R}
+                    assign c-return1 = return-value.
+                    {utp/ut-liter.i o_Valor_desta_Despesas_nas_Notas_Fiscais_do_Processo_Exporta‡Æo * R}
+                    
+                    create tt-bo-erro.
+                    assign tt-bo-erro.parametros = c-return1 + "~~" + return-value.
+                    assign i-seq-erro = i-seq-erro + 1.    
+                    run utp/ut-msgs.p (input "msg",
+                                       input 31511,
+                                       input c-return1 + "~~" + return-value).
+                    assign tt-bo-erro.i-sequen = i-seq-erro
+                           tt-bo-erro.cd-erro  = 31511
+                           tt-bo-erro.mensagem = return-value.     
+               end.
+            end.
+        end.
+        
+        for first {&TABLE-NAME} fields (mo-codigo val-desp log-despes-integr-ap) where rowid({&TABLE-NAME}) = r-chave no-lock. end.
+        if avail {&TABLE-NAME} then do:
+            if {&TABLE-NAME}.mo-codigo <> RowObject.mo-codigo or
+               {&TABLE-NAME}.val-desp  <> RowObject.val-desp  or
+               {&TABLE-NAME}.log-despes-integr-ap <> RowObject.log-despes-integr-ap then do:
+                
+                find first proc-export-atualiz-log no-lock 
+                     where proc-export-atualiz-log.cod-estabel    = RowObject.cod-estabel 
+                       and proc-export-atualiz-log.nr-proc-exp    = RowObject.nr-proc-exp 
+                       and proc-export-atualiz-log.idi-tip-proces = 4 no-error.
+                if  avail proc-export-atualiz-log then do:
+                    assign l-existe-log = yes.
+                    if  proc-export-atualiz-log.dat-cancel = ? 
+                    and (proc-export-atualiz-log.idi-situacao = 1 or proc-export-atualiz-log.idi-situacao = 2) then do:                    
+                        create tt-bo-erro.
+                        assign i-seq-erro = i-seq-erro + 1.    
+                    
+                        run utp/ut-msgs.p (input "msg",
+                                           input 33544,
+                                           input "").
+                                       
+                        assign tt-bo-erro.i-sequen = i-seq-erro
+                               tt-bo-erro.cd-erro  = 33544
+                               tt-bo-erro.mensagem = return-value
+                               l-erro-desp         = yes.
+                    end.
+                end.
+                else do:
+                    if {&TABLE-NAME}.log-despes-integr-ap = yes then do:
+                       find first proc-export-atualiz-log no-lock 
+                            where proc-export-atualiz-log.cod-estabel    = RowObject.cod-estabel
+                              and proc-export-atualiz-log.nr-proc-exp    = RowObject.nr-proc-exp 
+                              and proc-export-atualiz-log.idi-tip-proces = 5 no-error.
+                       if  avail proc-export-atualiz-log then do:
+                           assign l-existe-log = yes.
+                           if   proc-export-atualiz-log.dat-cancel = ?
+                           and (proc-export-atualiz-log.idi-situacao = 1 or proc-export-atualiz-log.idi-situacao = 2) then do:
+                               create tt-bo-erro.
+                               assign i-seq-erro = i-seq-erro + 1.    
+                            
+                               run utp/ut-msgs.p (input "msg",
+                                                  input 33544,
+                                                  input "").
+                                               
+                               assign tt-bo-erro.i-sequen = i-seq-erro
+                                      tt-bo-erro.cd-erro  = 33544
+                                      tt-bo-erro.mensagem = return-value
+                                      l-erro-desp-ap      = yes.
+                           end.
+                       end.
+                    end.
+                end.                    
+            end.
+        end.
+    &endif
+    
+    find first tt-bo-erro no-lock no-error.
+    if not avail tt-bo-erro then do:
+        find {&TABLE-NAME} where rowid({&TABLE-NAME}) = r-chave
+            exclusive-lock no-error no-wait.
+	if avail {&TABLE-NAME} then do:
+           run executeUpdate.   
+        end.
+           /*Siscoserv*/
+           run pi-grava-siscoserv.
+          /*Siscoserv*/
+        if l-existe-log then do:
+           if not l-erro-desp-ap then 
+              &if defined(bf_comex206b-1) &then     
+                 RUN pi-cria-registro-log-despesa (INPUT 5). /* gerar titulos no contas a pagar */
+              &endif
+           if not l-erro-desp then        
+              &if defined(bf_comex206b-1) &then
+                 RUN pi-cria-registro-log-despesa (INPUT 4). /* contabilizar as despesas */
+              &endif
+        end.
+    end.    
+
+    &if defined(bf_comex206b-1) &then
+        run pi-gera-log-despesas-export-apos-embarque.
+        if  valid-handle(h-bocx358) then do:
+            DELETE PROCEDURE h-bocx358.
+            ASSIGN h-bocx358 = ?.
+        end.
+    &endif
+
+    run endMethod("validateUpdate":U).
+end procedure.
+
+procedure executeUpdate:
+
+/*  Executa Update*/
+    buffer-copy RowObject except r-rowid
+                                 cod-estabel
+                                 nr-proc-exp
+                                 cod-itiner
+                                 sequencia to {&TABLE-NAME}.
+   &if defined(bf_comex206b-1) &then 
+       run marcaRecalculaProcesso (input rowobject.cod-estabel,
+                                   input rowobject.nr-proc-exp).
+   &endif
+end procedure.
+
+procedure emptyRowErrors:
+
+     for each tt-bo-erro:
+         delete tt-bo-erro.
+     end.        
+
+end procedure.
+
+PROCEDURE recalcula:
+
+     def input parameter p-cod-estabel like proc-desp-itiner.cod-estabel no-undo.
+     def input parameter p-nr-proc-exp like proc-desp-itiner.nr-proc-exp no-undo.
+     def input parameter p-cod-itiner  like proc-desp-itiner.cod-itiner  no-undo.
+     def output parameter table for tt-bo-erro.
+
+     run calculopesoquant (input p-cod-estabel, input p-nr-proc-exp).
+
+     /* Recalcula as despesas do itiner rio*/
+     for each {&TABLE-NAME} exclusive-lock
+         where {&TABLE-NAME}.cod-estabel = p-cod-estabel
+           and {&TABLE-NAME}.nr-proc-exp = p-nr-proc-exp
+           and {&TABLE-NAME}.cod-itiner  = p-cod-itiner :
+         run atualizaValorDesp (input rowid({&TABLE-NAME}), output table tt-bo-erro).
+     end. /* for each {&TABLE-NAME} */
+     /* Final */
+
+END.
+
+
+PROCEDURE generateTable:
+
+     def input  parameter table for tt-historico-proc-exp.
+     def output parameter table for tt-bo-erro.
+     def var r-chave as rowid no-undo.
+     
+     def var l-subprocesso as logical initial no no-undo.
+	 def var c-prog-origem as character          no-undo.				
+	 def var i-cont-orig   as integer            no-undo.				
+
+ 	 do i-cont-orig = 1 to 15:
+		if  program-name(i-cont-orig) matches "*ex3001*":u then
+			assign c-prog-origem = "ex3001":u.
+	 end.
+     
+     find first tt-historico-proc-exp no-lock no-error.
+     
+     /* Conforme o processo do ponto do itinerÿrio, verifica todas as despesas
+        do itinerÿrio, de acordo com o ponto de controle para gerar o processo
+        de despesas do itinerÿrio */
+
+     find processo-exp no-lock where 
+          processo-exp.cod-estabel = tt-historico-proc-exp.cod-estabel and 
+          processo-exp.nr-proc-exp = tt-historico-proc-exp.nr-proc-exp no-error.
+     if avail processo-exp then do:
+     
+        assign l-subprocesso = trim(substring(processo-exp.char-2,1,1)) = "1":U.
+     
+        run calculopesoquant (input processo-exp.cod-estabel, input processo-exp.nr-proc-exp).
+        
+        for each desp-itiner no-lock 
+           where desp-itiner.cod-itiner    = tt-historico-proc-exp.cod-itiner 
+             and desp-itiner.cod-pto-contr = tt-historico-proc-exp.cod-pto-contr:
+           
+            /* Se o itiner rio foi alterado */
+            if lAlteracaoItinerario then do:
+                if can-find(first proc-desp-itiner 
+                            where proc-desp-itiner.cod-estabel = processo-exp.cod-estabel       
+                              and proc-desp-itiner.nr-proc-exp = processo-exp.nr-proc-exp      
+                              and proc-desp-itiner.cod-itiner  = processo-exp.cod-itiner        
+                              and proc-desp-itiner.sequencia   = tt-historico-proc-exp.sequencia
+                              and proc-desp-itiner.cod-desp    = desp-itiner.cod-desp) then next.  
+                              
+                if can-find(first proc-desp-itiner 
+                            where proc-desp-itiner.cod-estabel = processo-exp.cod-estabel
+                              and proc-desp-itiner.nr-proc-exp = processo-exp.nr-proc-exp
+                              and proc-desp-itiner.cod-itiner  = processo-exp.cod-itiner 
+                              and proc-desp-itiner.cod-desp    = desp-itiner.cod-desp) then next.
+            end.
+            
+            for first desp-imp fields(descricao) 
+                where desp-imp.cod-desp = desp-itiner.cod-desp no-lock:
+            end.
+			
+			create tt-proc-desp-itiner.
+            assign tt-proc-desp-itiner.cod-estabel    		= tt-historico-proc-exp.cod-estabel
+                   tt-proc-desp-itiner.nr-proc-exp    		= tt-historico-proc-exp.nr-proc-exp
+                   tt-proc-desp-itiner.cod-itiner     		= desp-itiner.cod-itiner
+                   tt-proc-desp-itiner.sequencia      		= tt-historico-proc-exp.sequencia
+                   tt-proc-desp-itiner.cod-pto-contr  		= desp-itiner.cod-pto-contr
+                   tt-proc-desp-itiner.cod-desp       		= desp-itiner.cod-desp
+                   c-cod-incoterm                     		= processo-exp.cod-incoterm
+				   tt-proc-desp-itiner.descricao            = desp-imp.descricao when avail desp-imp.            
+				  
+			/* Muda o default do campo para "no" */
+			if can-find(first funcao
+						where funcao.cd-funcao = "spp-no-desp-int-ap"
+						  and funcao.ativo) 
+						  and c-prog-origem = "ex3001" then
+						assign tt-proc-desp-itiner.log-despes-integr-ap = no.					  			
+
+			if desp-itiner.cod-emitente <> 0 then
+			   assign tt-proc-desp-itiner.cod-emitente-desp = desp-itiner.cod-emitente.
+			else do:
+			   for first desp-imp field (cod-desp cod-emitente inc-val-frete inc-val-seguro inc-val-embal) no-lock where
+				   desp-imp.cod-desp = desp-itiner.cod-desp:
+			   end.
+			   if available desp-imp then do:
+				  assign tt-proc-desp-itiner.cod-emitente-desp = desp-imp.cod-emitente.
+				  
+				  if  desp-imp.inc-val-frete then
+					  ASSIGN tt-proc-desp-itiner.classif-despesa = 2.
+				  else
+					  if desp-imp.inc-val-seguro then
+						 assign tt-proc-desp-itiner.classif-despesa = 3.
+					  else
+						 if desp-imp.inc-val-embal then
+							assign tt-proc-desp-itiner.classif-despesa = 4.
+						 else
+							assign tt-proc-desp-itiner.classif-despesa = 1.
+			   end.
+			end.
+			if tt-proc-desp-itiner.cod-emitente-desp = ? then
+			   tt-proc-desp-itiner.cod-emitente-desp = 0.
+		   
+			find first emitente
+				 where emitente.cod-emitente = tt-proc-desp-itiner.cod-emitente-desp no-lock no-error.
+			if avail emitente then
+			   assign tt-proc-desp-itiner.cod-cond-pag = emitente.cod-cond-pag.
+	
+			/* Procura pela tabela de pre‡os para atualizar as despesas */
+			{exp/exr9990.i tt-proc-desp-itiner.cod-emitente-desp desp-itiner.cod-itiner c-cod-incoterm desp-itiner.cod-desp }
+			if avail tb-pr-cex then 
+			   assign tt-proc-desp-itiner.mo-codigo    = tb-pr-cex.mo-codigo
+					  tt-proc-desp-itiner.taxa-financ  = tb-pr-cex.taxa-financ
+					  tt-proc-desp-itiner.perc-taxa    = tb-pr-cex.perc-taxa
+					  tt-proc-desp-itiner.nr-dias-taxa = tb-pr-cex.nr-dias-taxa
+					  tt-proc-desp-itiner.perc-descto  = tb-pr-cex.perc-descto.
+			if available desp-tb-pr-cex then
+			   assign tt-proc-desp-itiner.nr-tab = tb-pr-cex.nr-tab.       
+             
+            if avail desp-tb-pr-cex then
+               assign tt-proc-desp-itiner.cod-cond-pag = desp-tb-pr-cex.cod-cond-pag
+                      tt-proc-desp-itiner.val-min      = desp-tb-pr-cex.val-min
+                      tt-proc-desp-itiner.val-min-desp = desp-tb-pr-cex.val-min-desp.
+            
+            find desp-incoterm no-lock where 
+                 desp-incoterm.cod-incoterm = c-cod-incoterm and 
+                 desp-incoterm.cod-desp     = desp-itiner.cod-desp no-error.
+        
+            if avail desp-incoterm then
+               assign tt-proc-desp-itiner.l-forma-preco = desp-incoterm.l-forma-preco.
+        
+            if l-subprocesso then do:
+               /*posiciona nas despesas do processo de exporta‡Æo de origem*/
+               for each proc-desp-itiner 
+                  where proc-desp-itiner.cod-estabel = tt-historico-proc-exp.cod-estabel
+                    and proc-desp-itiner.nr-proc-exp = c-processo-orig  no-lock:
+                    /*verifica se foi gerada a mesma despesa atrav‚s do itinerario*/
+                    if can-find(first tt-proc-desp-itiner
+                                where tt-proc-desp-itiner.cod-estabel = proc-desp-itiner.cod-estabel
+                                  and tt-proc-desp-itiner.nr-proc-exp = processo-exp.nr-proc-exp /*posicionado no subprocesso*/
+                                  and tt-proc-desp-itiner.cod-desp    = proc-desp-itiner.cod-desp) then do:
+                       delete tt-proc-desp-itiner.
+                       
+                       create tt-proc-desp-itiner.
+                       buffer-copy proc-desp-itiner except nr-proc-exp to tt-proc-desp-itiner.
+                       assign tt-proc-desp-itiner.nr-proc-exp = processo-exp.nr-proc-exp.
+                    end.
+               end.
+            end.
+            
+            /*Gera o processo das despesas do itiner rio  */
+            run validatecreate (input table tt-proc-desp-itiner, 
+                                output table tt-bo-erro, output r-chave).
+            find first tt-bo-erro no-error.
+            if not avail tt-bo-erro then
+               run atualizaValorDesp (input r-chave, output table tt-bo-erro).
+        
+            delete tt-proc-desp-itiner.
+        
+        end. /* for each  desp-itiner */
+     end. /*if avail processo-exp*/
+
+END.
+
+PROCEDURE calculopesoquant:
+
+    def input parameter p-cod-estabel like proc-desp-itiner.cod-estabel no-undo.
+    def input parameter p-nr-proc-exp like proc-desp-itiner.nr-proc-exp no-undo.
+
+    /* Calcula o peso, quantidade e o valor total das entregas do processo */
+    assign de-peso  = 0
+           de-valor = 0
+           de-quantidade = 0.
+    for each  proc-ped-ent fields(&IF "{&bf_cex_versao_ems}" >= "2.062" &THEN peso-liquido quantidade vl-preuni &ELSE dec-1 &ENDIF) no-lock
+        where proc-ped-ent.cod-estabel = p-cod-estabel
+          and proc-ped-ent.nr-proc-exp = p-nr-proc-exp:
+        find ped-ent of proc-ped-ent no-lock no-error.
+        if avail ped-ent then do:
+           &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+                assign de-quantidade = de-quantidade + proc-ped-ent.quantidade[1]
+                       de-valor      = de-valor + (proc-ped-ent.quantidade[1] * proc-ped-ent.vl-preuni)
+                       de-peso       = de-peso  + proc-ped-ent.peso-liquido.
+           &ELSE
+                assign de-quantidade = de-quantidade + ped-ent.qt-pedida
+                       de-valor      = de-valor + ped-ent.vl-tot-it
+                       de-peso       = de-peso   + proc-ped-ent.dec-1.
+           &ENDIF
+        end. /*if avail ped-ent  */
+    end. /* for each  proc-ped-ent */
+END.
+
+PROCEDURE atualizaValorDesp:
+
+    /* Recebe a rowid da tabela de processo de despesas do
+       itinerÿrio, porque essa Procedure pode ser executa-
+       da a partir da inclus’o do processo exporta»’o, qdo
+       gera os pontos do itinerÿrio  e as despesas do pro-
+       cesso.  Tamb²m  ² chamado qdo incluir um relaciona-
+       mento do pedido com o  processo exporta»’o  no pro-
+       grama wex0190.w */
+
+    
+    def input parameter r-chave as rowid no-undo.
+    def output parameter table for tt-bo-erro.
+    def var de-vl-despesa like proc-desp-itiner.val-desp no-undo.
+
+    find {&TABLE-NAME} exclusive-lock
+         where rowid({&TABLE-NAME}) = r-chave no-error.
+
+    if avail {&TABLE-NAME} then do:
+    
+       find processo-exp no-lock
+            where processo-exp.cod-estabel = {&TABLE-NAME}.cod-estabel
+              and processo-exp.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp no-error.
+              
+       &if "{&bf_mat_versao_ems}":U < "2.062":U &then
+       create tt-parametros.
+       assign tt-parametros.cod-emitente          = {&TABLE-NAME}.cod-emitente-desp
+              tt-parametros.cod-desp              = {&TABLE-NAME}.cod-desp
+              tt-parametros.cod-itiner            = {&TABLE-NAME}.cod-itiner
+              tt-parametros.cod-incoterm          =  processo-exp.cod-incoterm
+              tt-parametros.modulo                = "Exp"
+              tt-parametros.quantidade            = de-quantidade
+              tt-parametros.valor                 = de-valor
+              tt-parametros.peso                  = de-peso
+              &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+                  tt-parametros.volume            = processo-exp.volume
+              &else
+                  tt-parametros.volume            = processo-exp.dec-1
+              &ENDIF
+              tt-parametros.cod-versao-integracao = 2.
+
+       create tt-parametros-imp.
+       assign tt-parametros-imp.numero-ordem = 0
+            &if defined(bf-dis-comex) &then
+            &else
+              tt-parametros-imp.seq-cotac    = 0
+            &endif .
+       create tt-parametros-exp.
+       assign tt-parametros-exp.cod-estabel  = {&TABLE-NAME}.cod-estabel
+              tt-parametros-exp.nr-proc-exp  = {&TABLE-NAME}.nr-proc-exp.
+
+       find first proc-ped-venda no-lock
+            where proc-ped-venda.cod-estabel = {&TABLE-NAME}.cod-estabel
+              and proc-ped-venda.nr-proc-exp = {&TABLE-NAME}.nr-proc-exp no-error.
+              
+       if avail proc-ped-venda then
+          assign tt-parametros-exp.nr-pedido = proc-ped-venda.nr-pedido.
+
+       /* calculo das despesas de importacao */
+       run cxbo/bocx095a.p (input table tt-parametros,
+                            input table tt-parametros-imp,
+                            input table tt-parametros-exp,
+                            output de-vl-despesa,
+                            output table tt-erro).
+
+       find first tt-erro no-error.
+       if not avail tt-erro then do:
+          assign {&table-name}.val-desp = de-vl-despesa.
+       end. /* if not avail tt-erro */
+       else do:
+           for each tt-erro:
+               create tt-bo-erro.
+               assign tt-bo-erro.i-sequen = tt-erro.i-sequen
+                      tt-bo-erro.cd-erro  = tt-erro.cd-erro
+                      tt-bo-erro.mensagem = tt-erro.mensagem.
+           end.
+       end.
+
+       delete tt-parametros.
+       delete tt-parametros-imp.
+       delete tt-parametros-exp.
+       &else
+           run cxbo/bocx095c.p persistent set h-bocx095c.
+           run setDespesaExportacao in h-bocx095c(input {&table-name}.cod-estabel,
+                                                  input {&table-name}.nr-proc-exp,
+                                                  input {&table-name}.cod-itiner,
+                                                  input processo-exp.cod-incoterm,
+                                                  input {&table-name}.cod-emitente-desp,
+                                                  input {&table-name}.cod-desp,
+                                                  input {&table-name}.nr-tab,
+                                                  input {&table-name}.mo-codigo,
+                                                  input {&table-name}.data-cotacao-desp,
+                                                  input 2,
+                                                  input {&table-name}.cod-cond-pag).
+           run calculaDespesa in h-bocx095c(output d-resultado,
+                                            output table tt-bo-erro).
+           if not can-find(first tt-bo-erro) then do:
+              assign {&table-name}.val-desp = d-resultado.
+           end.
+    
+           if valid-handle(h-bocx095c) then do:
+              delete procedure h-bocx095c.
+              assign h-bocx095c = ?.
+           end.
+       &endif
+
+    end. /* if avail {&TABLE-NAME} */
+
+END PROCEDURE.
+
+PROCEDURE deleteTable:
+
+     def input parameter p-cod-estabel like historico-proc-exp.cod-estabel.
+     def input parameter p-nr-proc-exp like historico-proc-exp.nr-proc-exp.
+     def input parameter p-cod-itiner  like historico-proc-exp.cod-itiner.
+     def input parameter p-sequencia   like historico-proc-exp.sequencia.
+     def input parameter p-cod-pto-contr like historico-proc-exp.cod-pto-contr.
+
+     def var r-rowid  as rowid no-undo.
+     for each proc-desp-itiner exclusive-lock
+         where proc-desp-itiner.cod-estabel = p-cod-estabel
+         and   proc-desp-itiner.nr-proc-exp = p-nr-proc-exp
+         and   proc-desp-itiner.cod-itiner  = p-cod-itiner
+         and   proc-desp-itiner.sequencia   = p-sequencia
+         and   proc-desp-itiner.cod-pto-contr = p-cod-pto-contr:
+         assign r-rowid = rowid(proc-desp-itiner).
+         run validateDelete (input-output r-rowid, output table tt-bo-erro).
+     end.
+
+END PROCEDURE.
+
+
+procedure validateDelete:
+    /*
+    **  Valida Delete
+    */
+    def input-output parameter r-chave as rowid.
+    def output parameter table for tt-bo-erro.
+    
+    def var c-cod-estabel like processo-exp.cod-estabel.
+    def var c-nr-proc-exp like processo-exp.nr-proc-exp.
+
+    run InitializeValidate.
+
+    find {&TABLE-NAME} where
+        rowid({&TABLE-NAME}) = r-chave
+        exclusive-lock no-error.
+    if avail {&TABLE-NAME} then do:
+            
+       &if defined(bf_comex206b-1) &then
+           run cxbo/bocx358.p persistent set h-bocx358.
+           run piRetornaDespesasFaturadas in h-bocx358 (input {&TABLE-NAME}.cod-estabel,
+                                                        input {&TABLE-NAME}.nr-proc-exp,
+                                                        input {&TABLE-NAME}.cod-desp,
+                                                        output table tt-despes-fatur).
+           find first tt-despes-fatur where
+                tt-despes-fatur.cdn-despes  = {&TABLE-NAME}.cod-desp no-error.
+           if  avail tt-despes-fatur 
+           AND tt-despes-fatur.val-despes > 0 then do:
+               create tt-bo-erro.
+               assign i-seq-erro = i-seq-erro + 1.    
+               run utp/ut-msgs.p (input "msg",
+                                  input 31510,
+                                  input "").
+               assign tt-bo-erro.i-sequen = i-seq-erro
+                      tt-bo-erro.cd-erro  = 31510
+                      tt-bo-erro.mensagem = return-value.     
+           end.
+           DELETE PROCEDURE h-bocx358.
+           ASSIGN h-bocx358 = ?
+                  c-cod-estabel = {&TABLE-NAME}.cod-estabel
+                  c-nr-proc-exp = {&TABLE-NAME}.nr-proc-exp.
+                  
+           find first proc-export-atualiz-log no-lock 
+                where proc-export-atualiz-log.cod-estabel    = {&TABLE-NAME}.cod-estabel
+                  and proc-export-atualiz-log.nr-proc-exp    = {&TABLE-NAME}.nr-proc-exp 
+                  and proc-export-atualiz-log.idi-tip-proces = 4 no-error.
+           if avail proc-export-atualiz-log 
+                and proc-export-atualiz-log.dat-cancel = ?
+                and (proc-export-atualiz-log.idi-situacao = 1 or proc-export-atualiz-log.idi-situacao = 2) then do:                    
+               create tt-bo-erro.
+               assign i-seq-erro = i-seq-erro + 1.    
+                
+               run utp/ut-msgs.p (input "msg",
+                                  input 33544,
+                                  input "").
+                                   
+               assign tt-bo-erro.i-sequen = i-seq-erro
+                      tt-bo-erro.cd-erro  = 33544
+                      tt-bo-erro.mensagem = return-value.     
+           end.
+           else do:
+               if {&TABLE-NAME}.log-despes-integr-ap = yes then do:
+                  find first proc-export-atualiz-log no-lock 
+                       where proc-export-atualiz-log.cod-estabel    = {&TABLE-NAME}.cod-estabel
+                         and proc-export-atualiz-log.nr-proc-exp    = {&TABLE-NAME}.nr-proc-exp 
+                         and proc-export-atualiz-log.idi-tip-proces = 5 no-error.
+                  if avail proc-export-atualiz-log 
+                       and proc-export-atualiz-log.dat-cancel = ?
+                       and (proc-export-atualiz-log.idi-situacao = 1 or proc-export-atualiz-log.idi-situacao = 2) then do:
+                      create tt-bo-erro.
+                      assign i-seq-erro = i-seq-erro + 1.    
+                        
+                      run utp/ut-msgs.p (input "msg",
+                                         input 33544,
+                                         input "").
+                                           
+                      assign tt-bo-erro.i-sequen = i-seq-erro
+                             tt-bo-erro.cd-erro  = 33544
+                             tt-bo-erro.mensagem = return-value.     
+                  end.
+               end.
+           end.                    
+       &endif
+       if not can-find(first tt-bo-erro) then
+           run executeDelete.
+       
+       &if defined(bf_comex206b-1) &then
+           run marcaRecalculaProcesso (input c-cod-estabel,
+                                       input c-nr-proc-exp).
+       &endif                                    
+    end.
+
+    if l-query then
+        get next {&QUERY-NAME}
+            no-lock no-wait.
+    else
+        find next {&TABLE-NAME}
+            no-lock no-error.
+
+    if not avail {&TABLE-NAME} then do:
+       if l-query then
+           get prev {&QUERY-NAME}
+               no-lock no-wait.
+       else
+           find prev {&TABLE-NAME}
+               no-lock no-error.
+    end.
+    assign r-chave = rowid({&TABLE-NAME}).
+    return "".
+end procedure.
+
+
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+    
+    case c-field:
+        when "char-1":U then c-value = RowObject.char-1.
+        when "char-2":U then c-value = RowObject.char-2.
+        when "check-sum":U then c-value = RowObject.check-sum.
+        when "cod-estabel":U then c-value = RowObject.cod-estabel.
+        when "nr-proc-exp":U then c-value = RowObject.nr-proc-exp.
+        when "descricao":U then c-value = RowObject.descricao.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+
+    case c-field:
+        when "dec-1" then c-value = RowObject.dec-1.
+        when "dec-2" then c-value = RowObject.dec-2.
+        when "val-desp" then c-value = RowObject.val-desp.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+
+    case c-field:
+        when "cod-desp" then c-value = RowObject.cod-desp.
+        when "cod-itiner" then c-value = RowObject.cod-itiner.
+        when "cod-pto-contr" then c-value = RowObject.cod-pto-contr.
+        when "int-1" then c-value = RowObject.int-1.
+        when "int-2" then c-value = RowObject.int-2.
+        when "sequencia" then c-value = RowObject.sequencia.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+
+    case c-field:
+        when "data-1" then c-value = RowObject.data-1.
+        when "data-2" then c-value = RowObject.data-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+
+    case c-field:
+        when "l-forma-preco" then c-value = RowObject.l-forma-preco.
+        when "log-1" then c-value = RowObject.log-1.
+        when "log-2" then c-value = RowObject.log-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure marcaRecalculaProcesso:
+    define input  parameter p-cod-estabel like processo-exp.cod-estabel.
+    define input  parameter p-nr-proc-exp like processo-exp.nr-proc-exp.
+    
+    find processo-exp where
+         processo-exp.cod-estabel = p-cod-estabel and
+         processo-exp.nr-proc-exp = p-nr-proc-exp exclusive-lock no-error.
+    if avail processo-exp then
+       assign processo-exp.log-1 = no.
+       
+end procedure.
+
+PROCEDURE setFunction:
+
+   def input parameter p-function as char no-undo.
+
+   assign c-function = p-function.
+
+END procedure.
+
+PROCEDURE find_despesa:
+
+   def input parameter p-cod-estabel like processo-exp.cod-estabel.
+   def input parameter p-nr-proc-exp like processo-exp.nr-proc-exp.
+   def input parameter p-cod-itiner  like proc-desp-itiner.cod-itiner.
+   def output parameter c-return as char.
+   
+   find first proc-desp-itiner
+      where proc-desp-itiner.cod-estabel  = p-cod-estabel
+        and proc-desp-itiner.nr-proc-exp  = p-nr-proc-exp
+        and proc-desp-itiner.cod-itiner   = p-cod-itiner
+        no-lock no-error.
+        
+   if avail proc-desp-itiner then 
+      assign c-return = "OK".
+   else
+      assign c-return = "NOK".
+
+END procedure.
+
+PROCEDURE setModoExecucao:
+
+   def input parameter p-modo-exec as log no-undo.
+
+   assign l-modo-exec = p-modo-exec.
+
+END procedure.
+
+PROCEDURE getRowErrors:
+    def output parameter table for tt-bo-erro.
+END PROCEDURE.
+
+
+&if defined(bf_comex206b-1) &then
+   PROCEDURE pi-gera-log-despesas-export-apos-embarque:
+   
+       IF  CAN-FIND(FIRST funcao                                   
+                    WHERE funcao.cd-funcao = "spp-mex-desp-apos-embarq"
+                    AND   funcao.ativo) THEN do:
+   
+           IF  NOT CAN-FIND(FIRST tt-bo-erro WHERE tt-bo-erro.ErrorSubType <> "WARNING":U) THEN DO:
+               /* existem mensagens de erro */
+           
+               if  not avail processo-exp
+               or  processo-exp.cod-estabel <> rowobject.cod-estabel
+               or  processo-exp.nr-proc-exp <> rowobject.nr-proc-exp then
+                   FIND processo-exp
+                        WHERE processo-exp.cod-estabel = rowobject.cod-estabel
+                        AND   processo-exp.nr-proc-exp = rowobject.nr-proc-exp
+                        EXCLUSIVE-LOCK NO-ERROR.
+           
+               IF  processo-exp.dt-embarque <> ? THEN DO:
+           
+                   /* processo j  embarcado */
+           
+                   FIND FIRST b-proc-desp-itiner
+                        WHERE b-proc-desp-itiner.cod-estabel          = rowobject.cod-estabel
+                        AND   b-proc-desp-itiner.nr-proc-exp          = rowobject.nr-proc-exp
+                        AND   b-proc-desp-itiner.log-despes-integr-ap = YES /* desp integra com MAP */
+                        AND   b-proc-desp-itiner.log-1                = NO /* desp ainda nÆo integrada no MAP */
+                        NO-LOCK NO-ERROR.
+                 
+                   IF  AVAIL b-proc-desp-itiner THEN DO:
+                 
+                       /* tem despesa marcada para integrar com MAP que ainda nÆo foi integrada com o MAP */
+                               
+                       RUN pi-cria-registro-log-despesa (INPUT 4). /* contabilizar as despesas */
+                       RUN pi-cria-registro-log-despesa (INPUT 5). /* gerar titulos no contas a pagar */
+           
+                       ASSIGN processo-exp.log-atualiz-apb = NO. /* nÆo integrado no contas a pagar */
+                              processo-exp.log-atualiz-ctb = NO. /* nÆo integrado na contabilidade */
+           
+                       /* flag do rateio das desp para os itens do processo */
+                       if  not valid-handle(h-bocx358) then
+                           run cxbo/bocx358.p persistent set h-bocx358.
+                       
+                       RUN piRateioDespesas IN h-bocx358 (INPUT rowobject.cod-estabel,
+                                                          INPUT rowobject.nr-proc-exp).
+                       DELETE PROCEDURE h-bocx358.
+                   END.
+               END.
+           END.
+       END.
+   END PROCEDURE.
+   
+   PROCEDURE pi-cria-registro-log-despesa:
+   
+       DEF INPUT PARAM p-i-idi-tip-proces LIKE proc-export-atualiz-log.idi-tip-proces NO-UNDO.
+   
+       FIND FIRST proc-export-atualiz-log
+            WHERE proc-export-atualiz-log.cod-estabel    = rowobject.cod-estabel
+            AND   proc-export-atualiz-log.nr-proc-exp    = rowobject.nr-proc-exp
+            AND   proc-export-atualiz-log.idi-tip-proces = p-i-idi-tip-proces /* 4 = Contab Desp e 5 = Contas a Pagar */
+            AND   proc-export-atualiz-log.idi-tip-operac = 1 /* efetivacao */
+            AND   proc-export-atualiz-log.idi-situacao   <> 3 /* 3 = processado com sucesso */
+            AND   proc-export-atualiz-log.dat-cancel     = ?
+            NO-LOCK NO-ERROR.
+       
+       IF  NOT AVAIL proc-export-atualiz-log THEN DO:
+       
+           /* nÆo tem um log de "efetiva‡Æo" pendente */
+       
+           CREATE proc-export-atualiz-log.
+           ASSIGN proc-export-atualiz-log.cod-estabel       = processo-exp.cod-estabel
+                  proc-export-atualiz-log.nr-proc-exp       = processo-exp.nr-proc-exp
+                  proc-export-atualiz-log.dat-gerac         = TODAY
+                  proc-export-atualiz-log.hra-gerac         = REPLACE(STRING(TIME, "hh:mm:ss"), ":", "")
+                  proc-export-atualiz-log.idi-tip-proces    = p-i-idi-tip-proces /* 4 = Contab Desp e 5 = Contas a Pagar */
+                  proc-export-atualiz-log.cod-usuar-gerac   = c-seg-usuario
+                  proc-export-atualiz-log.dat-embarq        = processo-exp.dt-embarque
+                  proc-export-atualiz-log.idi-tip-operac    = 1 /* efetivacao */
+                  proc-export-atualiz-log.idi-tip-dat-trans = 1. /* SEMPRE DATA DA GERA€ÇO DO LOG */
+   
+       END.
+       
+       if  p-i-idi-tip-proces = 4 then do: /* 4 = Contab Desp */
+           /* atualizar a data de geracao do log na despesa do processo */
+           for each proc-desp-itiner exclusive-lock
+               where proc-desp-itiner.cod-estabel = processo-exp.cod-estabel
+               and   proc-desp-itiner.nr-proc-exp = processo-exp.nr-proc-exp
+               and   proc-desp-itiner.log-2       = NO /* nao contabilizada */
+               and   proc-desp-itiner.data-1      = ?:
+           
+               assign proc-desp-itiner.data-1 = proc-export-atualiz-log.dat-gerac.
+           
+           end.    
+       end.
+       
+   END PROCEDURE.
+&endif
+
+PROCEDURE retorna-despesas:
+
+        DEFINE INPUT  PARAMETER pr-processo-exp       AS   ROWID                     NO-UNDO.
+        DEFINE OUTPUT PARAMETER pde-vl-frete-nac      LIKE proc-desp-itiner.val-desp NO-UNDO.
+        DEFINE OUTPUT PARAMETER pde-vl-frete-internac LIKE proc-desp-itiner.val-desp NO-UNDO.
+        DEFINE OUTPUT PARAMETER pde-vl-seguro         LIKE proc-desp-itiner.val-desp NO-UNDO.
+        DEFINE OUTPUT PARAMETER pde-vl-embalagem      LIKE proc-desp-itiner.val-desp NO-UNDO.
+                                                                               
+        DEF VAR de-vl-despesa           LIKE proc-desp-itiner.val-desp NO-UNDO.
+        
+        def var i-mo-codigo like moeda.mo-codigo           no-undo.
+        def var da-dt-cotacao as date                      no-undo.
+        
+        DEF VAR de-vl-frete-nac      LIKE proc-desp-itiner.val-desp NO-UNDO.
+        DEF VAR de-vl-frete-internac LIKE proc-desp-itiner.val-desp NO-UNDO.
+        DEF VAR de-vl-seguro         LIKE proc-desp-itiner.val-desp NO-UNDO.
+        DEF VAR de-vl-embalagem      LIKE proc-desp-itiner.val-desp NO-UNDO.
+        
+        FIND FIRST processo-exp                                           
+             WHERE ROWID(processo-exp) = pr-processo-exp NO-LOCK NO-ERROR. 
+        
+        for first proc-ped-venda fields(nr-pedido nome-abrev nr-pedcli) no-lock 
+            where proc-ped-venda.cod-estabel = processo-exp.cod-estabel 
+              and proc-ped-venda.nr-proc-exp = processo-exp.nr-proc-exp 
+              and can-find(first ped-venda 
+                                where ped-venda.nr-pedido = proc-ped-venda.nr-pedido) 
+              use-index ch-proc-exp:
+        end.
+        
+        if avail proc-ped-venda then do:
+            find ped-venda no-lock 
+                where ped-venda.nome-abrev = proc-ped-venda.nome-abrev 
+                  and ped-venda.nr-pedcli  = proc-ped-venda.nr-pedcli use-index ch-pedido no-error.
+            if avail ped-venda then do:
+                for first moeda fields(sigla mo-codigo) no-lock 
+                    where moeda.mo-codigo = ped-venda.mo-codigo:
+                end.
+                if avail moeda then
+                    assign i-mo-codigo = moeda.mo-codigo.
+            end. 
+        end.
+        
+        for each proc-desp-itiner no-lock
+           where proc-desp-itiner.cod-estabel   = processo-exp.cod-estabel
+             and proc-desp-itiner.nr-proc-exp   = processo-exp.nr-proc-exp
+             and proc-desp-itiner.cod-itiner    = processo-exp.cod-itiner
+             and proc-desp-itiner.l-forma-preco = yes:
+        
+             /*somente considera como despesa do processo de exporta‡Æo se estiver com o parametro "destaca despesa" marcado*/
+            &IF "{&bf_dis_versao_ems}" >= "2.09":U &THEN
+                if proc-desp-itiner.log-destaca-despes THEN DO:
+            &ELSE                                       
+                if trim(substring(proc-desp-itiner.char-1,2,1)) = "":U 
+                or trim(substring(proc-desp-itiner.char-1,2,1)) = "1":U THEN DO:
+            &ENDIF
+        
+                 ASSIGN de-vl-despesa = proc-desp-itiner.val-desp.
+        
+                 if proc-desp-itiner.mo-codigo <> i-mo-codigo then do:
+                    /* Se o processo de exporta‡Æo estiver faturado, a data da cota‡Æo ‚ a data de faturamento do processo. */
+                    if processo-exp.cod-sit-proc = 3 then do:
+                        for first proc-nota-fiscal fields(cod-estabel serie nr-nota-fis cod-estab-faturam) where 
+                               proc-nota-fiscal.nr-proc-exp = processo-exp.nr-proc-exp and
+                               proc-nota-fiscal.cod-estabel = processo-exp.cod-estabel and
+                               NOT proc-nota-fiscal.log-nf-devolvid
+                               no-lock use-index ch-proc-exp:
+                        end.
+            
+                        if avail proc-nota-fiscal then 
+                            for first nota-fiscal field (dt-emis-nota) where 
+                                      nota-fiscal.cod-estabel = proc-nota-fiscal.cod-estab-faturam and
+                                      nota-fiscal.serie       = proc-nota-fiscal.serie             and
+                                      nota-fiscal.nr-nota-fis = proc-nota-fiscal.nr-nota-fis
+                                      no-lock use-index ch-nota:
+                            end.
+                        if avail nota-fiscal then
+                            assign da-dt-cotacao = nota-fiscal.dt-emis-nota.
+                    end.
+                    else do: 
+                        assign da-dt-cotacao = today.
+                    end.
+            
+                    /*frete nacional*/
+                    run cdp/cd0812.p (input proc-desp-itiner.mo-codigo,
+                                      input i-mo-codigo,
+                                      input proc-desp-itiner.val-desp,
+                                      input da-dt-cotacao,
+                                      output de-vl-despesa).
+                    if de-vl-despesa = 0 or
+                       de-vl-despesa = ? then
+                        assign de-vl-despesa = proc-desp-itiner.val-desp.
+        
+                 end.
+        
+                 CASE proc-desp-itiner.classif-despesa:
+                     WHEN 2 THEN DO: /*Frete*/
+                         FIND FIRST desp-imp
+                              WHERE desp-imp.cod-desp = proc-desp-itiner.cod-desp NO-LOCK NO-ERROR.
+                         IF AVAIL desp-imp THEN DO:
+                             IF trim(substring(desp-imp.char-1,19,1)) = "" THEN DO: /*Frete Nacional de Exporta‡Æo*/ 
+                                 ASSIGN de-vl-frete-nac = de-vl-frete-nac + de-vl-despesa.
+                             END.
+                             ELSE 
+                                 IF int(trim(substring(desp-imp.char-1,19,1))) = 1 THEN DO:  /*Frete Internacional de Exporta‡Æo*/
+                                     ASSIGN de-vl-frete-internac = de-vl-frete-internac + de-vl-despesa.
+                                 END.
+                         END.
+                
+                     END.
+                     WHEN 3 THEN DO: /*Seguro*/
+                         ASSIGN de-vl-seguro = de-vl-seguro + de-vl-despesa.
+                
+                     END.
+                     WHEN 4 THEN DO: /*Embalagem*/
+                         ASSIGN de-vl-embalagem = de-vl-embalagem + de-vl-despesa.
+                
+                     END.
+                 END. 
+                 
+             END.
+        END.
+        
+         ASSIGN pde-vl-frete-nac       = de-vl-frete-nac      
+                pde-vl-frete-internac  = de-vl-frete-internac 
+                pde-vl-seguro          = de-vl-seguro         
+                pde-vl-embalagem       = de-vl-embalagem.  
+         
+     RETURN "OK":U.
+END PROCEDURE.
+
+procedure pi-seta-alteracao-itiner:
+/*-----------------------------------------------------------------------------------
+    Purpose: Recebe um parƒmetro l¢gico indicando se o itiner rio foi alterado ou nÆo.
+    Parameters: plAltItiner: YES = Itiner rio alterado; 
+                              NO = Itiner rio nÆo sofreu altera‡Æo.
+    Notes:   
+-----------------------------------------------------------------------------------*/
+    define input param plAltItiner as logical no-undo.
+
+    assign lAlteracaoItinerario = plAltItiner.
+
+   return "OK":U.
+end procedure.
+
+procedure pi-valida-despesa-acomp:
+/*-----------------------------------------------------------------------------------
+    Purpose: Valida‡Æo da despesa do ponto do itinerario. (verifica‡Æo de duplicata e outras)
+    Parameters: input - RowObject (temp-table) : Informa‡äes da despesa 
+                output - tt-bo-erro (temp-table) : Erros ocorridos durante o processo.
+    Notes:   
+-----------------------------------------------------------------------------------*/
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+    
+    find first RowObject no-error.
+    
+    for first proc-desp-itiner fields()
+        where proc-desp-itiner.cod-estabel = rowObject.cod-estabel
+          and proc-desp-itiner.nr-proc-exp = rowObject.nr-proc-exp
+          and proc-desp-itiner.cod-itiner  = rowObject.cod-itiner
+          and proc-desp-itiner.sequencia   = rowObject.sequencia
+          and proc-desp-itiner.cod-desp    = rowObject.cod-desp
+          and rowid(proc-desp-itiner)     <> rowObject.r-rowid no-lock:
+    end.
+    if not avail proc-desp-itiner then do:
+        for first proc-desp-itiner fields()
+            where proc-desp-itiner.cod-estabel   = rowObject.cod-estabel
+              and proc-desp-itiner.nr-proc-exp   = rowObject.nr-proc-exp
+              and proc-desp-itiner.cod-itiner    = rowObject.cod-itiner
+              and proc-desp-itiner.cod-desp      = rowObject.cod-desp 
+              and rowid(proc-desp-itiner)     <> rowObject.r-rowid no-lock:
+        end.
+    end.
+    if avail proc-desp-itiner then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-table.i mgcex proc-desp-itiner 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 8,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 8
+               tt-bo-erro.mensagem     = return-value.
+    end.
+    
+    FOR FIRST {&table-name} NO-LOCK
+        WHERE ROWID({&table-name}) = RowObject.r-rowid:
+        IF RowObject.cod-pto-contr <> {&table-name}.cod-pto-contr THEN DO: /* Alterou o ponto de controle da despesa */
+            IF CAN-FIND(FIRST historico-proc-exp 
+                        WHERE historico-proc-exp.cod-estabel   = RowObject.cod-estabel
+                          AND historico-proc-exp.nr-proc-exp   = RowObject.nr-proc-exp
+                          AND historico-proc-exp.cod-itiner    = RowObject.cod-itiner
+                          AND historico-proc-exp.cod-pto-contr = RowObject.cod-pto-contr
+                          AND historico-proc-exp.dt-efetiva   <> ?) THEN DO: /* Verifica se o novo ponto est  faturado (se estiver faturado) */
+                assign i-seq-erro = i-seq-erro + 1.
+                {utp/ut-liter.i "O ponto de controle "}
+                run utp/ut-msgs.p (input "msg",
+                                   input 26202,
+                                   input RETURN-VALUE + STRING(RowObject.cod-pto-contr)).
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 26202
+                       tt-bo-erro.mensagem     = return-value
+                       tt-bo-erro.errorhelp    = return-value.
+            END.
+        END.
+    END.
+    
+    return "OK":U.
+end procedure.
+
+PROCEDURE getFieldErrors:
+/*------------------------------------------------------------------------------------------
+Purpose: Retornar uma temp-table com informa‡äes dos erros ocorridos durante altera‡Æo/cria‡Æo.
+Parameters:  (output) (temp-table) tt-campo-erro: Nome do campo em que ocorreu o erro.
+Notes: 
+------------------------------------------------------------------------------------------*/
+   DEFINE OUTPUT PARAMETER TABLE FOR tt-campo-erro.
+
+   RETURN "OK":U.
+END PROCEDURE.
+
+procedure pi-retorna-rowid:
+/*-----------------------------------------------------------------------------------
+    Purpose: Retorna o rowid do registro referente ¹ despesa do itinerÿrio do processo
+    Parameters: Entrada: Chave da tabela proc-desp-itiner
+                Sa­da: r-rowid (rowid da tabela proc-desp-itiner)
+    Notes:   
+-----------------------------------------------------------------------------------*/
+    def output parameter r-rowid         as rowid     no-undo.
+              
+    assign r-rowid = rowid(proc-desp-itiner).
+       
+   return "OK":U.
+end procedure.
+
+procedure setaCriacao:
+	/*-----------------------------------------------------------------------------------
+    Purpose: Seta vari vel que indica se opera‡Æo ‚ subprocesso
+    Parameters: pl-ex3001c - indica se opera‡Æo est  vindo do programa de transferˆncia 
+				de NF/Embarque para subprocesso
+    Notes:   
+-----------------------------------------------------------------------------------*/
+    define input parameter pl-ex3001c as logical no-undo.
+    
+    assign l-ex3001c = pl-ex3001c.
+
+    return "OK":U.
+end procedure.
+
+PROCEDURE pi-seta-process-orig:
+/*****************************************************************************
+* Subprocesso - Seta o c¢digo do processo de origem para ser utilizado na BO *
+******************************************************************************/
+    def input parameter pc-processo-orig like processo-exp.nr-proc-exp no-undo.
+    
+    assign c-processo-orig = pc-processo-orig.
+END PROCEDURE.
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE piVerificaPontoDespesa DBOProgram 
+PROCEDURE piVerificaPontoDespesa :
+/*:T------------------------------------------------------------------------------
+  Purpose:     Verifica se o ponto de controle da despesa existe no 
+               acompanhamento do subprocesso de exportacao
+  Parameters:  Entrada: Estabelecimento do Processo
+               Entrada: SubProcesso de Exportacao
+               Sa¡da: tt-erro
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pc-cod-estabel    LIKE processo-exp.cod-estabel        NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-subprocesso    LIKE processo-exp.nr-proc-exp        NO-UNDO.
+    DEFINE OUTPUT PARAMETER pc-desc-pto-contr AS   CHARACTER                       NO-UNDO.
+    DEFINE OUTPUT PARAMETER pc-desc-despesa   AS   CHARACTER                       NO-UNDO.
+    DEFINE OUTPUT PARAMETER pl-existe         AS   LOGICAL                         NO-UNDO.
+    
+    DEFINE BUFFER bf-proc-desp-itiner FOR proc-desp-itiner.
+
+    DEFINE VARIABLE c-descricao-despesa      AS CHARACTER                         NO-UNDO.
+    DEFINE VARIABLE c-return                 AS CHARACTER                         NO-UNDO.
+    DEFINE VARIABLE h-bocx200                AS HANDLE                            NO-UNDO.
+    DEFINE VARIABLE h-bocx110                AS HANDLE                            NO-UNDO.
+
+    IF NOT VALID-HANDLE(h-bocx200) THEN
+        RUN cxbo/bocx200.p PERSISTENT SET h-bocx200.
+
+    IF NOT VALID-HANDLE(h-bocx110) THEN
+        RUN cxbo/bocx110.p PERSISTENT SET h-bocx110.
+
+    FOR FIRST processo-exp NO-LOCK
+        WHERE processo-exp.cod-estabel = pc-cod-estabel
+          AND processo-exp.nr-proc-exp = c-processo-orig:
+    END.
+    
+    FOR EACH bf-proc-desp-itiner
+       WHERE bf-proc-desp-itiner.cod-estabel = processo-exp.cod-estabel
+         AND bf-proc-desp-itiner.nr-proc-exp = processo-exp.nr-proc-exp
+         AND bf-proc-desp-itiner.cod-itiner  = processo-exp.cod-itiner:
+
+        IF NOT CAN-FIND(FIRST historico-proc-exp
+                        WHERE historico-proc-exp.cod-estabel   = pc-cod-estabel
+                          AND historico-proc-exp.nr-proc-exp   = pc-subprocesso
+                          AND historico-proc-exp.cod-itiner    = bf-proc-desp-itiner.cod-itiner
+                          AND historico-proc-exp.cod-pto-contr = bf-proc-desp-itiner.cod-pto-contr) THEN DO:
+
+            RUN findCh_proc_pto_itiner IN h-bocx200 (INPUT bf-proc-desp-itiner.cod-estabel,  
+                                                     INPUT bf-proc-desp-itiner.nr-proc-exp,  
+                                                     INPUT bf-proc-desp-itiner.cod-itiner,   
+                                                     INPUT bf-proc-desp-itiner.cod-pto-contr,
+                                                     OUTPUT c-return).
+            IF c-return = "":U THEN DO:
+                RUN getCharField IN h-bocx200 (INPUT "descricao":U, OUTPUT pc-desc-pto-contr).
+                IF pc-desc-pto-contr <> "":U THEN
+                    ASSIGN pc-desc-pto-contr = STRING(bf-proc-desp-itiner.cod-pto-contr) + " - " + pc-desc-pto-contr.
+            END.
+            ELSE DO:
+                RUN findCodigo IN h-bocx110 (INPUT bf-proc-desp-itiner.cod-pto-contr, OUTPUT c-return).
+                IF c-return = "":U THEN
+                    RUN getCharField IN h-bocx110 (INPUT "descricao":U, OUTPUT pc-desc-pto-contr).
+                ASSIGN pc-desc-pto-contr = STRING(bf-proc-desp-itiner.cod-pto-contr) + " - ":U + pc-desc-pto-contr.
+            END.
+
+
+            assign c-descricao-despesa = bf-proc-desp-itiner.descricao.
+            if c-descricao-despesa = "" then
+               FOR FIRST desp-imp FIELDS(descricao) NO-LOCK
+                    WHERE desp-imp.cod-desp = bf-proc-desp-itiner.cod-desp:
+                    ASSIGN c-descricao-despesa = desp-imp.descricao.
+               END.
+        
+
+            ASSIGN pc-desc-despesa  = string(bf-proc-desp-itiner.cod-desp) + " - " + c-descricao-despesa
+                   pl-existe        = NO.
+
+            LEAVE.
+        END.
+        ELSE
+            ASSIGN pl-existe = YES.
+    END.
+
+    IF VALID-HANDLE(h-bocx200) THEN DO:
+        DELETE PROCEDURE h-bocx200.
+        ASSIGN h-bocx200 = ?.
+    END.
+
+    IF VALID-HANDLE(h-bocx110) THEN DO:
+        DELETE PROCEDURE h-bocx110.
+        ASSIGN h-bocx110 = ?.
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME

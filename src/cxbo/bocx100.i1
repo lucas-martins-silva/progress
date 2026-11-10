@@ -1,0 +1,203 @@
+/************************************************************************
+**
+** cxbo/bocx100.i1 - Include de validacao das despesas dos itens.
+**
+************************************************************************/
+/*********
+if rowObject.serie-docto = "" then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-field.i mgcex item-doc-est-cex serie-docto 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.    
+    run utp/ut-msgs.p (input "msg",
+                       input 265,
+                       input return-value).
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 265
+           tt-bo-erro.mensagem     = return-value.
+end.
+else 
+*********/
+
+if not can-find(serie where serie.serie = rowObject.serie-docto) then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-field.i mgind serie 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.        
+    run utp/ut-msgs.p (input "msg",
+                       input 2,
+                       input return-value).
+    create tt-bo-erro.
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 2
+           tt-bo-erro.mensagem     = return-value.    
+end.    
+     
+if rowObject.nro-docto = "" then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-field.i mgcex item-doc-est-cex nro-docto 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.    
+    run utp/ut-msgs.p (input "msg",
+                       input 265,
+                       input return-value).
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 265
+           tt-bo-erro.mensagem     = return-value.
+end.  
+
+{cdp/cd2503.i rowObject.nat-operacao} /* Retira . - do valor */       
+     
+if rowObject.nat-operacao = "" then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-field.i mgcex item-doc-est-cex nat-operacao 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.   
+    run utp/ut-msgs.p (input "msg",
+                       input 265,
+                       input return-value).
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 265
+           tt-bo-erro.mensagem     = return-value.
+end.             
+else 
+    if not can-find(natur-oper where natur-oper.nat-operacao = rowObject.nat-operacao) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgind natur-oper nat-operacao 1}
+        /******************************************/
+        create tt-bo-erro.
+        assign tt-bo-erro.parametros = return-value.    
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 2
+               tt-bo-erro.mensagem     = return-value.    
+    end.        
+     
+if rowObject.sequencia = 0 then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-field.i mgcex item-doc-est-cex sequencia 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.    
+    run utp/ut-msgs.p (input "msg",
+                       input 265,
+                       input return-value).
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 265
+           tt-bo-erro.mensagem     = return-value.
+end.         
+
+if rowObject.cod-emitente-desp = 0 then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-field.i mgcex item-doc-est-cex cod-emitente-desp 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.    
+    run utp/ut-msgs.p (input "msg",
+                       input 265,
+                       input return-value).
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 265
+           tt-bo-erro.mensagem     = return-value.
+end.
+else do:
+    find emitente where emitente.cod-emitente = rowObject.cod-emitente-desp no-lock no-error.
+    if not avail emitente then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex item-doc-est-cex cod-emitente-desp 1}
+        /******************************************/
+        create tt-bo-erro.
+        assign tt-bo-erro.parametros = return-value.        
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 2
+               tt-bo-erro.mensagem     = return-value.
+    end.               
+    else do:          
+        {cdp/cd2502.i}
+    end.      
+end.   
+
+if rowObject.cod-desp = 0 then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-field.i mgcex item-doc-est-cex cod-desp 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.    
+    run utp/ut-msgs.p (input "msg",
+                       input 265,
+                       input return-value).
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 265
+           tt-bo-erro.mensagem     = return-value.
+end.
+else
+    if not can-find(desp-imp where desp-imp.cod-desp = rowObject.cod-desp) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex desp-imp 1}
+        /******************************************/
+        create tt-bo-erro.
+        assign tt-bo-erro.parametros = return-value.        
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 2
+               tt-bo-erro.mensagem     = return-value.    
+    end.
+    
+find item-doc-est-cex 
+    where item-doc-est-cex.serie-docto  = rowObject.serie-docto
+      and item-doc-est-cex.nro-docto    = rowObject.nro-docto
+      and item-doc-est-cex.cod-emitente = rowObject.cod-emitente
+      and item-doc-est-cex.nat-operacao = rowObject.nat-operacao
+      and item-doc-est-cex.sequencia    = rowObject.sequencia
+      and item-doc-est-cex.cod-desp     = rowObject.cod-desp
+      no-lock no-error.    
+if avail item-doc-est-cex then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+       pre-processador em chamada de includes */
+    {utp/ut-table.i mgcex item-doc-est-cex 1}
+    /******************************************/
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = return-value.
+    run utp/ut-msgs.p (input "msg",
+                       input 8,
+                       input return-value).            
+    assign tt-bo-erro.i-sequen     = i-seq-erro
+           tt-bo-erro.cd-erro      = 8
+           tt-bo-erro.mensagem     = return-value.
+end.    
+         
+run validateFields. 
+
+/* bocx100.i1 */

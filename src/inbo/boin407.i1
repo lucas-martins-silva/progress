@@ -1,0 +1,34 @@
+/*
+**  BOIN407.i1
+**
+**  Procedure findCh_serie: estas procedures foram
+**  transformadas em include pois este codigo e comum aos produtos EMS e
+**  Magnus.
+**
+*/
+
+
+procedure findCh_serie:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    run startMethod ("find").
+    def input parameter c-serie as char no-undo.
+    def output parameter c-return as char no-undo.
+ 
+    find serie where
+        serie.serie = c-serie
+        no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        {utp/ut-table.i mgind {&TABLE-NAME} 1}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+    run endMethod ("find").
+end procedure.

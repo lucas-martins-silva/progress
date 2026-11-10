@@ -1,0 +1,28 @@
+PROCEDURE getZoomCcusto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    DEF OUTPUT PARAM p-ccusto      AS CHAR NO-UNDO.
+    DEF OUTPUT PARAM p-desc-ccusto AS CHAR NO-UNDO.
+
+    run prgint/utb/utb742za.py persistent set h_api_ccusto.
+
+    run pi_zoom_ccusto in h_api_ccusto (input  string(i-empresa),  /* EMPRESA EMS2 */
+                                        input  "",                 /* CODIGO DO PLANO CCUSTO */
+                                        input  "",                 /* UNIDADE DE NEGOCIO */
+                                        input  RowObject.dt-trans, /* DATA DE TRANSACAO */
+                                        output v_cod_ccusto,       /* CODIGO CCUSTO */
+                                        output v_des_ccusto,       /* DESCRICAO CCUSTO */
+                                        output table tt_log_erro). /* ERROS */ 
+
+    ASSIGN p-ccusto      = v_cod_ccusto
+           p-desc-ccusto = v_des_ccusto.
+
+    delete object h_api_ccusto.
+
+    RETURN "ok".
+
+END PROCEDURE.

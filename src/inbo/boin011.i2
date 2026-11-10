@@ -1,0 +1,69 @@
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getUpdatedValues DBOFunction 
+PROCEDURE getUpdatedValues:
+ 
+ /*** ALTERA€åES EFETUADAS NA ORDEM DE COMPRA ***/
+    if  alt-ped.numero-ordem <> 0 then
+        find ordem-compra where ordem-compra.numero-ordem = alt-ped.numero-ordem
+            no-lock no-error.        
+    if  avail ordem-compra        and 
+        not alt-ped.observacao begins "#" then do:
+        
+        /* Pre‡o */
+        if  alt-ped.preco <> ? then do:
+            if  alt-ped.char-1 <> "" then  
+                assign ttRequisitionUpdates.newPrice  = dec(entry(1,alt-ped.char-1,"|")).
+            else 
+                assign ttRequisitionUpdates.newPrice = ordem-compra.pre-unit-for.
+        end.
+        else  
+            assign ttRequisitionUpdates.newPrice = 0.
+        /***********************************************/
+    end.
+    /*** ALTERA€åES EFETUADAS NA ENTREGA ***/
+    if  alt-ped.parcela <> 0 and  
+        alt-ped.parcela <> ? then do:
+
+        find first prazo-compra
+            where prazo-compra.numero-ordem = alt-ped.numero-ordem
+              and prazo-compra.parcela      = alt-ped.parcela no-lock no-error.
+        if  avail prazo-compra then do:
+
+            /* Quantidade */
+            if  alt-ped.quantidade <> ? then do:
+                if  alt-ped.char-1 <> "" then
+                    assign ttRequisitionUpdates.newQuantity = dec(entry(2,alt-ped.char-1,"|")).
+                else  
+                    assign ttRequisitionUpdates.newQuantity = prazo-compra.qtd-sal-forn.
+            end.
+            else
+                assign ttRequisitionUpdates.newQuantity = 0.
+            
+            /* Data de Entrega */
+            if  alt-ped.data-entrega <> ? then do:
+                if  alt-ped.char-1 <> "" then
+                    assign ttRequisitionUpdates.newDate  = date(entry(3,alt-ped.char-1,"|")).
+                else
+                    assign ttRequisitionUpdates.newDate = prazo-compra.data-entrega.
+            end.
+            else
+                assign ttRequisitionUpdates.newDate = ?.
+        end.
+    end.
+    else 
+        assign ttRequisitionUpdates.newQuantity = 0
+               ttRequisitionUpdates.newDate     = ?.
+
+    /* Cond. Pagamento */
+    if alt-ped.cod-cond-pag <> 0 AND alt-ped.cod-cond-pag <> ? AND alt-ped.cod-cond-pag <> ordem-compra.cod-cond-pag then do:
+       if alt-ped.char-1 <> "" then 
+          assign ttRequisitionUpdates.newPaymtTerm = string(dec(entry(4,alt-ped.char-1,"|")),">>9").
+       else 
+          assign ttRequisitionUpdates.newPaymtTerm = string(ordem-compra.cod-cond-pag).
+    end.
+    else
+       assign ttRequisitionUpdates.newPaymtTerm = "".
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME

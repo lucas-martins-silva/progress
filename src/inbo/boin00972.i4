@@ -1,0 +1,132 @@
+DEFINE VARIABLE i-mes AS INTEGER NO-UNDO.
+DEFINE VARIABLE i-ano AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE dt-ini    AS DATE    NO-UNDO.
+DEFINE VARIABLE dt-fim    AS DATE    NO-UNDO.
+
+ASSIGN dt-ini    = {&TABELA}.dat-inic
+       dt-fim    = {&TABELA}.dat-fim.
+
+/*verificar se regra encontra-se em período fechado*/
+CASE {&TABELA}.cdn-abrangen:
+     
+    WHEN 1 THEN DO: /* Ponto Coleta */
+
+        FOR FIRST pto-rota-coleta FIELDS(cod-rota) NO-LOCK
+            WHERE pto-rota-coleta.cod-pto-coleta = {&TABELA}.cod-pto-coleta:
+
+            FOR FIRST rota-coleta FIELDS(cod-estabel) NO-LOCK
+                WHERE rota-coleta.cod-rota = pto-rota-coleta.cod-rota:
+                
+                FOR FIRST param-aquis-rural FIELDS(cod-periodo) NO-LOCK WHERE param-aquis-rural.cod-estabel = rota-coleta.cod-estabel:
+                    {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+                END.
+            END.
+        END.
+    END.
+    WHEN 2 THEN DO: /* Propriedade */
+
+        FOR EACH produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK
+            WHERE produt-pto-coleta.cod-propried = {&TABELA}.cod-propried:
+
+            FOR FIRST pto-rota-coleta FIELDS(cod-rota) NO-LOCK
+                WHERE pto-rota-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:
+            
+                FOR FIRST rota-coleta FIELDS(cod-estabel) NO-LOCK
+                    WHERE rota-coleta.cod-rota = pto-rota-coleta.cod-rota:
+                    FOR FIRST param-aquis-rural FIELDS(cod-periodo) NO-LOCK WHERE param-aquis-rural.cod-estabel = rota-coleta.cod-estabel:
+                        {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+                    END.
+                END.
+            END.
+        END.
+        
+    END.            
+    WHEN 3 THEN DO: /* Produtor */
+
+        FOR EACH produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK
+            WHERE produt-pto-coleta.cdn-produt-rural = {&TABELA}.cdn-produt-rural:
+
+            FOR FIRST pto-rota-coleta FIELDS(cod-rota) NO-LOCK
+                WHERE pto-rota-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:
+
+                FOR FIRST rota-coleta FIELDS(cod-estabel) NO-LOCK
+                    WHERE rota-coleta.cod-rota = pto-rota-coleta.cod-rota:
+                    FOR FIRST param-aquis-rural FIELDS(cod-periodo) NO-LOCK WHERE param-aquis-rural.cod-estabel = rota-coleta.cod-estabel:
+                        {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+                    END.
+                END.
+            END.
+        END.
+    END.
+    WHEN 4 THEN DO: /* Grupo */
+        
+        FOR EACH produt-rural FIELDS(cdn-produt-rural) NO-LOCK
+            WHERE produt-rural.cdn-grp-produt = {&TABELA}.cdn-grp-produt:
+
+            FOR EACH produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK
+                WHERE produt-pto-coleta.cdn-produt-rural = produt-rural.cdn-produt-rural:
+
+                FOR FIRST pto-rota-coleta FIELDS(cod-rota) NO-LOCK
+                    WHERE pto-rota-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:
+
+                    FOR FIRST rota-coleta FIELDS(cod-estabel) NO-LOCK
+                        WHERE rota-coleta.cod-rota = pto-rota-coleta.cod-rota:
+                        FOR FIRST param-aquis-rural FIELDS(cod-periodo) NO-LOCK WHERE param-aquis-rural.cod-estabel = rota-coleta.cod-estabel:
+                            {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+                        END.
+                    END.
+                END.
+            END.
+        END.
+
+    END.
+    WHEN 5 THEN DO: /* Rota */
+        
+        FOR FIRST rota-coleta FIELDS(cod-estabel) NO-LOCK
+            WHERE rota-coleta.cod-rota = {&TABELA}.cod-rota:
+            FOR FIRST param-aquis-rural FIELDS(cod-periodo) NO-LOCK WHERE param-aquis-rural.cod-estabel = rota-coleta.cod-estabel:
+                {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+            END.
+        END.
+        
+
+    END.            
+    WHEN 6 THEN DO: /* RegiÆo */
+    
+        FOR EACH propried-rural FIELDS(cod-propried) NO-LOCK
+            WHERE propried-rural.cod-regiao = {&TABELA}.cod-regiao:
+
+            FOR EACH produt-pto-coleta FIELDS(cod-pto-coleta) NO-LOCK
+                WHERE produt-pto-coleta.cod-propried = propried-rural.cod-propried:
+            
+                FOR FIRST pto-rota-coleta FIELDS(cod-rota) NO-LOCK
+                    WHERE pto-rota-coleta.cod-pto-coleta = produt-pto-coleta.cod-pto-coleta:
+                
+                    FOR FIRST rota-coleta FIELDS(cod-estabel) NO-LOCK
+                        WHERE rota-coleta.cod-rota = pto-rota-coleta.cod-rota:
+                        
+                        FOR FIRST param-aquis-rural FIELDS(cod-periodo) NO-LOCK WHERE param-aquis-rural.cod-estabel = rota-coleta.cod-estabel:
+                                {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+                        END.
+                    END.    
+                END.        
+            END.            
+        END.
+
+    END.
+    WHEN 7 THEN DO: /* Estabelecimento */
+            FOR FIRST param-aquis-rural FIELDS(cod-periodo) NO-LOCK WHERE param-aquis-rural.cod-estabel = {&TABELA}.cod-estabel:
+                {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+            END.
+    END.
+    WHEN 8 THEN DO:   /*Quando for todos, verifica todos os estabelecimentos*/
+    
+        FOR EACH param-aquis-rural FIELDS(cod-periodo) NO-LOCK:
+
+            {inbo/boin00972.i5} /*verifica se o estabelecimento está com o período fechado*/
+
+        END.
+
+    END.
+END CASE.

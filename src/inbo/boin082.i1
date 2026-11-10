@@ -1,0 +1,33 @@
+/********************************************************************************
+** Copyright TOTVS S.A.     
+** Todos os Direitos Reservados.
+********************************************************************************/
+/********************************************************************************
+** Programa.: boin082.i1
+**
+** Data.....: 23/01/2019
+**    
+** Objetivo.: Defini‡Æo de Temp-Table para utilizar os m‚todos da boin082fx.p
+** 
+** Observa‡Æo: NÆo foi utilizado a include fch/fchmat/fchmatlastpurchaseofitem.i,
+**             pois esta no padrÆo flex, com os nomes dos campos em inglˆs
+********************************************************************************/
+
+DEFINE TEMP-TABLE {1} NO-UNDO 
+  FIELD num-ordem     AS CHARACTER
+  FIELD desc-cond-pag AS CHARACTER
+  FIELD data-cotacao  AS DATE
+  FIELD preco         AS DECIMAL DECIMALS 4  
+  FIELD cnpj-emitente AS CHARACTER
+  FIELD nome-emit     AS CHARACTER
+  FIELD cod-emitente  AS CHARACTER
+  FIELD desc-item     AS CHARACTER
+  FIELD it-codigo     AS CHARACTER
+  FIELD un            AS CHARACTER
+  FIELD desc-un       AS CHARACTER
+  FIELD sigla-moeda   AS CHARACTER
+  {2}
+  .
+
+
+

@@ -1,0 +1,251 @@
+PROCEDURE validateContaContabil :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Validacao da Conta de Aplicacao.      
+------------------------------------------------------------------------------*/
+
+    def var i-num-ord-inv as integer                   no-undo.
+    def var de-qtd-max    like item-doc-est.quantidade no-undo.
+    def var l-erro-co     as logical                   no-undo.
+    def var lDevSimbConsig as logical                  no-undo.
+
+    if  not avail param-global then
+        find first param-global no-lock no-error.
+        
+/***************
+    run findDocumento ( input i-cod-emitente,
+                        input c-serie-docto,
+                        input c-nro-docto,
+                        input c-nat-operacao ).
+***************/
+
+    if  RowObject.ct-codigo <> "" then do:
+
+        run findContaContabil ( RowObject.ct-codigo,
+                                RowObject.sc-codigo,
+                                docum-est.cod-estabel).
+
+        if  return-value = "NOK":U THEN
+            return "NOK":U.
+            
+        EMPTY temp-table tt_log_erro.
+
+        if  not valid-handle(h_api_cta_ctbl) then
+            run prgint/utb/utb743za.py persistent set h_api_cta_ctbl.
+
+        if  valid-handle(h_api_cta_ctbl) then do:
+            assign v_cod_cta_ctbl = RowObject.ct-codigo.
+            run pi_busca_dados_cta_ctbl in h_api_cta_ctbl (input        STRING(i-empresa),  /* EMPRESA EMS2 */
+                                                           input        "",                 /* PLANO DE CONTAS */
+                                                           input-output v_cod_cta_ctbl,     /* CONTA */
+                                                           input        docum-est.dt-trans, /* DATA TRANSACAO */   
+                                                           output       v_des_cta_ctbl,     /* DESCRICAO CONTA */
+                                                           output       v_num_tip_cta_ctbl, /* TIPO DA CONTA */
+                                                           output       v_num_sit_cta_ctbl, /* SITUACAO DA CONTA */
+                                                           output       v_ind_finalid_cta,  /* FINALIDADES DA CONTA */
+                                                           output table tt_log_erro).       /* ERROS */
+            					    
+            run pi_busca_dados_cta_ctbl_integr in h_api_cta_ctbl (input        STRING(i-empresa),  /* EMPRESA EMS2 */
+                                                                  input        "CEP",              /* MODULO */
+                                                                  input        "",                 /* PLANO DE CONTAS */
+                                                                  input        v_cod_cta_ctbl,     /* CONTA */
+                                                                  input        docum-est.dt-trans, /* DATA TRANSACAO */   
+                                                                  output       v_ind_finalid_cta,  /* FINALIDADES DA CONTA */
+                                                                  output table tt_log_erro).       /* ERROS */ 
+                                                                  
+
+            run pi_valida_conta_contabil in h_api_cta_ctbl (input  STRING(i-empresa),        /* EMPRESA EMS2 */
+                                                            input  docum-est.cod-estabel ,   /* ESTABELECIMENTO EMS2 */
+                                                            input  RowObject.cod-unid-negoc, /* UNIDADE NEGûCIO */
+                                                            input  "",                       /* PLANO CONTAS */ 
+                                                            input  RowObject.ct-codigo,      /* CONTA */
+                                                            input  "",                       /* PLANO CCUSTO */ 
+                                                            input  RowObject.sc-codigo,      /* CCUSTO */
+                                                            input  docum-est.dt-trans,       /* DATA TRANSACAO */
+                                                            output table tt_log_erro).       /* ERROS */
+                                                            
+            
+            for each tt_log_erro:    
+
+                  run _insertErrorManual in this-procedure (input tt_log_erro.ttv_num_cod_erro, /* pErrorNumber      */
+                                                            input "EMS",                        /* pErrorType        */
+                                                            input "Error",                      /* pErrorSubType     */
+                                                            input tt_log_erro.ttv_des_msg_erro, /* pErrorDescription */
+                                                            input "",                           /* pErrorHelp        */
+                                                            input "").                          /* pErrorParameters  */
+            end.                                               
+            
+            empty temp-table tt_log_erro no-error.
+        
+            delete object h_api_cta_ctbl no-error.
+        end.
+        else do:
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="17006" /*Conta nao eh de sistema*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="'Nao foi possivel executar API prgint/utb/utb743za.py'"}        
+        end.
+
+        find first tt_log_erro no-lock no-error.
+        if not avail tt_log_erro then do:
+
+            assign i-num-finalid-cta = {adinc/i05ad049.i 6 v_ind_finalid_cta}.
+
+            if  avail ordem-compra then 
+                assign i-num-ord-inv = ordem-compra.num-ord-inv.
+    
+
+            if  v_num_sit_cta_ctbl <> 3 then do:
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="443" /*Conta nao eh de sistema*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"}  
+            end.
+    
+
+            if  not can-do("1,2,4,5",string(v_num_tip_cta_ctbl)) then do:        
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="5543" /*Conta deve ser de despesa, receita, ativo ou passivo*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"}
+            end.
+            
+            if  i-num-finalid-cta = 10 then do:
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="15190" /*Conta nao aceita lancamentos do estoque*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"} 
+            end.
+
+            if  not can-do("1,2,3,6",string(i-num-finalid-cta)) then do:
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="107" /*Conta nao aceita lancamentos de requisicoes*/
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"} 
+            end.
+
+            if  avail ordem-compra and ordem-compra.nr-contrato <> 0 
+            and param-global.modulo-cn then do:
+    
+                if  RowObject.numero-ordem <> 0 then
+                    run cnp/cn9072.p (input RowObject.numero-ordem,
+                                      input rowid(docum-est),
+                                      input 12,                        /* Conta-Atual   */
+                                      output l-conta-matriz,
+                                      input-output table tt-erro ). 
+                else
+                    assign l-conta-matriz = no.
+
+                /*Para mostrar a mensagem 15221 - Conta 0: Assumida matriz de rateio do item do contrato */
+                if  l-conta-matriz 
+                and RowObject.ct-codigo = ""  then do:
+                    run cnp/cn9072.p (input RowObject.numero-ordem,
+                                      input rowid(docum-est),
+                                      input 11,                        /* Conta-Atual   */
+                                      output l-conta-matriz,
+                                      input-output table tt-erro ).                               
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="15221" /*Conta 0: Assumida matriz de rateio do item do contrato*/
+                                        &ErrorType="EMS"
+                                        &ErrorSubType="ERROR"} 
+                end.                    
+            end.
+        end.
+        
+    end.
+    else DO:
+        
+        assign l-conta-matriz = no.             
+        if  RowObject.numero-ordem   <> 0
+        AND ordem-compra.nr-contrato <> 0 
+        AND param-global.modulo-cn then
+            run cnp/cn9072.p (input RowObject.numero-ordem,
+                              input rowid(docum-est),
+                              input 12,                        /* Conta-Atual  */
+                              output l-conta-matriz,
+                              input-output table tt-erro ). 
+        else do:
+            
+            find first rat-ordem 
+                 where rat-ordem.cod-emitente = RowObject.cod-emitente 
+                   and rat-ordem.serie-docto  = RowObject.serie-docto   
+                   and rat-ordem.nro-docto    = RowObject.nro-docto      
+                   AND rat-ordem.nat-operacao = RowObject.nat-operacao 
+                   and rat-ordem.sequencia    = RowObject.sequencia       
+                  no-lock no-error.
+            
+            if  avail rat-ordem then do:
+                assign l-contrato = no.
+
+                run findOrdemCompra (rat-ordem.numero-ordem, ?).
+                
+                if  avail ordem-compra 
+                and ordem-compra.nr-contrato <> 0
+                and avail param-global
+                and param-global.modulo-cn then
+                    run cnp/cn9174.p ( ordem-compra.numero-ordem,
+                                       1,
+                                       0,
+                                       0,
+                                       ?,
+                                       output de-qtd-max,
+                                       output l-erro-co,
+                                       output l-contrato,
+                                       output i-total,
+                                       input-output table tt-erro).
+                if  l-contrato then
+                    run cnp/cn9072.p (input ordem-compra.numero-ordem,
+                                      input rowid(docum-est),
+                                      input 12,                        /* Conta-Atual   */
+                                      output l-conta-matriz,
+                                      input-output table tt-erro ). 
+            end.
+
+        end.
+            
+
+        /* CHAMADA EPC - GRENDENE - Valida existencia de matriz de rateio e atualiza l-conta-matriz */
+        {method/svc/custom/custom.i &Event="ValidaMatrizRateio"}
+
+        ASSIGN lDevSimbConsig = {cdp/cd0066.i docum-est.cod-estabel natur-oper}
+
+        if  docum-est.cod-observa = 3
+        and not RowObject.baixa-ce then
+            /* N€O PODE VALIDAR */
+            return "OK":U.
+
+        else 
+        if  not l-conta-matriz
+        AND NOT(RowObject.log-1 AND (docum-est.origem = "i":U or docum-est.origem = "XML":U))
+        and avail item
+        and natur-oper.tipo-compra <> 9
+        and (   can-do("1,4", string(item.tipo-contr))
+             or ( not RowObject.baixa-ce    
+                  and docum-est.cod-observa <> 3 
+                  and (   not natur-oper.terceiros
+                      or (not can-do("4,6", string(natur-oper.tp-oper-terc))
+                      and NOT lDevSimbConsig) ) )) then do:
+
+            DEFINE VARIABLE c-lbl-liter-sequencia AS CHARACTER NO-UNDO.
+            DEFINE VARIABLE c-lbl-liter-seq-erro AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Sequˆncia" *}
+            ASSIGN c-lbl-liter-sequencia = TRIM(RETURN-VALUE) + " ".
+
+            IF int(SUBSTRING(RowObject.char-2,832,5)) <= 0 THEN
+                ASSIGN c-lbl-liter-seq-erro = string(rowobject.sequencia).
+            ELSE
+                ASSIGN c-lbl-liter-seq-erro = SUBSTRING(rowobject.char-2,832,5).
+
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="6726" /*Conta contabil deve ser informada*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"
+                                &ErrorParameters="c-lbl-liter-sequencia + c-lbl-liter-seq-erro"} 
+        end.
+    end.
+	
+    return "OK":U.
+
+END PROCEDURE.

@@ -1,0 +1,26 @@
+/***************************************************************************
+** Include.: boin274q02.i1                                                **
+** Objetivo: acessar o primeiro/ultimo/proximo/anterior registro da tabe- **
+**           "ordem-compra" as ser mostrada na tela do programa WCC0388   **
+***************************************************************************/
+WHERE {1}.it-codigo     >= pc-it-ini 
+  AND {1}.it-codigo     <= pc-it-fim 
+  AND {1}.nr-requisicao >= pi-req-ini 
+  AND {1}.nr-requisicao <= pi-req-fim 
+  AND {1}.sc-codigo     >= pc-sc-codigo-ini 
+  AND {1}.sc-codigo     <= pc-sc-codigo-fim 
+  AND {1}.cod-comprado  >= pc-cod-comprado-ini 
+  AND {1}.cod-comprado  <= pc-cod-comprado-fim 
+  AND {1}.data-emissao  >= pda-emissao-ini 
+  AND {1}.data-emissao  <= pda-emissao-fim 
+  AND (   ({1}.situacao = 1 AND lg_nao_confirmada) 
+       OR ({1}.situacao = 2 AND lg_confirmada) 
+       OR ({1}.situacao = 3 AND lg_cotada) 
+       OR ({1}.situacao = 4 AND lg_eliminada) 
+       OR ({1}.situacao = 5 AND lg_em_cotacao) 
+       OR ({1}.situacao = 6 AND lg_recebida)) 
+  AND (   ({1}.natureza = 1 AND lg_compra) 
+       OR ({1}.natureza = 1 AND lg_servico) 
+       OR ({1}.natureza = 3 AND lg_beneficiamento)) NO-LOCK NO-ERROR.
+
+/* Fim da include */

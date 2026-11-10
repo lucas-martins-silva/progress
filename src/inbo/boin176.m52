@@ -1,0 +1,231 @@
+DEFINE VARIABLE h-cdapi034            AS HANDLE  NO-UNDO.
+DEFINE VARIABLE i-cod-regra-utilizada AS INTEGER NO-UNDO.
+
+DEFINE TEMP-TABLE tt-variavel NO-UNDO
+    FIELD cod-var-oper   AS CHARACTER FORMAT "x(16)"
+    FIELD valor-variavel AS CHARACTER FORMAT "x(60)".
+
+DEFINE TEMP-TABLE tt-retorno NO-UNDO
+    FIELD valor-retorno AS CHARACTER FORMAT "x(60)"
+    FIELD campo-retorno AS CHARACTER FORMAT "x(60)"
+    FIELD perc-rateio   AS DECIMAL FORMAT ">>9,99".
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buscaCFOPSaida DBOProgram 
+PROCEDURE buscaCFOPSaida :
+/*------------------------------------------------------------------------------
+  Purpose:     retornar do engine de regras ou do conversor o cfop da nota de venda
+  Parameters:  saída do cfop da nota de venda
+------------------------------------------------------------------------------*/
+
+    DEFINE OUTPUT PARAMETER p-cfop-saida AS CHARACTER FORMAT "x(5)" NO-UNDO.
+    
+    DEFINE VARIABLE c-empresa     AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE c-chave-docto AS CHARACTER NO-UNDO.
+
+    IF NOT AVAILABLE docum-est THEN DO:
+        /***** Leitura Docum-est *****/
+        RUN findDocumento (INPUT RowObject.cod-emitente,
+                           INPUT RowObject.serie-docto,
+                           INPUT RowObject.nro-docto,
+                           INPUT RowObject.nat-operacao).
+    
+        IF  RETURN-VALUE <> "OK":U THEN
+            RETURN "NOK":U.
+    END.
+    
+    /*caso documento venha do conversor, sera atribuido o CFOP original do XML*/
+    FOR FIRST item-doc-orig-nfe NO-LOCK
+        WHERE item-doc-orig-nfe.ch-acesso-comp-nfe = docum-est.cod-chave-aces-nf-eletro
+          AND item-doc-orig-nfe.seq-item           = INTEGER(SUBSTRING(RowObject.char-2,832,5)):
+        
+          p-cfop-saida = item-doc-orig-nfe.cod-cfop.
+          RETURN "OK":U.
+    END.
+    
+    FOR FIRST estabelec NO-LOCK
+        WHERE estabelec.cod-estabel = docum-est.cod-estabel:
+        ASSIGN c-empresa = estabelec.ep-codigo.
+    END.
+    
+    RUN pi-carrega-var-engine (OUTPUT TABLE tt-variavel).
+    
+    IF NOT VALID-HANDLE(h-cdapi034) THEN
+        RUN cdp/cdapi034.p PERSISTENT SET h-cdapi034 (INPUT c-empresa,
+                                                      INPUT docum-est.cod-estabel,
+                                                      INPUT "RE-CFOP-Nota":U,
+                                                      INPUT TABLE tt-variavel,
+                                                      OUTPUT i-cod-regra-utilizada,
+                                                      OUTPUT TABLE tt-retorno,
+                                                      OUTPUT TABLE RowErrors APPEND).
+
+    ASSIGN c-chave-docto = STRING(RowObject.cod-emitente) + "|" + RowObject.serie-docto + "|" + RowObject.nro-docto + "|" + RowObject.nat-of.
+
+    RUN set-constraint-log-execucao IN h-cdapi034(INPUT c-chave-docto,
+                                                  INPUT RowObject.sequencia, /*seq item*/
+                                                  INPUT "":U,                /*conteudo original*/
+                                                  INPUT 0).                  /*tipo documento (NFe)*/
+
+    RUN pi-inicializa IN h-cdapi034 (INPUT c-empresa,
+                                     INPUT docum-est.cod-estabel,
+                                     INPUT "RE-CFOP-Nota":U,
+                                     INPUT TABLE tt-variavel,
+                                     OUTPUT i-cod-regra-utilizada,
+                                     OUTPUT TABLE tt-retorno,
+                                     OUTPUT TABLE RowErrors APPEND).
+                                     
+    if  valid-handle (h-cdapi034) then do:
+        delete procedure h-cdapi034.
+        assign h-cdapi034 = ?.
+    end.
+                                     
+    FOR EACH RowErrors:
+        /*desconsidera erro de regra nCo encontrada*/
+        IF RowErrors.ErrorNumber = 25997 THEN DO:
+            DELETE RowErrors.
+            NEXT.
+        END.
+        
+        IF RowErrors.ErrorSubType = "ERROR" THEN
+           RETURN "NOK":U.
+    END.
+    
+    
+    /*passa os retornos do engine para as variaveis apropriadas*/
+    FOR EACH tt-retorno:
+
+        IF tt-retorno.campo-retorno = "CFOP-Nota":U THEN
+            ASSIGN p-cfop-saida = tt-retorno.valor-retorno.
+    
+    END.
+
+    RETURN "OK":U. 
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-carrega-var-engine DBOProgram 
+PROCEDURE pi-carrega-var-engine:
+
+    DEFINE OUTPUT PARAMETER TABLE FOR tt-variavel.
+
+    DEFINE BUFFER bNnaturFisc FOR natur-oper.
+
+    EMPTY TEMP-TABLE tt-variavel.
+
+    IF NOT AVAIL RowObject THEN RETURN "NOK".
+
+    /*Carrega variaveis para o engine de regras*/
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "cod-observacao":U
+           tt-variavel.valor-variavel    = STRING(docum-est.cod-observa).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "data-emissao":U
+           tt-variavel.valor-variavel    = STRING(docum-est.dt-emissao).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "data-trans":U
+           tt-variavel.valor-variavel    = STRING(docum-est.dt-trans).
+
+
+    /*Conjunto variáveis Emitente*/
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "cod-emitente":U
+           tt-variavel.valor-variavel    = STRING(RowObject.cod-emitente).
+
+
+    /*Conjunto variáveis Natureza Operaçao*/
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "nat-operacao":U
+           tt-variavel.valor-variavel    = RowObject.nat-of.
+
+
+    FOR FIRST bNnaturFisc WHERE bNnaturFisc.nat-operacao = RowObject.nat-of NO-LOCK. END.
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "cod-cfop":U
+           tt-variavel.valor-variavel    = bNnaturFisc.cod-cfop.
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "tipo-compra":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.tipo-compra).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "especie-doc":U
+           tt-variavel.valor-variavel    = bNnaturFisc.especie-doc.
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "modelo-eletr":U
+           tt-variavel.valor-variavel    = bNnaturFisc.cod-model-nf-eletro.
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-transf":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.transf).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-terceiros":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.terceiros).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "tipo-oper-terc":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.tp-oper-terc).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-gera-nf-fat":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.imp-nota).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-nf-rateio":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.nota-rateio).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-nf-propria":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.ind-nota-propria = 1).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-nf-comercio":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.log-2).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-compra-ativo":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.venda-ativo).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-emite-duplic":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.emite-duplic).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "log-gera-of":U
+           tt-variavel.valor-variavel    = STRING(bNnaturFisc.ind-gera-of).
+
+    RUN getFatAntecipEntFutura (INPUT  bNnaturFisc.nat-operacao,
+                                OUTPUT l-fatura-fat-antecip,
+                                OUTPUT l-remessa-fat-antecip,
+                                OUTPUT l-fatura-ent-futura,
+                                OUTPUT l-remessa-ent-futura).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "l-fat-fat-antec":U
+           tt-variavel.valor-variavel    = STRING(l-fatura-fat-antecip).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "l-rem-fat-antec":U
+           tt-variavel.valor-variavel    = STRING(l-remessa-fat-antecip).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "l-fat-ent-futura":U
+           tt-variavel.valor-variavel    = STRING(l-fatura-ent-futura).
+
+    CREATE tt-variavel.
+    ASSIGN tt-variavel.cod-var-oper      = "l-rem-ent-futura":U
+           tt-variavel.valor-variavel    = STRING(l-remessa-ent-futura).
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME

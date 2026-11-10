@@ -1,0 +1,68 @@
+PROCEDURE atualizaChaveNfeEletronica :
+/*------------------------------------------------------------------------------
+  Purpose: Atualiza chave da nota fiscal eletr“nica e situa‡Æo da nota     
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+IF CAN-FIND(FIRST funcao WHERE funcao.cd-funcao = "spp-conv-nfe-entrada":U AND funcao.ativo NO-LOCK) THEN DO:
+    for first b-docum-est exclusive-lock
+        where b-docum-est.nro-docto    = RowObject.nro-docto
+        and   b-docum-est.serie-docto  = RowObject.serie-docto
+        and   b-docum-est.nat-operacao = RowObject.nat-operacao
+        and   b-docum-est.cod-emitente = RowObject.cod-emitente,
+        first doc-fisico of b-docum-est no-lock:
+
+        find first doc-orig-nfe exclusive-lock
+             where doc-orig-nfe.idi-situacao  = 7
+             and   doc-orig-nfe.idi-orig-trad = 2
+             and   doc-orig-nfe.cod-emitente  = doc-fisico.cod-emitente
+             and   doc-orig-nfe.serie-docto   = doc-fisico.serie-docto
+             and   doc-orig-nfe.nro-docto     = doc-fisico.nro-docto no-error.
+                
+        if avail doc-orig-nfe then do:
+            if b-docum-est.rec-fisico then do:                  /*14441 - Adicionado valida‡Æo para caso venha do fisico e tenha mais de uma nota mantenha a mesma chave de acesso*/
+                if not can-find(first doc-fisico no-lock
+                                where doc-fisico.nro-docto      = doc-orig-nfe.nro-docto        and
+                                      doc-fisico.cod-emitente   = doc-orig-nfe.cod-emitente     and
+                                      doc-fisico.serie-docto    = doc-orig-nfe.serie-docto      and
+                                      doc-fisico.dt-emissao     = doc-orig-nfe.dt-emissao       and
+                                      doc-fisico.situacao       = 2     /*Atualizado*/       )  then do:
+                 
+                    assign doc-orig-nfe.idi-situacao = 1
+                        /* Atualiza a chave do documento. */
+                         b-docum-est.cod-chave-aces-nf-eletro = IF LENGTH(doc-fisico.cod-chave-aces-nf-eletro) > 0 THEN doc-fisico.cod-chave-aces-nf-eletro ELSE doc-orig-nfe.ch-acesso-comp-nfe
+                         b-docum-est.cdn-sit-nfe              = 1.
+                    
+                end.
+            end.
+            else do:
+                assign doc-orig-nfe.idi-situacao = 1
+                    /* Atualiza a chave do documento. */
+                     b-docum-est.cod-chave-aces-nf-eletro = doc-orig-nfe.ch-acesso-comp-nfe
+                     b-docum-est.cdn-sit-nfe              = 1.
+                
+            end.
+                   
+            case int(doc-orig-nfe.mod-frete):
+                when 0 or when 9 then
+                    assign b-docum-est.mod-frete = 1.
+                when 1 then
+                    assign b-docum-est.mod-frete = 2.
+                otherwise
+                    assign b-docum-est.mod-frete = 3.
+            end case.
+            /*Modalidade de Frete NF-e*/
+            ASSIGN &IF '{&BF_MAT_VERSAO_EMS}' >= '2.09'
+                   &THEN b-docum-est.cod-modalid-frete
+                   &ELSE overlay(b-docum-est.char-2,143,8)
+                   &ENDIF
+                   = doc-orig-nfe.mod-frete.
+        end.
+    end.
+
+    release b-docum-est.
+end.
+
+return "OK":U.
+
+END PROCEDURE.

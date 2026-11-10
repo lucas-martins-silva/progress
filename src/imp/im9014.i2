@@ -1,0 +1,48 @@
+    if  l-primeira-vez then do:
+        /* verifica se cabecalho sera impresso na mesma pagina */
+        assign i-diferenca = page-size - line-counter.
+        if i-diferenca < 4 then page.
+        disp c-tit-doc-cex 
+             with frame f-tit-doc-cex.
+        disp c-lb-forn       
+             c-lb-nome-abrev 
+             c-lb-despesa    
+             c-lb-desc-desp  
+             c-lb-val-desp   
+             c-lb-cond-pagto 
+             c-lb-descricao
+             with frame f-docum-est-cex2.
+        assign l-primeira-vez = no.
+    end.            
+    
+    if  line-counter >= page-size then
+        page.
+        
+    assign c-emitente     = ""
+           c-desp-imp     = ""
+           c-cod-cond-pag = "".
+    
+    find emitente 
+        where emitente.cod-emitente = docum-est-cex.cod-emitente-desp no-lock no-error.
+    if  avail emitente then
+        assign c-emitente = emitente.nome-abrev.
+    
+    find desp-imp 
+        where desp-imp.cod-desp = docum-est-cex.cod-desp no-lock no-error.
+    if  avail desp-imp then
+        assign c-desp-imp = desp-imp.descricao.
+        
+    find cond-pagto                 
+        where cond-pagto.cod-cond-pag = docum-est-cex.cod-cond-pag no-lock no-error.
+    if  avail cond-pagto then
+        assign c-cod-cond-pag = cond-pagto.descricao.
+        
+    disp docum-est-cex.cod-emitente-desp
+         c-emitente
+         docum-est-cex.cod-desp
+         c-desp-imp
+         docum-est-cex.val-desp format ">>>>>,>>>,>>9.99"
+         docum-est-cex.cod-cond-pag
+         c-cod-cond-pag
+         with frame f-docum-est-cex.
+    down with frame f-docum-est-cex.

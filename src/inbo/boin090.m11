@@ -1,0 +1,90 @@
+PROCEDURE calculateICMSFonte :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    DEF INPUT  PARAM piICM        LIKE docum-est.icm-fonte NO-UNDO.
+    DEF OUTPUT PARAM de-icm-fonte LIKE docum-est.icm-fonte NO-UNDO.
+
+    DEF BUFFER b-natur-oper   FOR natur-oper.
+    DEF BUFFER b-item-doc-est FOR item-doc-est.
+
+    RUN findNaturOper (RowObject.nat-operacao).
+    IF  RETURN-VALUE = "NOK":U THEN
+        RETURN "NOK":U.
+    
+    IF  natur-oper.tipo-compra = 2 THEN DO: /* Frete */
+        
+        /* Se USA m£ltiplas nas=turezas no recebimento. */
+        IF  l-mult-natur-receb THEN DO: /* Var def em cd9701.i */
+            VerificaItens:
+            FOR EACH b-item-doc-est NO-LOCK
+                WHERE b-item-doc-est.serie-docto = RowObject.serie-docto
+                AND b-item-doc-est.nro-docto     = RowObject.nro-docto
+                AND b-item-doc-est.cod-emitente  = RowObject.cod-emitente
+                AND b-item-doc-est.nat-operacao  = RowObject.nat-operacao:
+    
+                FOR FIRST b-natur-oper 
+                    WHERE b-natur-oper.nat-operacao = b-item-doc-est.nat-of NO-LOCK:
+
+                    IF  b-natur-oper.subs-trib THEN DO:
+                        IF  piICM = 0 THEN DO:
+                            IF  NOT VALID-HANDLE(h_boin176) THEN
+                                RUN inbo/boin176.p PERSISTENT SET h_boin176.
+                            
+                            RUN calculateTotalItem IN h_boin176 (INPUT RowObject.cod-emitente,
+                                                                 INPUT RowObject.serie-docto,
+                                                                 INPUT RowObject.nro-docto,
+                                                                 INPUT RowObject.nat-operacao,
+                                                                 OUTPUT TABLE tt-total-item).
+                            
+                            FIND FIRST tt-total-item NO-LOCK NO-ERROR.
+                            IF  AVAIL tt-total-item THEN
+                                ASSIGN de-icm-fonte = tt-total-item.valor-icm.
+                        END.
+                        ELSE 
+                            ASSIGN de-icm-fonte = piICM.
+                
+                        RUN findEmitente (INPUT RowObject.cod-emitente).
+                
+                        /* C lculo do cr‚dito presumido */
+                        {inbo/boin090.i2 de-icm-fonte}
+                        LEAVE VerificaItens.
+                    END.
+                END.
+            END. /* FIM VerificaItens */
+        END.
+            
+        /* Se NÇO usa multi.Natur ou nÆo achou nenhuma natureza fiscal dos itens, usa a natureza da nota (nat-operacao) */
+        IF  NOT l-mult-natur-receb OR NOT AVAIL b-natur-oper THEN DO:
+            IF  natur-oper.subs-trib THEN DO:
+                IF  piICM = 0 THEN DO:
+                    IF  NOT VALID-HANDLE(h_boin176) THEN
+                        RUN inbo/boin176.p PERSISTENT SET h_boin176.
+                    
+                    RUN calculateTotalItem IN h_boin176 (INPUT RowObject.cod-emitente,
+                                                         INPUT RowObject.serie-docto,
+                                                         INPUT RowObject.nro-docto,
+                                                         INPUT RowObject.nat-operacao,
+                                                         OUTPUT TABLE tt-total-item).
+                    
+                    FIND FIRST tt-total-item NO-LOCK NO-ERROR.
+                    IF  AVAIL tt-total-item THEN
+                        ASSIGN de-icm-fonte = tt-total-item.valor-icm.
+                END.
+                ELSE 
+                    ASSIGN de-icm-fonte = piICM.
+        
+                RUN findEmitente (INPUT RowObject.cod-emitente).
+        
+                /* C lculo do cr‚dito presumido */
+                {inbo/boin090.i2 de-icm-fonte}
+            END.
+        END.
+    END.
+
+    RETURN "OK":U.
+    
+END PROCEDURE.

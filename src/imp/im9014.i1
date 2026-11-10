@@ -1,0 +1,654 @@
+/***************************************************************************
+**
+**       Programa: IM9014.i1 - Integraá∆o com RE0401 - Listagem Conferencia de Documentos
+**
+**       Data....: Maio de 1999 
+**
+**       Objetivo: Imprime as informaá‰es referente a importaá∆o
+**                 Docum-est-cex
+**                 Item-doc-est-cex
+**                 Dupli-apagar-cex
+**
+****************************************************************************/
+{cdp/cdcfgdis.i} /* Definiá∆o de prÇ-processadores */
+
+{imp/im7777.i1} /* tt-nota */
+
+def var c-lb-tipo-desp          as char format "x(14)" no-undo.
+def var c-lb-incoterm-rat       as char format "x(20)" no-undo.
+def var c-tipo-desp             as char format "x(21)" no-undo.
+def var c-incoterm-rat          as char format "x(3)"  no-undo.
+def var c-lb-forn               as char format "x(9)"  no-undo.
+def var c-lb-nome-abrev         as char format "x(14)" no-undo.
+def var c-lb-despesa            as char format "x(7)"  no-undo.
+def var c-lb-desc-desp          as char format "x(30)" no-undo.
+def var c-lb-val-desp           as char format "x(19)" no-undo.
+def var c-lb-cond-pagto         as char format "x(9)"  no-undo.
+def var c-lb-descricao          as char format "x(30)" no-undo.
+
+def var de-total-dup            like dupli-apagar.vl-a-pagar     no-undo.
+def var de-total-dup-mo         like dupli-apagar.vl-a-pagar     no-undo.
+def var de-dup-tot              like dupli-apagar.vl-a-pagar     no-undo.
+def var de-dup-tot-mo           like dupli-apagar.vl-a-pagar     no-undo.
+def var de-total-doc            like docum-est.tot-valor         no-undo.
+def var de-valor-pag            like dupli-apagar-cex.vl-a-pagar no-undo.
+def var da-data-pag             like dupli-apagar-cex.dt-vencim  no-undo.
+def var de-valor-pagar          like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-tot-despesas         like dupli-apagar-cex.vl-a-pagar no-undo.
+def var c-emitente3             like emitente.nome-abrev         no-undo.
+def var c-emitente4             like emitente.nome-abrev         no-undo.
+def var c-cod-cond-pag          like cond-pagto.descricao        no-undo.
+def var de-vl-docto             like dupli-apagar.vl-a-pagar no-undo.
+def var de-tot-vl-docto         like dupli-apagar.vl-a-pagar no-undo.
+def var de-vl-docto-mo          like dupli-apagar.vl-a-pagar no-undo. 
+def var de-tot-vl-docto-mo      like dupli-apagar.vl-a-pagar no-undo. 
+def var c-embarque-despesa      like embarque-imp.embarque no-undo.
+def var de-tot-vl-docto-aux     like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-tot-vl-docto-mo-aux  like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-dup-tot-aux          like dupli-apagar.vl-a-pagar no-undo.
+def var de-dup-tot-mo-aux       like dupli-apagar.vl-a-pagar no-undo.
+
+def var c-tit-doc-cex           as char no-undo.
+def var c-tit-it-doc-cex        as char no-undo.
+def var c-tit-dupli-cex         as char no-undo.
+def var l-primeira-vez          as logical no-undo.
+def var c-esp-movto             as char no-undo.
+def var i-ind                   as integer no-undo.
+def var i-cod-emitente-desp     as integer no-undo.
+def var i-cod-desp              as integer no-undo.
+def var da-data                 as date format "99/99/9999" no-undo extent 12.
+def var da-partida              as date format "99/99/9999" no-undo.
+def var i-avanco                as integer no-undo.
+def var i-parcela               as int     no-undo.
+def var i-diferenca             as integer no-undo.
+def var da-cotacao              like docum-est.dt-emissao no-undo.
+def var i-moeda-material        as integer no-undo.
+
+def var c-embrq                 like embarque-imp.embarque no-undo.
+def var c-seqnc                 as char format "x(5)" no-undo.
+def var da-data-cot             as date format "99/99/9999" no-undo.
+
+def var dat-tipo-dia   like calen-coml.tipo-dia no-undo. /*CD9020.i7*/
+
+def temp-table tt-doc NO-UNDO
+    field serie-docto  like docum-est.serie-docto
+    field nro-docto    like docum-est.nro-docto
+    field cod-emitente like docum-est.cod-emitente
+    field nat-operacao like docum-est.nat-operacao
+    field num-pedido   like pedido-compr.num-pedido
+    field sequencia    like item-doc-est.sequencia
+    field tipo         as integer. /* 1-Documento
+                                      2-Item do Documento
+                                      3-Duplicatas de despesas */
+                                      
+def temp-table tt-docum-est NO-UNDO like docum-est
+    &if defined (bf_mat_versao_ems) &then
+        &if "{&bf_mat_versao_ems}" >= "2.03" &then
+        &else
+            field embarque like embarque-imp.embarque
+        &endif        
+    &else
+        field embarque like embarque-imp.embarque    
+    &endif
+    .
+
+&IF "{&bf_mat_versao_ems}" >= "2.062" &THEN
+    DEF VAR i-cod-emitente-desp-ant LIKE emitente.cod-emitente NO-UNDO.
+    DEF VAR da-dt-vencto-ant        AS   DATE                  NO-UNDO INIT ?.
+&ENDIF
+
+def temp-table tt-dupli-apagar-cex NO-UNDO
+    field cod-emitente      like dupli-apagar-cex.cod-emitente
+    field nat-operacao      like dupli-apagar-cex.nat-operacao
+    field serie-docto       like dupli-apagar-cex.serie-docto
+    field nro-docto         like dupli-apagar-cex.nro-docto
+    field cod-emitente-desp like dupli-apagar-cex.cod-emitente-desp
+    field cod-desp          like docum-est-cex.cod-desp 
+    field mo-codigo         like dupli-apagar-cex.mo-codigo
+    field dt-vencimen       like dupli-apagar-cex.dt-vencim
+    field tp-despesa        like dupli-apagar-cex.tp-despesa
+    field vl-a-pagar        like dupli-apagar-cex.vl-a-pagar
+    field vl-a-pagar-mo     like dupli-apagar-cex.vl-a-pagar-mo
+    FIELD cod-esp           LIKE dupli-apagar-cex.cod-esp.       
+    
+def temp-table tt-dupli-calc NO-UNDO
+    field cod-emitente      like dupli-apagar-cex.cod-emitente
+    field nat-operacao      like dupli-apagar-cex.nat-operacao
+    field serie-docto       like dupli-apagar-cex.serie-docto
+    field nro-docto         like dupli-apagar-cex.nro-docto
+    field cod-emitente-desp like dupli-apagar-cex.cod-emitente-desp
+    field cod-desp          like docum-est-cex.cod-desp 
+    field mo-codigo         like dupli-apagar-cex.mo-codigo
+    field dt-vencimen       like dupli-apagar-cex.dt-vencim
+    field tp-despesa        like dupli-apagar-cex.tp-despesa
+    field vl-a-pagar        like dupli-apagar-cex.vl-a-pagar
+    field vl-a-pagar-mo     like dupli-apagar-cex.vl-a-pagar-mo
+    FIELD cod-esp           LIKE dupli-apagar-cex.cod-esp
+    field parcela           like dupli-apagar-cex.parcela
+    field dt-vencim         like dupli-apagar-cex.dt-vencim
+    field nr-duplic         like dupli-apagar-cex.nr-duplic
+    field dt-emissao        like docum-est.dt-emissao
+    field dt-trans          like docum-est.dt-trans
+    field informado         as logical
+    field impresso          as logical.
+    
+def temp-table tt-dupli-apagar no-undo
+    field registro              as   int
+    field parcela               like dupli-apagar.parcela
+    field nr-duplic             like dupli-apagar.nr-duplic 
+    field cod-esp               like dupli-apagar.cod-esp
+    field tp-despesa            like dupli-apagar.tp-despesa 
+    field dt-vencim             like dupli-apagar.dt-vencim 
+    field vl-a-pagar            like dupli-apagar.vl-a-pagar
+    field vl-desconto           like dupli-apagar.vl-desconto 
+    field dt-venc-desc          like dupli-apagar.dt-venc-desc 
+    field cod-ret-irf           like dupli-apagar.cod-ret-irf
+    field mo-codigo             like ordem-compra.mo-codigo /* Campo Integracao                                                             Modulo Importacao */     field vl-a-pagar-mo         like dupli-apagar.vl-a-pagar /* Campo Integracao                                                             Modulo Importacao */ 
+    field serie-docto           like dupli-apagar.serie-docto       /* resgatado pelo item-doc-est */
+    field nro-docto             like dupli-apagar.nro-docto         /* resgatado pelo item-doc-est */
+    field cod-emitente          like dupli-apagar.cod-emitente      /* resgatado pelo item-doc-est */
+    field nat-operacao          like dupli-apagar.nat-operacao      /* resgatado pelo item-doc-est */
+    field observacao            like dupli-apagar.observacao  
+    index documento is primary unique
+          serie-docto
+           nro-docto
+           cod-emitente
+           nat-operacao
+           parcela.
+
+DEFINE BUFFER b-tt-dupli-apagar FOR tt-dupli-apagar.
+
+{imp/im9014.i} /* Definiá‰es de frames */
+{imp/im0091.i} /* Definiá‰es temp-tables despesas */
+
+{cdp/cd4300.i3}    /* vari†veis utilizadas pelo cd4300.i4 */
+{rep/re1001a.i50} /* tratamento docum-est.char-1 */
+     
+/****************************** ParÉmetros *********************************/
+
+
+procedure docum_desp_importacao:
+
+    def input parameter table for tt-doc.    
+    
+    find first tt-doc no-error.
+    
+    {utp/ut-liter.i DESPESAS_DO_DOCUMENTO * R}
+    assign c-tit-doc-cex  = " *" + fill("-", 45)
+                          + " "  + trim(return-value)
+                          + " "  + fill("-", 60)
+                          + "* "
+           l-primeira-vez = yes.
+
+    for each  docum-est-cex
+        where docum-est-cex.serie-docto   = tt-doc.serie-docto 
+        and   docum-est-cex.nro-docto = tt-doc.nro-docto
+        and   docum-est-cex.cod-emitente  = tt-doc.cod-emitente 
+        and   docum-est-cex.nat-operacao  = tt-doc.nat-operacao no-lock:
+        
+        {imp/im9014.i2}
+    
+    end.    
+    
+    put skip(1).                
+
+end procedure.        
+
+
+procedure docum_desp_imp_detalhe:
+
+    /* Definicao de Parametros */
+    DEFINE INPUT PARAMETER TABLE FOR tt-doc.
+    
+    /* Definicao de Variaveis */
+    DEFINE VARIABLE c-nr-embarque like embarque-imp.embarque NO-UNDO.
+    DEFINE VARIABLE c-cod-estabel  like estabelec.cod-estabel NO-UNDO.
+    
+    find first tt-doc no-error.
+    
+    {utp/ut-liter.i DESPESAS_DO_DOCUMENTO * R}
+    assign c-tit-doc-cex  = " *" + fill("-", 45) 
+                          + " "  + trim(return-value)
+                          + " "  + fill("-", 60) 
+                          + "* "
+           l-primeira-vez = yes.
+                                                          
+    for first docum-est fields (cod-estabel char-1)
+        where docum-est.serie-docto  = tt-doc.serie-docto  
+        and   docum-est.nro-docto    = tt-doc.nro-docto    
+        and   docum-est.cod-emitente = tt-doc.cod-emitente 
+        and   docum-est.nat-operacao = tt-doc.nat-operacao no-lock: 
+    end. 
+
+    {rep/re1001a.i50}  /* vari†veis e informaá‰es utilizadas pelo re1001a.i51 */                                  
+    {cdp/cd4300.i4  "yes" docum-est.char-1}     
+    {rep/re1001a.i51 "yes"}
+    
+    for each  docum-est-cex
+        where docum-est-cex.serie-docto   = tt-doc.serie-docto 
+        and   docum-est-cex.nro-docto = tt-doc.nro-docto
+        and   docum-est-cex.cod-emitente  = tt-doc.cod-emitente 
+        and   docum-est-cex.nat-operacao  = tt-doc.nat-operacao no-lock:
+    
+        {imp/im9014.i2}
+
+        assign c-incoterm-rat = ""
+               c-tipo-desp    = "".
+               
+        /* Nota Fiscal Complementar? */
+        FOR FIRST  natur-oper
+            FIELDS (nota-rateio)
+            WHERE  natur-oper.nat-operacao = docum-est-cex.nat-operacao NO-LOCK: 
+        END.
+            
+       IF  AVAIL natur-oper          
+       AND natur-oper.nota-rateio THEN DO:
+           
+           FOR FIRST  item-doc-est-cex
+               FIELDS (&IF "{&bf_mat_versao_ems}":U >= "2.06":U &THEN
+                           embarque cod-estabel
+                       &ELSE
+                           char-1
+                       &ENDIF )
+               WHERE  item-doc-est-cex.serie-docto       = docum-est-cex.serie-docto       AND
+                      item-doc-est-cex.nro-docto         = docum-est-cex.nro-docto         AND
+                      item-doc-est-cex.cod-emitente      = docum-est-cex.cod-emitente      AND
+                      item-doc-est-cex.nat-operacao      = docum-est-cex.nat-operacao      AND
+                      item-doc-est-cex.cod-emitente-desp = docum-est-cex.cod-emitente-desp AND
+                      item-doc-est-cex.cod-desp          = docum-est-cex.cod-desp          NO-LOCK:
+                      
+               &IF "{&bf_mat_versao_ems}":U >= "2.06":U &THEN
+                   ASSIGN c-nr-embarque = item-doc-est-cex.embarque
+                          c-cod-estabel = item-doc-est-cex.cod-estabel.
+               &ELSE
+                   ASSIGN c-nr-embarque = SUBSTRING(item-doc-est-cex.char-1,01,12)
+                          &IF "{&mguni_version}" >= "2.071" &THEN
+                                c-cod-estabel = SUBSTRING(item-doc-est-cex.char-1,21,05).
+                          &ELSE
+                                c-cod-estabel = SUBSTRING(item-doc-est-cex.char-1,13,03).
+                          &ENDIF
+                          
+               &ENDIF
+               
+               FOR FIRST  desp-embarque
+                   FIELDS (char-1
+                          &IF "{&bf_mat_versao_ems}":U >= "2.062":U &THEN
+                              cod-incoterm-rat
+                          &ENDIF )
+                   WHERE  desp-embarque.cod-estabel = c-cod-estabel          AND
+                          desp-embarque.embarque    = c-nr-embarque          AND
+                          desp-embarque.cod-desp    = docum-est-cex.cod-desp NO-LOCK: END.
+           END.
+       END.
+       ELSE DO:
+           FOR FIRST  desp-embarque
+               FIELDS (char-1
+                       &IF "{&bf_mat_versao_ems}":U >= "2.062":U &THEN
+                           cod-incoterm-rat
+                      &ENDIF )
+               WHERE  desp-embarque.cod-estabel = docum-est.cod-estabel
+                 AND desp-embarque.embarque = c-embarque
+                 AND desp-embarque.cod-desp = docum-est-cex.cod-desp NO-LOCK: 
+           END.
+        END.
+        
+        if  avail desp-embarque then 
+            &if '{&bf_mat_versao_ems}' < '2.062' &then
+                assign c-incoterm-rat = substr(desp-embarque.char-1,1,3).
+            &else
+                assign c-incoterm-rat = desp-embarque.cod-incoterm-rat.
+            &endif
+
+        for first desp-imp fields (tipo)
+            where desp-imp.cod-desp = docum-est-cex.cod-desp no-lock: end.
+        if  avail desp-imp then
+            assign c-tipo-desp = {cxinc/i01cx010.i 04 desp-imp.tipo}.
+
+        disp c-lb-tipo-desp
+             c-tipo-desp
+             c-lb-incoterm-rat
+             c-incoterm-rat
+             with frame f-detalha-desp.
+        down with frame f-detalha-desp.
+    end.    
+    
+    put skip(1).                
+
+end procedure.        
+
+    
+procedure item_desp_importacao: /* Itens do Documento */
+        
+        def input parameter table for tt-doc.
+        
+        find first tt-doc no-error.
+        
+        {utp/ut-liter.i DESPESAS_DO_ITEM_DO_DOCUMENTO * R}
+        assign c-tit-it-doc-cex = " *" + fill("-", 45) + " "
+                                  + trim(return-value)
+                                  + " "  + fill("-", 60) + "* "
+               l-primeira-vez = yes.
+                                           
+        if not avail natur-oper then
+           for first natur-oper 
+               where natur-oper.nat-operacao = tt-doc.nat-operacao no-lock:
+           end.
+                                           
+        for each item-doc-est-cex 
+           where item-doc-est-cex.serie-docto   = tt-doc.serie-docto 
+             and item-doc-est-cex.nro-docto     = tt-doc.nro-docto 
+             and item-doc-est-cex.cod-emitente  = tt-doc.cod-emitente 
+             and item-doc-est-cex.nat-operacao  = tt-doc.nat-operacao 
+             and item-doc-est-cex.sequencia     = tt-doc.sequencia no-lock:
+            
+            for first docum-est
+                 where docum-est.serie-docto  = item-doc-est-cex.serie-docto 
+                   and docum-est.nro-docto    = item-doc-est-cex.nro-docto   
+                   and docum-est.cod-emitente = item-doc-est-cex.cod-emitente
+                   and docum-est.nat-operacao = item-doc-est-cex.nat-operacao no-lock:
+            end.
+
+            {cdp/cd4300.i4 "yes" docum-est.char-1}
+            {rep/re1001a.i51 "yes"} /*atualiza c-embarque*/
+            
+            for first embarque-imp
+                where embarque-imp.cod-estabel = docum-est.cod-estabel
+                  and embarque-imp.embarque    = c-embarque no-lock:
+            end.
+            
+            if l-primeira-vez then do:
+                /* verifica se cabecalho sera impresso na mesma pagina */
+                assign i-diferenca = page-size - line-counter.
+                if i-diferenca < 4 then page.                
+                disp c-tit-it-doc-cex with frame f-tit-it-doc-cex.                 
+                assign l-primeira-vez = no.
+            end.              
+            
+            if line-counter >= page-size then
+                page.
+            
+            find emitente where emitente.cod-emitente = item-doc-est-cex.cod-emitente-desp no-lock no-error.
+            if avail emitente then
+                assign c-emitente2 = emitente.nome-abrev.
+            else
+                assign c-emitente2 = "".            
+            
+            find desp-imp where desp-imp.cod-desp = item-doc-est-cex.cod-desp no-lock no-error.
+            if avail desp-imp then
+                assign c-desp-imp2 = desp-imp.descricao.
+            else 
+                assign c-desp-imp2 = "".
+                
+            if  avail natur-oper 
+            and natur-oper.nota-rateio then do:
+                &IF "{&bf_mat_versao_ems}" >= "2.062" &THEN    
+                    assign c-embrq     = item-doc-est-cex.embarque
+                           c-seqnc     = string(item-doc-est-cex.num-seq-orig)
+                           da-data-cot = item-doc-est-cex.dat-cotac.
+                &ELSE 
+                    assign c-embrq     = substring(item-doc-est-cex.char-1,1,12)
+                           c-seqnc     = substring(item-doc-est-cex.char-1,16,5)
+                           da-data-cot = item-doc-est-cex.data-1.
+                       
+                &ENDIF
+            end.
+            else do:
+                 assign c-embrq     = c-embarque
+                        c-seqnc     = string(item-doc-est-cex.sequencia).
+
+                 IF AVAIL embarque-imp THEN
+                    assign da-data-cot = embarque-imp.data-1.
+            end.
+            
+            disp item-doc-est-cex.sequencia
+                 item-doc-est-cex.cod-emitente-desp
+                 c-emitente2
+                 item-doc-est-cex.cod-desp
+                 c-desp-imp2
+                 &IF DEFINED(bf_mat_versao_ems) &THEN
+                     &IF "{&bf_mat_versao_ems}" >= "2.04" &THEN
+                         c-embrq
+                         c-seqnc
+                         da-data-cot
+                     &ENDIF
+                 &ENDIF
+                 item-doc-est-cex.val-desp format ">>>>>,>>>,>>9.99"
+                 with frame f-item-doc-est-cex.                         
+            down with frame f-item-doc-est-cex.
+        end.
+        
+        put skip(1).                 
+end procedure.
+    
+procedure dupli_desp_importacao: /* DUPLI-APAGAR-CEX */      /* impressao pelo re0401 */
+        
+    def input parameter table for tt-doc.
+        
+    find first tt-doc no-error.
+        
+    IF NOT AVAIL param-global THEN
+        find first param-global no-lock no-error.
+         
+    /* Procura a primeira duplicata de despesa de importaá∆o para a nota, 
+    caso n∆o encontre n∆o continua o processo */ 
+    find first dupli-apagar-cex 
+        where dupli-apagar-cex.serie-docto  = tt-doc.serie-docto
+          and dupli-apagar-cex.nro-docto    = tt-doc.nro-docto
+          and dupli-apagar-cex.cod-emitente = tt-doc.cod-emitente
+          and dupli-apagar-cex.nat-operacao = tt-doc.nat-operacao no-lock no-error.
+    if avail dupli-apagar-cex then do:
+        {utp/ut-liter.i DUPLICATA_DE_DESPESAS * R}
+        assign c-tit-dupli-cex = " *" + fill("-", 45) + " "
+                                 + trim(return-value)
+                                 + " "  + fill("-", 60) + "* "
+               l-primeira-vez  = yes.
+                                     
+        find docum-est 
+            where docum-est.serie-docto  = tt-doc.serie-docto  
+              and docum-est.nro-docto    = tt-doc.nro-docto    
+              and docum-est.cod-emitente = tt-doc.cod-emitente 
+              and docum-est.nat-operacao = tt-doc.nat-operacao no-lock no-error.
+              
+        find param-imp 
+            where param-imp.cod-estabel = docum-est.cod-estabel no-lock no-error.
+                
+        {rep/re1001a.i50}  /* vari†veis e informaá‰es utilizadas pelo re1001a.i51 */                                  
+        {cdp/cd4300.i4  "yes" docum-est.char-1}     
+        {rep/re1001a.i51 "yes"}
+            
+        create tt-docum-est.
+        assign tt-docum-est.cod-emitente = docum-est.cod-emitente
+               tt-docum-est.nat-operacao = docum-est.nat-operacao
+               tt-docum-est.serie-docto  = docum-est.serie-docto
+               tt-docum-est.nro-docto    = docum-est.nro-docto
+               tt-docum-est.cod-estabel  = docum-est.cod-estabel
+               tt-docum-est.embarque     = c-embarque.
+                   
+        find embarque-imp
+            where embarque-imp.embarque = tt-docum-est.embarque no-lock no-error.
+        if avail embarque-imp and embarque-imp.data-1 <> ? then
+            assign da-cotacao = embarque-imp.data-1.
+        else
+            assign da-cotacao = docum-est.dt-emissao.
+                
+        /* cria tt-duplic */
+        run calculaDuplicatasorig (input tt-docum-est.cod-estabel,
+                                   input tt-docum-est.embarque,
+                                   input tt-docum-est.nat-operacao,
+                                   input da-cotacao).
+            
+        for each dupli-apagar-cex 
+            where dupli-apagar-cex.serie-docto  = tt-doc.serie-docto
+              and dupli-apagar-cex.nro-docto    = tt-doc.nro-docto
+              and dupli-apagar-cex.cod-emitente = tt-doc.cod-emitente
+              and dupli-apagar-cex.nat-operacao = tt-doc.nat-operacao no-lock
+              break by 
+                dupli-apagar-cex.cod-emitente-desp:
+                                          
+            if l-primeira-vez then do:
+                if line-counter >= (page-size - 9) then
+                    page.
+                disp c-tit-dupli-cex with frame f-tit-dupli-cex.
+                assign l-primeira-vez = no.
+            end.
+              
+            if line-counter >= page-size then
+                page.
+                   
+            assign c-emitente3    = ""
+                   de-valor-pag   = 0
+                   de-valor-pagar = 0.
+                
+            find emitente where 
+                 emitente.cod-emitente = dupli-apagar-cex.cod-emitente-desp no-lock no-error.            
+            if avail emitente then
+                assign c-emitente3 = emitente.nome-abrev.
+                    
+            assign c-esp-movto = {ininc/i01in088.i 04 dupli-apagar-cex.esp-movto}
+                   de-valor-pagar     = dupli-apagar-cex.vl-a-pagar.                
+                    
+            find tt-dupli-calc 
+                where tt-dupli-calc.serie-docto       = dupli-apagar-cex.serie-docto 
+                  and tt-dupli-calc.nro-docto         = dupli-apagar-cex.nro-docto 
+                  and tt-dupli-calc.cod-emitente      = dupli-apagar-cex.cod-emitente 
+                  and tt-dupli-calc.nat-operacao      = dupli-apagar-cex.nat-operacao 
+                  and tt-dupli-calc.cod-emitente-desp = dupli-apagar-cex.cod-emitente-desp 
+                  and tt-dupli-calc.parcela           = dupli-apagar-cex.parcela no-error.
+            /* Valor e data calculados para a duplicata */            
+                    
+            if  avail tt-dupli-calc then                        
+                assign tt-dupli-calc.informado = yes
+                       tt-dupli-calc.impresso  = yes
+                       de-valor-pag            = tt-dupli-calc.vl-a-pagar
+                       da-data-pag             = tt-dupli-calc.dt-vencim.
+            else 
+                assign de-valor-pag = 0
+                       da-data-pag  = ?.            
+                       
+            if  first-of(dupli-apagar-cex.cod-emitente-desp) then do:
+                if line-counter >= (page-size - 8) then
+                    page.
+                disp dupli-apagar-cex.cod-emitente-desp
+                     c-emitente3 
+                     with frame f-emit-dupli.
+            end.                     
+                     
+            disp dupli-apagar-cex.parcela 
+                 dupli-apagar-cex.cod-esp
+                 dupli-apagar-cex.tp-despesa
+                 dupli-apagar-cex.nr-duplic
+                 dupli-apagar-cex.dt-emissao
+                 dupli-apagar-cex.dt-trans
+                 dupli-apagar-cex.dt-vencim
+                 de-valor-pagar
+                 dupli-apagar-cex.desconto
+                 dupli-apagar-cex.dt-venc-desc                 
+                 c-esp-movto
+                 de-valor-pag
+                 da-data-pag                 
+                 with frame f-dupli-apagar-cex.                                  
+            down with frame f-dupli-apagar-cex.
+                
+            if last-of(dupli-apagar-cex.cod-emitente-desp) then do:
+                for each tt-dupli-calc where
+                    tt-dupli-calc.serie-docto       = dupli-apagar-cex.serie-docto and
+                    tt-dupli-calc.nro-docto         = dupli-apagar-cex.nro-docto and
+                    tt-dupli-calc.cod-emitente      = dupli-apagar-cex.cod-emitente and
+                    tt-dupli-calc.nat-operacao      = dupli-apagar-cex.nat-operacao and
+                    tt-dupli-calc.cod-emitente-desp = dupli-apagar-cex.cod-emitente-desp and
+                    tt-dupli-calc.informado         = no:
+                     
+                    assign tt-dupli-calc.impresso = yes
+                           de-valor-pag           = tt-dupli-calc.vl-a-pagar
+                           da-data-pag            = tt-dupli-calc.dt-vencim.        
+                      
+                    disp de-valor-pag
+                         da-data-pag
+                         with frame f-dupli-apagar-cex.
+                    down with frame f-dupli-apagar-cex.
+                end.
+            end.
+        end.
+        put skip(1).        
+    end.
+end procedure.
+    
+
+
+procedure calculaDuplicatasorig:
+    /* 
+    ** Criacao das temp-tables com as despesas e os valores calculados para rateio 
+    */
+    def input parameter p-cod-estabel  like estabelec.cod-estabel  no-undo.
+    def input parameter p-embarque     like embarque-imp.embarque  no-undo.
+    def input parameter p-nat-operacao like docum-est.nat-operacao no-undo.
+    def input parameter p-da-cotacao   like docum-est.dt-emissao   no-undo.    
+    
+    def var h-im0091                   as   handle                 no-undo.
+
+    {cxbo/bocx250.i50}
+
+    FIND param-imp
+        WHERE param-imp.cod-estabel = p-cod-estabel NO-LOCK NO-ERROR.
+    IF AVAIL param-imp THEN DO:
+        {cdp/cd4300.i4 "yes" param-imp.char-1}
+        {cxbo/bocx250.i51 "yes"}
+    END.
+
+    {ccp/cc9019.i50}  /* vari†veis e informaá‰es utilizadas pelo cc9019.i51 */
+    
+    for each tt-dupli-calc:
+        delete tt-dupli-calc.
+    end.
+    
+    /* Rateio das despesas informadas para o embarque */
+    run imp/im0091.p persistent set h-im0091.
+    run setaValorinicial in h-im0091 (input p-da-cotacao,
+                                      input p-cod-estabel).
+    run rateioEmbarque   in h-im0091 (input p-cod-estabel,
+                                      input p-embarque,
+                                      input p-nat-operacao,
+                                      output table tt-desp-rateio).
+    run getTTitiner-emb  in h-im0091 (output table tt-itiner-emb).
+    run getTTdesp-totais in h-im0091 (output table tt-desp-totais).
+    delete procedure h-im0091.
+    
+    /* 
+    ** Procura Ponto de Controle Base
+    */
+    find first ordens-embarque
+        where ordens-embarque.cod-estabel = p-cod-estabel
+          and ordens-embarque.embarque    = p-embarque no-lock no-error.
+    if avail ordens-embarque then 
+        find cotacao-item 
+            where cotacao-item.numero-ordem = ordens-embarque.numero-ordem
+              and cotacao-item.cot-aprovada no-lock no-error.                    
+        if avail cotacao-item then do:
+            {cdp/cd4300.i4  "yes" cotacao-item.char-1}
+            {ccp/cc9019.i51 "yes"}
+        
+            find first tt-itiner-emb NO-LOCK NO-ERROR.
+            
+            create tt-nota.
+            assign tt-nota.da-cotacao         = p-da-cotacao
+                   tt-nota.cod-pto-contr-base = i-cod-pto-contr-i50.
+                   
+            if avail tt-itiner-emb then
+                assign tt-nota.cod-itiner = tt-itiner-emb.cod-itiner.
+                   
+            find cotacao
+                where cotacao.mo-codigo   = cotacao-item.mo-codigo
+                  and cotacao.ano-periodo = string(year(p-da-cotacao)) + string(month(p-da-cotacao),"99")
+                  and cotacao.cotacao[int(day(p-da-cotacao))] <> 0 no-lock no-error.
+            if not avail cotacao then do:
+                if cotacao-item.mo-codigo = 0 then
+                    assign tt-nota.cotacao-dia = 1.
+            end.
+            else
+                assign tt-nota.cotacao-dia = cotacao.cotacao[int(day(p-da-cotacao))].
+                
+            {imp/im7777.i3 "item-doc-est" "tt-dupli-calc"}
+            
+            delete tt-nota.
+        end.    
+end procedure.

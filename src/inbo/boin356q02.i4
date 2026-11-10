@@ -1,0 +1,17 @@
+/*
+**  BOIN356q02.i4
+**
+**  Prazo-Compra X Item-Forne - Parcelas X Fornecedores
+**
+**  éltima altera‡Æo : 26/11/99 - brf13170 (Odil B. Neto)
+**
+**  Temp Table Auxiliar - Espec¡fica de WCC0301D.W
+**  Criada para conter os dados de quantidade alterados 
+**  em tela pelo usu rio.
+**
+*/
+     
+def temp-table {1} no-undo
+    field i-sequen as int             
+    field cd-erro  as int
+    field mensagem as char format "x(255)".    

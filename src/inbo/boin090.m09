@@ -1,0 +1,144 @@
+PROCEDURE atualizaDocumento :
+/*------------------------------------------------------------------------------
+  Notes: Faz a atualiza‡Æo do documento com base no RowObject
+------------------------------------------------------------------------------*/
+    def buffer b-docto for docum-est.
+    
+    def var c-dir  as char   no-undo.
+    def var h-prog as handle no-undo.
+/*    def var c-key-value as char no-undo.*/
+    
+
+    for each tt-digita:
+        delete tt-digita.
+    end.
+
+    for each tt-param:
+        delete tt-param.
+    end.
+    
+
+    if  not avail RowObject then
+        return "NOK":U.
+               
+
+    /* Tratamento feito pois est  acontecendo casos de travamento de       *
+     * arquivo, quando duas sessäes executam o RE1001 por Terminal Service */
+    if  OS-GETENV("temp") <> "" then
+        assign c-dir = OS-GETENV("temp")
+               c-dir = c-dir + "/".
+    else
+        assign c-dir = session:temp-directory.
+
+    create tt-param.
+    assign tt-param.usuario         = c-seg-usuario
+           tt-param.destino         = 3
+           tt-param.data-exec       = today
+           tt-param.hora-exec       = time
+           tt-param.arquivo         = c-dir + "RE1005.tmp":U.
+           
+    for each tt-raw-digita:
+        delete tt-raw-digita.
+    end.
+
+    create tt-digita.
+    assign tt-digita.r-docum-est = RowObject.r-rowid.
+
+    /* L¢gica para atualizar tamb‚m as notas referentes aos documentos
+       criados pelo material/mÆo-de-obra agregados nas notas de retorno
+       do beneficiamento */
+    
+
+    for each movto-pend 
+        fields ( serie-comp   nro-comp  nat-comp     tipo
+                 serie-docto  nro-docto nat-operacao cod-emitente)
+             {cdp/cd8900.i movto-pend RowObject}
+         and movto-pend.tipo = 2 no-lock: /* Material Agregado */
+
+        find first b-docto
+            where b-docto.serie-docto  = movto-pend.serie-comp
+              and b-docto.nro-docto    = movto-pend.nro-comp 
+              and b-docto.cod-emitente = movto-pend.cod-emitente
+              and b-docto.nat-operacao = movto-pend.nat-comp no-lock no-error.
+              
+
+        if  avail b-docto 
+        and not b-docto.ce-atual then do:
+            create tt-digita.
+            assign tt-digita.r-docum-est = rowid(b-docto).
+        end.
+    end.
+
+
+/*    for each b-docto fields ( cod-emitente nat-operacao
+                              serie-docto nro-docto )
+        where b-docto.cod-emitente = RowObject.cod-emitente
+          and b-docto.nro-docto    = RowObject.nro-docto
+          and b-docto.serie-docto  = RowObject.serie-docto
+          and rowid(b-docto)      <> RowObject.r-rowid no-lock:
+          for first item-doc-est fields ( it-codigo)
+              where item-doc-est.cod-emitente = b-docto.cod-emitente
+                and item-doc-est.nat-operacao = b-docto.nat-operacao
+                and item-doc-est.serie-docto  = b-docto.serie-docto
+                and item-doc-est.nro-docto    = b-docto.nro-docto no-lock:
+                for first natur-oper fields ()
+                    where natur-oper.nat-operacao = b-docto.nat-operacao 
+                      and natur-oper.terceiros    = no 
+                      and natur-oper.transf       = no 
+                      and natur-oper.tipo         = 1 no-lock:
+                    for first item fields () 
+                        where item.it-codigo = item-doc-est.it-codigo 
+                          and item.tipo-contr = 4 no-lock:
+                         create tt-digita.
+                         assign tt-digita.r-docum-est = rowid(b-docto).
+                    end.
+                end.
+          end.
+    end.*/
+    /*--- Fim da l¢gica ---*/
+    
+
+    raw-transfer tt-param  to raw-param.
+
+    for each tt-digita:
+        create tt-raw-digita.
+        raw-transfer tt-digita to tt-raw-digita.raw-digita.
+    end.
+    
+
+    if  session:set-wait-state("GENERAL":U) then .
+    
+
+    run rep/re1005rp.p (input raw-param, input table tt-raw-digita).                                        
+
+/*    {include/i-rpexc.i}
+ * 
+ *     if  session:set-wait-state("") then.*/
+    
+
+    {include/i-rptrm.i}
+
+
+/*    get-key-value section 'MAGNUS97':U key 'Show-Report-Program':U
+ *                                      value c-key-value.
+ *     if  c-key-value = "":U or c-key-value = ? then do:
+ *         assign c-key-value = 'notepad.exe':U.
+ *         put-key-value section 'MAGNUS97':U key 'Show-Report-Program':U 
+ *                                          value c-key-value.
+ *     end.
+ * 
+ *     run utp/ut-utils.p persistent set h-prog.
+ *     run Execute in h-prog (input c-key-value,
+ *                            input chr(32) + tt-param.arquivo).
+ *     delete procedure h-prog.*/
+
+    if  session:set-wait-state("":U) then .
+
+    return "OK":U.
+    
+
+END PROCEDURE.
+
+
+
+

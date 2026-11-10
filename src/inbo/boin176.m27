@@ -1,0 +1,257 @@
+PROCEDURE determineValueValid :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:   Determina os valores que devem ser informados no item.    
+------------------------------------------------------------------------------*/
+
+    DEFINE VARIABLE c-tipo AS CHARACTER   NO-UNDO.
+    /*************************************************************
+    **  Valida‡äes necess rias para Tabela (req-ord-produc)     **
+    *************************************************************/
+    define variable l-ordem-requis as logical no-undo.
+    define variable i-ordem        as integer no-undo.
+    &IF '{&bf_mat_versao_ems}' >= '2.05' &THEN
+        assign l-ordem-requis = yes.
+    &else
+        assign l-ordem-requis = no.
+        &IF '{&bf_mat_versao_ems}' >= '2.04' &THEN
+            for first funcao
+                where funcao.cd-funcao = "spp-int-req-om":U
+                and   funcao.ativo     = yes no-lock:
+                assign l-ordem-requis = yes.
+            end.
+        &ENDIF
+    &ENDIF
+    /************************************************************/
+
+    /* Assume dados do roteiro de inspe»’o gerado manualmente 
+    if  c-tipo = "CREATE":U then do:
+
+        if  RowObject.nr-ficha <> 0
+        and param-global.modulo-cq 
+        and avail param-cq
+        and param-cq.tipo-cq > 1 
+        and avail item-uni-estab
+        and item-uni-estab.contr-qualid then do:
+
+            for first ficha-cq  
+                fields ( nr-ficha      nro-docto    cod-emitente
+                         it-codigo     cod-depos    cod-estabel
+                         baixa-estoq   origem       log-com-nota
+                         inspecionado                         ) 
+                where ficha-cq.serie-docto  = RowObject.serie-docto 
+                  and ficha-cq.nro-docto    = RowObject.nro-docto
+                  and ficha-cq.cod-emitente = RowObject.cod-emitente
+                  and ficha-cq.cod-estabel  = docum-est.cod-estabel
+                  and ficha-cq.nr-ficha     = RowObject.nr-ficha
+                  and ficha-cq.it-codigo    = RowObject.it-codigo no-lock:
+            end.
+        
+
+            if  avail ficha-cq
+            and ficha-cq.baixa-estoq = no
+            and ficha-cq.origem = 1
+            and ficha-cq.com-nota = yes
+            and ficha-cq.inspecionado = no  then do:
+        
+
+                for each rat-lote no-lock
+                   where rat-lote.serie-docto  = RowObject.serie-docto
+                     and rat-lote.nro-docto    = RowObject.nro-docto
+                     and rat-lote.nat-operacao = RowObject.nat-operacao
+                     and rat-lote.cod-emitente = RowObject.cod-emitente
+                     and rat-lote.sequencia    = RowObject.sequencia
+                     and rat-lote.it-codigo    = RowObject.it-codigo:
+                     
+
+                     delete rat-lote.
+                end.
+                
+
+                create rat-lote.
+                assign rat-lote.serie-docto  = RowObject.serie-docto
+                       rat-lote.nro-docto    = RowObject.nro-docto
+                       rat-lote.nat-operacao = RowObject.nat-operacao
+                       rat-lote.cod-emitente = RowObject.cod-emitente
+                       rat-lote.sequencia    = RowObject.sequencia
+                       rat-lote.it-codigo    = RowObject.it-codigo
+                       rat-lote.cod-depos    = ficha-cq.cod-depos
+                       rat-lote.lote         = ficha-cq.lote
+                       rat-lote.cod-localiz  = ficha-cq.cod-localiz
+                       rat-lote.quantidade   = RowObject.quantidade.
+            end.       
+        end.
+        else
+            assign RowObject.nr-ficha = 0.
+    end.  */
+          
+
+    if  RowObject.nr-ord-produ <> 0 then do:
+        run findOrdProd ( RowObject.nr-ord-produ ).
+    
+
+        if avail ord-prod then
+            assign RowObject.ct-codigo = ord-prod.ct-codigo
+                   RowObject.sc-codigo = ord-prod.sc-codigo.
+       
+        if l-contrato then
+            assign RowObject.ct-codigo = ""
+                   RowObject.sc-codigo = "".
+
+        find reservas 
+            where reservas.nr-ord-produ = RowObject.nr-ord-produ 
+              and reservas.it-codigo    = RowObject.it-codigo no-lock no-error.
+
+        if  avail reservas 
+        and not ambiguous reservas then 
+            assign RowObject.item-pai    = reservas.item-pai
+                   RowObject.cod-roteiro = reservas.cod-roteiro
+                   RowObject.op-codigo   = reservas.op-codigo.
+        else do:
+            find first reservas
+                 where reservas.nr-ord-produ = RowObject.nr-ord-produ 
+                   and reservas.it-codigo    = RowObject.it-codigo no-lock no-error.
+              
+
+            if  avail reservas 
+            and (   RowObject.item-pai = ""
+                 and RowObject.cod-roteiro = ""
+                 and RowObject.op-codigo = 0 ) then do:
+                assign RowObject.item-pai    = reservas.item-pai
+                       RowObject.cod-roteiro = reservas.cod-roteiro
+                       RowObject.op-codigo   = reservas.op-codigo.
+            end.
+        end.
+
+        if  not avail reservas then 
+            assign RowObject.item-pai    = ""
+                   RowObject.cod-roteiro = ""
+                   RowObject.op-codigo   = 0 WHEN AVAIL ord-prod AND NOT ord-prod.rep-prod = 2.
+
+        IF AVAIL ord-prod THEN DO:
+            IF ord-prod.rep-prod = 2 and RowObject.op-codigo <> 0 THEN DO: 
+            
+                RUN ValidateType(OUTPUT c-tipo).
+            
+                IF c-tipo = "Update":U THEN
+                    IF NOT CAN-FIND(FIRST oper-ord 
+                                    WHERE oper-ord.nr-ord-produ = RowObject.nr-ord-produ
+                                      AND oper-ord.op-codigo    = RowObject.op-codigo) THEN DO:
+                        {method/svc/errors/inserr.i
+                                    &ErrorNumber="1220" /* Opera‡Æo nÆo est  cadastrada para essa Ordem de Produ‡Æo. */
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"}
+                    END.
+            END.
+        END.
+        ELSE DO: /*caso em que a ord-prod foi inativada e excluida*/
+            {method/svc/errors/inserr.i
+                &ErrorNumber="124"      /* Ordem de Produção &1 Inexistente */
+                &ErrorType="EMS"
+                &ErrorSubType="ERROR"
+                &ErrorParameters="RowObject.nr-ord-produ"}
+
+            assign RowObject.item-pai    = ""
+                   RowObject.cod-roteiro = ""
+                   RowObject.op-codigo   = 0.
+
+        END.
+
+    end.        
+    else 
+        assign RowObject.item-pai    = ""
+               RowObject.cod-roteiro = ""
+               RowObject.op-codigo   = 0.
+
+    find tb-wt-it-imposto
+        where tb-wt-it-imposto.seq-wt-docto    = 1
+          and tb-wt-it-imposto.seq-wt-it-docto = RowObject.sequencia 
+        exclusive-lock no-error.
+
+    if  avail tb-wt-it-imposto then do:
+        if  tb-wt-it-imposto.vl-ipi-it = 0
+        and RowObject.valor-ipi[1] <> 0 then 
+            assign RowObject.valor-ipi[1] = 0.
+        
+
+        
+
+        if  tb-wt-it-imposto.vl-ipint-it = 0 
+        and RowObject.ipi-ntrib[1] <>  0 then
+            assign RowObject.ipi-ntrib[1] = 0.
+        
+
+        if  tb-wt-it-imposto.vl-bipi-it = 0
+        and RowObject.base-ipi[1] <> 0 then
+            assign RowObject.base-ipi[1] = 0.
+        
+
+        if  tb-wt-it-imposto.vl-ipiou-it = 0
+        and RowObject.ipi-outras[1] <> 0 then 
+            assign RowObject.ipi-outras[1] = 0.
+    end.
+
+    &IF '{&bf_dis_versao_ems}' >= '2.06' &THEN
+        /* PIS */
+        if  RowObject.idi-tributac-pis = 2 then /*Isento*/
+            assign RowObject.valor-pis = 0.  /* Valor de Pis */
+        
+        /* COFINS */
+        if  RowObject.idi-tributac-cofins = 2 then /* Isento */ 
+            assign RowObject.val-cofins = 0.       /* Valor de Cofins */
+        
+    &else
+        /* PIS */
+        if  int(substr(RowObject.char-2,21,1)) = 2 then /* Isento */
+            assign overlay(RowObject.char-2,41,14) = string(dec(0), ">>>>>>>>>9.99":U). /* Valor de Pis */
+        
+        /* COFINS */
+        if  int(substr(RowObject.char-2,83,1)) = 2 then /* Isento */
+            assign overlay(RowObject.char-2,103,14) = string(dec(0), ">>>>>>>>>9.99":U). /* Valor de Cofins */
+    &endif
+        
+    /* Atualiza conta contÿbil */
+    if l-pede-conta 
+    or ( avail item and can-do("1,4", string(item.tipo-contr)) ) 
+    or not RowObject.baixa-ce
+    or (    natur-oper.terceiros 
+        and not can-do("4,6", string(natur-oper.tp-oper-terc)) ) then do:
+
+        assign RowObject.ct-codigo = RowObject.ct-codigo
+               RowObject.sc-codigo = RowObject.sc-codigo.
+        IF  RowObject.ct-codigo = ""  THEN
+            assign RowObject.ct-codigo    = ""
+                   RowObject.sc-codigo    = "".
+    end.
+    else
+        if  RowObject.nr-ord-produ = 0 then do:
+            assign RowObject.ct-codigo    = ""
+                   RowObject.sc-codigo    = "".
+                               
+
+        end.        
+
+    /*************************************************************
+    **  Valida‡äes necess rias para Tabela (req-ord-produc)     **
+    *************************************************************/
+    if l-ordem-requis and RowObject.nr-ord-produ <> 0 then do:
+        /** Valida se zera a Ordem de Produ‡Æo **/
+        run cdp/cd0742.p (input        RowObject.numero-ordem,
+                          input        RowObject.it-codigo,
+                          input        RowObject.baixa-ce,
+                          input-output RowObject.nr-ord-produ,
+                          input-output RowObject.ct-codigo,
+                          input-output RowObject.sc-codigo).
+
+    end.
+    /************************************************************/
+
+    return "OK":U.
+    
+
+END PROCEDURE.
+
+
+
+

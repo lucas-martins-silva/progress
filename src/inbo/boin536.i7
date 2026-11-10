@@ -1,0 +1,28 @@
+def new global shared var v-cod-usuar-corren   like usuar_mestre.cod_usuario no-undo.
+
+DEFINE TEMP-TABLE tt-rep-oper-ctrab  no-undo like rep-oper-ctrab
+    field cod-ferr-prod                      like split-operac.cod-ferr-prod
+    field dat-fim-setup                      like split-operac.dat-fim-setup
+    field dat-inic-setup                     like split-operac.dat-inic-setup
+    field qtd-segs-fim-setup                 like split-operac.qtd-segs-fim-setup
+    field qtd-segs-inic-setup                like split-operac.qtd-segs-inic-setup.
+DEFINE TEMP-TABLE tt-rep-refugo-oper no-undo like rep-refugo-oper.
+DEFINE TEMP-TABLE tt-rep-ic-oper     no-undo like rep-ic-oper.
+DEFINE TEMP-TABLE tt-rep-ic-oper-tab no-undo like rep-ic-oper-tab.
+
+/** Tempor ria para procura de opera‡Æo alternativa **/
+DEFINE TEMP-TABLE tt-split-operac-altern no-undo
+    field l-seleciona       as log  format "*/ "
+    field nr-ord-produ      as int  format ">>>,>>>,>>9"
+    field num-id-operac-op  as int  format ">,>>>,>>9" initial 0 
+    field num-split-operac  as int  format ">>9"       initial 0 
+    field gm-codigo         as char format "x(9)"      
+    field it-codigo         as char format "x(16)"     
+    index tt-gmaq                         
+          gm-codigo
+    index tt-id             is primary unique
+          nr-ord-produ
+          num-id-operac-op
+          num-split-operac
+    index tt-item        
+          it-codigo.

@@ -1,0 +1,125 @@
+/*------------------------------------------------------------------------------
+  Purpose:     procedure acertaUnidNegoc
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    DEF INPUT PARAM TABLE FOR tt-item-un-negoc.
+
+    DEF BUFFER b-ordem-compra FOR ordem-compra.
+
+    DEF VAR da-ult-per AS DATE NO-UNDO.
+
+    IF  NOT CAN-FIND(FIRST funcao
+                     WHERE funcao.cd-funcao = "EMS2-UNIDADE-NEGOCIO":U
+                       AND funcao.ativo     = YES) THEN
+        RETURN "NOK":U.
+
+    IF  NOT VALID-HANDLE(h-cdapi024) THEN
+        RUN cdp/cdapi024.p PERSISTENT SET h-cdapi024.
+
+    FIND FIRST param-estoq NO-LOCK NO-ERROR.
+    IF  param-estoq.tp-fech = 1 /* Unico */ THEN
+        ASSIGN da-ult-per = param-estoq.mensal-ate.
+        
+    FOR EACH tt-item-un-negoc NO-LOCK
+        BREAK BY tt-item-un-negoc.cod-estabel:
+
+        IF  FIRST-OF(tt-item-un-negoc.cod-estabel) 
+        AND param-estoq.tp-fech = 2 /* Estabelecimento */ THEN DO:
+            FIND estab-mat
+                WHERE estab-mat.cod-estabel = tt-item-un-negoc.cod-estabel NO-LOCK NO-ERROR.
+            IF  NOT AVAIL estab-mat THEN
+                RETURN "NOK":U.
+            ASSIGN da-ult-per = estab-mat.mensal-ate.
+        END.
+
+        IF  tt-item-un-negoc.cod-depos = "" THEN
+            FOR EACH  movto-estoq
+                WHERE movto-estoq.it-codigo   = tt-item-un-negoc.it-codigo   AND
+                      movto-estoq.cod-estabel = tt-item-un-negoc.cod-estabel AND
+                      movto-estoq.dt-trans    > da-ult-per                   NO-LOCK:
+                      
+                RUN atualizaUnidNegoc (INPUT tt-item-un-negoc.cod-depos,
+                                       BUFFER movto-estoq).
+            END.
+        ELSE
+            FOR EACH  movto-estoq
+                WHERE movto-estoq.it-codigo   = tt-item-un-negoc.it-codigo   AND
+                      movto-estoq.cod-estabel = tt-item-un-negoc.cod-estabel AND
+                      movto-estoq.cod-depos   = tt-item-un-negoc.cod-depos   AND
+                      movto-estoq.dt-trans    > da-ult-per                   NO-LOCK:
+                      
+                RUN atualizaUnidNegoc (INPUT tt-item-un-negoc.cod-depos,
+                                       BUFFER movto-estoq).
+            END.
+            
+        /* Atualizaá∆o do prazo-compra */
+        
+        FOR EACH prazo-compra FIELDS(it-codigo quant-saldo numero-ordem)
+            WHERE prazo-compra.it-codigo   = tt-item-un-negoc.it-codigo 
+              AND prazo-compra.quant-saldo > 0 NO-LOCK,
+            FIRST ordem-compra FIELDS(numero-ordem cod-estabel ct-codigo sc-codigo ordem-servic dep-almoxar it-codigo cod-unid-negoc )
+                WHERE ordem-compra.numero-ordem = prazo-compra.numero-ordem
+                  AND ordem-compra.cod-estabel  = tt-item-un-negoc.cod-estabel NO-LOCK
+            BREAK BY prazo-compra.numero-ordem:
+
+            IF  FIRST-OF(prazo-compra.numero-ordem) THEN DO:
+
+                IF   ordem-compra.ct-codigo  = ""
+                AND  ordem-compra.ordem-servic  = 0
+                AND (tt-item-un-negoc.cod-depos = "" 
+                 OR  tt-item-un-negoc.cod-depos = ordem-compra.dep-almoxar) THEN
+
+                    IF  tt-item-un-negoc.cod-depos = "" THEN
+                        FIND FIRST unid-negoc-depos
+                            WHERE unid-negoc-depos.it-codigo = prazo-compra.it-codigo
+                              AND unid-negoc-depos.cod-estab = ordem-compra.cod-estabel
+                              AND unid-negoc-depos.cod-depos = ordem-compra.dep-almoxar NO-LOCK NO-ERROR.
+
+                IF  NOT AVAIL unid-negoc-depos
+                OR  tt-item-un-negoc.cod-depos <> "" THEN DO:
+
+                    /*** Localiza a unidade de neg¢cio para o movto-estoq ***/
+                    RUN RetornaUnidadeNegocio IN h-cdapi024 (INPUT ordem-compra.cod-estabel,
+                                                             INPUT prazo-compra.it-codigo,
+                                                             INPUT ordem-compra.dep-almoxar,
+                                                             OUTPUT c-unid-negoc).
+
+                    IF  ordem-compra.cod-unid-negoc <> c-unid-negoc THEN DO:
+                        if not can-find(first unid-neg-ordem where
+                                              unid-neg-ordem.numero-ordem = prazo-compra.numero-ordem) then do:
+                            FIND b-ordem-compra
+                                WHERE ROWID(b-ordem-compra) = ROWID(ordem-compra) EXCLUSIVE-LOCK NO-ERROR.
+                            
+                            if  b-ordem-compra.nr-contrato <> 0 then do:
+                                for first item fields (tipo-contr)
+                                    where item.it-codigo = ordem-compra.it-codigo no-lock:
+                                end.
+                                
+                                if  item.tipo-contr = 4 and
+                                    can-find(FIRST matriz-rat-med
+                                             WHERE matriz-rat-med.nr-contrato     = ordem-compra.nr-contrato
+                                               AND matriz-rat-med.num-seq-item    = ordem-compra.num-seq-item
+                                               AND matriz-rat-med.numero-ordem    = ordem-compra.numero-ordem) then .
+                                    /* n∆o grava porque a U.N. est† na matriz junto com a conta */
+                                else
+                                    ASSIGN b-ordem-compra.cod-unid-negoc = c-unid-negoc.
+                            end.
+                            else
+                                ASSIGN b-ordem-compra.cod-unid-negoc = c-unid-negoc.
+                            
+                            RELEASE b-ordem-compra.
+                        end.
+                    END.
+                END.
+            END.
+        END.
+    END.
+
+    IF VALID-HANDLE(h-cdapi024) THEN
+        DELETE PROCEDURE h-cdapi024.
+
+    RETURN "OK":U.
+
+/*** Fim da Include ***/

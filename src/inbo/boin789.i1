@@ -1,0 +1,15 @@
+/* Include para criar as chaves dos documentos do MLA (MLA0102).
+** Apos uma alteracao para melhora de performance nao sao chamadas
+** mas as BO's de forma persistente(initializeBO), sendo assim é necessário carregar
+** a temp-table contendo as chaves.
+*/
+    
+FOR EACH mla-chave-doc-aprov NO-LOCK:
+    IF NOT CAN-FIND(FIRST tt-mla-chave-doc
+                    WHERE tt-mla-chave-doc.cod-tip-doc = mla-chave-doc-aprov.cod-tip-doc
+                      AND tt-mla-chave-doc.posicao-ini = mla-chave-doc-aprov.posicao-ini) THEN DO:
+        CREATE tt-mla-chave-doc.
+        BUFFER-COPY mla-chave-doc-aprov TO tt-mla-chave-doc.
+    END.
+END.
+

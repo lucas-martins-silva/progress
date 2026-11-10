@@ -1,0 +1,75 @@
+ASSIGN de-valor-dup   = 0
+       da-partida-dup = ?
+       i-cond-pagto   = 0
+       da-partida     = ?
+       i-cond         = 0
+       i-num-parc     = 0
+       da-data        = ?
+       de-valor-desp  = 0.
+
+       
+assign de-valor-dup   = {1}.tot-valor
+       da-partida-dup = {1}.dt-emissao
+       de-valor-total = 0.
+
+
+assign de-valor-dup = {1}.valor-mercad.
+
+run return_valor_desp in h-im9014a (input rowid({1}),
+                                    output de-valor-desp,  
+                                    output da-partida-dup). 
+
+assign de-valor-dup = de-valor-dup + de-valor-desp.
+if da-partida-dup = ? then
+assign da-partida-dup = {1}.dt-emissao.
+
+assign i-pedido = 0.
+for each tt-pedidos:
+if  tt-pedidos.quantidade > i-quantidade then
+    assign i-pedido = tt-pedidos.num-pedido.
+delete tt-pedidos.
+end.
+
+if  i-pedido <> 0 then do:
+    find pedido-compr
+        where pedido-compr.num-pedido = i-pedido
+        no-lock no-error.
+    if  avail pedido-compr then do:
+        if  pedido-compr.cod-cond-pag = 0 then do:
+            assign de-valor = 0
+                   da-data  = ?.
+            find cond-especif
+                where cond-especif.num-pedido = pedido-compr.num-pedido
+                no-lock no-error.
+            do  i-cont = 1 to 6:
+                if  cond-especif.data-pagto[i-cont] <> ? then
+                    assign da-data[i-cont]  = cond-especif.data-pagto[i-cont]
+                           de-valor[i-cont] = de-valor-dup
+                                            * perc-pagto[i-cont] / 100
+                           de-valor-total   = de-valor-total + de-valor[i-cont].
+            end.
+            assign de-valor[1] = de-valor[1]
+                               + de-valor-dup
+                               - de-valor-total.
+        end.
+        else do:
+            find cond-pagto
+                where cond-pagto.cod-cond-pag = pedido-compr.cod-cond-pag
+                no-lock no-error.
+            if  avail cond-pagto then do:
+                assign i-cond-pagto = pedido-compr.cod-cond-pag
+                       da-partida   = da-partida-dup
+                       i-cond       = cond-pagto.cod-vencto
+                       i-num-parc   = cond-pagto.num-parcelas
+                       da-data      = today.
+                do  i-cont = 1 to i-num-parc:
+                    de-valor[i-cont] = (de-valor-dup
+                                     *  cond-pagto.per-pg-dup[i-cont] / 100).
+                    find emitente where emitente.cod-emitente = {1}.cod-emitente no-lock no-error.
+                    {cdp/cd9020.i7  {1}.cod-estabel}
+                end.
+            end.
+        end.
+    end.
+end.
+assign i-cont = 0.

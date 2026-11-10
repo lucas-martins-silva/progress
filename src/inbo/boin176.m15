@@ -1,0 +1,130 @@
+PROCEDURE calculatePriceOrdemCompra :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:  Retorna o pre»o unitÿrio do item atrav²s de sua ordem compra.      
+------------------------------------------------------------------------------*/
+
+    def input  param r-ordem-compra as rowid   no-undo.
+    def output param de-preco-ordem as decimal no-undo.
+    
+
+    def var de-val-contrato         as decimal no-undo.
+    def var de-val-formula          as decimal no-undo.
+    def var de-taxa                 as decimal no-undo.
+    DEF VAR da-dt-emis              AS DATE    NO-UNDO.
+    {cdp/cd4300.i3}
+    {rep/re1001a.i50}
+        
+    if  r-ordem-compra <> ? then 
+        run findOrdemCompra ( input ?,
+                              input r-ordem-compra ).
+
+    if  not avail docum-est
+    or  not avail ordem-compra then
+        return "NOK":U.
+    
+    /*
+    ** Integracao Modulo Importacao
+    ** Objetivo: Verifica se o documento foi gerado pelo M¢dulo de Importa‡Æo
+    */
+    {cdp/cd4300.i4 "yes" docum-est.char-1}
+    {rep/re1001a.i51 "yes"}
+    IF param-global.modulo-07 AND 
+       c-embarque <> "":U THEN DO:
+        run imp/im9038.p (input rowid(docum-est), output da-dt-emis).
+    END.
+
+    IF da-dt-emis = ? THEN
+        assign da-dt-emis = docum-est.dt-emissao.
+
+    /*  Cÿlculo Pre»o Unitÿrio */
+    run rep/re1908.p (rowid(ordem-compra),
+                      da-dt-emis,
+                      output de-preco-cc,  
+                      output de-desconto-cc,
+                      output de-taxa).
+
+                               
+    {include/i-epc200.i2 &CodEvent='"ConverteCotacaoMoeda"'
+                         &CodParameter='"cod-estabel"'
+                         &ValueParameter="string(docum-est.cod-estabel)"}
+                         
+    {include/i-epc200.i2 &CodEvent='"ConverteCotacaoMoeda"'
+                         &CodParameter='"embarque"'
+                         &ValueParameter="string(c-embarque)"}
+                         
+    {include/i-epc200.i2 &CodEvent='"ConverteCotacaoMoeda"'
+                         &CodParameter='"ordem-compra"'
+                         &ValueParameter="string(rowid(ordem-compra))"}
+                         
+    {include/i-epc200.i2 &CodEvent='"ConverteCotacaoMoeda"'
+                         &CodParameter='"dt-emis"'
+                         &ValueParameter="string(da-dt-emis)"}
+
+    {include/i-epc200.i2 &CodEvent='"ConverteCotacaoMoeda"'
+                         &CodParameter='"de-preco-cc"'
+                         &ValueParameter="string(de-preco-cc)"}
+                         
+    {include/i-epc200.i2 &CodEvent='"ConverteCotacaoMoeda"'
+                         &CodParameter='"de-desconto-cc"'
+                         &ValueParameter="string(de-desconto-cc)"}
+                         
+    {include/i-epc200.i2 &CodEvent='"ConverteCotacaoMoeda"'
+                         &CodParameter='"de-taxa"'
+                         &ValueParameter="string(de-taxa)"}
+                         
+    /*Include i-epc201.i: Chamada do programa de EPC */
+    {include/i-epc201.i "ConverteCotacaoMoeda"}
+
+    if c-nom-prog-dpc-mg97  <> "" or
+       c-nom-prog-appc-mg97 <> "" or 
+       c-nom-prog-upc-mg97  <> "" then do:
+
+        for each tt-epc
+            where cod-event = "ConverteCotacaoMoeda":
+            if tt-epc.cod-parameter = "de-preco-cc" then
+                assign de-preco-cc = dec(tt-epc.val-parameter).
+            else if tt-epc.cod-parameter = "de-desconto-cc" then
+                assign de-desconto-cc = dec(tt-epc.val-parameter).
+            else if tt-epc.cod-parameter = "de-taxa" then
+                assign de-taxa = dec(tt-epc.val-parameter).
+        end.
+
+        empty temp-table tt-epc.
+    end.
+
+    if  param-global.modulo-cn 
+    and ordem-compra.nr-contrato <> 0
+    and avail RowObject then do:
+        run cnp/cn9060.p (&IF "{&bf_mat_versao_ems}":U >= "2.062":U &THEN
+                              INPUT RowObject.int-1,
+                          &ENDIF
+                          ?,
+                          ordem-compra.numero-ordem,
+                          0,
+                          no,
+                          RowObject.quantidade,
+                          docum-est.dt-emissao,
+                          output de-val-contrato,
+                          output de-val-aux,
+                          output de-val-formula,
+                          output de-val-aux).                          
+        if  de-val-formula > 0 then
+            assign de-preco-cc = de-val-formula 
+                   de-desconto   = 0.
+        else
+            if  de-val-contrato > 0 then
+                assign de-preco-cc = de-val-contrato 
+                       de-desconto = 0.
+    end.       
+
+    assign de-preco-ordem = de-preco-cc - de-desconto-cc.                                       
+
+    return "OK":U.
+
+END PROCEDURE.
+
+
+
+

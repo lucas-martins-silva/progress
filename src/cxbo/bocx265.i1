@@ -1,0 +1,396 @@
+/*******************************************************************************
+**  BOCX265.i1
+**
+**  proc-it-nota-fisc -
+**
+*******************************************************************************/
+{cdp/cdcfgdis.i} /* Definicao de pre-processadores */
+
+DEFINE VAR c-cod-estabel    as char    no-undo.
+DEFINE VAR c-nr-proc-exp    as char    no-undo.
+DEFINE VAR c-serie          as char    no-undo.
+DEFINE VAR c-nr-nota        as char    no-undo.
+
+/*Definicao das variaveis da ut-glob.i que tambÇm sao utilizadas no magnus*/
+&if defined(bf-dis-comex) &then
+ def new Global shared var c-seg-usuario as char format "x(12)" no-undo.
+ def new global shared var i-pais-impto-usuario as integer format ">>9" no-undo.
+&endif
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.001
+&scoped-define FIRST-TABLE-IN-QUERY proc-it-nota-fisc
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME proc-it-nota-fisc
+
+{include/boini.i}
+
+{cxbo/bocx265.i tt-proc-it-nota-fisc}
+{cxbo/bocx265.i rowObject}
+
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+procedure setConstraint1:
+
+end procedure.
+
+PROCEDURE setConstraint2:
+  
+  def input  parameter p-cod-estabel like proc-nota-fiscal.cod-estabel. 
+  def input  parameter p-nr-proc-exp like proc-nota-fiscal.nr-proc-exp.
+  def input  parameter p-nr-nota-fis like proc-nota-fiscal.nr-nota-fis. 
+  def input  parameter p-serie       like proc-nota-fiscal.serie.
+
+  assign  c-cod-estabel = p-cod-estabel
+          c-nr-proc-exp = p-nr-proc-exp
+          c-nr-nota     = p-nr-nota-fis
+          c-serie       = p-serie.
+
+END PROCEDURE.
+
+procedure setConstraint3:
+    def input parameter r-chave as rowid no-undo.
+    find processo-exp no-lock
+         where rowid(processo-exp) = r-chave no-error.
+end procedure.
+
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+
+    case i-abertura:
+        when 1 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock.
+        when 2 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where {&TABLE-NAME}.cod-estabel = c-cod-estabel and
+                                                                  {&TABLE-NAME}.nr-proc-exp = c-nr-proc-exp and
+                                                                  {&TABLE-NAME}.nr-nota-fis = c-nr-nota and
+                                                                  {&TABLE-NAME}.serie       = c-serie no-lock.
+        when 3 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} of processo-exp no-lock.
+    end case.
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-dis-comex) &then    
+&else
+    {include/bocomver.i}
+    {include/bogetver.i}
+    {utp/ut-glob.i}
+&endif
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+{include/boexecre.i}
+{include/boexeupt.i}
+{include/boexedel.i}
+{include/bovalupt.i}
+{include/bovaldel.i}
+
+
+PROCEDURE pedVendaSetGlobals:
+
+   /*
+   ** Seta as vari·veis globais c-seg-usuario e i-pais-impto-usuario
+   ** Pedido de Venda
+   */
+   def input parameter c-usuario as char.
+   def input parameter c-pais as char.
+   assign c-seg-usuario = c-usuario
+          i-pais-impto-usuario = integer(c-pais).
+
+END PROCEDURE.
+
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+    find first rowObject
+        no-lock no-error.
+
+    run startMethod ("validateFields").
+
+    if rowObject.cod-estabel = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.cod-refer = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.it-codigo = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.nome-abrev = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.nr-entrega = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.nr-pedcli = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.nr-pedido = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.nr-proc-exp = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    if rowObject.nr-sequencia = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 190,
+                           input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 190
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    run endMethod ("validateFields").
+
+end procedure.
+
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+
+    case c-field:
+        when "char-1" then c-value = RowObject.char-1.
+        when "char-2" then c-value = RowObject.char-2.
+        when "check-sum" then c-value = RowObject.check-sum.
+        when "cod-estabel" then c-value = RowObject.cod-estabel.
+        when "cod-refer" then c-value = RowObject.cod-refer.
+        when "it-codigo" then c-value = RowObject.it-codigo.
+        when "nome-abrev" then c-value = RowObject.nome-abrev.
+        when "nr-nota-fis" then c-value = RowObject.nr-nota-fis.
+        when "nr-pedcli" then c-value = RowObject.nr-pedcli.
+        when "nr-proc-exp" then c-value = RowObject.nr-proc-exp.
+        when "serie" then c-value = RowObject.serie.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+
+    case c-field:
+        when "dec-1" then c-value = RowObject.dec-1.
+        when "dec-2" then c-value = RowObject.dec-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+
+    case c-field:
+        when "int-1" then c-value = RowObject.int-1.
+        when "int-2" then c-value = RowObject.int-2.
+        when "nr-entrega" then c-value = RowObject.nr-entrega.
+        when "nr-pedido" then c-value = RowObject.nr-pedido.
+        when "nr-seq-fat" then c-value = RowObject.nr-seq-fat.
+        when "nr-sequencia" then c-value = RowObject.nr-sequencia.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+
+    case c-field:
+        when "data-1" then c-value = RowObject.data-1.
+        when "data-2" then c-value = RowObject.data-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+
+    case c-field:
+        when "log-1" then c-value = RowObject.log-1.
+        when "log-2" then c-value = RowObject.log-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+ 
+    run startMethod ("initializeValidade").
+
+    run endMethod   ("initializeValidade").
+end procedure.
+
+procedure criaProcItNota:
+    
+    def input parameter r-rowid as rowid no-undo. 
+
+    find it-nota-fisc where rowid(it-nota-fisc) = r-rowid no-lock no-error. 
+    
+    find nota-fiscal of it-nota-fisc no-lock no-error.
+
+    &if defined(bf_dis_proc_ent) &then
+        for first ped-ent    
+            fields (ped-ent.nr-proc-exp)
+              where ped-ent.nome-abrev   = it-nota-fisc.nome-ab-cli 
+              and   ped-ent.nr-pedcli    = it-nota-fisc.nr-pedcli  
+          and   ped-ent.nr-sequencia = it-nota-fisc.nr-seq-ped 
+          and   ped-ent.it-codigo    = it-nota-fisc.it-codigo  
+          and   ped-ent.cod-refer    = it-nota-fisc.cod-refer  
+          and   ped-ent.nr-entrega   = it-nota-fisc.nr-entrega no-lock:
+      end.
+      if avail ped-ent then do: /* se n∆o avail ped-ent n∆o cria proc-it-nota-fisc alteraá∆o feita para a grendene*/
+    &endif  
+    
+        find proc-it-nota-fisc no-lock where
+             proc-it-nota-fisc.cod-estabel = it-nota-fisc.cod-estabel        and
+           
+           &if defined(bf-dis-comex) &then
+             proc-it-nota-fisc.nr-proc-exp = string(nota-fiscal.nr-proc-exp) and
+           &else
+               proc-it-nota-fisc.nr-proc-exp = nota-fiscal.nr-proc-exp       and
+           &endif
+           
+             proc-it-nota-fisc.serie       = nota-fiscal.serie               and
+
+           &if defined(bf-dis-comex) &then
+             proc-it-nota-fisc.nr-nota-fis = string(nota-fiscal.nr-nota-fis) and
+           &else
+             proc-it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis         and
+           &endif
+           
+             proc-it-nota-fisc.nr-seq-fat  = it-nota-fisc.nr-seq-fat         and
+             proc-it-nota-fisc.it-codigo   = it-nota-fisc.it-codigo   
+             no-error.
+
+        if not avail proc-it-nota-fisc then do:
+        
+           create proc-it-nota-fisc.
+           assign proc-it-nota-fisc.cod-estabel  = it-nota-fisc.cod-estabel 
+                  proc-it-nota-fisc.serie        = it-nota-fisc.serie        
+
+                  &if defined(bf-dis-comex) &then
+                    proc-it-nota-fisc.nr-nota-fis  = string(it-nota-fisc.nr-nota-fis)
+                  &else
+                    proc-it-nota-fisc.nr-nota-fis  = it-nota-fisc.nr-nota-fis
+                  &endif
+                  
+                  proc-it-nota-fisc.nr-seq-fat   = it-nota-fisc.nr-seq-fat
+                  proc-it-nota-fisc.it-codigo    = it-nota-fisc.it-codigo
+                  proc-it-nota-fisc.nr-sequencia = it-nota-fisc.nr-seq-ped 
+                  proc-it-nota-fisc.nome-abrev   = it-nota-fisc.nome-ab-cli
+                  proc-it-nota-fisc.nr-pedcli    = it-nota-fisc.nr-pedcli
+                  proc-it-nota-fisc.cod-refer    = it-nota-fisc.cod-refer
+                  proc-it-nota-fisc.nr-entrega   = it-nota-fisc.nr-entrega
+
+                &if defined(bf-dis-comex) &then
+                   proc-it-nota-fisc.nr-proc-exp  = string(nota-fiscal.nr-proc-exp).
+                &else
+                   proc-it-nota-fisc.nr-proc-exp  = nota-fiscal.nr-proc-exp.
+                &endif
+        
+            find proc-ped-ent no-lock where 
+                 proc-ped-ent.cod-estabel  = it-nota-fisc.cod-estabel  and
+                 &if defined(bf-dis-comex) &then
+                     proc-ped-ent.nr-proc-exp  = string(nota-fiscal.nr-proc-exp) and
+                 &else
+                     proc-ped-ent.nr-proc-exp  = nota-fiscal.nr-proc-exp  and
+                 &endif
+               
+                 proc-ped-ent.nome-abrev   = it-nota-fisc.nome-ab-cli and
+                 proc-ped-ent.nr-pedcli    = it-nota-fisc.nr-pedcli   and
+                 proc-ped-ent.nr-sequencia = it-nota-fisc.nr-seq-ped  and
+                 proc-ped-ent.it-codigo    = it-nota-fisc.it-codigo   and
+                 proc-ped-ent.cod-refer    = it-nota-fisc.cod-refer   and
+                 proc-ped-ent.nr-entrega   = it-nota-fisc.nr-entrega  no-error.
+
+            if avail proc-ped-ent then 
+               assign proc-it-nota-fisc.cod-fabric = proc-ped-ent.cod-fabric.
+            
+            find ped-venda no-lock where 
+                 ped-venda.nome-abrev = proc-it-nota-fisc.nome-abrev and
+                 ped-venda.nr-pedcli  = proc-it-nota-fisc.nr-pedcli  no-error.
+            if avail ped-venda then 
+               assign proc-it-nota-fisc.nr-pedido = ped-venda.nr-pedido.
+    
+        end. /* if not avail proc-it-nota-fisc ... */
+    &if defined(bf_dis_proc_ent) &then
+      end.
+    &endif    
+end procedure.

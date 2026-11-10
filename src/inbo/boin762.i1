@@ -1,0 +1,83 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*------------------------------------------------------------------------
+
+    File       : boin762.i1
+    Purpose    : Tratamento do campo conte£do.
+                 
+------------------------------------------------------------------------*/
+            
+            FOR FIRST item-uni-estab FIELDS (preco-repos) NO-LOCK 
+                WHERE item-uni-estab.cod-estabel = {1}.cod-estabel
+                  AND item-uni-estab.it-codigo   = {1}.it-codigo. END.
+
+            CASE TRIM({2}.dsl-conteudo):
+                WHEN "&DATA-ATUAL" THEN
+                    ASSIGN {3}.dsl-conteudo = STRING(TODAY).
+                WHEN "&HORA-ATUAL" THEN
+                    ASSIGN {3}.dsl-conteudo = STRING(TIME,"HH:MM:SS").
+                WHEN "&CODIGO-ITEM" THEN
+                    ASSIGN {3}.dsl-conteudo = {1}.it-codigo.
+                WHEN "&DESCRICAO-ITEM" THEN DO:
+                    FIND item WHERE item.it-codigo = {1}.it-codigo no-lock no-error.
+                    ASSIGN {3}.dsl-conteudo = item.desc-item.    
+                END.
+                WHEN "&NUMERO-ORDEM" THEN
+                    ASSIGN {3}.dsl-conteudo = STRING({1}.numero-ordem).
+                WHEN "&NR-PROCESSO-COMPRA" THEN
+                    ASSIGN {3}.dsl-conteudo = STRING({1}.nr-processo).
+                WHEN "&NARRAT-ORDEM-COMPRA" THEN
+                    ASSIGN {3}.dsl-conteudo = {1}.narrativa.
+                WHEN "&PRECO-REPOSICAO" THEN                     
+                    ASSIGN {3}.dsl-conteudo = IF AVAIL item-uni-estab THEN STRING(item-uni-estab.preco-repos) ELSE "".
+                WHEN "&PRTOTAL-REPOSICAO" THEN 
+                    ASSIGN {3}.dsl-conteudo = IF AVAIL item-uni-estab THEN STRING(item-uni-estab.preco-repos * {1}.qt-solic) ELSE "".
+                OTHERWISE
+                    ASSIGN {3}.dsl-conteudo = {2}.dsl-conteudo.
+                
+            END CASE.
+            
+            CASE {2}.cod-campo:
+                WHEN "BBM-DT-AMOS-FIM" THEN
+                    ASSIGN {3}.dsl-conteudo = STRING(TODAY + INT({2}.dsl-conteudo)).
+                WHEN "BBM-HR-AMOS-FIM" THEN DO:
+                    ASSIGN i-hora  = INT(SUBSTRING({2}.dsl-conteudo,1,2)) * 3600
+                           i-min   = INT(SUBSTRING({2}.dsl-conteudo,4,2)) * 60
+                           i-seg   = INT(SUBSTRING({2}.dsl-conteudo,7,2))
+                           i-tempo = TIME + (i-hora + i-min + i-seg)
+                           {3}.dsl-conteudo = STRING(i-tempo,"HH:MM:SS").
+                END.
+                WHEN "BBM-DT-CAD-FIM" THEN 
+                    ASSIGN {3}.dsl-conteudo = STRING(TODAY + INT({2}.dsl-conteudo)).
+                WHEN "BBM-HR-CAD-FIM" THEN DO:                
+                    ASSIGN i-hora  = INT(SUBSTRING({2}.dsl-conteudo,1,2)) * 3600
+                           i-min   = INT(SUBSTRING({2}.dsl-conteudo,4,2)) * 60
+                           i-seg   = INT(SUBSTRING({2}.dsl-conteudo,7,2))
+                           i-tempo = TIME + (i-hora + i-min + i-seg)
+                           {3}.dsl-conteudo = STRING(i-tempo,"HH:MM:SS").
+                END.
+                WHEN "BBM-DT-ABER-FIM" THEN 
+                    ASSIGN {3}.dsl-conteudo = STRING(TODAY + INT({2}.dsl-conteudo)).
+                WHEN "BBM-HR-ABER-FIM" THEN DO:
+                    ASSIGN i-hora  = INT(SUBSTRING({2}.dsl-conteudo,1,2)) * 3600
+                           i-min   = INT(SUBSTRING({2}.dsl-conteudo,4,2)) * 60
+                           i-seg   = INT(SUBSTRING({2}.dsl-conteudo,7,2))
+                           i-tempo = TIME + (i-hora + i-min + i-seg)
+                           {3}.dsl-conteudo = STRING(i-tempo,"HH:MM:SS").
+                END.
+                WHEN "BBM-DT-PREG-FIM" THEN 
+                    ASSIGN {3}.dsl-conteudo = STRING(TODAY + INT({2}.dsl-conteudo)).
+                WHEN "BBM-HR-PREG-FIM" THEN DO:
+                    ASSIGN i-hora  = INT(SUBSTRING({2}.dsl-conteudo,1,2)) * 3600
+                           i-min   = INT(SUBSTRING({2}.dsl-conteudo,4,2)) * 60
+                           i-seg   = INT(SUBSTRING({2}.dsl-conteudo,7,2))
+                           i-tempo = TIME + (i-hora + i-min + i-seg)
+                           {3}.dsl-conteudo = STRING(i-tempo,"HH:MM:SS").
+                END.
+            END CASE.

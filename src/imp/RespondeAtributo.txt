@@ -1,0 +1,5278 @@
+{
+    "ncm": "84122110",
+    "codigoPais": 249,
+    "dataFatoGerador": "2026-09-25",
+    "tipoOperacao": "I",
+    "tratamentosTributarios": [
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "1100",
+                "nome": "PIS-IMPORTAÇÃO e COFINS-IMPORTAÇÃO",
+                "tipo": "Normal"
+            },
+            "mercadorias": [
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_13741",
+                            "descricaoCodigo": "Uso autopeças",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "0002",
+                            "descricaoValor": "Importador NÃO é pessoa jurídica fabricante de máquinas e veículos relacionados no Anexo II do Art. 1º da Lei 10.485/2002. (§9º, Art. 8º. Lei 10865/2004)\n"
+                        },
+                        {
+                            "codigo": "ATT_13715",
+                            "descricaoCodigo": "Anexo II da Lei 10.485/2002",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "0001",
+                            "descricaoValor": "Se enquadra na descrição do Anexo II da Lei 10.485/2002"
+                        }
+                    ]
+                },
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_13741",
+                            "descricaoCodigo": "Uso autopeças",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "0002",
+                            "descricaoValor": "Importador NÃO é pessoa jurídica fabricante de máquinas e veículos relacionados no Anexo II do Art. 1º da Lei 10.485/2002. (§9º, Art. 8º. Lei 10865/2004)\n"
+                        },
+                        {
+                            "codigo": "ATT_13715",
+                            "descricaoCodigo": "Anexo II da Lei 10.485/2002",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "XXXX",
+                            "descricaoValor": "Não se enquadra em outra opção"
+                        }
+                    ]
+                },
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_13741",
+                            "descricaoCodigo": "Uso autopeças",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "XXXX",
+                            "descricaoValor": "Não se enquadra em outra opção"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "1100",
+                "nome": "PIS-IMPORTAÇÃO e COFINS-IMPORTAÇÃO",
+                "tipo": "Normal"
+            },
+            "mercadorias": [
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_13741",
+                            "descricaoCodigo": "Uso autopeças",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "0002",
+                            "descricaoValor": "Importador NÃO é pessoa jurídica fabricante de máquinas e veículos relacionados no Anexo II do Art. 1º da Lei 10.485/2002. (§9º, Art. 8º. Lei 10865/2004)\n"
+                        },
+                        {
+                            "codigo": "ATT_13715",
+                            "descricaoCodigo": "Anexo II da Lei 10.485/2002",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "0001",
+                            "descricaoValor": "Se enquadra na descrição do Anexo II da Lei 10.485/2002"
+                        }
+                    ]
+                },
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_13741",
+                            "descricaoCodigo": "Uso autopeças",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "0002",
+                            "descricaoValor": "Importador NÃO é pessoa jurídica fabricante de máquinas e veículos relacionados no Anexo II do Art. 1º da Lei 10.485/2002. (§9º, Art. 8º. Lei 10865/2004)\n"
+                        },
+                        {
+                            "codigo": "ATT_13715",
+                            "descricaoCodigo": "Anexo II da Lei 10.485/2002",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "XXXX",
+                            "descricaoValor": "Não se enquadra em outra opção"
+                        }
+                    ]
+                },
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_13741",
+                            "descricaoCodigo": "Uso autopeças",
+                            "tipoCodigo": "Domínio dinâmico",
+                            "valor": "XXXX",
+                            "descricaoValor": "Não se enquadra em outra opção"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "2001",
+                "nome": "Situações tributadas integralmente pelo IBS e CBS",
+                "tipo": "Normal"
+            },
+            "mercadorias": [
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_21375",
+                            "descricaoCodigo": "Outros tributos/direitos até liberação (R$)",
+                            "tipoCodigo": "Número real",
+                            "valor": "",
+                            "descricaoValor": ""
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "2001",
+                "nome": "Situações tributadas integralmente pelo IBS e CBS",
+                "tipo": "Normal"
+            },
+            "mercadorias": [
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_21375",
+                            "descricaoCodigo": "Outros tributos/direitos até liberação (R$)",
+                            "tipoCodigo": "Número real",
+                            "valor": "",
+                            "descricaoValor": ""
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "2001",
+                "nome": "Situações tributadas integralmente pelo IBS e CBS",
+                "tipo": "Normal"
+            },
+            "mercadorias": [
+                {
+                    "atributos": [
+                        {
+                            "codigo": "ATT_21375",
+                            "descricaoCodigo": "Outros tributos/direitos até liberação (R$)",
+                            "tipoCodigo": "Número real",
+                            "valor": "",
+                            "descricaoValor": ""
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "fundamentosOpcionaisDisponiveis": [
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "0006",
+                "nome": "EX-TARIFÁRIOS TEMPORÁRIOS DE II",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "0034",
+                "nome": "Ex-tarifário para autopeças sem produção nacional equivalente, no âmbito do Regime de Autopeças Não Produzidas - Art. 6º do 38º PA do ACE nº 14",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "0036",
+                "nome": "Ex-tarifário, para autopeças sem produção nacional equivalente e grafadas como Bens de Capital - BK ou Bens de Informáticas e Telecomunicações - BIT.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0037",
+                "nome": "Tratado de Itaipu - BRASIL x PARAGUAI - Bens, sem similar nacional, importados pelos contratantes da Itaipu Binacional, desde que comprovada e exclusivamente destinados à execução do projeto de aproveitamento hidrelétrico dos recursos hídricos do Rio Paraná, a cargo daquela entidade.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0037",
+                "nome": "Tratado de Itaipu - BRASIL x PARAGUAI - Bens, sem similar nacional, importados pelos contratantes da Itaipu Binacional, desde que comprovada e exclusivamente destinados à execução do projeto de aproveitamento hidrelétrico dos recursos hídricos do Rio Paraná, a cargo daquela entidade.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0903",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA APERFEIÇOAMENTO ATIVO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0903",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA APERFEIÇOAMENTO ATIVO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0903",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA APERFEIÇOAMENTO ATIVO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0903",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA APERFEIÇOAMENTO ATIVO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0903",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA APERFEIÇOAMENTO ATIVO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0903",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA APERFEIÇOAMENTO ATIVO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0903",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA APERFEIÇOAMENTO ATIVO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0908",
+                "nome": "ADMISSÃO NO GNL-TEMPORÁRIO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0908",
+                "nome": "ADMISSÃO NO GNL-TEMPORÁRIO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0908",
+                "nome": "ADMISSÃO NO GNL-TEMPORÁRIO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0908",
+                "nome": "ADMISSÃO NO GNL-TEMPORÁRIO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0908",
+                "nome": "ADMISSÃO NO GNL-TEMPORÁRIO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0908",
+                "nome": "ADMISSÃO NO GNL-TEMPORÁRIO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0908",
+                "nome": "ADMISSÃO NO GNL-TEMPORÁRIO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0909",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM SUSPENSÃO TOTAL - ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0909",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM SUSPENSÃO TOTAL - ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0909",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM SUSPENSÃO TOTAL - ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0909",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM SUSPENSÃO TOTAL - ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0909",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM SUSPENSÃO TOTAL - ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0909",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM SUSPENSÃO TOTAL - ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "0909",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM SUSPENSÃO TOTAL - ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "1003",
+                "nome": "União, Estados, Distrito Federal e Municípios, suas autarquias, fundações instituídas e mantidas pelo poder público e a empresa pública prestadora de serviço postal",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "1003",
+                "nome": "União, Estados, Distrito Federal e Municípios, suas autarquias, fundações instituídas e mantidas pelo poder público e a empresa pública prestadora de serviço postal",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1007",
+                "nome": "Bens importados pelo Conselho Nacional de Desenvolvimento Científico e Tecnológico - CNPq, por cientistas, por pesquisadores e por Instituição Científica, Tecnológica e de Inovação - ICT",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1007",
+                "nome": "Bens importados pelo Conselho Nacional de Desenvolvimento Científico e Tecnológico - CNPq, por cientistas, por pesquisadores e por Instituição Científica, Tecnológica e de Inovação - ICT",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1007",
+                "nome": "Bens importados pelo Conselho Nacional de Desenvolvimento Científico e Tecnológico - CNPq, por cientistas, por pesquisadores e por Instituição Científica, Tecnológica e de Inovação - ICT",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1007",
+                "nome": "Bens importados pelo Conselho Nacional de Desenvolvimento Científico e Tecnológico - CNPq, por cientistas, por pesquisadores e por Instituição Científica, Tecnológica e de Inovação - ICT",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1008",
+                "nome": "Máquinas, equipamentos, aparelhos e instrumentos, e suas partes e suas peças de reposição, acessórios, matérias-primas e produtos intermediários importados por empresas habilitadas pelo CNPq, na execução de projetos de pesquisa, desenvolvimento e inovação",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1008",
+                "nome": "Máquinas, equipamentos, aparelhos e instrumentos, e suas partes e suas peças de reposição, acessórios, matérias-primas e produtos intermediários importados por empresas habilitadas pelo CNPq, na execução de projetos de pesquisa, desenvolvimento e inovação",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1009",
+                "nome": "DRAWBACK - ISENÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1010",
+                "nome": "Partidos Políticos",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1010",
+                "nome": "Partidos Políticos",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1011",
+                "nome": "Instituições de educação ou de assistência social",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1011",
+                "nome": "Instituições de educação ou de assistência social",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1012",
+                "nome": " União, Estados, Distrito Federal e Municípios, suas autarquias e fundações instituídas e mantidas pelo poder público.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1012",
+                "nome": " União, Estados, Distrito Federal e Municípios, suas autarquias e fundações instituídas e mantidas pelo poder público.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1012",
+                "nome": " União, Estados, Distrito Federal e Municípios, suas autarquias e fundações instituídas e mantidas pelo poder público.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1012",
+                "nome": " União, Estados, Distrito Federal e Municípios, suas autarquias e fundações instituídas e mantidas pelo poder público.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1013",
+                "nome": "Missões Diplomáticas e Repartições Consulares de caráter permanente e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1013",
+                "nome": "Missões Diplomáticas e Repartições Consulares de caráter permanente e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1013",
+                "nome": "Missões Diplomáticas e Repartições Consulares de caráter permanente e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1013",
+                "nome": "Missões Diplomáticas e Repartições Consulares de caráter permanente e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1014",
+                "nome": "Representações de organismos internacionais dos quais o Brasil seja membro, e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1014",
+                "nome": "Representações de organismos internacionais dos quais o Brasil seja membro, e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1014",
+                "nome": "Representações de organismos internacionais dos quais o Brasil seja membro, e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1014",
+                "nome": "Representações de organismos internacionais dos quais o Brasil seja membro, e seus respectivos integrantes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1016",
+                "nome": "DRAWBACK - SUSPENSÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1016",
+                "nome": "DRAWBACK - SUSPENSÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1016",
+                "nome": "DRAWBACK - SUSPENSÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1016",
+                "nome": "DRAWBACK - SUSPENSÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1016",
+                "nome": "DRAWBACK - SUSPENSÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1016",
+                "nome": "DRAWBACK - SUSPENSÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1016",
+                "nome": "DRAWBACK - SUSPENSÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1017",
+                "nome": "Aeronaves - partes, peças e componentes destinados ao reparo, revisão e manutenção de aeronaves",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1017",
+                "nome": "Aeronaves - partes, peças e componentes destinados ao reparo, revisão e manutenção de aeronaves",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1018",
+                "nome": "Embarcações - partes, peças e componentes destinados ao reparo, revisão e manutenção de embarcações",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1018",
+                "nome": "Embarcações - partes, peças e componentes destinados ao reparo, revisão e manutenção de embarcações",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1021",
+                "nome": "DRAWBACK na modalidade ISENÇÃO  - Redução a zero da alíquota do IPI, PIS/Pasep-Importação e da Cofins-Importação",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1021",
+                "nome": "DRAWBACK na modalidade ISENÇÃO  - Redução a zero da alíquota do IPI, PIS/Pasep-Importação e da Cofins-Importação",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1021",
+                "nome": "DRAWBACK na modalidade ISENÇÃO  - Redução a zero da alíquota do IPI, PIS/Pasep-Importação e da Cofins-Importação",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1022",
+                "nome": "Aquisição de propriedade da mercadoria admitida em regimes aduaneiros especiais",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1022",
+                "nome": "Aquisição de propriedade da mercadoria admitida em regimes aduaneiros especiais",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1022",
+                "nome": "Aquisição de propriedade da mercadoria admitida em regimes aduaneiros especiais",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "3",
+                "nome": "ISENCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1022",
+                "nome": "Aquisição de propriedade da mercadoria admitida em regimes aduaneiros especiais",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1023",
+                "nome": "Troféus, medalhas, placas e outros objetos comemorativos recebidos em evento cultural, científico ou esportivo oficial recebidos como prêmio no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1023",
+                "nome": "Troféus, medalhas, placas e outros objetos comemorativos recebidos em evento cultural, científico ou esportivo oficial recebidos como prêmio no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1023",
+                "nome": "Troféus, medalhas, placas e outros objetos comemorativos recebidos em evento cultural, científico ou esportivo oficial recebidos como prêmio no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1023",
+                "nome": "Troféus, medalhas, placas e outros objetos comemorativos recebidos em evento cultural, científico ou esportivo oficial recebidos como prêmio no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1025",
+                "nome": "ADMISSÃO NA AMAZÔNIA OCIDENTAL - REDUÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1025",
+                "nome": "ADMISSÃO NA AMAZÔNIA OCIDENTAL - REDUÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "1029",
+                "nome": "Bens importados pelas entidades religiosas e templos de qualquer culto, inclusive suas organizações assistenciais e beneficentes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "1029",
+                "nome": "Bens importados pelas entidades religiosas e templos de qualquer culto, inclusive suas organizações assistenciais e beneficentes",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "4",
+                "nome": "CIDE COMBUSTÍVEIS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1031",
+                "nome": "ADMISSÃO TEMPORÁRIA COM SUSPENSÃO TOTAL DE TRIBUTOS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1036",
+                "nome": "PRODUTOS DO SETOR AERONAUTICO - REGRA GERAL TEC",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "10",
+                "nome": "SUSPENSÃO COM PAGAMENTO PROPORCIONAL DE TRIBUTO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1037",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM PAGAMENTO PROPORCIONAL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "10",
+                "nome": "SUSPENSÃO COM PAGAMENTO PROPORCIONAL DE TRIBUTO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1037",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM PAGAMENTO PROPORCIONAL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "10",
+                "nome": "SUSPENSÃO COM PAGAMENTO PROPORCIONAL DE TRIBUTO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1037",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM PAGAMENTO PROPORCIONAL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "10",
+                "nome": "SUSPENSÃO COM PAGAMENTO PROPORCIONAL DE TRIBUTO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1037",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM PAGAMENTO PROPORCIONAL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "10",
+                "nome": "SUSPENSÃO COM PAGAMENTO PROPORCIONAL DE TRIBUTO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1037",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM PAGAMENTO PROPORCIONAL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "10",
+                "nome": "SUSPENSÃO COM PAGAMENTO PROPORCIONAL DE TRIBUTO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1037",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM PAGAMENTO PROPORCIONAL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "10",
+                "nome": "SUSPENSÃO COM PAGAMENTO PROPORCIONAL DE TRIBUTO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1037",
+                "nome": "ADMISSÃO TEMPORÁRIA PARA UTILIZAÇÃO ECONÔMICA - COM PAGAMENTO PROPORCIONAL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1046",
+                "nome": "RECOF - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Aduaneiro Informatizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1046",
+                "nome": "RECOF - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Aduaneiro Informatizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1046",
+                "nome": "RECOF - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Aduaneiro Informatizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1046",
+                "nome": "RECOF - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Aduaneiro Informatizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1046",
+                "nome": "RECOF - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Aduaneiro Informatizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1046",
+                "nome": "RECOF - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Aduaneiro Informatizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1046",
+                "nome": "RECOF - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Aduaneiro Informatizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1051",
+                "nome": "Admissão em Loja Franca em fronteira terrestre",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1051",
+                "nome": "Admissão em Loja Franca em fronteira terrestre",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1051",
+                "nome": "Admissão em Loja Franca em fronteira terrestre",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1051",
+                "nome": "Admissão em Loja Franca em fronteira terrestre",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1051",
+                "nome": "Admissão em Loja Franca em fronteira terrestre",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1051",
+                "nome": "Admissão em Loja Franca em fronteira terrestre",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1051",
+                "nome": "Admissão em Loja Franca em fronteira terrestre",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "3",
+                "nome": "ANTIDUMPING"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "5",
+                "nome": "MEDIDAS COMPENSATÓRIAS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1052",
+                "nome": "ADMISSÃO EM ENTREPOSTO ADUANEIRO NA IMPORTAÇÃO ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1053",
+                "nome": "ADMISSÃO NO ENTREPOSTO INTERNACIONAL DA ZONA FRANCA DE MANAUS - EIZOF",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1053",
+                "nome": "ADMISSÃO NO ENTREPOSTO INTERNACIONAL DA ZONA FRANCA DE MANAUS - EIZOF",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1053",
+                "nome": "ADMISSÃO NO ENTREPOSTO INTERNACIONAL DA ZONA FRANCA DE MANAUS - EIZOF",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1053",
+                "nome": "ADMISSÃO NO ENTREPOSTO INTERNACIONAL DA ZONA FRANCA DE MANAUS - EIZOF",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1053",
+                "nome": "ADMISSÃO NO ENTREPOSTO INTERNACIONAL DA ZONA FRANCA DE MANAUS - EIZOF",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1053",
+                "nome": "ADMISSÃO NO ENTREPOSTO INTERNACIONAL DA ZONA FRANCA DE MANAUS - EIZOF",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1053",
+                "nome": "ADMISSÃO NO ENTREPOSTO INTERNACIONAL DA ZONA FRANCA DE MANAUS - EIZOF",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1056",
+                "nome": "ADMISSÃO NA  ZONA FRANCA DE MANAUS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1056",
+                "nome": "ADMISSÃO NA  ZONA FRANCA DE MANAUS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1056",
+                "nome": "ADMISSÃO NA  ZONA FRANCA DE MANAUS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1056",
+                "nome": "ADMISSÃO NA  ZONA FRANCA DE MANAUS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1056",
+                "nome": "ADMISSÃO NA  ZONA FRANCA DE MANAUS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1057",
+                "nome": "Admissão em Loja Franca em Porto ou Aeroporto",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1057",
+                "nome": "Admissão em Loja Franca em Porto ou Aeroporto",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1057",
+                "nome": "Admissão em Loja Franca em Porto ou Aeroporto",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1057",
+                "nome": "Admissão em Loja Franca em Porto ou Aeroporto",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1057",
+                "nome": "Admissão em Loja Franca em Porto ou Aeroporto",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1057",
+                "nome": "Admissão em Loja Franca em Porto ou Aeroporto",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1057",
+                "nome": "Admissão em Loja Franca em Porto ou Aeroporto",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1058",
+                "nome": "ADMISSÃO EM DEPÓSITO ESPECIAL ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1058",
+                "nome": "ADMISSÃO EM DEPÓSITO ESPECIAL ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1058",
+                "nome": "ADMISSÃO EM DEPÓSITO ESPECIAL ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1058",
+                "nome": "ADMISSÃO EM DEPÓSITO ESPECIAL ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1058",
+                "nome": "ADMISSÃO EM DEPÓSITO ESPECIAL ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1058",
+                "nome": "ADMISSÃO EM DEPÓSITO ESPECIAL ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1058",
+                "nome": "ADMISSÃO EM DEPÓSITO ESPECIAL ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1060",
+                "nome": "ADMISSÃO NA A.L.C. GUAJARA-MIRIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1060",
+                "nome": "ADMISSÃO NA A.L.C. GUAJARA-MIRIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1060",
+                "nome": "ADMISSÃO NA A.L.C. GUAJARA-MIRIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1060",
+                "nome": "ADMISSÃO NA A.L.C. GUAJARA-MIRIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1060",
+                "nome": "ADMISSÃO NA A.L.C. GUAJARA-MIRIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1061",
+                "nome": "ADMISSAO NA A.L.C. DE TABATINGA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1061",
+                "nome": "ADMISSAO NA A.L.C. DE TABATINGA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1061",
+                "nome": "ADMISSAO NA A.L.C. DE TABATINGA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1061",
+                "nome": "ADMISSAO NA A.L.C. DE TABATINGA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1061",
+                "nome": "ADMISSAO NA A.L.C. DE TABATINGA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1062",
+                "nome": "ADMISSÃO NA A.L.C. DE MACAPA E SANTANA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1062",
+                "nome": "ADMISSÃO NA A.L.C. DE MACAPA E SANTANA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1062",
+                "nome": "ADMISSÃO NA A.L.C. DE MACAPA E SANTANA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1062",
+                "nome": "ADMISSÃO NA A.L.C. DE MACAPA E SANTANA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1062",
+                "nome": "ADMISSÃO NA A.L.C. DE MACAPA E SANTANA",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1063",
+                "nome": "ADMISSAO NA A.L.C. DE BRASILEIA, EPITACIOLANDIA E CRUZEIRO DO SUL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1063",
+                "nome": "ADMISSAO NA A.L.C. DE BRASILEIA, EPITACIOLANDIA E CRUZEIRO DO SUL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1063",
+                "nome": "ADMISSAO NA A.L.C. DE BRASILEIA, EPITACIOLANDIA E CRUZEIRO DO SUL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1063",
+                "nome": "ADMISSAO NA A.L.C. DE BRASILEIA, EPITACIOLANDIA E CRUZEIRO DO SUL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1063",
+                "nome": "ADMISSAO NA A.L.C. DE BRASILEIA, EPITACIOLANDIA E CRUZEIRO DO SUL",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1064",
+                "nome": "ADMISSÃO NA A.L.C. DE BOA VISTA E BONFIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1064",
+                "nome": "ADMISSÃO NA A.L.C. DE BOA VISTA E BONFIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1064",
+                "nome": "ADMISSÃO NA A.L.C. DE BOA VISTA E BONFIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1064",
+                "nome": "ADMISSÃO NA A.L.C. DE BOA VISTA E BONFIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1064",
+                "nome": "ADMISSÃO NA A.L.C. DE BOA VISTA E BONFIM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1066",
+                "nome": "Repex - Regime aduaneiro especial para importação de petróleo bruto e seus derivados",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1066",
+                "nome": "Repex - Regime aduaneiro especial para importação de petróleo bruto e seus derivados",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1066",
+                "nome": "Repex - Regime aduaneiro especial para importação de petróleo bruto e seus derivados",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1067",
+                "nome": "Regime de Entreposto Aduaneiro - Bens destinados à pesquisa e lavra de jazidas de petróleo e gás natural em construção ou conversão no País, contratadas por empresas sediadas no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1067",
+                "nome": "Regime de Entreposto Aduaneiro - Bens destinados à pesquisa e lavra de jazidas de petróleo e gás natural em construção ou conversão no País, contratadas por empresas sediadas no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1067",
+                "nome": "Regime de Entreposto Aduaneiro - Bens destinados à pesquisa e lavra de jazidas de petróleo e gás natural em construção ou conversão no País, contratadas por empresas sediadas no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1067",
+                "nome": "Regime de Entreposto Aduaneiro - Bens destinados à pesquisa e lavra de jazidas de petróleo e gás natural em construção ou conversão no País, contratadas por empresas sediadas no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1067",
+                "nome": "Regime de Entreposto Aduaneiro - Bens destinados à pesquisa e lavra de jazidas de petróleo e gás natural em construção ou conversão no País, contratadas por empresas sediadas no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1067",
+                "nome": "Regime de Entreposto Aduaneiro - Bens destinados à pesquisa e lavra de jazidas de petróleo e gás natural em construção ou conversão no País, contratadas por empresas sediadas no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1067",
+                "nome": "Regime de Entreposto Aduaneiro - Bens destinados à pesquisa e lavra de jazidas de petróleo e gás natural em construção ou conversão no País, contratadas por empresas sediadas no exterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1069",
+                "nome": "Admissão no Repetro-Temporário com dispensa do pagamento proporcional",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1069",
+                "nome": "Admissão no Repetro-Temporário com dispensa do pagamento proporcional",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1069",
+                "nome": "Admissão no Repetro-Temporário com dispensa do pagamento proporcional",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1069",
+                "nome": "Admissão no Repetro-Temporário com dispensa do pagamento proporcional",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1069",
+                "nome": "Admissão no Repetro-Temporário com dispensa do pagamento proporcional",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1069",
+                "nome": "Admissão no Repetro-Temporário com dispensa do pagamento proporcional",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1069",
+                "nome": "Admissão no Repetro-Temporário com dispensa do pagamento proporcional",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1070",
+                "nome": "ADMISSÃO NO REPETRO-PERMANENTE ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1070",
+                "nome": "ADMISSÃO NO REPETRO-PERMANENTE ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1070",
+                "nome": "ADMISSÃO NO REPETRO-PERMANENTE ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1070",
+                "nome": "ADMISSÃO NO REPETRO-PERMANENTE ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1070",
+                "nome": "ADMISSÃO NO REPETRO-PERMANENTE ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1070",
+                "nome": "ADMISSÃO NO REPETRO-PERMANENTE ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1070",
+                "nome": "ADMISSÃO NO REPETRO-PERMANENTE ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1071",
+                "nome": "Reposição de mercadoria importada que tenha apresentado defeito técnico após o desembaraço",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1071",
+                "nome": "Reposição de mercadoria importada que tenha apresentado defeito técnico após o desembaraço",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1071",
+                "nome": "Reposição de mercadoria importada que tenha apresentado defeito técnico após o desembaraço",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1071",
+                "nome": "Reposição de mercadoria importada que tenha apresentado defeito técnico após o desembaraço",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1071",
+                "nome": "Reposição de mercadoria importada que tenha apresentado defeito técnico após o desembaraço",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1071",
+                "nome": "Reposição de mercadoria importada que tenha apresentado defeito técnico após o desembaraço",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1071",
+                "nome": "Reposição de mercadoria importada que tenha apresentado defeito técnico após o desembaraço",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1073",
+                "nome": "RETORNO DE BENS ADMITIDOS EM REGIMES ESPECIAIS ENVIADOS AO EXTERIOR PARA CONSERTO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1073",
+                "nome": "RETORNO DE BENS ADMITIDOS EM REGIMES ESPECIAIS ENVIADOS AO EXTERIOR PARA CONSERTO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1073",
+                "nome": "RETORNO DE BENS ADMITIDOS EM REGIMES ESPECIAIS ENVIADOS AO EXTERIOR PARA CONSERTO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1073",
+                "nome": "RETORNO DE BENS ADMITIDOS EM REGIMES ESPECIAIS ENVIADOS AO EXTERIOR PARA CONSERTO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1076",
+                "nome": "ADMISSÃO EM DEPÓSITO AFIANÇADO  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1076",
+                "nome": "ADMISSÃO EM DEPÓSITO AFIANÇADO  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1076",
+                "nome": "ADMISSÃO EM DEPÓSITO AFIANÇADO  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1076",
+                "nome": "ADMISSÃO EM DEPÓSITO AFIANÇADO  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1076",
+                "nome": "ADMISSÃO EM DEPÓSITO AFIANÇADO  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1076",
+                "nome": "ADMISSÃO EM DEPÓSITO AFIANÇADO  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1076",
+                "nome": "ADMISSÃO EM DEPÓSITO AFIANÇADO  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1077",
+                "nome": "Reimportação de mercadoria, no mesmo estado, à qual tenha sido aplicado o regime de exportação temporária",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1077",
+                "nome": "Reimportação de mercadoria, no mesmo estado, à qual tenha sido aplicado o regime de exportação temporária",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1077",
+                "nome": "Reimportação de mercadoria, no mesmo estado, à qual tenha sido aplicado o regime de exportação temporária",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1077",
+                "nome": "Reimportação de mercadoria, no mesmo estado, à qual tenha sido aplicado o regime de exportação temporária",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1077",
+                "nome": "Reimportação de mercadoria, no mesmo estado, à qual tenha sido aplicado o regime de exportação temporária",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1077",
+                "nome": "Reimportação de mercadoria, no mesmo estado, à qual tenha sido aplicado o regime de exportação temporária",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1077",
+                "nome": "Reimportação de mercadoria, no mesmo estado, à qual tenha sido aplicado o regime de exportação temporária",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1082",
+                "nome": "ADMISSÃO NO REPETRO-INDUSTRIALIZAÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1082",
+                "nome": "ADMISSÃO NO REPETRO-INDUSTRIALIZAÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1082",
+                "nome": "ADMISSÃO NO REPETRO-INDUSTRIALIZAÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1082",
+                "nome": "ADMISSÃO NO REPETRO-INDUSTRIALIZAÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1082",
+                "nome": "ADMISSÃO NO REPETRO-INDUSTRIALIZAÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1082",
+                "nome": "ADMISSÃO NO REPETRO-INDUSTRIALIZAÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1082",
+                "nome": "ADMISSÃO NO REPETRO-INDUSTRIALIZAÇÃO",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1087",
+                "nome": "RECOF-SPED - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Informatizado do Sistema Público de Escrituração Digital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1087",
+                "nome": "RECOF-SPED - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Informatizado do Sistema Público de Escrituração Digital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1087",
+                "nome": "RECOF-SPED - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Informatizado do Sistema Público de Escrituração Digital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1087",
+                "nome": "RECOF-SPED - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Informatizado do Sistema Público de Escrituração Digital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1087",
+                "nome": "RECOF-SPED - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Informatizado do Sistema Público de Escrituração Digital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1087",
+                "nome": "RECOF-SPED - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Informatizado do Sistema Público de Escrituração Digital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1087",
+                "nome": "RECOF-SPED - Regime Aduaneiro Especial de Entreposto Industrial sob Controle Informatizado do Sistema Público de Escrituração Digital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "1096",
+                "nome": "Autopeças, não originárias do MERCOSUL, destinadas à produção de tratores, colheitadeiras, máquinas agrícolas e rodoviárias autopropulsadas - Artigo 7º do 38º Protocolo Adicional ao ACE 14 - SH 2022.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1101",
+                "nome": "Retorno de bens exportados por fatores alheios à vontade do exportador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1101",
+                "nome": "Retorno de bens exportados por fatores alheios à vontade do exportador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1101",
+                "nome": "Retorno de bens exportados por fatores alheios à vontade do exportador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1101",
+                "nome": "Retorno de bens exportados por fatores alheios à vontade do exportador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1101",
+                "nome": "Retorno de bens exportados por fatores alheios à vontade do exportador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1101",
+                "nome": "Retorno de bens exportados por fatores alheios à vontade do exportador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "1101",
+                "nome": "Retorno de bens exportados por fatores alheios à vontade do exportador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "1108",
+                "nome": "Bens importados pelas entidades beneficentes de assistência social",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "1108",
+                "nome": "Bens importados pelas entidades beneficentes de assistência social",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1111",
+                "nome": "REB – Registro Especial Brasileiro – materiais e equipamentos, inclusive partes, peças e componentes, destinados ao emprego na construção, conservação, modernização, conversão ou reparo de embarcações registradas ou pré-registradas no REB",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1111",
+                "nome": "REB – Registro Especial Brasileiro – materiais e equipamentos, inclusive partes, peças e componentes, destinados ao emprego na construção, conservação, modernização, conversão ou reparo de embarcações registradas ou pré-registradas no REB",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1115",
+                "nome": "Bens destinados à indústria cinematográfica e audiovisual, sem similar nacional, importados por pessoa jurídica sem fins lucrativos",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1115",
+                "nome": "Bens destinados à indústria cinematográfica e audiovisual, sem similar nacional, importados por pessoa jurídica sem fins lucrativos",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1117",
+                "nome": "BENS A SEREM EMPREGADOS EM AERONAVES (LEI 10865/04 - ART 8º,PAR 12, INC VII, C/C LEI 10925/04 - ART 6º, C/C DEC 5171/04)",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1117",
+                "nome": "BENS A SEREM EMPREGADOS EM AERONAVES (LEI 10865/04 - ART 8º,PAR 12, INC VII, C/C LEI 10925/04 - ART 6º, C/C DEC 5171/04)",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1143",
+                "nome": "PIS/COFINS - MAT. PRIMAS, PROD. INTERM. E MAT. DE EMBALAGEM - EMPRESAS DA ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1143",
+                "nome": "PIS/COFINS - MAT. PRIMAS, PROD. INTERM. E MAT. DE EMBALAGEM - EMPRESAS DA ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1144",
+                "nome": "PIS/COFINS - BENS PARA ELABORACAO DE MAT. PRIMAS, PROD. INTERM. E MAT. DE EMBALAGEM - EMPRESAS DA ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1144",
+                "nome": "PIS/COFINS - BENS PARA ELABORACAO DE MAT. PRIMAS, PROD. INTERM. E MAT. DE EMBALAGEM - EMPRESAS DA ZFM ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1148",
+                "nome": "RECAP - Máquinas, aparelhos, instrumentos e equipamentos novos, importados diretamente por pessoa jurídica beneficiária do Recap para incorporação ao seu ativo imobilizado - PIS e COFINS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1148",
+                "nome": "RECAP - Máquinas, aparelhos, instrumentos e equipamentos novos, importados diretamente por pessoa jurídica beneficiária do Recap para incorporação ao seu ativo imobilizado - PIS e COFINS",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1149",
+                "nome": "PIS/COFINS - BENS A SEREM INCORPORADOS AO ATIVO IMOBILIZADO DE EMPRESAS DA ZFM  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1149",
+                "nome": "PIS/COFINS - BENS A SEREM INCORPORADOS AO ATIVO IMOBILIZADO DE EMPRESAS DA ZFM  ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1150",
+                "nome": "PIS/COFINS-IMPORTAÇÃO - Matérias-primas (MP), produtos intermediários (PI) e material de embalagem (ME), importados por pessoa jurídica preponderantemente exportadora.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1150",
+                "nome": "PIS/COFINS-IMPORTAÇÃO - Matérias-primas (MP), produtos intermediários (PI) e material de embalagem (ME), importados por pessoa jurídica preponderantemente exportadora.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1168",
+                "nome": "RECOM - Regime Aduaneiro Especial de Importação de Insumos Destinados a Industrialização por Encomenda de Produtos Classificados nas Posições 8701 A 8705 da NCM Importação de insumos (chassis, carroçarias, peças, partes, componentes e acessórios), sem cobertura cambial, destinados a industrialização por encomenda de produtos classificados nas posições 8701 a 8705 da NCM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1168",
+                "nome": "RECOM - Regime Aduaneiro Especial de Importação de Insumos Destinados a Industrialização por Encomenda de Produtos Classificados nas Posições 8701 A 8705 da NCM Importação de insumos (chassis, carroçarias, peças, partes, componentes e acessórios), sem cobertura cambial, destinados a industrialização por encomenda de produtos classificados nas posições 8701 a 8705 da NCM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1168",
+                "nome": "RECOM - Regime Aduaneiro Especial de Importação de Insumos Destinados a Industrialização por Encomenda de Produtos Classificados nas Posições 8701 A 8705 da NCM Importação de insumos (chassis, carroçarias, peças, partes, componentes e acessórios), sem cobertura cambial, destinados a industrialização por encomenda de produtos classificados nas posições 8701 a 8705 da NCM",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1189",
+                "nome": "REIDI - Regime Especial de Incentivos para o Desenvolvimento da Infraestrutura",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1189",
+                "nome": "REIDI - Regime Especial de Incentivos para o Desenvolvimento da Infraestrutura",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1194",
+                "nome": "PADIS - Programa de Apoio ao Desenvolvimento Tecnológico da Indústria de Semicondutores",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1194",
+                "nome": "PADIS - Programa de Apoio ao Desenvolvimento Tecnológico da Indústria de Semicondutores",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1194",
+                "nome": "PADIS - Programa de Apoio ao Desenvolvimento Tecnológico da Indústria de Semicondutores",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1194",
+                "nome": "PADIS - Programa de Apoio ao Desenvolvimento Tecnológico da Indústria de Semicondutores",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1401",
+                "nome": "RETID - Regime Especial de Tributação para a Indústria de Defesa",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1401",
+                "nome": "RETID - Regime Especial de Tributação para a Indústria de Defesa",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1401",
+                "nome": "RETID - Regime Especial de Tributação para a Indústria de Defesa",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1440",
+                "nome": "Partes, peças, componentes, ferramentais, insumos, equipamentos e matérias-primas a serem empregados na industrialização, manutenção, modernização e conversão do material de emprego militar classificado nas posições 87.10.00.00 e 89.06.10.00 da Tipi",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "1440",
+                "nome": "Partes, peças, componentes, ferramentais, insumos, equipamentos e matérias-primas a serem empregados na industrialização, manutenção, modernização e conversão do material de emprego militar classificado nas posições 87.10.00.00 e 89.06.10.00 da Tipi",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2410",
+                "nome": "Fornecimento de bonificações quando constem no documento fiscal e que não dependam de evento posterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2410",
+                "nome": "Fornecimento de bonificações quando constem no documento fiscal e que não dependam de evento posterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2410",
+                "nome": "Fornecimento de bonificações quando constem no documento fiscal e que não dependam de evento posterior",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2411",
+                "nome": "Doações sem contraprestação em benefício do doador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2411",
+                "nome": "Doações sem contraprestação em benefício do doador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2411",
+                "nome": "Doações sem contraprestação em benefício do doador",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2412",
+                "nome": "Operações não onerosas sem previsão de tributação, não especificadas anteriormente",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2412",
+                "nome": "Operações não onerosas sem previsão de tributação, não especificadas anteriormente",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "6",
+                "nome": "NAO INCIDENCIA"
+            },
+            "fundamentoLegal": {
+                "codigo": "2412",
+                "nome": "Operações não onerosas sem previsão de tributação, não especificadas anteriormente",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "2430",
+                "nome": "Fornecimentos de fonogramas e videofonogramas musicais produzidos no Brasil",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "2430",
+                "nome": "Fornecimentos de fonogramas e videofonogramas musicais produzidos no Brasil",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "2",
+                "nome": "IMUNIDADE"
+            },
+            "fundamentoLegal": {
+                "codigo": "2430",
+                "nome": "Fornecimentos de fonogramas e videofonogramas musicais produzidos no Brasil",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2551",
+                "nome": "Desoneração da aquisição de bens de capital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2551",
+                "nome": "Desoneração da aquisição de bens de capital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2551",
+                "nome": "Desoneração da aquisição de bens de capital",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2554",
+                "nome": "REHIDRO - Regime Especial de Incentivos para a Produção de Hidrogênio de Baixa Emissão de Carbono",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2554",
+                "nome": "REHIDRO - Regime Especial de Incentivos para a Produção de Hidrogênio de Baixa Emissão de Carbono",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2554",
+                "nome": "REHIDRO - Regime Especial de Incentivos para a Produção de Hidrogênio de Baixa Emissão de Carbono",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2555",
+                "nome": "REIDI - Regime Especial de Incentivos para o Desenvolvimento da Infraestrutura",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2555",
+                "nome": "REIDI - Regime Especial de Incentivos para o Desenvolvimento da Infraestrutura",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2555",
+                "nome": "REIDI - Regime Especial de Incentivos para o Desenvolvimento da Infraestrutura",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2556",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - embarcações registradas ou pré-registradas no REB para incorporação ao ativo imobilizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2556",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - embarcações registradas ou pré-registradas no REB para incorporação ao ativo imobilizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2556",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - embarcações registradas ou pré-registradas no REB para incorporação ao ativo imobilizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2557",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - máquinas, equipamentos e veículos destinados a utilização nas atividades, definidas na lei, efetuadas para incorporação a seu ativo imobilizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2557",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - máquinas, equipamentos e veículos destinados a utilização nas atividades, definidas na lei, efetuadas para incorporação a seu ativo imobilizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2557",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - máquinas, equipamentos e veículos destinados a utilização nas atividades, definidas na lei, efetuadas para incorporação a seu ativo imobilizado",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2558",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - matérias-primas, produtos intermediários, partes, peças e componentes para utilização na construção, conservação, modernização e reparo de embarcações pré-registradas ou registradas no REB",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2558",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - matérias-primas, produtos intermediários, partes, peças e componentes para utilização na construção, conservação, modernização e reparo de embarcações pré-registradas ou registradas no REB",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "2558",
+                "nome": "RENAVAL - Regime Tributário para Incentivo à Atividade Naval - matérias-primas, produtos intermediários, partes, peças e componentes para utilização na construção, conservação, modernização e reparo de embarcações pré-registradas ou registradas no REB",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6122",
+                "nome": "IPI - Matérias-primas (MP), produtos intermediários (PI) e material de embalagem (ME), destinados a estabelecimento que se dedique, preponderantemente, à elaboração de produtos classificados nos Capítulos 2, 3, 4, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20, 23 (exceto códigos 2309.10.00 e 2309.90.30 e Ex-01 no código 2309.90.90), 28, 29, 30, 31 e 64, no código 2209.00.00 e 2501.00.00, e nas posições 21.01 a 21.05.00, da TIPI, inclusive aqueles a que corresponde a notação NT (não tributados)",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6123",
+                "nome": "IPI - Matérias-primas (MP), produtos intermediários (PI) e material de embalagem (ME), destinados a estabelecimento que se dedique, preponderantemente, à elaboração de aeronaves e aparelhos espaciais classificados no capítulo 88 da TIPI",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6124",
+                "nome": "IPI - Matérias-primas (MP), produtos intermediários (PI) e material de embalagem (ME), quando adquiridos por pessoas jurídicas preponderantemente exportadoras",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6126",
+                "nome": "REB – Registro Especial Brasileiro – partes, peças e componentes destinados ao emprego na conservação, modernização e conversão de embarcações registradas no REB - Redução",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6126",
+                "nome": "REB – Registro Especial Brasileiro – partes, peças e componentes destinados ao emprego na conservação, modernização e conversão de embarcações registradas no REB - Redução",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "1",
+                "nome": "IMPOSTO DE IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6141",
+                "nome": "ZPE – Zonas de Processamento de Exportação. Importações de bens por empresa autorizada a operar em ZPE.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6141",
+                "nome": "ZPE – Zonas de Processamento de Exportação. Importações de bens por empresa autorizada a operar em ZPE.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "20",
+                "nome": "CBS"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6141",
+                "nome": "ZPE – Zonas de Processamento de Exportação. Importações de bens por empresa autorizada a operar em ZPE.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "21",
+                "nome": "IBS ESTADUAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6141",
+                "nome": "ZPE – Zonas de Processamento de Exportação. Importações de bens por empresa autorizada a operar em ZPE.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "22",
+                "nome": "IBS MUNICIPAL"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6141",
+                "nome": "ZPE – Zonas de Processamento de Exportação. Importações de bens por empresa autorizada a operar em ZPE.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "6",
+                "nome": "PIS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6141",
+                "nome": "ZPE – Zonas de Processamento de Exportação. Importações de bens por empresa autorizada a operar em ZPE.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "7",
+                "nome": "COFINS IMPORTAÇÃO"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6141",
+                "nome": "ZPE – Zonas de Processamento de Exportação. Importações de bens por empresa autorizada a operar em ZPE.",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6145",
+                "nome": "IPI - Setor Automotivo- componentes, chassis, carroçarias, acessórios, partes e peças, importados diretamente pelo estabelecimento industrial, para emprego na industrialização dos produtos autopropulsados classificados nos códigos 84.29, 84.32, 84.33, 87.01, 87.02, 87.03, 8704.10.00, 8704.2, 8704.3, 87.05, 87.06 e 87.11",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "5",
+                "nome": "SUSPENSAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6147",
+                "nome": "IPI - Setor Automotivo - matérias-primas, produtos intermediários e materiais de embalagem, importados por estabelecimentos industriais fabricantes, preponderantemente, de componentes, chassis, carroçarias, partes e peças para industrialização dos produtos classificados nos Códigos 73.09, 7310.29, 7612.90.12, 8424.81, 84.29, 8430.69.90, 84.32, 84.33, 84.34, 84.35, 84.36, 84.37, 87.01, 87.02, 87.03, 87.04, 87.05, 87.06 e 8716.20.00 da TIPI ",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "4",
+                "nome": "REDUCAO"
+            },
+            "fundamentoLegal": {
+                "codigo": "6601",
+                "nome": "IPI - IMPORTAÇÃO - Equipamentos e outros destinados à pesquisa e ao desenvolvimento tecnológico -Art. 72 do Decreto 7.212/2010",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "N"
+        },
+        {
+            "tributo": {
+                "codigo": "2",
+                "nome": "IPI"
+            },
+            "regime": {
+                "codigo": "1",
+                "nome": "RECOLHIMENTO INTEGRAL"
+            },
+            "fundamentoLegal": {
+                "codigo": "6996",
+                "nome": "NOTA COMPLEMENTAR DA TIPI",
+                "tipo": "Opcional"
+            },
+            "possuiAtributosAdicionais": "S"
+        }
+    ]
+}

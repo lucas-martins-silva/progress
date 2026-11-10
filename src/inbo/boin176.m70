@@ -1,0 +1,180 @@
+
+PROCEDURE sugere_simples_nacional:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Sugere as informa‡äes do Simples Nacional para os itens da nota.
+------------------------------------------------------------------------------*/
+
+  DEF VAR de-aliq-icms-sn     AS DECIMAL NO-UNDO.
+  DEF VAR de-base-icms-sn     AS DECIMAL NO-UNDO.
+  DEF VAR de-vl-icms-sn       AS DECIMAL NO-UNDO.
+  DEF VAR c-cod-CSOSN         AS CHAR    NO-UNDO.
+  DEF VAR i-cod-orig          AS INT     NO-UNDO.
+  DEF VAR h-cdapi1001         AS HANDLE  NO-UNDO. 
+  DEF VAR rw-sit-relacto      AS ROWID   NO-UNDO.
+  
+  RUN findDocumento ( RowObject.Cod-Emitente,
+                      RowObject.Serie-Docto,
+                      RowObject.Nro-Docto,
+                      RowObject.Nat-Operacao ).
+                      
+  IF  RETURN-VALUE <> "OK":U OR 
+      NOT AVAIL docum-est THEN 
+      RETURN "NOK":U.
+  
+  assign de-vl-simplesnac = 0.
+  
+  /*Se a nota foi importada atrav‚s do RE0522 deve-se utilizar as informa‡äes vindas no XML*/    
+  FOR FIRST item-doc-orig-nfe FIELDS( icmssn101-cod-sit-oper-sn icmssn101-aliq-calc-cred icmssn101-vl-cred icms-orig2 
+                                                                icmssn201-cod-sit-oper-sn icmssn201-aliq-calc-cre icmssn201-vl-cred-icms
+                                                                icmssn102-cod-sit-oper-sn icmssn202-cod-sit-oper-sn icmssn500-cod-sit-oper-sn
+                                                                icmssn900-cod-sit-oper-sn icmssn900-aliq-aplic-cc-sn icmssn900-vl-cred-icms ) NO-LOCK
+      WHERE item-doc-orig-nfe.ch-acesso-comp-nfe = docum-est.cod-chave-aces-nf-eletro
+        AND item-doc-orig-nfe.idi-orig-trad      = 2
+        AND item-doc-orig-nfe.seq-item           = INT(SUBSTRING(RowObject.char-2,832,5)):
+  
+       IF item-doc-orig-nfe.icmssn101-cod-sit-oper-sn <> "" THEN
+           ASSIGN c-cod-CSOSN     = item-doc-orig-nfe.icms-orig2[3] + item-doc-orig-nfe.icmssn101-cod-sit-oper-sn
+                  de-aliq-icms-sn = IF item-doc-orig-nfe.icmssn101-aliq-calc-cred <> ? THEN item-doc-orig-nfe.icmssn101-aliq-calc-cred ELSE 0
+                  de-vl-icms-sn   = IF item-doc-orig-nfe.icmssn101-vl-cred <> ? THEN item-doc-orig-nfe.icmssn101-vl-cred ELSE 0.
+       ELSE IF item-doc-orig-nfe.icmssn102-cod-sit-oper-sn <> "" THEN
+           ASSIGN c-cod-CSOSN     = item-doc-orig-nfe.icms-orig2[4] + item-doc-orig-nfe.icmssn102-cod-sit-oper-sn.
+       ELSE IF item-doc-orig-nfe.icmssn201-cod-sit-oper-sn <> "" THEN
+           ASSIGN c-cod-CSOSN     = item-doc-orig-nfe.icms-orig2[5] + item-doc-orig-nfe.icmssn201-cod-sit-oper-sn
+                  de-aliq-icms-sn = IF item-doc-orig-nfe.icmssn201-aliq-calc-cre <> ? THEN item-doc-orig-nfe.icmssn201-aliq-calc-cre ELSE 0
+                  de-vl-icms-sn   = IF item-doc-orig-nfe.icmssn201-vl-cred-icms <> ? THEN item-doc-orig-nfe.icmssn201-vl-cred-icms ELSE 0.
+       ELSE IF  item-doc-orig-nfe.icmssn202-cod-sit-oper-sn <> "" THEN
+           ASSIGN c-cod-CSOSN     = item-doc-orig-nfe.icms-orig2[6] + item-doc-orig-nfe.icmssn202-cod-sit-oper-sn.
+       ELSE IF item-doc-orig-nfe.icmssn500-cod-sit-oper-sn <> "" THEN
+           ASSIGN c-cod-CSOSN     = item-doc-orig-nfe.icms-orig2[7] + item-doc-orig-nfe.icmssn500-cod-sit-oper-sn.
+       ELSE IF item-doc-orig-nfe.icmssn900-cod-sit-oper-sn <> "" THEN
+           ASSIGN c-cod-CSOSN     = item-doc-orig-nfe.icms-orig2[8] + item-doc-orig-nfe.icmssn900-cod-sit-oper-sn
+                  de-aliq-icms-sn = IF item-doc-orig-nfe.icmssn900-aliq-aplic-cc-sn <> ? THEN item-doc-orig-nfe.icmssn900-aliq-aplic-cc-sn ELSE 0
+                  de-vl-icms-sn   = IF item-doc-orig-nfe.icmssn900-vl-cred-icms <> ? THEN item-doc-orig-nfe.icmssn900-vl-cred-icms ELSE 0.
+                  
+       IF de-aliq-icms-sn <> 0 AND de-vl-icms-sn <> 0 THEN
+           ASSIGN de-base-icms-sn = de-vl-icms-sn * 100 / de-aliq-icms-sn.
+  END.
+  RUN findEmitente ( RowObject.Cod-Emitente).
+  RUN findEstabelec ( docum-est.cod-estabel).
+
+  /*Se encontrar registro no CD0303 deve sobrepor o que veio do XML*/
+  RUN findItem ( RowObject.it-codigo ).
+      
+  RUN findItemUniEstab( docum-est.cod-estabel,
+                        RowObject.it-codigo).  
+                        
+  run findNaturOper ( RowObject.nat-operacao ).                          
+      
+  ASSIGN i-cod-orig = ITEM.codigo-orig.
+  IF AVAILABLE item-uni-estab AND
+     TRIM(SUBSTRING(item-uni-estab.char-2,18,3)) <> "":U THEN
+      ASSIGN i-cod-orig = INT(TRIM(SUBSTRING(item-uni-estab.char-2,18,3))).
+   
+  EMPTY TEMP-TABLE tt-sit-tribut.
+  EMPTY TEMP-TABLE tt-retorna-rowid.  
+  ASSIGN rw-sit-relacto = ?.   
+  
+  IF NOT VALID-HANDLE(h-cdapi1001) THEN
+     RUN cdp/cdapi1001.p PERSISTENT SET h-cdapi1001.
+    
+  RUN pi-seta-tributos IN h-cdapi1001 (input "4"). 
+  
+  RUN pi-retorna-sit-tribut IN h-cdapi1001 (INPUT  1, /*entrada*/
+                                            INPUT  docum-est.cod-estabel,
+                                            INPUT  RowObject.nat-of,
+                                            INPUT  RowObject.class-fiscal,
+                                            INPUT  RowObject.it-codigo,
+                                            INPUT  emitente.cod-gr-cli,
+                                            INPUT  RowObject.cod-emitente,
+                                            INPUT  docum-est.dt-emissao,
+                                            OUTPUT TABLE tt-sit-tribut).
+                                            
+  RUN pi-retorna-rowid in h-cdapi1001 (OUTPUT TABLE tt-retorna-rowid).
+  
+  FOR FIRST tt-retorna-rowid NO-LOCK
+      WHERE tt-retorna-rowid.cdn-tribut = 4:
+      ASSIGN rw-sit-relacto = tt-retorna-rowid.rw-sit-tribut-relacto.
+  END.
+                                    
+  IF VALID-HANDLE(h-cdapi1001) THEN DO:
+     DELETE PROCEDURE h-cdapi1001.
+     ASSIGN h-cdapi1001 = ?.
+  END.
+     
+  if c-cod-CSOSN = "" then
+     ASSIGN c-cod-CSOSN = STRING(i-cod-orig) + "900". /* CSOSN Outras */
+  FOR EACH tt-sit-tribut NO-LOCK
+     WHERE tt-sit-tribut.cdn-tribut = 4:
+     
+      IF tt-sit-tribut.cdn-sit-tribut <> 0 THEN DO:
+          ASSIGN c-cod-CSOSN = STRING(i-cod-orig) + STRING(tt-sit-tribut.cdn-sit-tribut,"999"). /** CSOSN **/
+          FOR FIRST sit-tribut-relacto NO-LOCK
+              WHERE ROWID(sit-tribut-relacto) = rw-sit-relacto:
+             ASSIGN de-aliq-icms-sn = sit-tribut-relacto.val-livre-1.
+          END. 
+      END.    
+  END.
+  
+  ASSIGN de-base-icms-sn = ROUND((RowObject.base-icm[1] + RowObject.icm-outras[1] + RowObject.icm-ntrib[1]),2). /*Vl Base ICMS SN*/
+  
+  IF de-aliq-simplesnac <> 0 THEN
+      ASSIGN de-aliq-icms-sn = de-aliq-simplesnac.
+
+  if rw-sit-relacto <> ? then 
+  ASSIGN de-vl-icms-sn = ROUND(de-base-icms-sn * (de-aliq-icms-sn / 100),2). /*Vl Cred ICMS SN*/
+  
+  if de-vl-icms-sn <> 0 then
+     assign de-vl-simplesnac = de-vl-icms-sn.
+ 
+ 
+  if natur-oper.tipo-compra = 9 then 
+     ASSIGN c-cod-CSOSN = STRING(i-cod-orig) + "400" /* CSOSN Isen‡Æo 400 e aliquota zerada Tipo compra nota cr‚dito/d‚bito*/
+            de-aliq-icms-sn = 0.
+  EMPTY TEMP-TABLE tt-ext-item-doc-est.
+    
+  CREATE tt-ext-item-doc-est.
+  ASSIGN tt-ext-item-doc-est.serie-docto  = RowObject.serie-docto
+         tt-ext-item-doc-est.nro-docto    = RowObject.nro-docto
+         tt-ext-item-doc-est.cod-emitente = RowObject.cod-emitente
+         tt-ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+         tt-ext-item-doc-est.sequencia    = RowObject.sequencia
+         tt-ext-item-doc-est.cod-param    = "simplesnacional".
+  
+  ASSIGN tt-ext-item-doc-est.val-livre-1               = de-aliq-icms-sn  /*aliq simples nac*/
+         tt-ext-item-doc-est.val-livre-2               = de-base-icms-sn  /*base simples nac*/
+         tt-ext-item-doc-est.val-livre-3               = de-vl-icms-sn    /*valor simples nac*/
+         OVERLAY(tt-ext-item-doc-est.cod-livre-1,1,10) = c-cod-CSOSN.     /*CSOSN*/
+     
+  IF  NOT VALID-HANDLE(h-boin01017) THEN
+      RUN inbo/boin01017.p PERSISTENT SET h-boin01017.
+  RUN openQueryStatic IN h-boin01017 (INPUT "Main":U) NO-ERROR.
+  
+  RUN goToKey IN h-boin01017 (INPUT RowObject.serie-docto, 
+                              INPUT RowObject.nro-docto,   
+                              INPUT RowObject.cod-emitente,
+                              INPUT RowObject.nat-operacao,
+                              INPUT RowObject.sequencia,   
+                              INPUT "simplesnacional"). 
+                            
+  IF  RETURN-VALUE = "OK":U THEN DO:
+      RUN emptyRowErrors IN h-boin01017.
+      RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+      RUN updateRecord IN h-boin01017.  
+  END.    
+  ELSE DO:
+      RUN emptyRowErrors IN h-boin01017.
+      RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+      RUN createRecord IN h-boin01017.
+  END.
+        
+  IF VALID-HANDLE(h-boin01017) THEN DO:
+      DELETE PROCEDURE h-boin01017.
+      ASSIGN h-boin01017 = ?.
+  END.
+        
+  RETURN "OK":U.
+
+END PROCEDURE.
+

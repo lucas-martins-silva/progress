@@ -1,0 +1,389 @@
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setCstIcms DBOProgram 
+PROCEDURE setCstIcms:
+    DEFINE INPUT PARAMETER pCstIcms   AS CHARACTER FORMAT 'x(03)'  NO-UNDO.
+
+    RUN createTtItemDocEstTribut (INPUT "ICMS":U,
+                                  INPUT "CST":U,
+                                  INPUT pCstIcms).
+
+    return "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setCstIPI DBOProgram 
+PROCEDURE setCstIPI:
+    DEFINE INPUT PARAMETER pCstIpi    AS CHARACTER FORMAT 'x(03)'  NO-UNDO.
+    
+    RUN createTtItemDocEstTribut (INPUT "IPI":U,
+                                  INPUT "CST":U,
+                                  INPUT pCstIpi).
+
+    return "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setCstPIS DBOProgram 
+PROCEDURE setCstPIS:
+    DEFINE INPUT PARAMETER pCstPis    AS CHARACTER FORMAT 'x(03)'  NO-UNDO.
+
+    RUN createTtItemDocEstTribut (INPUT "PIS":U,
+                                  INPUT "CST":U,
+                                  INPUT pCstPis).
+
+    return "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setCstCofins DBOProgram 
+PROCEDURE setCstCofins:
+    DEFINE INPUT PARAMETER pCstCofins AS CHARACTER FORMAT 'x(03)'  NO-UNDO.
+
+    RUN createTtItemDocEstTribut (INPUT "COFINS":U,
+                                  INPUT "CST":U,
+                                  INPUT pCstCofins).
+
+    return "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createTtItemDocEstTribut DBOProgram 
+PROCEDURE createTtItemDocEstTribut:
+    DEFINE INPUT PARAMETER pNomTribut AS CHARACTER   NO-UNDO.
+    DEFINE INPUT PARAMETER pCodCampo  AS CHARACTER   NO-UNDO.
+    DEFINE INPUT PARAMETER pconteudo  AS CHARACTER   NO-UNDO.
+
+ 
+    FIND FIRST tt-item-doc-est-tribut
+         WHERE tt-item-doc-est-tribut.cod-serie-docto              = RowObject.serie-docto    
+         AND   tt-item-doc-est-tribut.cod-num-docto                = RowObject.nro-docto      
+         AND   tt-item-doc-est-tribut.cdn-emitente                 = RowObject.cod-emitente   
+         AND   tt-item-doc-est-tribut.cod-natur-operac             = RowObject.nat-operacao   
+         AND   tt-item-doc-est-tribut.num-seq                      = RowObject.sequencia      
+         AND   tt-item-doc-est-tribut.nom-trib                     = pNomTribut               
+         AND   tt-item-doc-est-tribut.cod-campo                    = pCodCampo  NO-ERROR.
+    IF NOT AVAIL tt-item-doc-est-tribut THEN DO:
+       CREATE tt-item-doc-est-tribut.
+       ASSIGN tt-item-doc-est-tribut.cod-serie-docto              = RowObject.serie-docto
+              tt-item-doc-est-tribut.cod-num-docto                = RowObject.nro-docto
+              tt-item-doc-est-tribut.cdn-emitente                 = RowObject.cod-emitente
+              tt-item-doc-est-tribut.cod-natur-operac             = RowObject.nat-operacao
+              tt-item-doc-est-tribut.num-seq                      = RowObject.sequencia
+              tt-item-doc-est-tribut.nom-trib                     = pNomTribut
+              tt-item-doc-est-tribut.cod-campo                    = pCodCampo.
+    END.
+    
+    ASSIGN tt-item-doc-est-tribut.cod-conteudo                 = pconteudo.
+    
+    RETURN "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE sugereCST DBOProgram 
+PROCEDURE sugereCST:
+
+    DEF INPUT PARAM piType        AS CHARACTER NO-UNDO.
+
+    DEF VAR h-reapi414              AS HANDLE                    NO-UNDO.
+    DEF VAR c-cod-origem-item       AS CHARACTER                 NO-UNDO.
+    DEF VAR c-cod-sit-tribut-icms   AS CHARACTER                 NO-UNDO.
+    DEF VAR c-cod-sit-tribut-ipi    AS CHARACTER                 NO-UNDO.
+    DEF VAR c-cod-sit-tribut-pis    AS CHARACTER                 NO-UNDO.
+    DEF VAR c-cod-sit-tribut-cofins AS CHARACTER                 NO-UNDO.
+    DEF VAR i-origem                AS INTEGER FORMAT "9"        NO-UNDO.
+    DEF VAR i-cod-cst               AS INTEGER FORMAT "99"       NO-UNDO.
+    DEF VAR de-aliq-pis             AS DECIMAL FORMAT ">>9.9999" NO-UNDO.
+    DEF VAR de-aliq-cofins          AS DECIMAL FORMAT ">>9.9999" NO-UNDO.
+    DEF VAR c-it-codigo             AS CHARACTER FORMAT "X(16)"  NO-UNDO.
+    
+    IF NOT AVAIL docum-est THEN
+        RUN findDocumento (INPUT RowObject.Cod-Emitente,
+                           INPUT RowObject.Serie-Docto,
+                           INPUT RowObject.Nro-Docto,
+                           INPUT RowObject.Nat-Operacao).
+
+    IF NOT AVAIL emitente THEN
+        RUN findEmitente (INPUT RowObject.cod-emitente).
+    
+    IF NOT AVAIL item-doc-est THEN    
+        for first item-doc-est exclusive-lock
+            where item-doc-est.serie-docto  = RowObject.serie-docto
+              and item-doc-est.nro-docto    = RowObject.nro-docto
+              and item-doc-est.cod-emitente = RowObject.cod-emitente
+              and item-doc-est.nat-operacao = RowObject.nat-operacao 
+              and item-doc-est.sequencia    = RowObject.sequencia: end. 
+    
+    IF NOT VALID-HANDLE(h-reapi414) THEN
+        RUN rep/reapi414.p PERSISTENT SET h-reapi414.
+
+    RUN setTipoNota         IN h-reapi414 (INPUT 1). /*1-Entrada, 2-Saida*/
+    RUN setCodEstabel       IN h-reapi414 (INPUT docum-est.cod-estabel).
+    RUN setCodNatOperacao   IN h-reapi414 (INPUT IF RowObject.nat-of <> "" THEN RowObject.nat-of ELSE RowObject.nat-operacao).
+    RUN setNcm              IN h-reapi414 (INPUT RowObject.class-fiscal).
+    
+    for first natur-oper no-lock
+        where natur-oper.nat-operacao = RowObject.nat-operacao: end.
+        
+    if avail natur-oper and natur-oper.nota-rateio then do:
+        RUN setItCodigo IN h-reapi414 (INPUT SUBSTRING(docum-est.char-1,176,16)).
+        assign c-it-codigo = SUBSTRING(docum-est.char-1,176,16).
+    end.
+    else do:
+        RUN setItCodigo IN h-reapi414 (INPUT RowObject.it-codigo).
+        assign c-it-codigo = RowObject.it-codigo.
+    end.    
+
+    RUN setCodGrupEmit      IN h-reapi414 (INPUT emitente.cod-gr-forn).
+    RUN setCodEmitente      IN h-reapi414 (INPUT RowObject.cod-emitente).
+    RUN setDtEmissao        IN h-reapi414 (INPUT if docum-est.dt-competencia <> ? then docum-est.dt-competencia else docum-est.dt-emissao). 
+    RUN posicionarRegistros IN h-reapi414 (INPUT ROWID(item-doc-est)).
+    RUN calcCSTCD0303       IN h-reapi414.
+    
+    IF piType = "CREATE":U THEN DO:
+        if substring(RowObject.char-2,637,1) <> "" or 
+           substring(RowObject.char-2,502,1) <> "" then do:
+           
+           assign c-cod-origem-item = if substring(RowObject.char-2,502,1) <> "" then 
+                                          substring(RowObject.char-2,502,1) 
+                                      else substring(RowObject.char-2,637,1).
+                                      
+           run setCodOrigemItem in h-reapi414 (INPUT c-cod-origem-item).
+        end.   
+        
+        if substring(RowObject.char-2,503,2) <> "" then do:
+            assign c-cod-sit-tribut-icms = substring(RowObject.char-2,503,2).
+            
+            run setCodSitTribICMS in h-reapi414 (INPUT c-cod-sit-tribut-icms).
+        end.
+
+        RUN calcCSTICMS           IN h-reapi414.
+        RUN getCodOrigemItem      IN h-reapi414 (OUTPUT c-cod-origem-item).
+        RUN getCodSitTribICMS     IN h-reapi414 (OUTPUT c-cod-sit-tribut-icms).
+        
+        RUN getAliqPISCOFINSItDoc IN h-reapi414 (INPUT  ROWID(item-doc-est), 
+                                                 OUTPUT de-aliq-pis, 
+                                                 OUTPUT de-aliq-cofins).    
+    END.
+    ELSE DO:
+        RUN rep/re1909.p (INPUT  c-it-codigo,
+                          INPUT  docum-est.cod-estabel,
+                          INPUT  (IF RowObject.nat-of <> "" THEN RowObject.nat-of ELSE RowObject.nat-operacao),
+                          INPUT  RowObject.cd-trib-icm,
+                          INPUT  RowObject.log-2,
+                          INPUT  RowObject.vl-subs[1],
+                          INPUT  RowObject.serie-docto,
+                          INPUT  RowObject.nr-docto-ap,
+                          INPUT  RowObject.sequencia,
+                          INPUT  "", 
+                          INPUT  0, 
+                          INPUT  RowObject.serie-comp,
+                          INPUT  RowObject.nro-comp,
+                          INPUT  RowObject.seq-comp,
+                          OUTPUT i-origem,
+                          OUTPUT i-cod-cst).
+
+        ASSIGN c-cod-sit-tribut-icms = STRING(i-origem,"9") + STRING(i-cod-cst, "99")
+               c-cod-origem-item     = STRING(i-origem,"9").
+
+        ASSIGN de-aliq-pis    = de-aliquota-pis   
+               de-aliq-cofins = de-aliquota-cofins.
+    END.
+                                             
+    RUN calcCSTIPI    IN h-reapi414 (INPUT RowObject.cd-trib-ipi, 
+                                     INPUT RowObject.aliquota-ipi).
+    RUN calcCSTPIS    IN h-reapi414 (INPUT RowObject.idi-tributac-pis, 
+                                     INPUT de-aliq-pis).
+    RUN calcCSTCOFINS IN h-reapi414 (INPUT RowObject.idi-tributac-cofins, 
+                                     INPUT de-aliq-cofins).
+    
+    if piType = "CREATE":U then do:
+        RUN createttSTICMS           IN h-reapi414.
+        RUN createttCSTIPI           IN h-reapi414.
+        RUN createttCSTPIS           IN h-reapi414.
+        RUN createttCSTCOFINS        IN h-reapi414.
+        RUN saveItemDocEstTribut     IN h-reapi414.
+    end.
+    else do:
+        RUN getCodSitTribIPI      IN h-reapi414 (OUTPUT c-cod-sit-tribut-ipi).
+        RUN getCodSitTribPIS      IN h-reapi414 (OUTPUT c-cod-sit-tribut-pis).
+        RUN getCodSitTribCOFINS   IN h-reapi414 (OUTPUT c-cod-sit-tribut-cofins).
+
+        RUN setCstIcms   (INPUT c-cod-sit-tribut-icms).
+        RUN setCstIpi    (INPUT c-cod-sit-tribut-ipi).
+        RUN setCstPis    (INPUT c-cod-sit-tribut-pis).
+        RUN setCstCofins (INPUT c-cod-sit-tribut-cofins).
+    end.
+
+    IF VALID-HANDLE(h-reapi414) THEN
+        DELETE PROCEDURE h-reapi414.
+
+    /* SugestÆo Origem item e CST ICMS */
+    if piType = "CREATE":U then do:
+        if substring(RowObject.char-2,637,1) = "" or 
+           substring(RowObject.char-2,502,1) = "" then
+        assign overlay(item-doc-est.char-2,637,1) = string(c-cod-origem-item)
+               overlay(item-doc-est.char-2,502,1) = string(c-cod-origem-item, "9").
+               
+        if substring(RowObject.char-2,503,2) = "" then
+           assign overlay(item-doc-est.char-2,503,2) = string(c-cod-sit-tribut-icms, "99").
+    end.
+    else 
+        assign overlay(RowObject.char-2,637,1) = STRING(c-cod-origem-item,"9")
+               overlay(RowObject.char-2,502,1) = STRING(c-cod-origem-item,"9")
+               overlay(RowObject.char-2,503,2) = STRING(SUBSTRING(c-cod-sit-tribut-icms,2,2),"99").
+    
+    RETURN "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getTtItemDocEst DBOProgram 
+PROCEDURE getTtItemDocEst:
+
+    DEF OUTPUT PARAM TABLE FOR tt-item-doc-est-tribut.
+    
+    RETURN "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setTTItemDocEstTribut DBOProgram 
+PROCEDURE setTTItemDocEstTribut:
+                
+    DEF INPUT PARAM TABLE FOR tt-item-doc-est-tribut.
+    
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE emptyTTItemDocEstTribut DBOProgram 
+PROCEDURE emptyTTItemDocEstTribut :
+
+    EMPTY TEMP-TABLE tt-item-doc-est-tribut.
+
+END PROCEDURE.  
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE sugereCClassTrib DBOProgram 
+PROCEDURE sugereCClassTrib:
+
+    DEF VAR h-reapi433  AS HANDLE                                    NO-UNDO.
+    DEF VAR cClassTrib     LIKE relac-class-trib.cod-cclass-trib     NO-UNDO.
+    DEF VAR cCst           LIKE relac-class-trib.cod-cst             NO-UNDO.
+    DEF VAR cClassTribReg  LIKE relac-class-trib.cod-cclass-trib-reg NO-UNDO.
+    DEF VAR cCstReg        LIKE relac-class-trib.cod-cst-reg         NO-UNDO.
+    DEF VAR cCredPresCBS   LIKE relac-class-trib.cod-cred-pres       NO-UNDO.
+    DEF VAR cCredPresIBS   LIKE relac-class-trib.cod-cred-pres       NO-UNDO.
+    
+    DEF BUFFER b-natur-oper-fisc FOR natur-oper. 
+    DEF BUFFER b-item FOR item. 
+    
+    FIND FIRST b-natur-oper-fisc NO-LOCK
+         WHERE b-natur-oper-fisc.nat-operacao = RowObject.nat-of NO-ERROR.
+         
+    ASSIGN l-utilizaImpostoMonitor = NO.
+    
+    RUN utilizaImpostosMonitorRecFiscal (INPUT RowObject.serie-docto,
+                                         INPUT RowObject.nro-docto,
+                                         INPUT RowObject.cod-emitente,
+                                         INPUT RowObject.nat-operacao,
+                                         INPUT INT(SUBSTRING(RowObject.char-2,832,5)),
+                                         OUTPUT l-utilizaImpostoMonitor).         
+
+    run getFatAntecipEntFutura( INPUT RowObject.nat-operacao,
+                               OUTPUT l-fatura-fat-antecip,
+                               OUTPUT l-remessa-fat-antecip,
+                               OUTPUT l-fatura-ent-futura,
+                               OUTPUT l-remessa-ent-futura).
+
+    IF  l-NT2024002 
+    AND AVAIL b-natur-oper-fisc
+    AND l-utilizaImpostoMonitor = no 
+    AND ((NOT l-devolucao  AND 
+          NOT l-dev-transf AND /*devol transf*/
+          NOT l-transf AND
+          NOT l-multa-juros AND
+          b-natur-oper-fisc.tp-oper-terc <> 2   AND /*Retorno Beneficiamento*/
+          b-natur-oper-fisc.tp-oper-terc <> 9   AND /*Retorno Dep Fechado*/
+          b-natur-oper-fisc.tp-oper-terc <> 5   AND /*Devolu‡Æo Consign‡Æo*/
+          b-natur-oper-fisc.tp-oper-terc <> 11  AND /*Retorno Armaz‚m Geral*/
+          NOT l-remessa-fat-antecip             AND 
+          NOT l-remessa-ent-futura)              OR 
+         (l-devolucao AND RowObject.nro-comp = "")  OR
+         (l-multa-juros AND RowObject.nro-comp = "") OR
+         (b-natur-oper-fisc.tp-oper-terc = 2 AND
+         l-remessa-ent-futura)                      OR
+         (b-natur-oper-fisc.tp-oper-terc = 1 AND
+         l-remessa-fat-antecip)) THEN DO:
+        
+        IF NOT VALID-HANDLE(h-reapi433) THEN
+            RUN rep/reapi433.p PERSISTENT SET h-reapi433. 
+            
+        RUN emptyTtRelacClassTrib IN h-reapi433. 
+        RUN setTipoDocto          IN h-reapi433 (INPUT 1). /*Entrada*/
+        RUN setDtIniValidade      IN h-reapi433 (INPUT if docum-est.dt-competencia <> ? then docum-est.dt-competencia else docum-est.dt-emissao). //DBACKRTDTS-7968
+        RUN setCodEstabel         IN h-reapi433 (INPUT docum-est.cod-estabel).
+        RUN setNatOperacao        IN h-reapi433 (INPUT RowObject.nat-of).
+        RUN setItCodigo           IN h-reapi433 (INPUT RowObject.it-codigo).
+        RUN setClassifFiscal      IN h-reapi433 (INPUT RowObject.class-fiscal).
+        RUN setCodNbs             IN h-reapi433 (INPUT (if substring(RowObject.char-2,956,20) <> ? and substring(RowObject.char-2,956,20) <> '' then substring(RowObject.char-2,956,20) else '*')).
+        RUN setCodGrupEmit        IN h-reapi433 (INPUT emitente.cod-gr-forn).
+        RUN setCodEmitente        IN h-reapi433 (INPUT RowObject.cod-emitente).
+        RUN setCFOP               IN h-reapi433 (INPUT b-natur-oper-fisc.cod-cfop).
+        RUN setIndTributo         IN h-reapi433 (INPUT 1). /*1-IBS/CBS*/
+        
+        if  AVAIL b-natur-oper-fisc
+        AND b-natur-oper-fisc.nota-rateio 
+        AND (b-natur-oper-fisc.cod-model-nf-eletro = "56" OR b-natur-oper-fisc.log-nfse-nacional) then do:
+           FIND FIRST b-item NO-LOCK WHERE b-item.it-codigo =  SUBSTRING(docum-est.char-1,176,16) /*item do rateio*/ NO-ERROR.
+           if avail b-item then do:
+               RUN setItCodigo           IN h-reapi433 (INPUT b-item.it-codigo).
+               RUN setClassifFiscal      IN h-reapi433 (INPUT b-item.class-fiscal).
+               RUN setCodNbs             IN h-reapi433 (INPUT (if substring(b-item.char-1,342,20) <> ? and substring(b-item.char-1,342,20) <> '' then  substring(b-item.char-1,342,20) else '*')).             
+            end.               
+        end.
+        
+        RUN buscarRelacClassTrib  IN h-reapi433. 
+          
+        /*Retorna os dados do cClassTrib, CST, cClassTrib regular e CST regular*/
+        RUN getCSTcClassTribAndReg   IN h-reapi433 (OUTPUT cClassTrib,
+                                                    OUTPUT cCst,
+                                                    OUTPUT cClassTribReg,
+                                                    OUTPUT cCstReg). 
+        /*Retorna o cCredPres para o cbs ou para o IBS*/                                                                                      
+        RUN getcCredPres  IN h-reapi433 (OUTPUT cCredPresCBS,
+                                         OUTPUT cCredPresIBS).    
+                                        
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:C-CLASS-TRIB,     INPUT STRING(cClassTrib)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:CST,              INPUT STRING(cCST)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:C-CLASS-TRIB-REG, INPUT STRING(cClassTribReg)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:CST-REG,          INPUT STRING(cCstReg)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:C-CLASS-CP,       INPUT STRING(cCredPresCBS)).
+        
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:C-CLASS-TRIB,     INPUT STRING(cClassTrib)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:CST,              INPUT STRING(cCST)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:C-CLASS-TRIB-REG, INPUT STRING(cClassTribReg)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:CST-REG,          INPUT STRING(cCstReg)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:C-CLASS-CP,       INPUT STRING(cCredPresIBS)).
+        
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:C-CLASS-TRIB,     INPUT STRING(cClassTrib)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:CST,              INPUT STRING(cCST)).       
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:C-CLASS-TRIB-REG, INPUT STRING(cClassTribReg)).
+        RUN createTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:CST-REG,          INPUT STRING(cCstReg)).
+                                                   
+        IF VALID-HANDLE(h-reapi433) THEN DO:
+            DELETE PROCEDURE h-reapi433.
+            ASSIGN h-reapi433 = ?.
+        END.                           
+    END.
+
+END PROCEDURE.  
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME

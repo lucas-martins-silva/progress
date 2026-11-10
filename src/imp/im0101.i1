@@ -1,0 +1,126 @@
+/****************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+
+/** Definicao de forms utilizadas no programa Geracao Despesas Nota Complementar (im0101) **/
+
+form 
+    "--------------" at 50 skip
+     "PARAMETROS 1"  at 51 skip
+    "--------------" at 50 skip(2)
+    c-tipo-geracao                        FORMAT "X(25)"        LABEL "Tipo Geracao"                   COLON 32
+    cdiembarqueframe                      format "x(16)"        label "Embarque"                       colon 32      
+    tt-param-im0101.cod-estabel           format "x(05)"         label "Estabelecimento"                colon 85 skip 
+    tt-param-im0101.cod-emitente-desp     format ">>>>>>>>9"    label "Fornecedor"                     colon 32 
+    tt-param-im0101.da-transacao          format "99/99/9999"   label "Data Transacao"                 colon 85 skip
+    tt-param-im0101.l-agrupar-unico-forn  format "Sim/Nao"      label "Agrupar em um unico Fornecedor" colon 32
+    tt-param-im0101.da-emissao            format "99/99/9999"   label "Data Emissao"                   colon 85 skip (2)
+    tt-param-im0101.nro-docto             format "x(16)"        label "Nro Docto"                      colon 32
+    tt-param-im0101.estab-fisc            format "x(05)"         label "Estabelecimento Fiscal"        colon 85 skip
+    tt-param-im0101.serie                 format "x(5)"         label "Serie"                          colon 32
+    tt-param-im0101.nat-operacao          format "x(6)"         label "Nat Operacao"                   colon 85 skip (2)
+    tt-param-im0101.da-cotacao            format "99/99/9999"   label "Data Cotacao Moeda"             colon 32
+    ccod-observacao                       format "x(20)"        label "Cod Observacao"                 colon 85 skip
+    tt-param-im0101.ct-transit            format "x(20)"        label "Conta Transitoria"              colon 32 
+    tt-param-im0101.sc-transit            format "x(20)"        label "CCusto Transitoria"             colon 54 skip (2)
+    "--------------" at 50 skip                                
+     "PARAMETROS 2"  at 51 skip                                
+    "--------------" at 50 skip(2)                             
+    tt-param-im0101.aliquota-ipi          format ">>9.99"       label "Aliquota IPI"                   colon 32      
+    tt-param-im0101.aliquota-icms         format ">>9.99"       label "Aliquota ICMS"                  colon 85 skip 
+    ctributacao-ipi                       format "x(20)"        label "Cod Tributacao IPI"             colon 32      
+    ctributacao-icms                      format "x(20)"        label "Cod Tributacao ICMS"            colon 85 skip 
+    tt-param-im0101.da-venc-ipi           format "99/99/9999"   label "Data Vencimento IPI"            colon 32      
+    tt-param-im0101.da-venc-icms          format "99/99/9999"   label "Data Vencimento ICMS"           colon 85 SKIP    
+    tt-param-im0101.aliquota-pis          format ">>9.9999"     label "Aliquota PIS"                   colon 32      
+    tt-param-im0101.aliquota-cofins       format ">>9.9999"     label "Aliquota COFINS"                colon 85 skip 
+    ctributacao-pis                       format "x(20)"        label "Cod Tributacao PIS"             colon 32      
+    ctributacao-cofins                    format "x(20)"        label "Cod Tributacao COFINS"          colon 85 SKIP (1)
+    tt-param-im0101.aliquota-ibsuf        format ">>9.99"       label "Aliquota IBS UF"                colon 32
+    tt-param-im0101.perc-red-ibsuf        format ">>9.99"       label "Perc Redu‡Æo IBS UF"            colon 85 skip
+    tt-param-im0101.aliquota-cbs          format ">>9.99"       label "Aliquota CBS"                   colon 32
+    tt-param-im0101.perc-red-cbs          format ">>9.99"       label "Perc Redu‡Æo CBS"               colon 85 skip
+    tt-param-im0101.aliquota-ibsmun       format ">>9.99"       label "Aliquota IBS Mun"               colon 32
+    tt-param-im0101.perc-red-ibsmun       format ">>9.99"       label "Perc Redu‡Æo IBS Mun"           colon 85 skip
+    tt-param-im0101.aliquota-is           format ">>9.99"       label "Aliquota IS"                    colon 32 skip(2)
+    "--------------" at 50 SKIP
+     "PARAMETROS 3"  at 51 SKIP
+    "--------------" at 50 SKIP(2)
+    tt-param-im0101.cod-item-serv         FORMAT "x(16)"        LABEL "Item Servico"                   COLON 32 SKIP
+    with stream-io width 132 side-labels no-box frame f-param.
+
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-param:HANDLE).
+
+
+DO:
+form
+    tt-selecao-embarque.embarque          format "x(16)"               column-label "Embarque"         at 25  
+    tt-selecao-embarque.cod-incoterm      format "x(3)"                column-label "Incoterm"         at 42  
+    tt-selecao-embarque.declaracao-import format "x(20)"               column-label "DI"               at 51  
+    tt-selecao-embarque.nr-conhecimento   format "x(18)"               column-label "Conhecto Transp"  at 73  
+    with stream-io width 132 60 down no-box frame f-sel-embarque. 
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-sel-embarque:HANDLE).
+
+END.                                     
+
+form
+    tt-selecao-embarque.embarque            format "x(16)"               column-label "Embarque"         at 25  
+    tt-selecao-embarque.cod-incoterm        format "x(3)"                column-label "Incoterm"         at 42  
+    tt-selecao-embarque.declaracao-import   format "x(20)"               column-label "DI"               at 51  
+    tt-selecao-embarque.cod-conhecto-master format "x(25)"               column-label "Conhecto Master"  at 73
+    tt-selecao-embarque.cod-conhecto-house  format "x(25)"               column-label "Conhecto House"   at 100  
+    with stream-io width 132 60 down no-box frame f-sel-embarque-2. 
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-sel-embarque-2:HANDLE).
+                                    
+
+form                                                                                                  
+    tt-desp-embarque.cod-desp             format ">>,>>9"              column-label "Cod Despes"       at 6   
+    tt-desp-embarque.desc-desp            format "x(30)"               column-label "Descricao"        at 17  
+    tt-desp-embarque.cod-emitente-desp    format ">>>>>>>>9"           column-label "Fornec Desp"      at 48  
+    tt-desp-embarque.embarque             format "x(16)"               column-label "Embarque"         at 60
+    tt-desp-embarque.cod-pto-contr        format ">>,>>9"              column-label "Pto Contr"        at 78  
+    tt-desp-embarque.val-desp             format ">>>>>,>>>,>>9.99999" column-label "Val Despes"       at 88  
+    tt-desp-embarque.cond-pagto           format ">>>9"                column-label "Cond Pagto"       at 108 
+    with stream-io width 132 60 down no-box frame f-sel-despesa. 
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-sel-despesa:HANDLE).
+                                     
+
+form                                                         
+    docum-est-cex.cod-desp                format ">>,>>9"              column-label "Cod Despes"       at 16   
+    cdescricaodesp                        format "x(30)"               column-label "Descricao"        at 27  
+    docum-est-cex.cod-emitente-desp       format ">>>>>>>>9"           column-label "Fornec Desp"      at 58  
+    docum-est-cex.val-desp                format ">>>>>,>>>,>>9.99999" column-label "Val Despes"       at 70  
+    docum-est-cex.cod-cond-pag            format ">>>9"                column-label "Cond Pagto"       at 90 
+    with stream-io width 132 60 down no-box frame f-despesa-cex.
+
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-despesa-cex:HANDLE).
+
+
+form
+                               skip(2)
+    "------------------" at 48 skip
+    "DOCUMENTO GERADO"   at 49 skip
+    "------------------" at 48 skip(2)
+    docum-est.cod-emitente                format ">>>>>>>>9"        label "Emitente"                       colon 55 skip
+    docum-est.nro-docto                   format "x(16)"            label "Documento"                      colon 55 skip
+    docum-est.serie-docto                 format "x(5)"             label "Serie"                          colon 55 skip
+    docum-est.nat-operacao                format "x(6)"             label "Nat Operacao"                   colon 55 skip
+    docum-est.valor-mercad                FORMAT ">>>>>,>>>,>>9.99" LABEL "Vl Tot Mercad"                  COLON 55 SKIP
+    with stream-io width 132 side-labels no-box frame f-documento.
+
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-documento:HANDLE).
+
+/* IM0101.I1 */
+        
+

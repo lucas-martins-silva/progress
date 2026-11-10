@@ -1,0 +1,16 @@
+DEFINE TEMP-TABLE tt-deduzIbsItem NO-UNDO
+    FIELD cod-serie-docto  LIKE item-doc-est-tribut.cod-serie-docto 
+    FIELD cod-num-docto    LIKE item-doc-est-tribut.cod-num-docto   
+    FIELD cdn-emitente     LIKE item-doc-est-tribut.cdn-emitente    
+    FIELD cod-natur-operac LIKE item-doc-est-tribut.cod-natur-operac
+    FIELD nom-trib         LIKE item-doc-est-tribut.nom-trib        
+    FIELD c-cred-pres      LIKE item-doc-est-tribut.cod-conteudo 
+    FIELD num-seq          LIKE item-doc-est-tribut.num-seq
+    FIELD deduz-ibs        AS LOGICAL
+    FIELD valor-ibs        AS DECIMAL 
+    INDEX ix-deduz IS PRIMARY UNIQUE  cod-serie-docto 
+                                      cod-num-docto   
+                                      cdn-emitente    
+                                      cod-natur-operac
+                                      nom-trib        
+                                      num-seq.

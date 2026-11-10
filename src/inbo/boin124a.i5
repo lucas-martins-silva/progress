@@ -1,0 +1,52 @@
+/* Antigo boin124a.i3 pois n∆o foi poss°vel reverter sua exclus∆o no TFS  */
+FOR EACH it-comp-exame NO-LOCK
+   WHERE it-comp-exame.cod-exame = exam-ficha.cod-exame 
+     AND it-comp-exame.it-codigo = exam-ficha.it-codigo
+     AND it-comp-exame.situacao  = 1 :
+         
+    FOR FIRST item-compon-test NO-LOCK
+        WHERE item-compon-test.cod-item         = it-comp-exame.it-codigo
+          AND item-compon-test.cdn-exam         = it-comp-exame.cod-exame
+          AND item-compon-test.cdn-compon-exam  = it-comp-exame.cod-comp: END.
+          
+    IF AVAILABLE item-compon-test THEN
+        ASSIGN i-qti-test-realzdo = item-compon-test.qti-test-realzdo.
+    ELSE DO:
+        FOR FIRST comp-exame  FIELDS(qti-test-realzdo) NO-LOCK
+            WHERE comp-exame.cod-exame  = it-comp-exame.cod-exame
+              AND comp-exame.cdn-versao = exam-ficha.cdn-versao
+              AND comp-exame.cod-comp   = it-comp-exame.cod-comp: 
+            ASSIGN i-qti-test-realzdo = comp-exame.qti-test-realzdo.
+        END.
+    END.
+
+    DO i-num-teste = 1 TO i-qti-test-realzdo:
+
+        IF NOT CAN-FIND(FIRST tt-resultado 
+                        WHERE tt-resultado.cod-exame  = it-comp-exame.cod-exame
+                          AND tt-resultado.cod-comp   = it-comp-exame.cod-comp
+                          AND tt-resultado.cdn-versao = exam-ficha.cdn-versao
+                          AND tt-resultado.num-teste  = i-num-teste) THEN DO:
+
+            CREATE tt-resultado.
+            ASSIGN tt-resultado.cod-comp    = it-comp-exame.cod-comp
+                   tt-resultado.cod-exame   = it-comp-exame.cod-exame
+                   tt-resultado.cdn-versao  = exam-ficha.cdn-versao
+                   tt-resultado.it-codigo   = ?
+                   tt-resultado.laudo       = ""
+                   tt-resultado.narrativa   = ""
+                   tt-resultado.nr-tabela   = it-comp-exame.nr-tabela
+                   tt-resultado.res-max     = 0
+                   tt-resultado.resultado   = 0
+                   tt-resultado.seq-comp    = 0
+                   tt-resultado.tipo-result = it-comp-exame.tipo-result
+                   tt-resultado.descricao   = it-comp-exame.descricao
+                   tt-resultado.unidade     = it-comp-exame.unidade
+                   tt-resultado.origem      = 1
+                   tt-resultado.num-teste   = i-num-teste
+                   tt-resultado.result-min  = it-comp-exame.result-min
+                   tt-resultado.result-max  = it-comp-exame.result-max
+                   tt-resultado.resultKey   = ROWID(it-comp-exame). 
+        END.
+    END.
+END.

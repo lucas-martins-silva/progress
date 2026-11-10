@@ -1,0 +1,572 @@
+
+PROCEDURE trataNotaFiscalEletronica :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters: 
+  Notes: Tratamento para as notas de entrada que geraram nota no Faturamento
+------------------------------------------------------------------------------*/
+
+    DEFINE INPUT PARAM prw-ret-nf-eletro AS ROWID NO-UNDO.
+    DEFINE INPUT PARAM TABLE FOR ttReturnInvoiceDocument.
+    
+    DEF VAR r-nota-fiscal AS ROWID NO-UNDO.
+
+    DEF BUFFER b-docum-est   FOR docum-est.
+    DEF BUFFER b-nota-fiscal FOR nota-fiscal.
+    DEF BUFFER b-estabelec   FOR estabelec.
+
+    DEF VAR hr-aux           AS CHAR NO-UNDO.
+    DEF VAR i-cont           AS INT  NO-UNDO.
+    DEF VAR i-tipo-transacao AS INT  NO-UNDO.
+    DEF VAR da-ult-livro     AS DATE NO-UNDO.
+    DEF VAR l-erro-of-re     AS LOG  NO-UNDO.
+    DEF VAR i-sit-ant        AS INT  NO-UNDO.
+    DEF VAR lOrigGraosAtivo  AS LOG  NO-UNDO.
+ 
+    DEF VAR cMotivoInutilizacao AS CHAR NO-UNDO.
+
+    DEFINE VARIABLE cTpTrans AS CHARACTER NO-UNDO.
+    
+    &GLOBAL-DEFINE IDI-SIT-NFE      STRING(b-docum-est.idi-sit-nf-eletro)
+    &GLOBAL-DEFINE IDI-SIT-NFE-AUX  b-docum-est.idi-sit-nf-eletro
+
+    &GLOBAL-DEFINE IDI-SIT-NFE-FT   b-nota-fiscal.idi-sit-nf-eletro
+
+    IF NOT CAN-FIND(FIRST funcao WHERE 
+                          funcao.cd-funcao = "spp-nfe":U AND funcao.ativo) THEN RETURN "NOK":U.
+
+    FIND FIRST ttReturnInvoiceDocument NO-ERROR.
+
+    IF NOT AVAIL ttReturnInvoiceDocument THEN
+       RETURN "OK":U.
+
+    FIND ret-nf-eletro NO-LOCK WHERE
+        ROWID(ret-nf-eletro) = prw-ret-nf-eletro NO-ERROR.
+    IF NOT AVAILABLE ret-nf-eletro THEN
+        RETURN "NOK":U.
+
+    FOR FIRST b-nota-fiscal EXCLUSIVE-LOCK
+        WHERE b-nota-fiscal.cod-estabel = ret-nf-eletro.cod-estabel
+          AND b-nota-fiscal.serie       = ret-nf-eletro.cod-serie
+          AND b-nota-fiscal.nr-nota-fis = ret-nf-eletro.nr-nota-fis:
+    END.
+    IF NOT AVAILABLE b-nota-fiscal THEN
+        RETURN "NOK":U.
+
+
+    RUN cdp/cd0360b.p (INPUT b-nota-fiscal.cod-estabel,
+                       INPUT "NF-e":U,
+                       OUTPUT cTpTrans).
+
+    FOR FIRST b-docum-est EXCLUSIVE-LOCK
+        WHERE b-docum-est.serie-docto  = ret-nf-eletro.cod-serie
+          AND b-docum-est.nro-docto    = ret-nf-eletro.nr-nota-fis
+          AND b-docum-est.cod-emitente = b-nota-fiscal.cod-emitente
+          AND b-docum-est.nat-operacao = b-nota-fiscal.nat-operacao:
+    END.
+    /* Se nota propria emitente Ç o proprio estabelecimento, por isso buscar pela chave de acesso */
+    IF NOT AVAIL b-docum-est THEN
+    FOR FIRST b-docum-est EXCLUSIVE-LOCK
+        WHERE b-docum-est.cod-chave-aces-nf-eletro = b-nota-fiscal.cod-chave-aces-nf-eletro:
+    END.
+
+    IF NOT AVAILABLE b-docum-est THEN DO:
+        RELEASE b-nota-fiscal.
+        RELEASE sit-nf-eletro.
+        RETURN "NOK":U.
+    END.
+
+    FIND ser-estab NO-LOCK WHERE
+         ser-estab.cod-estabel = ret-nf-eletro.cod-estabel AND
+         ser-estab.serie       = ret-nf-eletro.cod-serie   NO-ERROR.
+    IF NOT AVAILABLE ser-estab THEN DO:
+        RELEASE b-docum-est.
+        RELEASE b-nota-fiscal.
+        RELEASE sit-nf-eletro.
+        RETURN "NOK":U.
+    END.
+
+    assign i-sit-ant = b-docum-est.idi-sit-nf-eletro.
+
+    IF ttReturnInvoiceDocument.cStat = "1" THEN
+        assign b-docum-est.idi-sit-nf-eletro = IF ttReturnInvoiceDocument.tpEmis = '3' THEN 10 ELSE 9.
+
+         
+    IF (ret-nf-eletro.cod-msg = "100":U        /*100 Uso Autorizado*/              
+    OR  ret-nf-eletro.cod-msg = "150":U) THEN  /*150 Uso Autorizado fora de prazo*/
+        assign b-docum-est.idi-sit-nf-eletro = 3.  
+         
+    IF (ret-nf-eletro.cod-msg = "124":U
+     OR ret-nf-eletro.cod-msg = "136":U) THEN /* DPEC recebido pelo SCE */
+        assign b-docum-est.idi-sit-nf-eletro = 15.
+   
+    /*Rejeiá∆o DPEC*/ /* Alterado para EPEC */
+    IF (ret-nf-eletro.cod-msg = "108"  /*Serviáo Paralisado Momentaneamente (curto prazo)         */
+    OR  ret-nf-eletro.cod-msg = "109"  /*Serviáo Paralisado sem Previs∆o                          */
+    OR  ret-nf-eletro.cod-msg = "126"  /*Inexiste DPEC para o n£mero de registro de DPEC informado*/
+    OR  ret-nf-eletro.cod-msg = "127"  /*Inexiste DPEC para a chave de acesso da NF-e informada   */
+    OR  ret-nf-eletro.cod-msg = "142") /*Ambiente de Contingància EPEC bloqueado para o Emitente  */
+    THEN 
+        ASSIGN b-docum-est.idi-sit-nf-eletro     = 5.
+
+
+    IF ret-nf-eletro.cod-msg = "110":U 
+    OR ret-nf-eletro.cod-msg = "301":U 
+    OR ((ret-nf-eletro.cod-msg = "302":U OR ret-nf-eletro.cod-msg = "303":U ) AND
+         ret-nf-eletro.cod-livre-2 BEGINS "Uso Denegado") THEN
+        ASSIGN b-docum-est.idi-sit-nf-eletro = 4.
+    ELSE 
+        IF  INT(ret-nf-eletro.cod-msg) >= 200   
+        AND INT(ret-nf-eletro.cod-msg) <= 9999 THEN
+            ASSIGN b-docum-est.idi-sit-nf-eletro = IF b-docum-est.idi-sit-nf-eletro = 12 THEN 3 ELSE 5.
+       
+    FIND FIRST param-re WHERE
+               param-re.usuario = b-docum-est.usuario NO-LOCK NO-ERROR.
+     
+    IF AVAIL param-re THEN DO:
+     
+             FOR FIRST b-estabelec WHERE 
+                       b-estabelec.cod-estabel = b-nota-fiscal.cod-estabel NO-LOCK: END.
+             
+             /* verifica se Ç ambiente produá∆o */
+             IF b-estabelec.idi-tip-emis-nf-eletro <> 3 THEN DO:
+                RELEASE b-docum-est.
+                RELEASE b-nota-fiscal.
+                RELEASE sit-nf-eletro.
+                RETURN "OK":U.
+             END.
+
+             /* Executa re1005 (pedido RPW) para notas autorizadas, quando houver atualizacao automatica */
+             IF   param-re.log-atualiza-nfe-auto                                      AND
+                 ({&IDI-SIT-NFE-AUX} = 3 OR INT(ttReturnInvoiceDocument.tpEmis) > 1) AND      /* Nota "Autorizada" ou "Em contingencia" */
+                 {&IDI-SIT-NFE-AUX} <> 1 AND {&IDI-SIT-NFE-AUX} <> 5                 AND      /* Nota "Nao gerada" e "Rejeitada" n∆o deve gerar RPW */
+                 SUBSTR(b-docum-est.nat-operacao,1,1) <> "3"                         THEN DO: /* Nota de Importaá∆o n∆o deve gerar RPW */
+                 
+                 FOR FIRST usuar_mestre WHERE
+                           usuar_mestre.cod_usuario = b-docum-est.usuario AND
+                           usuar_mestre.cod_servid_exec <> ""           NO-LOCK:
+                 
+                     FOR EACH tt-param:
+                        DELETE tt-param.
+                     END.
+                     FOR EACH tt_param_segur:
+                        DELETE tt_param_segur.
+                     END.
+                     FOR EACH tt_ped_exec:
+                        DELETE tt_ped_exec.
+                     END.
+                     
+                     CREATE tt-param.
+                     ASSIGN tt-param.usuario         = b-docum-est.usuario
+                            tt-param.destino         = 3
+                            tt-param.data-exec       = TODAY
+                            tt-param.hora-exec       = TIME
+                            tt-param.arquivo         = "RE1005":U + ".LST".
+                     
+                     RAW-TRANSFER tt-param TO raw-param.
+                     
+                     ASSIGN hr-aux = STRING(time,"hh:mm:ss")
+                            SUBSTR(hr-aux,3,1) = "" 
+                            SUBSTR(hr-aux,5,1) = "".
+                     
+                     CREATE  tt_param_segur.
+                     ASSIGN  tt_param_segur.tta_num_vers_integr_api      = 3
+                             tt_param_segur.tta_cod_aplicat_dtsul_corren = "LOG"
+                             tt_param_segur.tta_cod_empres_usuar         = string(i-ep-codigo-usuario)
+                             tt_param_segur.tta_cod_grp_usuar_lst        = b-docum-est.usuario
+                             tt_param_segur.tta_cod_idiom_usuar          = "Por"
+                             tt_param_segur.tta_cod_modul_dtsul_corren   = "Vlo"
+                             tt_param_segur.tta_cod_pais_empres_usuar	 = "Brasil"		
+                             tt_param_segur.tta_cod_usuar_corren	 = b-docum-est.usuario
+                             tt_param_segur.tta_cod_usuar_corren_criptog = ENCODE(b-docum-est.usuario)	
+                             tt_param_segur.ttv_num_msg_erro             = 0.
+                     
+                     CREATE tt_param_segur.
+                     ASSIGN tt_param_segur.tta_num_vers_integr_api      = 3
+                            tt_param_segur.tta_cod_aplicat_dtsul_corren = "LOG"
+                            tt_param_segur.tta_cod_empres_usuar         = string(i-ep-codigo-usuario)
+                            tt_param_segur.tta_cod_grp_usuar_lst        = b-docum-est.usuario
+                            tt_param_segur.tta_cod_idiom_usuar          = "Por"
+                            tt_param_segur.tta_cod_modul_dtsul_corren   = "MRE"
+                            tt_param_segur.tta_cod_pais_empres_usuar    = "Brasil"
+                            tt_param_segur.tta_cod_usuar_corren         = b-docum-est.usuario
+                            tt_param_segur.tta_cod_usuar_corren_criptog = ENCODE(b-docum-est.usuario).
+                     
+                     CREATE tt_ped_exec.
+                     ASSIGN tt_ped_exec.tta_num_seq                = 1
+                            tt_ped_exec.tta_cod_usuario            = b-docum-est.usuario
+                            tt_ped_exec.tta_cod_prog_dtsul         = "re1005":U
+                            tt_ped_exec.tta_cod_prog_dtsul_rp      = "rep/re1005rp.p":U
+                            tt_ped_exec.tta_cod_release_prog_dtsul = "2.00.00.000"
+                            tt_ped_exec.tta_dat_exec_ped_exec      = DATE(STRING(tt-param.data-exec,"99/99/9999"))
+                            tt_ped_exec.tta_hra_exec_ped_exec      = hr-aux
+                            tt_ped_exec.tta_cod_servid_exec        = usuar_mestre.cod_servid_exec /* sec/sec000aa. */
+                            tt_ped_exec.tta_cdn_estil_dwb          = 97.
+                     
+                     CREATE tt_ped_exec_param.
+                     ASSIGN tt_ped_exec_param.tta_num_seq              = 1
+                            tt_ped_exec_param.tta_cod_dwb_file         = "rep/re1005.w":U.
+                            
+                     {utp/ut-liter.i Arquivo *}
+                     ASSIGN tt_ped_exec_param.tta_cod_dwb_output       = RETURN-VALUE.
+                     
+                     RAW-TRANSFER tt-param TO tt_ped_exec_param.tta_raw_param_ped_exec. 
+                     
+                     FOR EACH tt-digita:
+                         DELETE tt-digita.
+                     END.
+                     FOR EACH tt-raw-digita:
+                         DELETE tt-raw-digita.
+                     END.
+                     
+                     CREATE tt-digita.
+                     ASSIGN tt-digita.r-docum-est = ROWID(b-docum-est).
+                     
+                     CREATE tt-raw-digita.
+                     RAW-TRANSFER tt-digita TO tt-raw-digita.raw-digita.
+                     
+                     FOR FIRST tt-raw-digita:
+                       CREATE tt_ped_exec_param_aux.
+                       ASSIGN tt_ped_exec_param_aux.tta_num_seq            = 1
+                              tt_ped_exec_param_aux.tta_raw_param_ped_exec = tt-raw-digita.raw-digita
+                              tt_ped_exec_param_aux.tta_num_dwb_order      = 1.
+                     END.
+                     
+                     RUN btb/btb912zb.p (INPUT-OUTPUT TABLE tt_param_segur,
+                                         INPUT-OUTPUT TABLE tt_ped_exec,
+                                         INPUT TABLE tt_ped_exec_param,
+                                         INPUT TABLE tt_ped_exec_param_aux,
+                                         INPUT TABLE tt_ped_exec_sel).
+                                         
+                 END. /* FOR FIRST usuar_mestre WHERE */
+             END.
+             /* Fim - Executa re1005 (pedido RPW) para notas autorizadas, quando houver atualizacao automatica */
+
+             /* Notas Nao geradas, Denegadas e Rejeitadas */
+             IF {&IDI-SIT-NFE-AUX} = 1 OR 
+                {&IDI-SIT-NFE-AUX} = 4 OR 
+                ({&IDI-SIT-NFE-AUX} = 5 and 
+                 ret-nf-eletro.cod-msg <> "656" )THEN DO:
+                
+                 /* Denegaá∆o */
+                 IF {&IDI-SIT-NFE-AUX} = 4 THEN DO:
+                
+                    /* Cancela Nota no Faturamento */
+                    {utp/ut-liter.i "Nota_fiscal_cancelada_automaticamente_ap¢s_denegaá∆o":U}.
+                    ASSIGN b-nota-fiscal.desc-cancela = RETURN-VALUE
+                           b-nota-fiscal.dt-cancela   = TODAY.
+                    {utp/ut-liter.i Sistema}
+                    ASSIGN b-nota-fiscal.cd-vendedor  = TRIM(RETURN-VALUE).
+                    
+                    FOR EACH it-nota-fisc
+                       WHERE it-nota-fisc.cod-estabel = b-nota-fiscal.cod-estabel
+                       AND   it-nota-fisc.serie       = b-nota-fiscal.serie
+                       AND   it-nota-fisc.nr-nota-fis = b-nota-fiscal.nr-nota-fis EXCLUSIVE-LOCK:
+        
+                      ASSIGN it-nota-fisc.dt-cancela   = b-nota-fiscal.dt-cancela
+                             it-nota-fisc.ind-sit-nota = b-nota-fiscal.ind-sit-nota.
+                    END.
+                    
+                    /* Retira vinculo do recebimento com faturamento */
+                    ASSIGN b-docum-est.log-1 = NO.
+                    
+                    /* Altera situacao do faturamento para documento denegado */
+                    ASSIGN {&IDI-SIT-NFE-FT} = 4. 
+
+                    ASSIGN r-nota-fiscal     = rowid(b-nota-fiscal).  
+                    RUN pi-trataNotaFiscAdc (INPUT r-nota-fiscal).
+                    
+                    /* Cria doc-fiscal de NF-e que foi cancelada no faturamento */
+                    RUN pi-criaDocumentoFiscal (INPUT r-nota-fiscal).
+                 
+                 END.
+                 /* Fim - Denegaá∆o */
+
+                 /* Inutiliza */
+                 IF {&IDI-SIT-NFE-AUX} = 1 OR 
+                    ({&IDI-SIT-NFE-AUX} = 5 and i-sit-ant <> 13) THEN DO:  
+
+                     IF  cTpTrans <> "Manual":U
+                     AND cTpTrans <> "Nenhum":U  THEN DO: /*Transmiss∆o diferente de Manual*/
+
+                        IF  {&IDI-SIT-NFE-AUX} = 1 THEN
+                            {utp/ut-liter.i Nota_fiscal_eletrìnica_inutilizada *}
+                        ELSE
+                            {utp/ut-liter.i Nota_fiscal_eletrìnica_inutilizada_automaticamente_apos_rejeiá∆o *}
+
+                        ASSIGN cMotivoInutilizacao = RETURN-VALUE.
+
+                        IF  cTpTrans = "TSS":U OR 
+                            cTpTrans = "TC":U  THEN DO:
+                
+                            /*CD0403 - Inutilizacao Desativada - SEFAZ*/
+                            if substring(b-estabelec.char-2,281,1) = "S":U then do:
+
+                                RUN pi-inutiliz-doc-erp (BUFFER b-nota-fiscal, BUFFER b-docum-est).
+                    
+                                {utp/ut-liter.i Estabelecimento_com_parametro_'Inutilizaá∆o_Desativada_-_SEFAZ'_marcado._Aá∆o_realizada_apenas_no_ERP,_sem_envio_a_SEFAZ *}
+                                CREATE ret-nf-eletro.
+                                ASSIGN ret-nf-eletro.cod-estabel      = b-nota-fiscal.cod-estabel
+                                       ret-nf-eletro.cod-serie        = b-nota-fiscal.serie 
+                                       ret-nf-eletro.nr-nota-fis      = b-nota-fiscal.nr-nota-fis 
+                                       ret-nf-eletro.cod-msg          = "17006":U 
+                                       ret-nf-eletro.dat-ret          = TODAY
+                                       ret-nf-eletro.hra-ret          = REPLACE(STRING(TIME, "HH:MM:SS":U),":":U,"":U)
+                                       ret-nf-eletro.idi-orig-solicit = 3 /* Inutilizacao numeracao */ 
+                                       ret-nf-eletro.log-ativo        = YES
+                                       ret-nf-eletro.cod-protoc       = "":U
+                                       ret-nf-eletro.cod-livre-2      = cMotivoInutilizacao + ". " + TRIM(RETURN-VALUE).
+                                       
+                                ASSIGN b-nota-fiscal.desc-cancela = cMotivoInutilizacao + ". " + TRIM(RETURN-VALUE).
+                            end.
+                            else
+                                RUN ftp/ftapi512.p (INPUT "Inutilizaá∆o",
+                                                    INPUT ROWID(b-nota-fiscal),
+                                                    INPUT cMotivoInutilizacao,
+                                                    OUTPUT i-tipo-transacao).
+                      
+                        END.
+                        ELSE DO:
+                        
+                            IF  LOOKUP(cTpTrans, "MANUAL,NENHUM":U) > 0 THEN DO:
+                                RELEASE b-docum-est.
+                                RELEASE b-nota-fiscal.
+                                RELEASE sit-nf-eletro.
+                                RETURN "NOK":U.
+                            END.
+                               
+                            FOR EACH tt_log_erro:
+                                DELETE tt_log_erro.
+                            END.
+                            FOR EACH tt_nfe_erro:
+                                DELETE tt_nfe_erro.
+                            END.
+                
+                            IF NOT VALID-HANDLE(h-axsep003) THEN 
+                               RUN adapters/xml/ep2/axsep003.p PERSISTENT SET h-axsep003(OUTPUT TABLE tt_log_erro).
+                               
+
+                            RUN PITransUpsert IN h-axsep003 (INPUT b-estabelec.estado,
+                                                             INPUT YEAR(TODAY),
+                                                             INPUT b-estabelec.cgc,
+                                                             INPUT "55",
+                                                             INPUT b-nota-fiscal.serie,
+                                                             INPUT b-nota-fiscal.nr-nota-fis,
+                                                             INPUT b-nota-fiscal.nr-nota-fis,
+                                                             INPUT cMotivoInutilizacao,
+                                                             INPUT "upd":U,
+                                                             INPUT "InutInvoiceDocument",
+                                                             INPUT ROWID(b-nota-fiscal),
+                                                             OUTPUT i-tipo-transacao, /* 1 - Sincrona | 2 - Assincrona */
+                                                             OUTPUT TABLE tt_log_erro,
+                                                             OUTPUT TABLE tt_nfe_erro).
+                                                             
+                            IF VALID-HANDLE(h-axsep003) THEN DO:
+                               DELETE PROCEDURE h-axsep003 NO-ERROR.
+                               ASSIGN h-axsep003 = ?.
+                            END.
+                        
+                        END.
+
+                        IF  i-tipo-transacao = ? OR i-tipo-transacao = 0 THEN DO:
+                            RELEASE b-docum-est.
+                            RELEASE b-nota-fiscal.
+                            RELEASE sit-nf-eletro.
+                            RETURN "NOK":U.
+                        END.
+                                                         
+                        /*--- ASS÷NCRONA ---*/
+                        IF  i-tipo-transacao = 2 THEN DO:
+                            assign b-docum-est.idi-sit-nf-eletro = 13.        /*13 - NF-e em processo de Inutilizaá∆o*/
+                            ASSIGN {&IDI-SIT-NFE-FT} = 13.                            
+                        END.
+
+                        IF CAN-FIND(FIRST tt_nfe_erro WHERE tt_nfe_erro.cStat = '102') THEN DO: /* 102 -> Documento Inutilizado homologado na SEFAZ */
+                            
+                            RUN pi-inutiliz-doc-erp (BUFFER b-nota-fiscal, BUFFER b-docum-est).
+        
+                            FOR FIRST tt_nfe_erro:
+
+                                CREATE ret-nf-eletro.
+                                ASSIGN ret-nf-eletro.cod-estabel      = b-nota-fiscal.cod-estabel
+                                       ret-nf-eletro.cod-serie        = b-nota-fiscal.serie 
+                                       ret-nf-eletro.nr-nota-fis      = b-nota-fiscal.nr-nota-fis 
+                                       ret-nf-eletro.cod-msg          = tt_nfe_erro.cStat
+                                       ret-nf-eletro.dat-ret          = TODAY
+                                       ret-nf-eletro.hra-ret          = REPLACE(STRING(TIME, "HH:MM:SS"),":","")
+                                       ret-nf-eletro.idi-orig-solicit = 3 /* Inutilizaá∆o numeraá∆o */ 
+                                       ret-nf-eletro.log-ativo        = YES
+                                       ret-nf-eletro.cod-livre-1      = tt_nfe_erro.nProt.
+                                
+                                FOR FIRST msg-ret-nf-eletro FIELDS(dsl-msg) 
+                                    WHERE msg-ret-nf-eletro.cod-msg = "102" NO-LOCK:
+                             
+                                    {utp/ut-liter.i "Nota_fiscal_eletrìnica_inutilizada_automaticamente_ap¢s_rejeiá∆o":U}
+                                     ASSIGN b-nota-fiscal.desc-cancela = TRIM(RETURN-VALUE) + ". " + 
+                                                                        msg-ret-nf-eletro.dsl-msg + ".  Data/Hora: " + 
+                                                                        STRING(TODAY) + ".  Protocolo: " + ret-nf-eletro.cod-livre-1 
+                                            b-nota-fiscal.dt-cancela    = TODAY
+                                            b-nota-fiscal.cod-protoc = tt_nfe_erro.nProt.
+
+                                            /**Inclusa l¢gica acima para gravaá∆o do protocolo retornado pela Sefaz.**/                                            
+                                END.
+                            END.
+                            
+                        END. /* IF CAN-FIND(FIRST tt_nfe_erro WHERE tt_nfe_erro.cStat = '102') THEN DO: */
+                        
+                    END.
+                    ELSE DO: /* Transmissao Manual: atualizaá∆o pelo FT0909 */
+                         RUN pi-inutiliz-doc-erp (BUFFER b-nota-fiscal, BUFFER b-docum-est).
+                                                                                              
+                         FOR FIRST msg-ret-nf-eletro FIELDS(dsl-msg) 
+                             WHERE msg-ret-nf-eletro.cod-msg = "102" NO-LOCK:
+                         
+                            {utp/ut-liter.i "Nota_fiscal_eletrìnica_inutilizada_automaticamente_ap¢s_rejeiá∆o":U}
+                            ASSIGN b-nota-fiscal.desc-cancela = TRIM(RETURN-VALUE) + ". " + 
+                                                                msg-ret-nf-eletro.dsl-msg + ".  Data/Hora: " + 
+                                                                STRING(TODAY) + ".  Protocolo: " + ret-nf-eletro.cod-livre-1 .
+                         END.
+                    END.
+                    
+                    &IF "{&bf_mat_versao_ems}":U >= "2.062":U &THEN
+                        RUN cdp/cd0032.p (OUTPUT lOrigGraosAtivo).
+                        IF lOrigGraosAtivo THEN DO:  
+                            IF b-docum-est.log-1 = NO THEN DO:
+                                RUN ggp/ggapi108.p (INPUT ROWID(b-docum-est)).
+                            END.
+                        END.
+                    &ENDIF
+                 END.
+                 else if i-sit-ant = 13 and {&IDI-SIT-NFE-AUX} = 5 then do:
+                      /* Alteraá∆o solicitada pelo chamado TTETGI, para evitar o looping de processamento quando existe rejeiá∆o da inutilizaá∆o */
+                      CREATE ret-nf-eletro.
+                      ASSIGN ret-nf-eletro.cod-estabel      = b-docum-est.cod-estabel
+                             ret-nf-eletro.cod-serie        = b-docum-est.serie-docto 
+                             ret-nf-eletro.nr-nota-fis      = b-docum-est.nro-docto
+                             ret-nf-eletro.cod-msg          = "36370"
+                             ret-nf-eletro.dat-ret          = TODAY
+                             ret-nf-eletro.hra-ret          = REPLACE(STRING(TIME, "HH:MM:SS"),":","")
+                             ret-nf-eletro.log-ativo        = YES
+                             ret-nf-eletro.cod-livre-2      = "[Msg BOIN090] Houve problemas no processamento da inutilizaá∆o, verificar msg retornada pela SEFAZ":U.
+                 end.
+                 /* Fim - Inutiliza */
+             END. /* Fim - Nao Geradas/Denegadas/Rejeitadas*/
+     END.
+     
+     RELEASE b-docum-est.
+     RELEASE b-nota-fiscal.
+     RELEASE sit-nf-eletro.
+ 
+ RETURN "OK":U.
+ 
+END PROCEDURE.   
+
+
+PROCEDURE pi-trataNotaFiscAdc.
+    DEF INPUT PARAM r-nota-fiscal AS ROWID NO-UNDO.
+    
+    DEF VAR h-bodi515           AS HANDLE NO-UNDO.
+    DEF BUFFER b2-nota-fiscal   FOR nota-fiscal.
+    DEF BUFFER b2-sit-nf-eletro FOR sit-nf-eletro.
+    
+    FIND FIRST b2-nota-fiscal NO-LOCK
+         WHERE ROWID(b2-nota-fiscal) = r-nota-fiscal NO-ERROR.
+
+
+    RUN dibo/bodi515.p PERSISTENT SET h-bodi515 NO-ERROR.
+    RUN cancelaNotaFiscAdc IN h-bodi515 (INPUT b2-nota-fiscal.cod-estabel,
+                                         INPUT b2-nota-fiscal.serie,
+                                         INPUT b2-nota-fiscal.nr-nota-fis,
+                                         INPUT b2-nota-fiscal.cod-emitente,
+                                         INPUT b2-nota-fiscal.nat-operacao,
+                                         INPUT b2-nota-fiscal.idi-sit-nf-eletro).
+    DELETE PROCEDURE h-bodi515.
+    ASSIGN h-bodi515 = ?.
+    
+
+END PROCEDURE.
+
+PROCEDURE VerificaOperacaoEmitenteNFE:
+    DEFINE INPUT PARAM p-nat-operacao LIKE docum-est.nat-operacao NO-UNDO.
+    DEFINE INPUT PARAM p-cod-emitente LIKE docum-est.cod-emitente NO-UNDO.
+    DEFINE INPUT PARAM l-considera-CTE AS LOGICAL NO-UNDO.
+    DEFINE OUTPUT PARAM l-valida-chave-nfe AS LOGICAL NO-UNDO.
+    
+    DEFINE BUFFER b-nfe-natur-oper FOR natur-oper.
+    DEFINE BUFFER b-nfe-emitente FOR emitente.
+    
+    DEFINE VARIABLE l-natureza-eletronica AS LOGICAL NO-UNDO.
+    FIND FIRST b-nfe-natur-oper
+         WHERE b-nfe-natur-oper.nat-operacao = p-nat-operacao NO-LOCK NO-ERROR.
+    FIND FIRST b-nfe-emitente
+         WHERE b-nfe-emitente.cod-emitente = p-cod-emitente NO-LOCK NO-ERROR.
+         
+    IF AVAIL b-nfe-natur-oper AND AVAIL b-nfe-emitente THEN DO:
+        
+        IF b-nfe-natur-oper.cod-model-nf-eletro = "55" 
+        OR (b-nfe-natur-oper.cod-model-nf-eletro = "57" AND l-considera-CTE)
+        OR b-nfe-natur-oper.cod-model-nf-eletro = "62" /*NFCom - NF de Servico de Comunicacao*/
+        OR b-nfe-natur-oper.cod-model-nf-eletro = "65" 
+        OR b-nfe-natur-oper.cod-model-nf-eletro = "66" /*NF3-e - Energia eltetrica*/
+        OR (b-nfe-natur-oper.cod-model-nf-eletro = "67" AND l-considera-CTE)
+        OR b-nfe-natur-oper.cod-model-nf-eletro = "75" /*NFAg - Agua*/
+        OR b-nfe-natur-oper.cod-model-nf-eletro = "76" /*NFGas - Gas*/ 
+        OR b-nfe-natur-oper.cod-model-nf-eletro = "77" /*NF-e ABI - Alienacao de Bens Imoveis*/ THEN
+            ASSIGN l-natureza-eletronica = YES.
+        IF l-natureza-eletronica THEN DO:
+            IF (b-nfe-natur-oper.tipo-compra = 3 OR
+                   (b-nfe-natur-oper.terceiros AND
+                       (b-nfe-natur-oper.tp-oper-terc = 1 OR b-nfe-natur-oper.tp-oper-terc = 5)
+                    )
+                ) THEN DO:
+                IF b-nfe-emitente.log-nf-eletro THEN
+                    ASSIGN l-valida-chave-nfe = YES.
+            END.
+            ELSE IF b-nfe-emitente.log-possui-nf-eletro THEN
+                ASSIGN l-valida-chave-nfe = YES.
+        END.
+        ELSE
+            ASSIGN l-valida-chave-nfe = NO.
+    END.
+    RETURN "OK":U.
+END PROCEDURE.
+
+/*
+    Executa os procedimentos para ficar inutilizado o documento de entrada (docum-est)
+    e documento de sa°da (nota-fiscal) no ERP, alÇm de dependàncias
+    - Depende dos buffers b-nota-fiscal e b-docum-est posicionados e em exclusive-lock
+*/
+PROCEDURE pi-inutiliz-doc-erp:
+    DEFINE PARAMETER BUFFER b-nota-fiscal FOR nota-fiscal.
+    DEFINE PARAMETER BUFFER b-docum-est FOR docum-est.
+
+    IF NOT AVAIL b-nota-fiscal OR NOT AVAIL b-docum-est THEN
+        RETURN "NOK":U.
+    
+    /* Retira vinculo do recebimento com faturamento */
+    ASSIGN b-docum-est.log-1 = NO.
+    /* Altera situacao do recebimento para documento inutilizado */
+    assign b-docum-est.idi-sit-nf-eletro = 7.
+    /* Altera situacao do faturamento para documento inutilizado */      
+    ASSIGN {&IDI-SIT-NFE-FT} = 7.
+        
+    {utp/ut-liter.i Sistema}
+    ASSIGN b-nota-fiscal.dt-cancela  = TODAY
+           b-nota-fiscal.cd-vendedor = TRIM(RETURN-VALUE).
+
+    FOR EACH it-nota-fisc
+       WHERE it-nota-fisc.cod-estabel = b-nota-fiscal.cod-estabel
+         AND it-nota-fisc.serie       = b-nota-fiscal.serie
+         AND it-nota-fisc.nr-nota-fis = b-nota-fiscal.nr-nota-fis EXCLUSIVE-LOCK:
+        
+        ASSIGN it-nota-fisc.dt-cancela   = TODAY.
+               it-nota-fisc.ind-sit-nota = b-nota-fiscal.ind-sit-nota.
+    END.
+
+    run pi-trataNotaFiscAdc (INPUT rowid(b-nota-fiscal)).
+
+    /* Cria doc-fiscal de NF-e que foi inutilizada */
+    RUN pi-criaDocumentoFiscal (INPUT rowid(b-nota-fiscal)).
+
+    RETURN "OK":U.
+END PROCEDURE.

@@ -1,0 +1,37 @@
+/*TT com os parÉmetros do filtro para busca 
+ de notas a vincular e vinculadas*/
+ DEFINE TEMP-TABLE tt-param-nota NO-UNDO
+    FIELD cod-estabel-ini        LIKE due-nf.cod-estabel-nf          /*C¢digo do Estabelecimento da Nota Inicial*/ 
+    FIELD cod-estabel-fim        LIKE due-nf.cod-estabel-nf          /*C¢digo do Estabelecimento da Nota Final*/
+    FIELD cod-serie-ini          LIKE due-nf.cod-serie-nf            /*SÇrie da Nota Inicial*/
+    FIELD cod-serie-fim          LIKE due-nf.cod-serie-nf            /*SÇrie da Nota Inicial*/
+    FIELD nr-nota-fisc-ini       LIKE due-nf.cod-nota-fisc           /*N£mero da Nota Fiscal Inicial*/
+    FIELD nr-nota-fisc-fim       LIKE due-nf.cod-nota-fisc           /*N£mero da Nota Fiscal Final*/
+    FIELD dat-emissao-ini        LIKE due-nf.dat-emis-nf             /*Data de Emiss∆o da Nota Inicial*/
+    FIELD dat-emissao-fim        LIKE due-nf.dat-emis-nf             /*Data de Emiss∆o da Nota Final*/
+    FIELD nat-operacao-ini       LIKE due-nf.nat-operacao            /*Natureza de Operaá∆o da Nota Inicial*/
+    FIELD nat-operacao-fim       LIKE due-nf.nat-operacao            /*Natureza de Operaá∆o da Nota Final*/
+    FIELD cod-estab-proc-exp-ini LIKE due-nf.cod-estab-proces-export /*C¢digo do Estabelecimento do Processo Exportaá∆o Inicial*/
+    FIELD cod-estab-proc-exp-fim LIKE due-nf.cod-estab-proces-export /*C¢digo do Estabelecimento do Processo Exportaá∆o Final*/
+    FIELD nr-proc-exp-ini        LIKE due-nf.cod-proces-export       /*N£mero do Processo de Exportaá∆o Inicial*/
+    FIELD nr-proc-exp-fim        LIKE due-nf.cod-proces-export       /*N£mero do Processo de Exportaá∆o Final*/
+    FIELD cdn-emitente-ini       LIKE due-nf.cdn-emitente            /*C¢digo do Cliente Inicial*/
+    FIELD cdn-emitente-fim       LIKE due-nf.cdn-emitente            /*C¢digo do Cliente Final*/
+    FIELD nome-abrev-ini         LIKE due-nf.nom-abrev-clien         /*Nome Abreviado do Cliente Inicial*/
+    FIELD nome-abrev-fim         LIKE due-nf.nom-abrev-clien         /*Nome Abreviado do Cliente Final*/
+    FIELD cdd-embarq-ini         LIKE due-nf.cdd-embarq              /*C¢digo do Embarque Inicial*/
+    FIELD cdd-embarq-fim         LIKE due-nf.cdd-embarq.             /*C¢digo do Embarque Final*/
+
+/*TT com as notas fiscais a serem vinculadas a DU-E*/
+DEFINE TEMP-TABLE tt-nota-fiscal NO-UNDO
+    FIELD cod-estabel              LIKE nota-fiscal.cod-estabel               
+    FIELD serie                    LIKE nota-fiscal.serie                     
+    FIELD nr-nota-fis              LIKE nota-fiscal.nr-nota-fis               
+    FIELD dt-emis-nota             LIKE nota-fiscal.dt-emis-nota              
+    FIELD nat-operacao             LIKE nota-fiscal.nat-operacao              
+    FIELD cod-estab-proces-export  LIKE nota-fiscal.cod-estab-proces-export   
+    FIELD nr-proc-exp              LIKE nota-fiscal.nr-proc-exp               
+    FIELD cod-emitente             LIKE nota-fiscal.cod-emitente              
+    FIELD nome-ab-cli              LIKE nota-fiscal.nome-ab-cli                
+    FIELD cdd-embarq               LIKE nota-fiscal.cdd-embarq                
+    FIELD cod-chave-aces-nf-eletro LIKE nota-fiscal.cod-chave-aces-nf-eletro.

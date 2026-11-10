@@ -1,0 +1,122 @@
+DEFINE TEMP-TABLE tt-desp-embarque NO-UNDO     
+    FIELD embarque                             LIKE desp-embarque.embarque     
+    FIELD cod-estabel                          LIKE desp-embarque.cod-estabel  
+    FIELD cod-pto-contr                        LIKE desp-embarque.cod-pto-contr
+    field cod-desp                             like desp-embarque.cod-desp
+    field r-desp-embarque                      as rowid
+    field r-cotacao-it-cex                     as rowid
+    field val-desp-mo-corren                   as decimal format ">>>>>,>>>,>>9.99999" 
+    field val-desp-mo-ordem                    as decimal format ">>>>>,>>>,>>9.99999"
+    FIELD nome-emit-desp                       LIKE emitente.nome-emit    
+    FIELD endereco-emit-desp                   LIKE emitente.endereco     
+    FIELD bairro-emit-desp                     LIKE emitente.bairro       
+    field cidade-emit-desp                     like emitente.cidade       
+    FIELD pais-emit-desp                       LIKE emitente.pais         
+    FIELD cep-emit-desp                        LIKE emitente.cep          
+    FIELD cgc-emit-desp                        LIKE emitente.cgc          
+    field estado-emit-desp                     like emitente.estado       
+    FIELD ins-estadual-emit-desp               LIKE emitente.ins-estadual 
+    FIELD ins-municipal-emit-desp              LIKE emitente.ins-municipal
+    FIELD caixa-postal-emit-desp               LIKE emitente.caixa-postal 
+    field e-mail-emit-desp                     like emitente.e-mail       
+    FIELD cod-aba-emit-desp                    LIKE emitente-cex.cod-aba      
+    FIELD telefone1-emit-desp                  LIKE emitente.telefone[1]  
+    FIELD telefone2-emit-desp                  LIKE emitente.telefone[2]  
+    field ramal1-emit-desp                     like emitente.ramal[1]     
+    FIELD ramal2-emit-desp                     LIKE emitente.ramal[2]     
+    FIELD home-page-emit-desp                  LIKE emitente.home-page    
+    FIELD telefax-emit-desp                    LIKE emitente.telefax      
+    field ramal-fax-emit-desp                  like emitente.ramal-fax    
+    FIELD telef-fac-emit-desp                  LIKE emitente.telef-fac    
+    FIELD ramal-fac-emit-desp                  LIKE emitente.ramal-fac    
+    FIELD telef-modem-emit-desp                LIKE emitente.telef-modem  
+    field ramal-modem-emit-desp                like emitente.ramal-modem
+    field desc-moeda                           like moeda.descricao 
+    field sigla-moeda                          like moeda.sigla
+    field desc-despesa	                       like desp-imp.descricao
+    field desc-pto-contr                       like pto-contr.descricao
+    field desc-cond-pagto                      like cond-pagto.descricao
+    FIELD cod-cond-pagto                       LIKE cotacao-item-cex.cod-cond-pag
+    FIELD cod-emitente-desp                    LIKE cotacao-item-cex.cod-emitente
+    field cod-emitente                         like emitente.cod-emitente
+    FIELD mo-codigo                            LIKE cotacao-item-cex.mo-codigo        
+    FIELD val-desp                             LIKE cotacao-item-cex.val-desp.
+
+define temp-table tt-cotacao-item no-undo      like cotacao-item.
+
+define temp-table tt-pto-contr no-undo         like pto-contr.
+
+define temp-table tt-pais no-undo              like pais.
+
+define temp-table tt-moeda no-undo             like moeda.
+
+define temp-table tt-desp-desp no-undo         like desp-imp.
+
+define temp-table tt-despesa-emb no-undo       like desp-embarque.
+
+define temp-table tt-item  no-undo             like item.
+
+define temp-table tt-narrativa no-undo         like narrativa.
+
+DEFINE TEMP-TABLE tt-grup-estoq no-undo        LIKE grup-estoque.
+
+define temp-table tt-familia no-undo           like familia.
+
+define temp-table tt-fam-comerc no-undo        like fam-comerc.
+define temp-table tt-ordens no-undo            like ordem-compra.
+
+define temp-table tt-item-fornec no-undo       like item-fornec.
+
+DEFINE TEMP-TABLE tt-un no-undo                like tab-unidade
+    FIELD desc-un-interno                      AS CHAR
+    FIELD desc-un-fornec                       AS CHAR.
+
+DEFINE TEMP-TABLE tt-embalag no-undo           LIKE embalag.
+
+define temp-table tt-parcelas no-undo          like prazo-compra.
+
+define temp-table tt-cotacao-item-cex no-undo  like cotacao-item-cex.
+
+define temp-table tt-desp no-undo              like desp-imp.
+
+define temp-table tt-assinaturas no-undo
+    field nome-ass1                             like param-compra.nome-ass[1]
+    field nome-ass2                             like param-compra.nome-ass[2]
+    field nome-ass3                             like param-compra.nome-ass[3]
+    field cargo-ass1                            like param-compra.cargo-ass[1]
+    field cargo-ass2                            like param-compra.cargo-ass[2]
+    field cargo-ass3                            like param-compra.cargo-ass[3].
+
+define temp-table tt-pontos-controle-pedido no-undo
+    field pto-embarque                          like itinerario.pto-embarque
+    field desc-pto-embarque                     like pto-contr.descricao
+    field pto-desembarque                       like itinerario.pto-desembarque
+    field desc-pto-desembarque                  like pto-contr.descricao
+    field data-prev-embarque                    like historico-proc-imp.dt-efetiva.
+
+define temp-table tt-calculos-ordem no-undo
+    field numero-ordem                          like ordem-compra.numero-ordem
+    field peso-liquido-total                    like item.peso-liquido
+    field peso-bruto-total                      like item.peso-bruto
+    field preco-fornec-liq                      like cotacao-item.preco-fornec
+    field preco-interno-liq                     like cotacao-item.preco-fornec
+    field preco-fornec-bru                      like cotacao-item.preco-fornec
+    field preco-interno-bru                     like cotacao-item.preco-fornec
+    field preco-fornec-liq-total                like cotacao-item.preco-fornec
+    field preco-interno-liq-total               like cotacao-item.preco-fornec
+    field preco-fornec-bru-total                like cotacao-item.preco-fornec
+    field preco-interno-bru-total               like cotacao-item.preco-fornec
+    field ocupacao-total                        like item.volume
+    index codigo is primary unique numero-ordem.
+
+define temp-table tt-calculos-parcela no-undo
+    field numero-ordem                          like ordem-compra.numero-ordem
+    field parcela                               like prazo-compra.parcela
+    field peso-liquido-total                    like item.peso-liquido 
+    field peso-bruto-total                      like item.peso-bruto   
+    field preco-fornec-liq-total                like cotacao-item.preco-fornec /*item.preco-base*/
+    field preco-interno-liq-total               like cotacao-item.preco-fornec /*item.preco-base*/
+    field preco-fornec-bru-total                like cotacao-item.preco-fornec /*item.preco-base*/
+    field preco-interno-bru-total               like cotacao-item.preco-fornec /*item.preco-base*/
+    field ocupacao-total                        like item.volume       
+    index codigo is primary unique numero-ordem parcela.

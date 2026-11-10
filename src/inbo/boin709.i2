@@ -1,0 +1,21 @@
+/***********************************************************
+**
+** INLCUDE BOIN709.I2 - Respons vel por eliminar as despesas
+**                      do item do contrato 
+**
+**                {1} - numero do contrato
+**                {2} - sequencia do item do contrato
+************************************************************/
+
+    FOR EACH  desp-item-contrat
+        WHERE desp-item-contrat.nr-contrato  = {1}
+          AND desp-item-contrat.num-seq-item = {2} NO-LOCK:
+          
+          IF  VALID-HANDLE(h-boin709) THEN DO:
+              RUN repositionRecord IN h-boin709(ROWID(desp-item-contrat)).  
+              RUN deleteRecord IN h-boin709.
+          END.
+          
+    END.
+    
+/** FIM INCLUDE **/

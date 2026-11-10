@@ -1,0 +1,252 @@
+/*******************************************************************************************************
+**
+** PROCEDURE:   pi-sfc-tempo-paradas-maq
+** OBJETIVO:    Verifica tempo de parada dentro do reporte de opera‡Æo - m quina ou c‚lula
+** PARAMETROS:  input   p-cod-ctrab 
+                input   p-gm-codigo 
+                input   p-val-refer-inic   ** Referˆncia data hora inicio 
+                input   p-val-refer-fim    ** Referˆncia data hora fim
+                output  p-tempo-parada     ** Tempo parada em horas
+**                 
+*******************************************************************************************************/
+
+PROCEDURE pi-sfc-tempo-paradas-maq:
+   
+   define input  parameter p-cod-ctrab      like rep-parada-ctrab.cod-ctrab              no-undo.
+   define input  parameter p-gm-codigo      like ctrab.gm-codigo                         no-undo.
+   define input  parameter p-val-refer-inic like rep-parada-ctrab.val-refer-inic-parada  no-undo.
+   define input  parameter p-val-refer-fim  like rep-parada-ctrab.val-refer-fim-parada   no-undo.
+   define output parameter p-tempo-parada   like rep-parada-ctrab.qtd-tempo-parada       no-undo.
+   define output parameter p-tempo-parada-ext like rep-parada-ctrab.qtd-tempo-parada     no-undo.
+
+   def buffer b-rep-parada-ctrab for rep-parada-ctrab.
+   def var v-dat-aux         as date    no-undo.
+   def var v-qtd-segs-aux    as integer no-undo.
+   def var v-dat-aux-2       as date    no-undo.
+   def var v-qtd-segs-aux-2  as integer no-undo.
+   def var v-tempo-parada    as decimal no-undo.
+   def var v-val-refer-min   as decimal no-undo.
+   def var c-cod-area        as char    no-undo.
+   def var c-cod-calend      as char    no-undo.
+
+   
+   find last b-rep-parada-ctrab where 
+             b-rep-parada-ctrab.cod-ctrab              =  p-cod-ctrab and 
+             b-rep-parada-ctrab.val-refer-inic-parada  <  p-val-refer-inic no-lock no-error.
+
+   /*** Reporte de parada est  intersecta com inicio  ***/
+   if available b-rep-parada-ctrab and 
+                b-rep-parada-ctrab.val-refer-fim-parada > p-val-refer-inic then do:
+        run pi-converte-valor-data-segs (input p-val-refer-inic,
+                                         output v-dat-aux,
+                                         output v-qtd-segs-aux).
+                                     
+        if b-rep-parada-ctrab.val-refer-fim-parada > p-val-refer-fim then 
+            run pi-converte-valor-data-segs (input p-val-refer-fim,
+                                             output v-dat-aux-2,
+                                             output v-qtd-segs-aux-2).
+        
+        /*** Parada sobrepäe inicio e fim - nÆo deveria acontecer ***/
+        else
+            assign v-dat-aux-2      = b-rep-parada-ctrab.dat-fim-parada
+                   v-qtd-segs-aux-2 = b-rep-parada-ctrab.qtd-segs-fim.   
+        assign c-cod-area   = ?
+               c-cod-calend = ?.
+
+        run inbo/boin469d.p (input-output c-cod-area,
+                             input-output p-gm-codigo,
+                             input        b-rep-parada-ctrab.cod-ctrab,
+                             input-output c-cod-calend,
+                             Input-output v-dat-aux-2,
+                             Input-output v-qtd-segs-aux-2,
+                             Input-output v-dat-aux,
+                             Input-output v-qtd-segs-aux,
+                             Input-output p-tempo-parada).
+
+        assign p-val-refer-inic = b-rep-parada-ctrab.val-refer-fim-parada.
+   end.
+   
+   assign v-val-refer-min = p-val-refer-inic. 
+
+   blk-rep-parada:          
+   for each b-rep-parada-ctrab where 
+            b-rep-parada-ctrab.cod-ctrab              =  p-cod-ctrab and
+            b-rep-parada-ctrab.val-refer-inic-parada >=  p-val-refer-inic no-lock:
+
+        assign v-val-refer-min = max(v-val-refer-min, 
+                                     b-rep-parada-ctrab.val-refer-inic-parada).
+        
+        if b-rep-parada-ctrab.val-refer-inic-parada >= p-val-refer-fim or
+           v-val-refer-min >= p-val-refer-fim
+              then leave blk-rep-parada.
+        
+        /*** Parada intersecta outra parada - NÆo deve acontecer ***/      
+        if b-rep-parada-ctrab.val-refer-fim-parada <= v-val-refer-min then
+              next blk-rep-parada. 
+        
+        /*** Reporte de parada est  intersecta com final ***/
+        if b-rep-parada-ctrab.val-refer-fim-parada  > p-val-refer-fim then 
+            run pi-converte-valor-data-segs (input p-val-refer-fim,
+                                             output v-dat-aux-2,
+                                             output v-qtd-segs-aux-2).
+        else
+            assign v-dat-aux-2      = b-rep-parada-ctrab.dat-fim-parada
+                   v-qtd-segs-aux-2 = b-rep-parada-ctrab.qtd-segs-fim.   
+
+        /*** Evita considerar sobreposi‡Æo de paradas - nÆo deve acontecer ***/
+        if v-val-refer-min > b-rep-parada-ctrab.val-refer-inic-parada then 
+            run pi-converte-valor-data-segs (input  v-val-refer-min,
+                                             output v-dat-aux,
+                                             output v-qtd-segs-aux).
+        else 
+            assign v-dat-aux      = b-rep-parada-ctrab.dat-inic-parada
+                   v-qtd-segs-aux = b-rep-parada-ctrab.qtd-segs-inic.
+        
+        if  v-val-refer-min <> b-rep-parada-ctrab.val-refer-inic-parada
+        or  p-val-refer-fim <  b-rep-parada-ctrab.val-refer-fim-parada then do:
+            assign c-cod-area   = ?
+                   c-cod-calend = ?.
+    
+            run inbo/boin469d.p (input-output c-cod-area,
+                                 input-output p-gm-codigo,
+                                 input        b-rep-parada-ctrab.cod-ctrab,
+                                 input-output c-cod-calend,
+                                 Input-output v-dat-aux-2,
+                                 Input-output v-qtd-segs-aux-2,
+                                 Input-output v-dat-aux,
+                                 Input-output v-qtd-segs-aux,
+                                 Input-output v-tempo-parada).
+        
+            assign p-tempo-parada  = p-tempo-parada + v-tempo-parada.
+        end.
+        
+        /*** Acumula tempo do reporte de parada considerando o tempo extra ***/
+        /*** Nota: Nas interse‡äes o tempo extra nÆo ‚ considerado  ***/
+        else 
+           assign p-tempo-parada = p-tempo-parada + b-rep-parada-ctrab.qtd-tempo-parada
+                  p-tempo-parada-ext = p-tempo-parada-ext + b-rep-parada-ctrab.qtd-tempo-ext.
+
+        /*** Atualiza valor referˆncia m¡nimo ***/
+        assign v-val-refer-min    = b-rep-parada-ctrab.val-refer-fim-parada.
+
+   end. /*** blk-rep-parada ***/
+
+END PROCEDURE.
+
+/*******************************************************************************************************
+**
+** PROCEDURE:   pi-sfc-tempo-paradas-mod
+** OBJETIVO:    Verifica tempo de parada dentro do reporte de opera‡Æo /*** Posto Manual ***/
+** PARAMETROS:  input   p-cod-ctrab 
+                input   p-gm-codigo 
+                input   p-cod-equipe 
+                input   p-val-refer-inic   ** Referˆncia data hora inicio 
+                input   p-val-refer-fim    ** Referˆncia data hora fim
+                output  p-tempo-parada     ** Tempo parada em horas
+**                 
+*******************************************************************************************************/
+
+PROCEDURE pi-sfc-tempo-paradas-mod:
+   
+    define input  parameter p-cod-ctrab      like rep-parada-mod.cod-ctrab              no-undo.
+    define input  parameter p-gm-codigo      like ctrab.gm-codigo                       no-undo.
+    define input  parameter p-cod-equipe     like rep-parada-mod.cod-equipe             no-undo.
+    define input  parameter p-val-refer-inic like rep-parada-mod.val-refer-inic-parada  no-undo.
+    define input  parameter p-val-refer-fim  like rep-parada-mod.val-refer-fim-parada   no-undo.
+    define output parameter p-tempo-parada   like rep-oper-ctrab.qtd-tempo-parada       no-undo.
+    define output parameter p-tempo-parada-ext like rep-parada-ctrab.qtd-tempo-parada   no-undo.
+ 
+    def var v-dat-aux         as date    no-undo.
+    def var v-dat-aux-2       as date    no-undo.
+    def var v-qtd-segs-aux    as integer no-undo.
+    def var v-qtd-segs-aux-2  as integer no-undo.
+    def var v-tempo-parada    as decimal no-undo.
+    def var c-cod-calend      as char    no-undo.
+    def var c-cod-area        as char    no-undo.
+	def var l-inters-aux      as logical no-undo.
+	
+	assign l-inters-aux = yes.
+ 
+    run pi-converte-valor-data-segs (input p-val-refer-inic,
+                                     output v-dat-aux,
+                                     output v-qtd-segs-aux).
+   
+    run pi-converte-valor-data-segs (input p-val-refer-fim,
+                                     output v-dat-aux-2,
+                                     output v-qtd-segs-aux-2).
+               
+    blk-rep-mod:          
+    for each rep-parada-mod
+        where rep-parada-mod.cod-equipe            = rep-oper-ctrab.cod-equipe 
+          and rep-parada-mod.val-refer-fim-parada >= p-val-refer-inic exclusive-lock /*no-lock*/:
+
+        if  rep-parada-mod.cod-ctrab <> p-cod-ctrab then 
+            next.
+
+        if  rep-parada-mod.val-refer-inic-parada >= p-val-refer-fim then
+            leave blk-rep-mod.
+
+        /*** Reporte de parada est  intersecta com inicio ***/
+        if  rep-parada-mod.val-refer-inic-parada <  p-val-refer-inic 
+        and rep-parada-mod.val-refer-fim-parada  <= p-val-refer-fim then do:
+         
+            assign c-cod-area   = ?
+                   c-cod-calend = ?.
+
+            assign p-tempo-parada = p-tempo-parada + v-tempo-parada.
+            next blk-rep-mod.
+        end.
+        
+        /*** Reporte de parada est  intersecta com fim ***/
+        if  rep-parada-mod.val-refer-fim-parada  > p-val-refer-fim
+        and rep-parada-mod.val-refer-inic-parada > p-val-refer-inic then do:
+        
+            assign c-cod-area   = ?
+                   c-cod-calend = ?.
+
+            run inbo/boin469d.p (input-output c-cod-area,
+                                 input-output p-gm-codigo,
+                                 input        p-cod-ctrab,
+                                 input-output c-cod-calend,
+                                 Input-output v-dat-aux-2,
+                                 Input-output v-qtd-segs-aux-2,
+                                 Input-output rep-parada-mod.dat-inic-parada,
+                                 Input-output rep-parada-mod.qtd-segs-inic,
+                                 input-output v-tempo-parada).
+
+            assign p-tempo-parada = p-tempo-parada + v-tempo-parada.
+            next blk-rep-mod.
+        end.
+
+        /*** Reporte de parada sobrepäe inicio e final ***/
+        if  rep-parada-mod.val-refer-fim-parada  > p-val-refer-fim  
+        and rep-parada-mod.val-refer-inic-parada < p-val-refer-inic then do:
+ 
+            assign c-cod-area   = ?
+                   c-cod-calend = ?.
+
+            run inbo/boin469d.p (input-output c-cod-area,
+                                 input-output p-gm-codigo,
+                                 input        p-cod-ctrab,
+                                 input-output c-cod-calend,
+                                 Input-output v-dat-aux-2,
+                                 Input-output v-qtd-segs-aux-2,
+                                 Input-output v-dat-aux,
+                                 Input-output v-qtd-segs-aux,
+                                 input-output v-tempo-parada).
+
+            assign p-tempo-parada = p-tempo-parada + v-tempo-parada.
+            next blk-rep-mod.
+        end. 
+     
+        /*** NÆo existe nenhuma interse‡Æo para o reporte de parada, ‚ considerado
+             o tempo de parada reportado em hora extra ***/
+                
+                if l-inters-aux then
+                        assign p-tempo-parada = p-tempo-parada + rep-parada-mod.qtd-tempo-mod 
+                                   p-tempo-parada-ext = p-tempo-parada-ext + rep-parada-mod.qtd-tempo-ext.
+                assign l-inters-aux = no.
+
+    end.
+    
+END PROCEDURE.

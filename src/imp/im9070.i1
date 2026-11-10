@@ -1,0 +1,37 @@
+/*PROCEDURE pi-tributo-nf-rateio-imp:*/
+
+    DEFINE INPUT PARAMETER p-i-seq-wt-docto     LIKE wt-it-docto.seq-wt-docto       NO-UNDO.
+    DEFINE INPUT PARAMETER p-i-seq-wt-it-docto  LIKE wt-it-docto.seq-wt-it-docto    NO-UNDO.
+    
+    DEFINE VARIABLE de-val-trib  AS DECIMAL  NO-UNDO.
+    
+    DISABLE TRIGGERS FOR LOAD OF ct-trib-wt-item-docto.
+    
+    /* Atualizar valores referentes ao calculo de Diferimento para nota complementar de importa‡Æo */
+    FOR EACH ct-trib-wt-item-docto 
+       WHERE ct-trib-wt-item-docto.num-seq-wt-docto = p-i-seq-wt-docto NO-LOCK:
+        
+        IF ct-trib-wt-item-docto.cod-tip-trib = "ICMS_ValDif":U THEN
+           ASSIGN de-val-trib = de-val-trib + ct-trib-wt-item-docto.val-trib.
+
+    END. /* EACH ct-trib-wt-item-docto */
+
+    /* Grava na tabela do configurador e no item da nota fiscal */
+    FOR FIRST ct-trib-item-nota-fisc EXCLUSIVE-LOCK
+        WHERE ct-trib-item-nota-fisc.cod-estab         = it-nota-fisc.cod-estabel
+          AND ct-trib-item-nota-fisc.cod-serie         = it-nota-fisc.serie
+          AND ct-trib-item-nota-fisc.cod-nota-fisc     = it-nota-fisc.nr-nota-fis
+          AND ct-trib-item-nota-fisc.num-seq           = it-nota-fisc.nr-seq-fat
+          AND ct-trib-item-nota-fisc.cod-item          = TRIM(it-nota-fisc.it-codigo)
+          AND ct-trib-item-nota-fisc.cod-tip-trib      = "ICMS_ValDif":U : 
+    END.
+
+    IF AVAIL ct-trib-item-nota-fisc THEN DO:
+        
+        ASSIGN ct-trib-item-nota-fisc.val-trib     = de-val-trib
+               OVERLAY(it-nota-fisc.char-1,314,17) = STRING(de-val-trib).
+    END.        
+        
+    RETURN "OK":U.
+
+/*END PROCEDURE.*/ 

@@ -1,0 +1,648 @@
+PROCEDURE gerarItensbyDI :
+/*------------------------------------------------------------------------------
+  Objeto.... : cxbo/bocx402.i1 
+  Descri‡Æo. : Procedure gerarItensbyDI
+               - Cria temp-table com itens para o desembarque 
+               - Valida ordem de compra | cota‡Æo | pedido
+               - Valida item | classifica‡Æo fiscal
+------------------------------------------------------------------------------*/
+    DEF INPUT        PARAMETER TABLE FOR tt-parametros.
+    DEF INPUT-OUTPUT PARAMETER TABLE FOR tt-itens-aux.
+    DEF OUTPUT       PARAMETER TABLE FOR tt-bo-erro.
+    
+    DEF VAR c-return-value        AS   CHARACTER                         NO-UNDO.
+    DEF VAR i-cont                AS   INTEGER                           NO-UNDO.
+    DEF VAR c-class-fiscal        LIKE classif-fisc.class-fiscal         NO-UNDO.
+    DEF VAR de-preco-unit-mo      LIKE decla-import-adic-itens.val-vmle  NO-UNDO.
+    DEF VAR de-preco-unit-mo-aux  LIKE decla-import-adic-itens.val-vmle  NO-UNDO.
+    DEF VAR de-preco-total        LIKE item-doc-est.preco-total EXTENT 0 NO-UNDO.
+    DEF VAR de-preco-total-mo     LIKE item-doc-est.preco-total EXTENT 0 NO-UNDO. 
+    DEF VAR de-preco-total-aux    LIKE item-doc-est.preco-unit  EXTENT 0 NO-UNDO.
+    DEF VAR de-preco-total-mo-aux LIKE item-doc-est.preco-unit  EXTENT 0 NO-UNDO. 
+    DEF VAR l-create-itens        AS   LOGICAL                           NO-UNDO.
+    DEF VAR c-cod-depos           LIKE ordem-compra.dep-almoxar          NO-UNDO.
+    DEF VAR de-aliquota-ipi       LIKE item.aliquota-ipi                 NO-UNDO.
+    DEF VAR l-regime              AS   LOGICAL                           NO-UNDO.
+    DEF VAR l-gravado             AS   LOGICAL INITIAL NO                NO-UNDO.
+    DEF VAR r-rowid-item          AS   ROWID                             NO-UNDO.
+    DEF VAR de-val-maior          LIKE item-doc-est.preco-total[1]       NO-UNDO.
+    DEF VAR de-desconto-cc        LIKE cotacao-item.valor-descto         NO-UNDO.
+    DEF VAR de-taxa               LIKE cotacao-item.valor-taxa           NO-UNDO.
+    DEF VAR c-deposito-pad        LIKE item.deposito-pad                 NO-UNDO.
+    DEF VAR c-cod-localiz         LIKE item.cod-localiz                  NO-UNDO.    
+    
+    {cxbo/bocx225e.i1} /* vari veis atributo livre ordens-embarque */
+    
+    if can-find(first tt-itens-aux) then assign l-create-itens = yes.
+    
+    for each tt-bo-erro: delete tt-bo-erro. end.
+    
+    for each tt-parametros:
+            
+            /* Usu rio cadastrado no cadastro de usu rios do recebimento */
+            find param-re no-lock where param-re.usuario = tt-parametros.usuario no-error.
+            if  not avail param-re then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                create tt-bo-erro.
+                assign tt-bo-erro.parametros = tt-parametros.usuario.
+                run utp/ut-msgs.p (input "msg":u, input 16482, input tt-bo-erro.parametros).
+                assign tt-bo-erro.i-sequen = i-seq-erro
+                       tt-bo-erro.cd-erro  = 16482
+                       tt-bo-erro.mensagem = return-value.
+                undo, leave.
+            end. /* if  not avail param-re */
+            
+            find first embarque-imp no-lock
+                where  embarque-imp.cod-estabel = tt-parametros.cod-estabel
+                and    embarque-imp.embarque    = tt-parametros.embarque no-error.
+            if  avail  embarque-imp then do:
+                assign de-val-maior = 0.
+                for each  ordens-embarque no-lock
+                    where ordens-embarque.cod-estabel = tt-parametros.cod-estabel 
+                    and   ordens-embarque.embarque    = tt-parametros.embarque
+                    break by ordens-embarque.numero-ordem:
+                  
+                    assign de-preco-unit-mo      = 0
+                           de-preco-total        = 0
+                           de-preco-total-mo     = 0 
+                           de-preco-total-aux    = 0               
+                           de-preco-total-mo-aux = 0
+                           c-class-fiscal        = "".
+                
+                    /* Processo de importa‡Æo */
+                    find processo-imp no-lock
+                        where processo-imp.cod-estabel = ordens-embarque.cod-estabel
+                        and   processo-imp.nr-proc-imp = ordens-embarque.nr-proc-imp no-error.
+                    if  not avail processo-imp then do:
+                        assign i-seq-erro = i-seq-erro + 1.
+                        create tt-bo-erro.
+                        {utp/ut-liter.i Processo_Importa‡Æo * L}
+                        assign tt-bo-erro.parametros = trim(return-value) + "~~" + ordens-embarque.nr-proc-imp.
+                        run utp/ut-msgs.p (input "msg":u, input 2, input tt-bo-erro.parametros).
+                        assign tt-bo-erro.i-sequen = i-seq-erro
+                               tt-bo-erro.cd-erro  = 2
+                               tt-bo-erro.mensagem = return-value.
+                    end. /* if  not avail processo-imp */
+                    else do:
+                        assign i-cod-via-transp = embarque-imp.cod-via-transp
+                               i-cod-itiner     = processo-imp.cod-itiner.
+                        /* Verifica se usu rio recebe pedido de outro fornecedor/estabelecimento */
+                        empty temp-table RowErrors.
+                        run rep/re1007.p (input tt-parametros.cod-emitente,
+                                          input processo-imp.cod-exportador,
+                                          input-output table RowErrors).  
+                        find first RowErrors where RowErrors.ErrorNumber = 8851 no-lock no-error.
+                        if (avail RowErrors) OR /* Verifica se usuario recebe pedido de outro estabelecimento */
+                           (avail param-re and not param-re.rec-out-for 
+                            and processo-imp.estab-fisc <> tt-parametros.estab-fisc) then do:
+                                assign i-seq-erro = i-seq-erro + 1.
+                                create tt-bo-erro.
+                                assign tt-bo-erro.parametros = processo-imp.nr-proc-imp.
+                                run utp/ut-msgs.p (input "msg":u, input 26099, input tt-bo-erro.parametros).
+                                assign tt-bo-erro.i-sequen = i-seq-erro
+                                       tt-bo-erro.cd-erro  = 26099
+                                       tt-bo-erro.mensagem = return-value.                       
+                        end. /* if  processo-imp.cod-exportador <> */
+                    end. /* else do: */
+               
+                    /* Ordem de compra */
+                    find ordem-compra no-lock
+                        where ordem-compra.numero-ordem = ordens-embarque.numero-ordem no-error.
+                    if  not avail ordem-compra then do:        
+                        assign i-seq-erro = i-seq-erro + 1.
+                        {utp/ut-liter.i Ordem_Compra * L}
+                        create tt-bo-erro.
+                        assign tt-bo-erro.parametros = return-value + "~~" + string(ordens-embarque.numero-ordem).
+                        run utp/ut-msgs.p (input "msg":u, input 2, input tt-bo-erro.parametros).
+                        assign tt-bo-erro.i-sequen = i-seq-erro
+                               tt-bo-erro.cd-erro  = 2
+                               tt-bo-erro.mensagem = return-value.
+                    end. /* if  not avail ordem-compra */
+                    else do:
+                        /*buscando valor da mercadoria*/
+                        for first decla-import-ord no-lock
+                            where decla-import-ord.num-ordem   = ordens-embarque.numero-ordem
+                            and   decla-import-ord.num-parcela = ordens-embarque.parcela
+                            and   decla-import-ord.cod-embarq  = ordens-embarque.embarque,
+                            first decla-import-adic-itens no-lock
+                            where decla-import-adic-itens.num-di-ems  = decla-import-ord.num-di-ems
+                            and   decla-import-adic-itens.cdd-siscomex-dts  = decla-import-ord.cdd-siscomex-dts
+                            and   decla-import-adic-itens.num-ordem   = decla-import-ord.num-ordem
+                            and   decla-import-adic-itens.num-parcela = decla-import-ord.num-parcela 
+                            and   decla-import-adic-itens.cod-embarq  = decla-import-ord.cod-embarq: end.
+
+                        assign i-mo-codigo    = ordem-compra.mo-codigo
+                               i-cod-cond-pag = ordem-compra.cod-cond-pag.                                     
+            
+                        /* Pedido de compra */
+                        find pedido-compr no-lock
+                            where pedido-compr.num-pedido = ordem-compra.num-pedido no-error.
+                        if  not avail pedido-compr then do:
+                            assign i-seq-erro = i-seq-erro + 1.
+                            {utp/ut-liter.i Pedido_Compra * L}
+                            create tt-bo-erro.
+                            assign tt-bo-erro.parametros = return-value + "~~" + string(ordem-compra.num-pedido).
+                            run utp/ut-msgs.p (input "msg":u, input 2, input tt-bo-erro.parametros).
+                            assign tt-bo-erro.i-sequen = i-seq-erro
+                                   tt-bo-erro.cd-erro  = 2
+                                   tt-bo-erro.mensagem = return-value.
+                        end. /* if  not avail pedido-compr */
+                    
+                        /* Cota‡Æo do item */
+                        find cotacao-item no-lock
+                            where cotacao-item.numero-ordem = ordem-compra.numero-ordem
+                            and   cotacao-item.cod-emitente = ordem-compra.cod-emitente
+                            and   cotacao-item.it-codigo    = ordem-compra.it-codigo
+                            and   cotacao-item.mo-codigo    = ordem-compra.mo-codigo
+                            and   cotacao-item.cot-aprovada no-error.
+                        if  not avail cotacao-item then do:
+                            assign i-seq-erro = i-seq-erro + 1.
+                            {utp/ut-liter.i Cota‡Æo_Item * L}
+                            create tt-bo-erro.
+                            assign tt-bo-erro.parametros = return-value + "~~" + string(ordens-embarque.numero-ordem).
+                            run utp/ut-msgs.p (input "msg":u, input 2, input tt-bo-erro.parametros).
+                            assign tt-bo-erro.i-sequen = i-seq-erro
+                                   tt-bo-erro.cd-erro  = 2
+                                   tt-bo-erro.mensagem = return-value.
+                        end. /* if  not avail cotacao-item */
+                        else do:
+                            assign l-regime        = no
+                                   de-aliquota-ipi = 0.
+                        
+                            /* Cota‡Æo da moeda da ordem de compra */
+                            find cotacao no-lock
+                                where cotacao.mo-codigo   = cotacao-item.mo-codigo
+                                and   cotacao.ano-periodo = string(year(tt-parametros.da-cotacao)) + string(month(tt-parametros.da-cotacao),"99")
+                                and   cotacao.cotacao[int(day(tt-parametros.da-cotacao))] <> 0 no-error.
+                            if  not avail cotacao then do:
+                                if  cotacao-item.mo-codigo <> 0 then do:
+                                    assign i-seq-erro = i-seq-erro + 1.
+                                    create tt-bo-erro.
+                                    assign tt-bo-erro.parametros = string(cotacao-item.mo-codigo) + "~~" + string(tt-parametros.da-cotacao).
+                                    run utp/ut-msgs.p (input "msg":u, input 1847, input tt-bo-erro.parametros).                                       
+                                    assign tt-bo-erro.i-sequen = i-seq-erro
+                                           tt-bo-erro.cd-erro  = 1847
+                                           tt-bo-erro.mensagem = return-value.
+                                end. /* if  cotacao-item.mo-codigo <> 0 */
+                                else assign de-cotacao-dia = 1.                               
+                            end. /* if  not avail cotacao */
+                            else assign de-cotacao-dia = cotacao.cotacao[int(day(tt-parametros.da-cotacao))].
+                               
+                            run rep/re1908.p (rowid(ordem-compra),
+                                              embarque-imp.data-1,
+                                              output de-preco-unit-mo,  
+                                              output de-desconto-cc,
+                                              output de-taxa).
+                                             
+                            /* Calcula valor s/ IPI */
+                            ASSIGN de-preco-unit-mo-aux = DECIMAL(SUBSTRING(decla-import-adic-itens.cod-livre-1,4,20)) / 100000000.
+                            /*assign de-preco-unit-mo = DECIMAL(SUBSTRING(decla-import-adic-itens.cod-livre-1,4,20)) / 100000000.*/
+                            if not valid-handle(h-bocx383a) then
+                                run cxbo/bocx383a.p persistent set h-bocx383a.
+                                
+                            find first decla-import 
+                                where decla-import.num-di-ems = decla-import-adic-itens.num-di-ems 
+                                and decla-import.cdd-siscomex-dts   = decla-import-adic-itens.cdd-siscomex-dts no-lock no-error.
+                            IF cotacao-item.mo-codigo <> 0 THEN
+                                    /*Convertendo da moeda negociada para Real*/
+                                    RUN converteValorMoeda in h-bocx383a (INPUT decla-import.num-di-ems,
+                                                                          INPUT decla-import.cdd-siscomex-dts,
+                                                                          INPUT cotacao-item.mo-codigo,
+                                                                          INPUT 0,
+                                                                          INPUT de-preco-unit-mo-aux,
+                                                                          INPUT decla-import.dat-di,
+                                                                          OUTPUT de-preco-unit-mo).
+                            ELSE 
+                                ASSIGN de-preco-unit-mo = de-preco-unit-mo-aux.
+         
+                           
+                            /* inicio chamada UPC - evento CalculoPrecoUnitario */
+                            if  c-nom-prog-dpc-mg97  <> "" 
+                            or  c-nom-prog-appc-mg97 <> "" 
+                            or  c-nom-prog-upc-mg97  <> "" then do:
+                                for each tt-epc where tt-epc.cod-event = "CalculoPrecoUnitario":
+                                    delete tt-epc.
+                                end. /* for each tt-epc */
+                         
+                                create tt-epc.
+                                assign tt-epc.cod-event     = "CalculoPrecoUnitario":U
+                                       tt-epc.cod-parameter = "cod-estabel":U
+                                       tt-epc.val-parameter = embarque-imp.cod-estabel.
+                                create tt-epc.
+                                assign tt-epc.cod-event     = "CalculoPrecoUnitario":U
+                                       tt-epc.cod-parameter = "embarque":U
+                                       tt-epc.val-parameter = embarque-imp.embarque.
+                                create tt-epc.
+                                assign tt-epc.cod-event     = "CalculoPrecoUnitario":U
+                                       tt-epc.cod-parameter = "numero-ordem":U
+                                       tt-epc.val-parameter = string(ordens-embarque.numero-ordem).
+                                create tt-epc.
+                                assign tt-epc.cod-event     = "CalculoPrecoUnitario":U
+                                       tt-epc.cod-parameter = "parcela":U
+                                       tt-epc.val-parameter = string(ordens-embarque.parcela).
+                                create tt-epc.
+                                assign tt-epc.cod-event     = "CalculoPrecoUnitario":U
+                                       tt-epc.cod-parameter = "de-preco-unit-mo":U
+                                       tt-epc.val-parameter = string(de-preco-unit-mo).
+                                create tt-epc.
+                                assign tt-epc.cod-event     = "CalculoPrecoUnitario":U
+                                       tt-epc.cod-parameter = "RowidOrdemCompra":U
+                                       tt-epc.val-parameter = string(rowid(ordem-compra)).
+                
+                                {include/i-epc201.i "CalculoPrecoUnitario"} 
+                           
+                                find first tt-epc 
+                                    where  tt-epc.cod-event     = "CalculoPrecoUnitario":U no-error.
+                                if tt-epc.cod-parameter = "retorno":U then assign de-preco-unit-mo = dec(tt-epc.val-parameter).
+                            end. /* if  c-nom-prog-... */
+                            /* fim chamada UPC - evento CalculoPrecoUnitario */
+            
+                            IF cotacao-item.mo-codigo <> 0 THEN
+                            
+                                assign /*de-preco-unit-mo      = (de-preco-unit-mo * 100) / (100 + cotacao-item.aliquota-ipi) moeda real - convertida  ja e valor sem ipi*/
+                                       de-preco-total-mo     = de-preco-unit-mo  * ordens-embarque.qt-do-forn
+    
+                                       /*de-preco-unit-mo-aux  = (de-preco-unit-mo-aux * 100) / (100 + cotacao-item.aliquota-ipi) moeda da cotacao-item ja e valor sem ipi*/
+                                       de-preco-total-mo-aux = de-preco-unit-mo-aux  * ordens-embarque.qt-do-forn
+    
+                                       de-preco-total        = de-preco-total-mo
+                                       de-preco-total-mo     = de-preco-total-mo-aux
+                                       de-preco-total-aux    = de-preco-total-mo
+                                       de-desconto-cc        = de-desconto-cc    * ordens-embarque.qt-do-forn.
+                            ELSE
+                                 assign de-preco-unit-mo      = (de-preco-unit-mo * 100) / (100 + cotacao-item.aliquota-ipi)
+                                        de-preco-total-mo     = de-preco-unit-mo  * ordens-embarque.qt-do-forn
+                                        de-preco-total-mo-aux = de-preco-unit-mo  * ordens-embarque.qt-do-forn
+                                        de-preco-total        = de-preco-total-mo
+                                        de-preco-total-aux    = de-preco-total-mo
+                                        de-desconto-cc        = de-desconto-cc    * ordens-embarque.qt-do-forn.
+                           
+                            find first tt-epc
+                                where  tt-epc.cod-parameter = "AlteraCotacao":U no-error.    
+                            if  avail  tt-epc then do:
+                                assign de-cotacao-dia     = dec(tt-epc.val-parameter)
+                                       de-preco-total     = de-preco-total     * de-cotacao-dia
+                                       de-preco-total-aux = de-preco-total-aux * de-cotacao-dia.
+                            end. /* if  avail  tt-epc */
+                            
+                            /*Valor já é convertido na procedure converteValorMoeda da bocx383a*/
+                                                       
+                            if  c-nom-prog-dpc-mg97  <> "" 
+                            or  c-nom-prog-appc-mg97 <> "" 
+                            or  c-nom-prog-upc-mg97  <> "" then do:
+                                /* ** Implementacao chamada de EPC | FO 1225446 - DTS-SP */
+                                {include/i-epc200.i2 &CodEvent='"BuscaRwOrdensEmbarque"'
+                                                     &CodParameter='"rw-ordens-embarque"'
+                                                     &ValueParameter=string(rowid(ordens-embarque))}
+            
+                                /*Include i-epc201.i: Chamada do programa de EPC */
+                                {include/i-epc201.i "buscarwordensembarque"}
+                                /* Fim chamada EPC DTS-SP */
+            
+                                {include/i-epc200.i2 &CodEvent='"ConverteValorMercadoria"'
+                                                     &CodParameter='"cod-estabel"'
+                                                     &ValueParameter="string(tt-parametros.cod-estabel)"}
+            
+                                {include/i-epc200.i2 &CodEvent='"ConverteValorMercadoria"'
+                                                     &CodParameter='"embarque"'
+                                                     &ValueParameter="string(tt-parametros.embarque)"}
+            
+                                {include/i-epc200.i2 &CodEvent='"ConverteValorMercadoria"'
+                                                     &CodParameter='"preco-total-mo"'
+                                                     &ValueParameter="string(de-preco-total-mo)"}
+            
+                                {include/i-epc200.i2 &CodEvent='"ConverteValorMercadoria"'
+                                                     &CodParameter='"cotacao-dia"'
+                                                     &ValueParameter="string(de-cotacao-dia)"}
+            
+                                {include/i-epc200.i2 &CodEvent='"ConverteValorMercadoria"'
+                                                     &CodParameter='"preco-total"'
+                                                     &ValueParameter="string(de-preco-total)"}
+            
+                                /*Include i-epc201.i: Chamada do programa de EPC */
+                                {include/i-epc201.i "convertevalormercadoria"}
+                                
+                                for each  tt-epc
+                                    where tt-epc.cod-event = "ConverteValorMercadoria":
+                                    if  tt-epc.cod-parameter = "cotacao-dia" 
+                                    then assign de-cotacao-dia = dec(tt-epc.val-parameter). 
+                                    else if tt-epc.cod-parameter = "preco-total"  then assign de-preco-total = dec(tt-epc.val-parameter).
+                                end. /* for each  tt-epc */
+            
+                                for each tt-epc: delete tt-epc. end.
+                            end. /* if  c-nom-prog-dpc-mg97  <>... */
+                           
+                            {ccp/cc9019.i50} /* include tratamento atributo livre cotacao-item.char-1 */
+                        
+                            {cdp/cd4300.i4 "yes" cotacao-item.char-1}
+                            {ccp/cc9019.i51 "yes"}
+                         
+                            assign i-pto-contr-base = i-cod-pto-contr-i50.              
+                      
+                            &IF "{&BF_MAT_VERSAO_EMS}" >= "2.062" &THEN       
+                            {ocp/oc0201.i50}
+                            &else
+                            {ccp/cc0303.i50} /* include tratamento atributo livre cotacao-item.char-1 */                
+                            &endif    
+                        
+                            {cdp/cd4300.i4 "yes" cotacao-item.char-2}
+                            &IF "{&BF_MAT_VERSAO_EMS}" >= "2.062" &THEN    
+                            {ocp/oc0201.i51 "yes"}
+                            &else
+                            {ccp/cc0303.i51 "yes"}
+                            &endif    
+                         
+                           /* Se regime de importa‡Æo for informado, entÆo busca al¡quota do IPI da Cota‡Æo de Compra */ 
+                            &IF "{&BF_MAT_VERSAO_EMS}" >= "2.062" &THEN
+                            if  i-regime-import-i50 <> 0 
+                            and i-regime-import-i50 <> ? then do:
+            
+                                assign l-regime = yes.
+            
+                                find first item no-lock
+                                    where item.it-codigo = cotacao-item.it-codigo no-error.
+                                if  avail item then do:
+                                    find first pais-aliquota no-lock
+                                        where  pais-aliquota.cod-pais      = cotacao-item.cdn-pais-orig
+                                        and    pais-aliquota.regime-import = i-regime-import-i50 
+                                        and    pais-aliquota.class-fiscal  = if  item.tipo-contr = 4 
+                                                                             then substring(cotacao-item.char-1,81,20) 
+                                                                             else item.class-fiscal no-error.
+                                    if  avail pais-aliquota
+                                    and pais-aliquota.log-ipi-especial then do:
+                                        find first param-imp no-lock
+                                            where param-imp.cod-estabel = ordem-compra.cod-estabel no-error.
+                                        if  pais-aliquota.cod-natur-operac-ipi <> "" 
+                                        and pais-aliquota.aliquota-ipi       = 0 then do:
+                                            if  avail param-imp
+                                            and param-imp.log-cotac-autom-ipi THEN DO:
+                                                if  item.tipo-contr = 4 then do:
+                                                    find classif-fisc
+                                                        where classif-fisc.class-fiscal = ITEM.class-fiscal no-lock no-error.
+                                                    if  avail classif-fisc 
+                                                    THEN assign de-aliquota-ipi = classif-fisc.aliquota-ipi.
+                                                end. /* if  item.tipo-contr = 4 */
+                                                ELSE assign de-aliquota-ipi = item.aliquota-ipi.
+                                            END. /* if  avail param-imp */
+                                            else assign de-aliquota-ipi = cotacao-item.aliquota-ipi.
+                                        end. /* if  pais-aliquota.cod-natur-operac-ipi */
+                                        else do:
+                                            if  avail param-imp 
+                                            and param-imp.log-cotac-autom-ipi 
+                                            then assign de-aliquota-ipi = pais-aliquota.aliquota-ipi.
+                                            else assign de-aliquota-ipi = cotacao-item.aliquota-ipi.
+                                        end. /* else do: */
+                                    end. /* if  avail pais-aliquota */
+                                    ELSE DO:
+                                        if  item.tipo-contr = 4 then do:
+                                            find classif-fisc no-lock
+                                                where classif-fisc.class-fiscal = ITEM.class-fiscal no-error.
+                                            if  avail classif-fisc then assign de-aliquota-ipi = classif-fisc.aliquota-ipi.
+                                        end. /* if  item.tipo-contr = 4 */
+                                        else assign de-aliquota-ipi = item.aliquota-ipi.
+                                    END. /* ELSE DO: */
+                                end. /* if  avail item then do: */
+                            end. /* if  i-regime-import-i50 <> 0 */
+                            else assign de-aliquota-ipi = cotacao-item.aliquota-ipi.
+                            &ELSE
+                            if  i-regime-import-i50 <> 0 then do:
+                                assign l-regime        = yes.
+                                       de-aliquota-ipi = cotacao-item.aliquota-ipi.
+                            end. /* if  i-regime-import-i50 <> 0 */
+                            &ENDIF
+                        end. /* else do: */
+                    end. /* if  not avail ordem-compra */
+                                
+                    if  avail ordem-compra then 
+                        find item no-lock where item.it-codigo = ordem-compra.it-codigo no-error.
+                        if  not avail item then do:
+                            assign i-seq-erro = i-seq-erro + 1.
+                            {utp/ut-liter.i Item * L}
+                            create tt-bo-erro.
+                            assign tt-bo-erro.parametros = return-value + " " + item.it-codigo.
+                            run utp/ut-msgs.p (input "msg":u, input 2, input tt-bo-erro.parametros).
+                            assign tt-bo-erro.i-sequen = i-seq-erro
+                                   tt-bo-erro.cd-erro  = 2
+                                   tt-bo-erro.mensagem = return-value.
+                        end. /* if  not avail item then */
+                        else do:
+                            &if '{&bf_mat_versao_ems}' >= '2.04' &then
+                            find item-uni-estab no-lock 
+                                where item-uni-estab.it-codigo   = ordem-compra.it-codigo 
+                                and   item-uni-estab.cod-estabel = ordem-compra.cod-estabel no-error.
+                            if  avail item-uni-estab 
+                            then assign c-deposito-pad = item-uni-estab.deposito-pad
+                                        c-cod-localiz  = item-uni-estab.cod-localiz.
+                            else assign c-deposito-pad = item.deposito-pad
+                                        c-cod-localiz  = item.cod-localiz.
+                            &else
+                            assign c-deposito-pad = item.deposito-pad
+                                   c-cod-localiz  = item.cod-localiz.
+                            &endif
+                         
+                            assign c-class-fiscal = item.class-fiscal.
+                            /* Item branco e d‚bito direto */
+                            if  item.tipo-contr = 4 then do:
+                                if  avail cotacao-item then do:
+                                    if c-class-fiscal-i50 <> "" then assign c-class-fiscal = trim(c-class-fiscal-i50).
+                                end. /* if  avail cotacao-item */
+                            end. /* if  item.tipo-contr = 4 */
+                         
+                            find classif-fisc no-lock
+                                where classif-fisc.class-fiscal = c-class-fiscal no-error.
+                            if  not avail classif-fisc then do:
+                                assign i-seq-erro = i-seq-erro + 1.
+                                {utp/ut-liter.i Classifica‡Æo_Fiscal * L}
+                                assign c-return-value = trim(return-value).
+                                {utp/ut-liter.i do_item * L}
+                                create tt-bo-erro.
+                                assign tt-bo-erro.parametros = c-return-value 
+                                                             + " " + string(c-class-fiscal) 
+                                                             + " " + return-value 
+                                                             + " " + string(item.it-codigo).
+                                run utp/ut-msgs.p (input "msg":u, input 6361, input tt-bo-erro.parametros).
+                                assign tt-bo-erro.i-sequen = i-seq-erro
+                                       tt-bo-erro.cd-erro  = 6361
+                                       tt-bo-erro.mensagem = return-value.
+                            end. /* if  not avail classif-fisc */
+                        
+                            if ordem-compra.dep-almoxar <> "" 
+                            then assign c-cod-depos = ordem-compra.dep-almoxar.
+                            else assign c-cod-depos = c-deposito-pad.
+                        end. /* else do: */
+                
+                    if  not can-find(first tt-bo-erro) then do:
+            
+                        {imp/im0045ab.i50} /* Include tratamento atributo livre ordens-embarque.char-1 */            
+                        /* Drawback - 2.03 - tratamento n£mero ato concess¢rio */
+                        &if defined (bf_mat_versao_ems) &then
+                            &if "{&bf_mat_versao_ems}" >= "2.03" &then
+                                {cdp/cd4300.i4 "yes" ordens-embarque.char-1} 
+                                {imp/im0045ab.i51 "yes"}
+                            &endif
+                        &endif
+            
+                        assign i-cont = 0.
+                        if  avail item and not tt-parametros.l-chama-carregado then do:
+                            FOR FIRST prazo-compra FIELDS (cod-refer) 
+                                WHERE prazo-compra.numero-ordem = ordens-embarque.numero-ordem
+                                AND   prazo-compra.parcela      = ordens-embarque.parcela NO-LOCK:
+                                assign c-pzo-com-refer = prazo-compra.cod-refer.
+                            END. /* FOR FIRST prazo-compra */
+                            if  not l-create-itens then do:
+                                create tt-itens-aux.
+                                assign tt-itens-aux.numero-ordem       = ordens-embarque.numero-ordem
+                                       tt-itens-aux.parcela            = ordens-embarque.parcela
+                                       tt-itens-aux.nr-proc-imp        = ordens-embarque.nr-proc-imp                           
+                                       tt-itens-aux.quantidade         = ordens-embarque.quantidade
+                                       tt-itens-aux.encerra-pa         = no
+                                       tt-itens-aux.it-codigo          = item.it-codigo
+                                       tt-itens-aux.tipo-con-est       = item.tipo-con-est                               
+                                       tt-itens-aux.sequencial         = 1
+                                       &if '{&ems_dbtype}' <> 'progress' &then
+                                       tt-itens-aux.class-fiscal   = substring(c-class-fiscal,1,8)
+                                       &else
+                                       tt-itens-aux.class-fiscal   = substring(c-class-fiscal,1,8)
+                                       &endif
+                                       tt-itens-aux.nr-ato-concessorio = c-nr-ato-concessorio
+                                       tt-itens-aux.preco-total        = de-preco-total
+                                       tt-itens-aux.preco-total-mo     = de-preco-total-mo
+                                       tt-itens-aux.desconto           = de-desconto-cc
+                                       tt-itens-aux.num-pedido         = ordem-compra.num-pedido
+                                       tt-itens-aux.tp-despesa         = ordem-compra.tp-despesa
+                                       tt-itens-aux.cod-refer          = c-pzo-com-refer
+                                       tt-itens-aux.cod-depos          = c-cod-depos
+                                       tt-itens-aux.l-regime           = l-regime
+                                       tt-itens-aux.aliquota-ipi       = de-aliquota-ipi
+                                       tt-itens-aux.un                 = item.un
+                                       tt-itens-aux.qtd-do-forn        = ordens-embarque.qt-do-forn
+                                       tt-itens-aux.un-fornec          = cotacao-item.un
+                                       tt-itens-aux.r-rowid            = rowid(ordens-embarque).
+                                       
+                                if  tt-itens-aux.preco-total > de-val-maior then assign r-rowid-item = rowid(tt-itens-aux)
+                                                                                        de-val-maior = tt-itens-aux.preco-total.
+                
+                                if  tt-itens-aux.tipo-con-est  = 1 then assign tt-itens-aux.situacao = yes.
+                                                                   else assign tt-itens-aux.situacao = no.
+                            end. /* if  not l-create-itens then do: */
+                                     
+                            find first tt-itens-aux exclusive-lock 
+                                where  tt-itens-aux.numero-ordem = ordens-embarque.numero-ordem
+                                and    tt-itens-aux.parcela      = ordens-embarque.parcela
+                                and    tt-itens-aux.sequencial   = 1 no-error.
+                            if  avail tt-itens-aux then do:
+                                if  l-create-itens then assign tt-itens-aux.preco-total    = de-preco-total
+                                                               tt-itens-aux.preco-total-mo = de-preco-total-mo
+                                                               tt-itens-aux.desconto       = de-desconto-cc.
+                
+                                {cxbo/bocx225e.i2 no ordens-embarque} /* busca valores atributos livres */
+                
+                                /* Verifica se j  foram informados valores para o item nas ordens de embarque */
+                                &if '{&bf_mat_versao_ems}' < '2.05' &then
+                                    IF  i-trib-ii-i1       <> 0 
+                                    OR  i-trib-ipi-i1      <> 0 
+                                    OR  i-trib-icms-i1     <> 0 
+                                    OR  de-peso-bruto-i1   <> 0 
+                                    OR  de-peso-liquido-i1 <> 0 
+                                    OR  de-aliq-ii-i1      <> 0 
+                                    OR  de-aliq-ipi-i1     <> 0 
+                                    OR  de-aliq-icms-i1    <> 0 
+                                    THEN ASSIGN l-gravado = YES.                        
+                                    ELSE ASSIGN l-gravado = NO.
+                                &else
+                                    {cxbo/bocx225e.i4 no ordens-embarque} /* busca valores atributos livres */
+                                    assign l-gravado = l-ja-gravado.
+                                    
+                                    /** A partir da release EMS205 sera utilizado os pesos e cubagens informados no ordens-embarque **/
+                                    assign tt-itens-aux.peso-bruto   = de-peso-bruto-i1   
+                                           tt-itens-aux.peso-liquido = de-peso-liquido-i1 
+                                           &if "{&bf_mat_versao_ems}" >= "2.062" &then
+                                           tt-itens-aux.val-cub-tot  = ordens-embarque.val-cub-tot.
+                                           &else
+                                           tt-itens-aux.val-cub-uni  = ordens-embarque.val-cub-uni.
+                                           &endif
+                                &endif
+                                 
+                                IF  l-gravado THEN ASSIGN tt-itens-aux.cd-trib-ii       = i-trib-ii-i1
+                                                          tt-itens-aux.cd-trib-ipi      = i-trib-ipi-i1
+                                                          tt-itens-aux.cd-trib-icms     = i-trib-icms-i1
+                                                          tt-itens-aux.aliquota-ii      = de-aliq-ii-i1
+                                                          tt-itens-aux.aliquota-ipi     = de-aliq-ipi-i1
+                                                          tt-itens-aux.aliquota-icms    = de-aliq-icms-i1
+                                                          &if '{&bf_mat_versao_ems}' < '2.05' &then
+                                                          tt-itens-aux.peso-bruto   = de-peso-bruto-i1
+                                                          tt-itens-aux.peso-liquido = de-peso-liquido-i1
+                                                          &endif        
+                                                          tt-itens-aux.l-ordens-embarque = YES.
+                         
+                                /******************************************************
+                                * Engenharia IPI Suspensao Incorporar Base PIS COFINS *
+                                ******************************************************/
+                                IF  tt-itens-aux.l-ordens-embarque THEN DO:
+                                    &IF  "{&bf_mat_versao_ems}" >= "2.06" &THEN
+                                    ASSIGN tt-itens-aux.suspensao-II  = ordens-embarque.log-suspens-impto-import
+                                           tt-itens-aux.suspensao-IPI = ordens-embarque.log-suspens-ipi-import.
+                                    &ELSE
+                                    IF  SUBSTRING(ordens-embarque.char-1,57,01) = "1":U 
+                                    THEN ASSIGN tt-itens-aux.suspensao-II = YES.
+                                    ELSE ASSIGN tt-itens-aux.suspensao-II = NO.
+                                
+                                    IF  SUBSTRING(ordens-embarque.char-1,58,01) = "1":U 
+                                    THEN ASSIGN tt-itens-aux.suspensao-IPI = YES.
+                                    ELSE ASSIGN tt-itens-aux.suspensao-IPI = NO.
+                                    &ENDIF
+                                END. /* IF  tt-itens-aux.l-ordens-embarque THEN DO: */
+                                ELSE DO:
+                                
+                                    IF  AVAIL tt-parametros THEN
+                                        FIND FIRST natur-oper NO-LOCK
+                                             WHERE natur-oper.nat-operacao = tt-parametros.nat-operacao NO-ERROR.
+                                     
+                                    IF  AVAIL natur-oper THEN DO:
+                                        &IF  "{&bf_mat_versao_ems}" >= "2.06" &THEN
+                                        ASSIGN tt-itens-aux.suspensao-II  = natur-oper.log-suspens-impto-import
+                                               tt-itens-aux.suspensao-IPI = natur-oper.log-suspens-ipi-import.
+                                        &ELSE
+                                        IF  SUBSTRING(natur-oper.char-1,102,001) = "1":U 
+                                        THEN ASSIGN tt-itens-aux.suspensao-II = YES.
+                                        ELSE ASSIGN tt-itens-aux.suspensao-II = NO.
+                                     
+                                        IF  SUBSTRING(natur-oper.char-1,103,001) = "1":U 
+                                        THEN ASSIGN tt-itens-aux.suspensao-IPI = YES.
+                                        ELSE ASSIGN tt-itens-aux.suspensao-IPI = NO.
+                                        &ENDIF
+                                    END. /* IF  AVAIL natur-oper THEN DO: */
+                            
+                                    IF  NOT tt-itens-aux.suspensao-II  
+                                    OR  NOT tt-itens-aux.suspensao-IPI THEN DO:
+                                        &IF  "{&bf_mat_versao_ems}" >= "2.06" &THEN
+                                        FIND FIRST item-mat NO-LOCK
+                                             WHERE item-mat.it-codigo = item.it-codigo NO-ERROR.
+                                        IF  AVAIL  item-mat THEN DO:
+                                            IF  NOT tt-itens-aux.suspensao-II  THEN ASSIGN tt-itens-aux.suspensao-II  = item-mat.log-suspens-impto-import.
+                                            IF  NOT tt-itens-aux.suspensao-IPI THEN ASSIGN tt-itens-aux.suspensao-IPI = item-mat.log-suspens-ipi-import.
+                                        END.
+                                        &ELSE
+                                        IF  NOT tt-itens-aux.suspensao-II  AND SUBSTRING(item.char-1,229,001) = "1":U THEN ASSIGN tt-itens-aux.suspensao-II = YES.
+                                        IF  NOT tt-itens-aux.suspensao-IPI AND SUBSTRING(item.char-1,230,001) = "1":U THEN ASSIGN tt-itens-aux.suspensao-IPI = YES.
+                                        &ENDIF
+                                    END. /* IF  NOT tt-itens-aux.suspensao-II */
+                                END. /* ELSE DO: */
+                            end. /* if  avail tt-itens-aux then do: */
+                        end. /* if  avail item ... */
+                    end. /* if  not can-find(first tt-bo-erro) */
+                end. /* for each  ordens-embarque no-lock */
+            end. /* if  avail  embarque-imp then do: */
+        end. /* for each tt-parametros" */
+
+    return "OK":U.
+    
+END PROCEDURE. /* PROCEDURE gerarItensbyDI : */
+
+procedure pi-envia-tt:
+    def input param table for tt-itens-aux-serie.
+end procedure.
+
+procedure pi-recebe-tt:
+    def output param table for tt-itens-aux-serie.
+end procedure.

@@ -1,0 +1,221 @@
+PROCEDURE calculaDescontoICMS:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Calcula os valores de ICMS Desoenrado.
+------------------------------------------------------------------------------*/
+    
+    def var l-procedimento-ok   as logical  no-undo.
+    def var de-perc-desc-icms   as dec      no-undo.
+    def var de-valor-desc-icms  as dec      no-undo.
+    def var de-valor-desc-zfm   as dec      no-undo.
+    def var l-aplica-desc-icms  as logical  no-undo.
+    def var c-cod-estab-aux     as char     no-undo.
+
+    assign l-aplica-desc-icms = no.
+    
+    assign l-imp = no.
+    if avail docum-est and 
+       docum-est.origem = "I":U and 
+       param-global.modulo-07 and
+       emitente.pais <> estabelec.pais and
+       (emitente.natureza = 3 or emitente.natureza = 4) then do:
+       
+       IF VALID-HANDLE (h-bocx378) THEN DO:
+          RUN goToKey2 IN h-bocx378 (INPUT docum-est.serie-docto,
+                                     INPUT docum-est.nro-docto,
+                                     INPUT docum-est.cod-emitente,
+                                     INPUT docum-est.nat-operacao).
+          IF  RETURN-VALUE = "OK":U THEN
+              ASSIGN l-imp = yes.
+       END.       
+ 
+    end.
+
+    find first b-emit-estab no-lock 
+         where b-emit-estab.cod-emitente = estabelec.cod-emitente no-error.                     
+         
+    if valid-handle(h_bodi317im2bra) then do:    
+        run localizaWtDocto     in h_bodi317im2bra (input 1,
+                                                    output l-procedimento-ok).
+        run localizaWtItDocto   in h_bodi317im2bra (input 1,
+                                                    input tb-wt-it-docto.seq-wt-it-docto,
+                                                    output l-procedimento-ok).
+        run localizaWtItImposto in h_bodi317im2bra (input 1,
+                                                    input tb-wt-it-docto.seq-wt-it-docto,
+                                                    output l-procedimento-ok).
+                                                 
+        RUN calculaIPI in h_bodi317im2bra (input  l-comercio,
+                                           output l-procedimento-ok).
+                                           
+        RUN calculaICMS in h_bodi317im2bra (input  1,
+                                            output l-procedimento-ok).
+                                            
+        run localizaWtItDocto   in h_bodi317im2bra (input 1,
+                                                    input tb-wt-it-docto.seq-wt-it-docto,
+                                                    output l-procedimento-ok).
+                                            
+        run calculaDescontoICMS in h_bodi317im2bra (input  (if avail b-emit-estab 
+                                                            then b-emit-estab.contrib-icms
+                                                            else yes), 
+                                                    input  tb-wt-docto.estado, 
+                                                    output de-perc-desc-icms, 
+                                                    output l-procedimento-ok).
+      
+                                                    
+        if de-perc-desc-icms > 0 then
+           assign de-valor-desc-icms = round((RowObject.preco-total[1] - RowObject.desconto[1]) * de-perc-desc-icms / 100, 2)
+                  l-aplica-desc-icms = yes.
+                  
+        if RowObject.nro-comp <> "" then do:
+            assign c-cod-estab-aux = if l-transf then docum-est.estab-de-or else docum-est.cod-estabel.
+
+            for first it-nota-fisc fields(dec-1 qt-faturada char-1) no-lock 
+                where it-nota-fisc.cod-estabel  = c-cod-estab-aux
+                  and it-nota-fisc.serie        = RowObject.serie-comp
+                  and it-nota-fisc.nr-nota-fis  = RowObject.nro-comp 
+                  and it-nota-fisc.nr-seq-fat   = RowObject.seq-comp
+                  and it-nota-fisc.it-codigo    = RowObject.it-codigo:
+                  
+                if it-nota-fisc.dec-1 > 0 then /*ICMS ZFM*/
+                    assign de-valor-desc-zfm = round((it-nota-fisc.dec-1  / it-nota-fisc.qt-faturada[1] * RowObject.quantidade),2).
+                                                
+                if dec(substring(it-nota-fisc.char-1,128,16)) > 0 and /*PIS ZFM */
+                   natur-oper.log-deduz-desc-zfm-tot-nf then 
+                    assign de-valor-desc-zfm = de-valor-desc-zfm + 
+                                               round(dec(substring(it-nota-fisc.char-1,128,16)) / it-nota-fisc.qt-faturada[1] * RowObject.quantidade,2).  
+
+                if dec(substring(it-nota-fisc.char-1,145,16)) > 0 and /*COFINS ZFM*/
+                   natur-oper.log-deduz-desc-zfm-tot-nf then                                
+                   assign de-valor-desc-zfm = de-valor-desc-zfm + 
+                                              round(dec(substring(it-nota-fisc.char-1,145,16)) / it-nota-fisc.qt-faturada[1] * RowObject.quantidade,2). 
+                                              
+                if de-valor-desc-zfm > 0 then
+                    assign de-valor-desc-icms = round((RowObject.preco-total[1] - RowObject.desconto[1] + de-valor-desc-zfm) * de-perc-desc-icms / 100, 2).
+            end.      
+        end.
+                  
+        RUN retornaTbWtItImposto in h_bodi317im2bra (output table tb-wt-it-imposto).
+
+        if not l-imp then do:
+            {inbo/boin176.m99} /* chamada configurador de tributos */
+          
+            FOR EACH tb-ct-trib-wt-item-docto NO-LOCK
+               WHERE tb-ct-trib-wt-item-docto.num-seq-wt-docto      = 1
+                 AND tb-ct-trib-wt-item-docto.num-seq-wt-item-docto = RowObject.sequencia:
+                  
+                IF tb-ct-trib-wt-item-docto.cod-tip-trib = "ICMS Desonerado" THEN DO:
+                    FOR FIRST ct-configur-trib
+                        WHERE ct-configur-trib.cod-configur-trib = tb-ct-trib-wt-item-docto.cod-configur-trib NO-LOCK: /*Aplicar como desconto*/
+                          assign l-aplica-desc-icms = ct-configur-trib.log-livre-4. /*Aplicar como desconto*/
+                    END.
+
+                    assign de-valor-desc-icms = tb-ct-trib-wt-item-docto.val-trib.
+                END.
+            END.
+        end.
+    end.
+                                                    
+    /* INICIO - PONTO DE CHAMADA PARA UPC */
+    IF  c-nom-prog-dpc-mg97  <> "":U
+    OR  c-nom-prog-appc-mg97 <> "":U
+    OR  c-nom-prog-upc-mg97  <> "":U THEN DO:
+
+        FOR EACH tt-epc
+            WHERE tt-epc.cod-event = "calcDescIcms":U:
+            DELETE tt-epc.
+        END.
+
+        {include/i-epc200.i2 &CodEvent="'calcDescIcms'"
+                             &CodParameter="'handleRowObject'"
+                             &ValueParameter="string(BUFFER RowObject:HANDLE)"}
+
+        {include/i-epc201.i "calcDescIcms"}
+
+        FOR EACH tt-epc NO-LOCK:
+            IF tt-epc.cod-event     = "setDescIcms" AND
+               tt-epc.cod-parameter = "percDescIcms" THEN
+                de-perc-desc-icms = DEC(tt-epc.val-parameter).
+            IF tt-epc.cod-event     = "setDescIcms" AND
+               tt-epc.cod-parameter = "vlDescIcms" THEN
+                de-valor-desc-icms = DEC(tt-epc.val-parameter).
+        END.
+        IF de-perc-desc-icms > 0 THEN
+            l-aplica-desc-icms = YES.
+    END.
+    /* FIM do tratamento da UPC */
+    
+    if de-valor-desc-icms > 0 then do:
+        EMPTY TEMP-TABLE tt-ext-item-doc-est.
+          
+        CREATE tt-ext-item-doc-est.
+        ASSIGN tt-ext-item-doc-est.serie-docto  = RowObject.serie-docto
+               tt-ext-item-doc-est.nro-docto    = RowObject.nro-docto
+               tt-ext-item-doc-est.cod-emitente = RowObject.cod-emitente
+               tt-ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+               tt-ext-item-doc-est.sequencia    = RowObject.sequencia
+               tt-ext-item-doc-est.cod-param    = "icms-deson":U
+               tt-ext-item-doc-est.log-livre-1  = l-aplica-desc-icms  /*aplica como desconto*/
+               tt-ext-item-doc-est.val-livre-1  = de-perc-desc-icms   /*perc desconto icms*/
+               tt-ext-item-doc-est.val-livre-2  = de-valor-desc-icms. /*valor desconto icms*/
+           
+        IF  NOT VALID-HANDLE(h-boin01017) THEN
+            RUN inbo/boin01017.p PERSISTENT SET h-boin01017.
+            
+        RUN openQueryStatic IN h-boin01017 (INPUT "Main":U) NO-ERROR.
+        
+        RUN goToKey IN h-boin01017 (INPUT RowObject.serie-docto, 
+                                    INPUT RowObject.nro-docto,   
+                                    INPUT RowObject.cod-emitente,
+                                    INPUT RowObject.nat-operacao,
+                                    INPUT RowObject.sequencia,   
+                                    INPUT "icms-deson":U). 
+                                  
+        IF  RETURN-VALUE = "OK":U THEN DO:
+            RUN emptyRowErrors IN h-boin01017.
+            RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+            RUN updateRecord IN h-boin01017.  
+        END.    
+        ELSE DO:
+            RUN emptyRowErrors IN h-boin01017.
+            RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+            RUN createRecord IN h-boin01017.
+        END.
+              
+        IF VALID-HANDLE(h-boin01017) THEN DO:
+            DELETE PROCEDURE h-boin01017.
+            ASSIGN h-boin01017 = ?.
+        END.
+
+        if l-aplica-desc-icms then do:
+            find first tb-wt-it-docto exclusive-lock
+                 where tb-wt-it-docto.seq-wt-docto    = 1
+                   and tb-wt-it-docto.seq-wt-it-docto = RowObject.sequencia no-error.
+            if avail tb-wt-it-docto then do:
+                assign tb-wt-it-docto.vl-merc-liq = (RowObject.preco-total[1] - RowObject.desconto[1] - de-valor-desc-icms)
+                       tb-wt-it-docto.vl-preuni   = if tb-wt-it-docto.quantidade[1] <> 0 then
+                                                        (tb-wt-it-docto.vl-merc-liq / tb-wt-it-docto.quantidade[1])
+                                                    else tb-wt-it-docto.vl-merc-liq.
+                                                        
+                if valid-handle(h_bodi317im2bra) then 
+                    run enviaTbWtItDocto in h_bodi317im2bra (input table tb-wt-it-docto).
+            end. /*if avail tb-wt-it-docto */
+        end. /*if l-aplica-desc-icms */
+    end. /*if de-valor-desc-icms > 0*/                                         
+
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE setValICMSDeson: 
+    DEFINE INPUT PARAM p-valor-desc-icms AS DEC NO-UNDO.
+    ASSIGN de-val-desc-icm-recalc = p-valor-desc-icms.
+END PROCEDURE.
+
+
+PROCEDURE setAplicaDesonDesc: 
+    DEFINE INPUT PARAM p-aplica-desc-icms AS LOG NO-UNDO.
+    ASSIGN l-apl-desc-icm-recalc = p-aplica-desc-icms.
+END PROCEDURE.

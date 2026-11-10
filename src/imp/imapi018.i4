@@ -1,0 +1,61 @@
+/* Subseá∆o Local de Entrega (TER) */
+
+/* Tipo */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-tipo-ter
+       ttFormatLine.iIniPos = 1
+       ttFormatLine.iLength = 3.
+
+/* CPF/CNPJ Transportadora */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-cpf-cnpf-ter-transp
+       ttFormatLine.iIniPos = 4
+       ttFormatLine.iLength = 14.
+
+/* Raz∆o Social Transportadora */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-razao-socal-ter-transp
+       ttFormatLine.iIniPos = 18
+       ttFormatLine.iLength = 70.
+
+/* Endereáo da Transportadora */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-endereco-transp
+       ttFormatLine.iIniPos = 88
+       ttFormatLine.iLength = 70.
+
+/* CEP Transportadora */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-cep-transp
+       ttFormatLine.iIniPos = 158
+       ttFormatLine.iLength = 10.
+       
+/* N£mero do endereáo */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-num-endereco-transp
+       ttFormatLine.iIniPos = 168
+       ttFormatLine.iLength = 5.
+
+/* Complemento endereáo */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-compl-endereco-transp
+       ttFormatLine.iIniPos = 173
+       ttFormatLine.iLength = 20.
+
+/* Bairro local de retirada */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-bairro-local-retirada
+       ttFormatLine.iIniPos = 193
+       ttFormatLine.iLength = 30.
+       
+/* UF local de retirada */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-uf-local-retirada
+       ttFormatLine.iIniPos = 223
+       ttFormatLine.iLength = 2.
+       
+/* Munic°pio local de retirada */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-municipio-local-retirada
+       ttFormatLine.iIniPos = 225
+       ttFormatLine.iLength = 7.

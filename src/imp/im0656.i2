@@ -1,0 +1,80 @@
+/**************************************************************************************
+**
+** IM0656.I2 - Defini‡äes Frames
+**
+***************************************************************************************/
+
+def var c-lb-tit-sel    as char no-undo.
+def var c-lb-tit-imp    as char format "x(15)" no-undo.
+def var c-lb-destino    as char format "x(10)" no-undo.
+def var c-lb-tit-par    as char format "x(10)" no-undo.
+def var c-lb-usuario    as char format "x(10)" no-undo.
+def var c-erros         as char format "x(60)" no-undo.
+
+define temp-table tt-itiner no-undo
+    field cod-itiner  like itinerario.cod-itiner
+    field descricao   like itinerario.descricao
+    field num-ocorren as integer format ">>9"
+    field previsao    as integer format "->>9"
+    field efetiva     as integer format "->>9"
+    field diferenca   as integer format "->>9"
+    field percentual  as integer format ">>>9"
+    field ponto-critico like pto-itiner.cod-pto-contr.
+
+
+form 
+     tt-itiner.cod-itiner    at 09
+     tt-itiner.descricao     at 17 
+     tt-itiner.num-ocorren   at 55 
+     tt-itiner.previsao      at 60
+     tt-itiner.efetiva       at 66
+     tt-itiner.diferenca     at 73
+     tt-itiner.percentual    at 79
+     tt-itiner.ponto-critico at 90
+     with width 100 no-label stream-io no-box down frame f-itiner.
+     
+form 
+     lb-cod-itiner       at 05
+     lb-descricao        at 17 
+     lb-num-ocorren      at 50 
+     lb-previsao         at 60
+     lb-efetiva          at 66
+     lb-diferenca        at 72
+     lb-percentual       at 79
+     lb-ponto-critico    at 85
+     with stream-io no-box no-label down width 100 frame f-itiner-label.     
+     
+
+form 
+/*Sele‡Æo*/
+     skip(1)                                   
+     c-lb-tit-sel                    no-label skip(1) 
+     tt-param.i-cod-itiner-ini       colon 30
+     "|< >|"                         at 50
+     tt-param.i-cod-itiner-fim       no-label
+     tt-param.c-nome-abrev-ini          colon 30
+     "|< >|"                         at 50
+     tt-param.c-nome-abrev-fim          no-label
+     tt-param.c-it-codigo-ini       colon 30
+     "|< >|"                         at 50
+     tt-param.c-it-codigo-fim       no-label     
+     tt-param.d-data-ini             colon 30
+     "|< >|"                         at 50
+     tt-param.d-data-fim             no-label
+/*Parƒmetros*/
+     skip(1)
+     c-lb-tit-par                    no-label skip(1)
+     tt-param.i-percentual           colon 30
+/*impressÆo*/
+     skip(1)
+     c-lb-tit-imp                    no-label skip(1)
+     c-lb-destino                    at 19 no-label ": " 
+     tt-param.destino  no-label                   
+     " - " 
+     tt-param.arquivo                no-label skip 
+     c-lb-usuario                    at 19 no-label ": "
+     tt-param.usuario                no-label skip(1) 
+     with width 80 side-labels frame f-param stream-io.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-param:HANDLE).
+

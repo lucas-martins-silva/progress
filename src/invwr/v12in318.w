@@ -1,0 +1,512 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
+&ANALYZE-RESUME
+/* Connected Databases 
+          mgcad            PROGRESS
+*/
+&Scoped-define WINDOW-NAME CURRENT-WINDOW
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS V-table-Win 
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+{include/i-prgvrs.i V12IN318 2.00.00.005 } /*** 010005 ***/
+
+/*------------------------------------------------------------------------
+
+  File: 
+
+  Description: from VIEWER.W - Template for SmartViewer Objects 
+
+  Input Parameters:
+      <none>
+
+  Output Parameters:
+      <none>
+
+------------------------------------------------------------------------*/
+/*          This .W file was created with the Progress UIB.             */
+/*----------------------------------------------------------------------*/
+
+/* Create an unnamed pool to store all the widgets created 
+     by this procedure. This is a good default which assures
+     that this procedure's triggers and internal procedures 
+     will execute in this procedure's storage, and that proper
+     cleanup will occur on deletion of the procedure. */
+
+CREATE WIDGET-POOL.
+
+/* ***************************  Definitions  ************************** */
+&Scop adm-attribute-dlg support/viewerd.w
+
+/* Parameters Definitions ---                                           */
+
+/* Local Variable Definitions ---                                       */
+def new global shared var c-nr-lote    like lote.nr-lote        no-undo.
+def new global shared var c-item       like item.it-codigo      no-undo.
+def new global shared var c-cod-refer  like item.cod-refer      no-undo.
+def new global shared var gr-item      as   rowid               no-undo.
+def new global shared var v-row-parent as   rowid               no-undo.
+
+def NEW GLOBAL shared var gr-cd-plano     as INT   no-undo.
+def NEW GLOBAL shared var gr-desc-plano   as CHAR  no-undo.
+def NEW GLOBAL shared var gr-cod-estabel  as CHAR  no-undo.
+
+{cdp/cdcfgman.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE SmartViewer
+&Scoped-define DB-AWARE no
+
+&Scoped-define ADM-SUPPORTED-LINKS Record-Source,Record-Target,TableIO-Target
+
+/* Name of first Frame and/or Browse and/or first Query                 */
+&Scoped-define FRAME-NAME f-main
+
+/* External Tables                                                      */
+&Scoped-define EXTERNAL-TABLES item
+&Scoped-define FIRST-EXTERNAL-TABLE item
+
+
+/* Need to scope the external tables to this procedure                  */
+DEFINE QUERY external_tables FOR item.
+/* Standard List Definitions                                            */
+&Scoped-Define ENABLED-OBJECTS rt-key 
+&Scoped-Define DISPLAYED-FIELDS item.it-codigo item.un 
+&Scoped-Define DISPLAYED-OBJECTS c-desc-item 
+
+/* Custom List Definitions                                              */
+/* ADM-CREATE-FIELDS,ADM-ASSIGN-FIELDS,ADM-MODIFY-FIELDS,List-4,List-5,List-6 */
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Foreign Keys" V-table-Win _INLINE
+/* Actions: ? adm/support/keyedit.w ? ? ? */
+/* STRUCTURED-DATA
+<KEY-OBJECT>
+THIS-PROCEDURE
+</KEY-OBJECT>
+<FOREIGN-KEYS>
+</FOREIGN-KEYS> 
+<EXECUTING-CODE>
+**************************
+* Set attributes related to FOREIGN KEYS
+*/
+RUN set-attribute-list (
+    'Keys-Accepted = "",
+     Keys-Supplied = ""':U).
+/**************************
+</EXECUTING-CODE> */   
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* ***********************  Control Definitions  ********************** */
+
+
+/* Definitions of the field level widgets                               */
+DEFINE VARIABLE c-desc-item AS CHARACTER FORMAT "X(60)":U 
+     VIEW-AS FILL-IN 
+     SIZE 54 BY .88 NO-UNDO.
+
+DEFINE VARIABLE FI-cd-plano AS INTEGER FORMAT ">>9" INITIAL 0 
+     LABEL "Plano":R7 
+     VIEW-AS FILL-IN 
+     SIZE 4.57 BY .88.
+
+DEFINE VARIABLE fi-cod-estabel LIKE estabelec.cod-estabel
+     LABEL "":R7 
+     VIEW-AS FILL-IN 
+     SIZE 5 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-desc-plano AS CHARACTER FORMAT "X(30)":U 
+     VIEW-AS FILL-IN 
+     SIZE 45.57 BY .88 NO-UNDO.
+
+DEFINE RECTANGLE rt-key
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 88.57 BY 1.42.
+
+
+/* ************************  Frame Definitions  *********************** */
+
+DEFINE FRAME f-main
+     item.it-codigo AT ROW 1.17 COL 9.14 COLON-ALIGNED
+          VIEW-AS FILL-IN 
+          SIZE 17.43 BY .88
+     c-desc-item AT ROW 1.17 COL 27 COLON-ALIGNED NO-LABEL
+     fi-cod-estabel AT ROW 1.17 COL 75 COLON-ALIGNED
+     item.un AT ROW 1.17 COL 81.57 COLON-ALIGNED NO-LABEL
+          VIEW-AS FILL-IN 
+          SIZE 5 BY .88
+     FI-cd-plano AT ROW 1.21 COL 12.43 COLON-ALIGNED
+     fi-desc-plano AT ROW 1.25 COL 20.57 COLON-ALIGNED NO-LABEL
+     rt-key AT ROW 1 COL 1
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1 SCROLLABLE .
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: SmartViewer
+   External Tables: mgind.item
+   Allow: Basic,DB-Fields
+   Frames: 1
+   Add Fields to: EXTERNAL-TABLES
+   Other Settings: PERSISTENT-ONLY
+ */
+
+/* This procedure should always be RUN PERSISTENT.  Report the error,  */
+/* then cleanup and return.                                            */
+IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
+  MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT.":U
+          VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  RETURN.
+END.
+
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+/* DESIGN Window definition (used by the UIB) 
+  CREATE WINDOW V-table-Win ASSIGN
+         HEIGHT             = 1.54
+         WIDTH              = 88.57.
+/* END WINDOW DEFINITION */
+                                                                        */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB V-table-Win 
+/* ************************* Included-Libraries *********************** */
+
+{src/adm/method/viewer.i}
+{include/c-viewer.i}
+{utp/ut-glob.i}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
+
+&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
+/* SETTINGS FOR WINDOW V-table-Win
+  VISIBLE,,RUN-PERSISTENT                                               */
+/* SETTINGS FOR FRAME f-main
+   NOT-VISIBLE Size-to-Fit                                              */
+ASSIGN 
+       FRAME f-main:SCROLLABLE       = FALSE
+       FRAME f-main:HIDDEN           = TRUE.
+
+/* SETTINGS FOR FILL-IN c-desc-item IN FRAME f-main
+   NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN FI-cd-plano IN FRAME f-main
+   NO-DISPLAY NO-ENABLE                                                 */
+ASSIGN 
+       FI-cd-plano:HIDDEN IN FRAME f-main           = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-cod-estabel IN FRAME f-main
+   NO-DISPLAY NO-ENABLE                                                 */
+ASSIGN 
+       fi-cod-estabel:HIDDEN IN FRAME f-main           = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-desc-plano IN FRAME f-main
+   NO-DISPLAY NO-ENABLE                                                 */
+ASSIGN 
+       fi-desc-plano:HIDDEN IN FRAME f-main           = TRUE.
+
+/* SETTINGS FOR FILL-IN item.it-codigo IN FRAME f-main
+   NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN item.un IN FRAME f-main
+   NO-ENABLE                                                            */
+/* _RUN-TIME-ATTRIBUTES-END */
+&ANALYZE-RESUME
+
+
+/* Setting information for Queries and Browse Widgets fields            */
+
+&ANALYZE-SUSPEND _QUERY-BLOCK FRAME f-main
+/* Query rebuild information for FRAME f-main
+     _Options          = "NO-LOCK"
+     _Query            is NOT OPENED
+*/  /* FRAME f-main */
+&ANALYZE-RESUME
+
+ 
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK V-table-Win 
+
+
+/* ***************************  Main Block  *************************** */
+
+  &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
+    RUN dispatch IN THIS-PROCEDURE ('initialize':U).        
+  &ENDIF         
+  
+  /************************ INTERNAL PROCEDURES ********************/
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE adm-row-available V-table-Win  _ADM-ROW-AVAILABLE
+PROCEDURE adm-row-available :
+/*------------------------------------------------------------------------------
+  Purpose:     Dispatched to this procedure when the Record-
+               Source has a new row available.  This procedure
+               tries to get the new row (or foriegn keys) from
+               the Record-Source and process it.
+  Parameters:  <none>
+------------------------------------------------------------------------------*/
+
+  /* Define variables needed by this internal procedure.             */
+  {src/adm/template/row-head.i}
+
+  /* Create a list of all the tables that we need to get.            */
+  {src/adm/template/row-list.i "item"}
+
+  /* Get the record ROWID's from the RECORD-SOURCE.                  */
+  {src/adm/template/row-get.i}
+
+  /* FIND each record specified by the RECORD-SOURCE.                */
+  {src/adm/template/row-find.i "item"}
+
+  /* Process the newly available records (i.e. display fields,
+     open queries, and/or pass records on to any RECORD-TARGETS).    */
+  {src/adm/template/row-end.i}
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI V-table-Win  _DEFAULT-DISABLE
+PROCEDURE disable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     DISABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we clean-up the user-interface by deleting
+               dynamic widgets we have created and/or hide 
+               frames.  This procedure is usually called when
+               we are ready to "clean-up" after running.
+------------------------------------------------------------------------------*/
+  /* Hide all frames. */
+  HIDE FRAME f-main.
+  IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-disable-fields V-table-Win 
+PROCEDURE local-disable-fields :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  /* Dispatch standard ADM method.                             */
+  RUN dispatch IN THIS-PROCEDURE ( INPUT 'disable-fields':U ) .
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  &if  defined(ADM-MODIFY-FIELDS) &then
+      disable {&ADM-MODIFY-FIELDS} with frame {&frame-name}.
+  &endif
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-display-fields V-table-Win 
+PROCEDURE local-display-fields :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+  if avail item then
+     assign c-desc-item = item.desc-item.
+     
+  /* Dispatch standard ADM method.                             */
+  RUN dispatch IN THIS-PROCEDURE ( INPUT 'display-fields':U ) .
+  
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-initialize V-table-Win 
+PROCEDURE local-initialize :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+  define variable h-wHandle as WIDGET-HANDLE no-undo. 
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  /* Dispatch standard ADM method.                             */
+  RUN dispatch IN THIS-PROCEDURE ( INPUT 'initialize':U ) .
+  &IF DEFINED (bf_man_203) &THEN
+    ASSIGN fi-cd-plano:SCREEN-VALUE in frame {&frame-name}    = STRING(gr-cd-plano)
+           fi-desc-plano:SCREEN-VALUE in frame {&frame-name}  = gr-desc-plano
+           fi-cod-estabel:SCREEN-VALUE IN FRAME {&FRAME-NAME} = gr-cod-estabel.
+  /*posisionamento de campos para a release 2.03*/
+  do with frame {&frame-name}:
+    assign frame f-main:height = 2.50
+           rt-key:height = 2.29
+           fi-cd-plano:column = 11.14
+           fi-cd-plano:row = 2.17
+           h-wHandle = fi-cd-plano:side-label-handle
+           h-wHandle:row = 2.17
+           h-wHandle:column = fi-cd-plano:column - 5
+           fi-desc-plano:column = 16.23
+           fi-desc-plano:row = 2.17
+           fi-cod-estabel:column = 83.50
+           fi-cod-estabel:row = 2.17
+           h-wHandle = fi-cod-estabel:side-label-handle
+           h-wHandle:row = 2.17
+           h-wHandle:column = fi-cod-estabel:column - 4
+           fi-cd-plano:hidden = no
+           fi-desc-plano:hidden = no
+           fi-cod-estabel:hidden = no. 
+    
+    {utp/ut-field.i mgind pl-prod cd-plano 1}
+    assign fi-cd-plano:label in frame {&frame-name} = trim(return-value).
+    {utp/ut-field.i mgadm estabelec cod-estabel 2}
+    assign fi-cod-estabel:label in frame {&frame-name} = trim(return-value). 
+  end.
+  
+  &endif
+  /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-row-available V-table-Win 
+PROCEDURE local-row-available :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  /* Code placed here will execute PRIOR to standard behavior. */
+
+  /* Dispatch standard ADM method.                             */
+  RUN dispatch IN THIS-PROCEDURE ( INPUT 'row-available':U ) .
+
+  /* Code placed here will execute AFTER standard behavior.    */
+  if avail item then
+  &IF DEFINED (bf_man_203) &THEN
+  FOR LAST pl-it-calc FIELDS(it-codigo cd-plano ) where 
+            pl-it-calc.it-codigo = item.it-codigo no-lock,
+      LAST pl-prod FIELDS(cd-plano descricao num-calc-plano) where 
+            pl-prod.cd-plano = pl-it-calc.cd-plano no-lock:
+      FOR LAST pl-carga-maq where 
+                pl-carga-maq.it-codigo = pl-it-calc.it-codigo and
+                pl-carga-maq.num-calc-plano = pl-prod.num-calc-plano no-lock:
+          assign fi-cd-plano:screen-value in  FRAME {&FRAME-NAME} = string(pl-prod.cd-plano)
+                 fi-desc-plano:SCREEN-VALUE in FRAME {&FRAME-NAME} = pl-prod.descricao.            
+          FIND LAST it-periodo WHERE
+                     it-periodo.it-codigo = pl-it-calc.it-codigo AND
+                     it-periodo.num-id-it-periodo = pl-carga-maq.num-id-it-periodo AND
+                     it-periodo.num-calc-plano = pl-carga-maq.num-calc-plano NO-LOCK NO-ERROR.
+          if avail it-periodo then
+             assign fi-cod-estabel:SCREEN-VALUE in FRAME {&FRAME-NAME} = it-periodo.cod-estabel.           
+      end.                    
+  end. 
+  &endif
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-troca-label-item V-table-Win 
+PROCEDURE pi-troca-label-item :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    def input parameter v-label as char format "x(12)".
+
+    do with frame {&frame-name}:
+       assign item.it-codigo:label = trim(v-label).
+    end.  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE send-records V-table-Win  _ADM-SEND-RECORDS
+PROCEDURE send-records :
+/*------------------------------------------------------------------------------
+  Purpose:     Send record ROWID's for all tables used by
+               this file.
+  Parameters:  see template/snd-head.i
+------------------------------------------------------------------------------*/
+
+  /* Define variables needed by this internal procedure.               */
+  {src/adm/template/snd-head.i}
+
+  /* For each requested table, put it's ROWID in the output list.      */
+  {src/adm/template/snd-list.i "item"}
+
+  /* Deal with any unexpected table requests before closing.           */
+  {src/adm/template/snd-end.i}
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE state-changed V-table-Win 
+PROCEDURE state-changed :
+/* -----------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+-------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER p-issuer-hdl AS HANDLE    NO-UNDO.
+  DEFINE INPUT PARAMETER p-state      AS CHARACTER NO-UNDO.
+
+  CASE p-state:
+      /* Object instance CASEs can go here to replace standard behavior
+         or add new cases. */
+      {src/adm/template/vstates.i}
+  END CASE.
+  run pi-trata-state (p-issuer-hdl, p-state).
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+

@@ -1,0 +1,191 @@
+/*
+**
+** IMAPI001.I4 - Verifica se a Despesa possui F¢rmula com Despesas Complementares
+**               e quais s∆o as Despesas Complementares.
+**
+*/
+
+procedure getFormulaDesp:
+/*
+** Verifica se a Despesa possui F¢rmula com Despesas Complementares
+*/
+
+def input  parameter p-cod-desp         like desp-imp.cod-desp            no-undo.
+def input  parameter p-nr-tab-preco     like desp-tb-pr-cex.nr-tab        no-undo.
+def input  parameter p-cond-pagto       like desp-tb-pr-cex.cod-cond-pag  no-undo.
+def input  parameter p-fornec-desp      like desp-imp.cod-emitente        no-undo.
+def input  parameter p-cod-itiner       like itiner.cod-itiner            no-undo.
+def input  parameter p-cod-incoterm     like inco-cx.cod-incoterm         no-undo.
+def output parameter l-desp-vinc        as log                            no-undo.
+def output parameter table for tt-desp-vinc.
+
+def var i-desp-infl   as integer    no-undo.
+def var i-ind         as integer    no-undo.
+def var i-tam-var     as integer    no-undo.
+def var c-desp-infl   as char       no-undo.
+def var l-controle    as log        no-undo.
+def var l-ini-formula as log        no-undo.
+
+find first desp-imp
+     where desp-imp.cod-desp = p-cod-desp no-lock no-error.
+
+if avail desp-imp then do:
+    find tb-pr-cex no-lock where
+        tb-pr-cex.nr-tab       = p-nr-tab-preco and
+        tb-pr-cex.cod-emitente = p-fornec-desp  and
+        tb-pr-cex.cod-itiner   = p-cod-itiner   and
+        tb-pr-cex.cod-incoterm = p-cod-incoterm no-error.
+   if available tb-pr-cex then do:
+       find first desp-tb-pr-cex
+            where desp-tb-pr-cex.cod-desp     = p-cod-desp
+              and desp-tb-pr-cex.nr-tab       = p-nr-tab-preco
+              and desp-tb-pr-cex.cod-cond-pag = p-cond-pagto
+              and desp-tb-pr-cex.cod-emitente = p-fornec-desp 
+              and desp-tb-pr-cex.cod-itiner   = p-cod-itiner  
+              and desp-tb-pr-cex.cod-incoterm = p-cod-incoterm no-lock no-error.
+              
+       if avail desp-tb-pr-cex then do:
+          if desp-tb-pr-cex.val-desp = 0 then do:
+             if desp-tb-pr-cex.dsl-formul-desp <> "" then do:
+                 run create-despesa-vinculada (input  desp-tb-pr-cex.dsl-formul-desp,
+                                               input  p-cod-incoterm,
+                                               output l-desp-vinc).
+             end.   
+             else do:
+                if desp-imp.dsl-formul-desp <> "" then do:
+                   run create-despesa-vinculada (input  desp-imp.dsl-formul-desp,
+                                                 input  p-cod-incoterm,
+                                                 output l-desp-vinc).
+                end.      
+             end.
+          end.
+       end.
+       else do:
+           if /*l-desp-vinc = no and*/
+               desp-imp.dsl-formul-desp <> "" then do:
+               run create-despesa-vinculada (input  desp-imp.dsl-formul-desp,
+                                             input  p-cod-incoterm,
+                                             output l-desp-vinc).
+           end.      
+       end.
+   end.
+   else do:
+       if /*l-desp-vinc = no and*/
+           desp-imp.dsl-formul-desp <> "" then do:
+           run create-despesa-vinculada (input  desp-imp.dsl-formul-desp,
+                                         input  p-cod-incoterm,
+                                         output l-desp-vinc).
+       end.      
+   end.    
+end.             
+end procedure.
+
+procedure create-despesa-vinculada:
+    define input  parameter p-des-formula  as char no-undo.
+    define input  parameter p-cod-incoterm like inco-cx.cod-incoterm no-undo.
+    define output parameter p-desp-vinc    as log  no-undo.
+    
+    define variable i-tam-var          as integer no-undo.
+    define variable c-formula          as char    no-undo.
+    define variable l-ini-formula      as logical no-undo.
+    define variable l-desp-infl-outras as logical no-undo.
+    define variable l-controle         as logical no-undo.
+    define variable i-ind              as integer no-undo.
+    define variable c-desp-infl        as char    no-undo.
+    
+    define variable h_bocx095 as handle no-undo.
+    
+    assign i-tam-var          = length(p-des-formula)
+           i-tam-var          = i-tam-var + 1
+           p-desp-vinc        = no
+           c-formula          = ""
+           l-ini-formula      = yes
+           l-desp-infl-outras = no.
+
+    if not valid-handle(h_bocx095) then
+       run cxbo/bocx095.p persistent set h_bocx095.
+       
+    run geraTTvar in h_bocx095 (input  p-des-formula,
+                                output table tt-var).
+    IF VALID-HANDLE(h_bocx095) THEN DO:
+        DELETE PROCEDURE h_bocx095.
+        ASSIGN h_bocx095 = ?.
+    END.                                
+                                 
+    find first tt-var
+         where upper(tt-var.nome) begins "VAL-DESP-" no-error.
+    
+    if avail tt-var then do:
+       /* Identifica que a formula da despesa possui despesas vinculadas (VAL-DESP-) */
+        assign l-desp-infl-outras = yes.
+       /****/
+       
+       assign i-tam-var     = length(p-des-formula)
+              i-tam-var     = i-tam-var + 1
+              l-controle    = no
+              p-desp-vinc   = yes
+              l-ini-formula = yes.
+              
+       do i-ind = 1 to i-tam-var:       
+           if upper(c-formula) = "VAL-DESP-" then
+              assign l-controle = yes.
+              
+           if l-controle = yes then do:
+              assign c-desp-infl = c-desp-infl + substring(p-des-formula,i-ind,1).
+                                         
+              if substring(p-des-formula,i-ind,1) = "" then do:
+                 /* Verifica se j† existe essa despesa vinculada a despesa em quest∆o */
+                 if not can-find (first tt-desp-vinc
+                                  where tt-desp-vinc.cod-desp      = desp-imp.cod-desp
+                                    and tt-desp-vinc.cod-desp-form = int(c-desp-infl)) then do:
+                                    
+                    create tt-desp-vinc.
+                    assign tt-desp-vinc.cod-desp      = desp-imp.cod-desp
+                           tt-desp-vinc.cod-desp-form = int(c-desp-infl).
+                 end.
+                 /****/
+                 
+                 assign l-controle    = no
+                        c-formula     = ""
+                        c-desp-infl   = ""
+                        l-ini-formula = yes.
+              end.
+           end.          
+           else
+              assign c-formula = c-formula + substring(p-des-formula,i-ind,1).
+       
+           if  l-ini-formula = yes then do:
+               if substring(p-des-formula,i-ind,1) = "V" then 
+                   assign c-formula = substring(p-des-formula,i-ind,1)
+                          l-ini-formula = no.
+           end.
+           else do:
+             if substring(p-des-formula,i-ind,1) = " " then
+                assign c-formula     = substring(p-des-formula,i-ind,1)
+                       l-ini-formula = yes.
+           end.
+       end.
+    end.   
+
+    find first tt-var where
+        upper(tt-var.nome) begins "VAL-NEGOC-LIQ" or 
+        upper(tt-var.nome) begins "VAL-NEGOC-BRUTO" or
+        upper(tt-var.nome) begins "VAL-INCO-" no-error.
+    if available tt-var then do:
+        for each desp-incoterm no-lock where
+            desp-incoterm.cod-incoterm = p-cod-incoterm:
+            /* Verifica se j† existe essa despesa vinculada a despesa em quest∆o */
+            if not can-find (first tt-desp-vinc
+                             where tt-desp-vinc.cod-desp      = desp-imp.cod-desp
+                               and tt-desp-vinc.cod-desp-form = desp-incoterm.cod-desp) then do:
+                               
+               create tt-desp-vinc.
+               assign tt-desp-vinc.cod-desp      = desp-imp.cod-desp
+                      tt-desp-vinc.cod-desp-form = desp-incoterm.cod-desp.
+            end.
+        end.
+    end.
+    
+end procedure.
+
+/* IMAPI001.I4 */

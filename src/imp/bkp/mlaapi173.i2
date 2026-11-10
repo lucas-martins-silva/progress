@@ -1,0 +1,761 @@
+
+if can-find(first funcao
+            where funcao.cd-funcao = "Nao_Valida_MLA"
+            and   funcao.ativo     = yes) then
+    return "OK".
+
+/**EPC para tratar lotaá∆o do documento **/
+{include/i-epc200.i "mlaapi173"}
+
+DEF NEW GLOBAL SHARED VAR c-seg-usuario AS CHAR FORMAT "x(12)" NO-UNDO.
+
+DEF VAR i-tipo-item   AS INTEGER NO-UNDO.
+DEF VAR i-tipo-total  AS INTEGER NO-UNDO.
+DEF VAR i-tipo-aprov  AS INTEGER NO-UNDO.
+
+DEF VAR i-cod-aprov   AS INTEGER NO-UNDO.
+DEF VAR i-prioridade  AS INTEGER NO-UNDO.
+DEF VAR c-lotacao     AS CHAR    NO-UNDO.
+DEF VAR c-lotacao-fim AS CHAR    NO-UNDO.
+DEF VAR c-referencia  AS CHAR    NO-UNDO.
+DEF VAR c-help-a  AS CHAR format "X(40)"   NO-UNDO.
+
+DEF VAR l-avail-ref  AS LOGICAL NO-UNDO.
+DEF VAR l-avail-doc  AS LOGICAL NO-UNDO.
+DEF VAR l-avail-item AS LOGICAL NO-UNDO.
+DEF VAR l-avail-fam  AS LOGICAL NO-UNDO.
+
+DEF VAR l-aprov-com-limite  AS LOGICAL NO-UNDO.
+DEF VAR nr-min-aprov   AS INTEGER NO-UNDO.  /* Var†vel que possui o numero m°nimo de aprovadores da lista*/
+DEF VAR nr-aprov       AS INTEGER NO-UNDO. /* Vari†vel para contagem de aprovadores v†lidos */
+
+/* Vari†veis utilizadas para traduá∆o das mensagens */
+def var c-trad-1 as char no-undo.
+def var c-trad-2 as char no-undo.
+def var c-trad-3 as char no-undo.
+def var c-trad-4 as char no-undo.
+        
+DEF VAR de-valor-final AS DECIMAL NO-UNDO.
+def var l-tem-limite   as log init no no-undo.
+def var c-msg-32504    as char no-undo.
+
+DEFINE VARIABLE c-conta-contabil AS CHARACTER   NO-UNDO.
+assign  de-valor-item  = round( de-valor-item,2)   /*Arredondamento para duas casas decimais para que qdo for comparada com a faixa*/
+        de-valor-total = round( de-valor-total,2). /*de aprovaá∆o faáa a compraá∆o comduas casas decimais assim como est† cadastrada as faixas*/ 
+
+run utp/ut-msgs.p (input "msg":U,
+                   input 32504,
+                   input "":U ).
+assign c-msg-32504 = return-value.
+
+FIND FIRST param-global NO-LOCK NO-ERROR.
+
+FIND FIRST estabelec 
+     WHERE estabelec.cod-estabel = c-estabelecimento NO-LOCK NO-ERROR.
+IF NOT AVAIL estabelec then do:
+    {utp/ut-table.i mgadm estabelec 1}
+    create tt-erro-aed.                                               
+    assign tt-erro-aed.cd-erro  = 2
+           tt-erro-aed.i-sequen = 1                                   
+           tt-erro-aed.c-param  = return-value + "~~" + c-estabelecimento. 
+    return "NOK".
+end.
+
+ /** Verifica tipo de documento
+    I-tipo - Tipo de documento    1-Solicitaá∆o
+                                  2-Requisiá∆o
+                                  3-Cotaá∆o
+                                  4-Pedido
+                                  5-Solicitaá∆o Cotaá∆o
+                                  6-Pedido Emergencial
+                                  7-Processo Compras
+                                  8-Contrato Fornec
+                                  9-Solicitaá∆o de Serviáo
+                                  11-Evento
+                                  12-Mediá∆o
+**/
+
+
+CASE i-tipo:
+        WHEN 1 THEN 
+            ASSIGN i-tipo-item  = 1
+                   i-tipo-total = 2.
+        WHEN 2 THEN 
+            ASSIGN i-tipo-item  = 3
+                   i-tipo-total = 4.
+        WHEN 3 THEN  
+            ASSIGN i-tipo-item  = 5.
+        WHEN 4 THEN  
+            ASSIGN i-tipo-item  = 6
+                   i-tipo-total = 7.
+        WHEN 5 THEN  
+            ASSIGN i-tipo-item  = 18.
+        WHEN 6 THEN 
+            ASSIGN i-tipo-item  = 19
+                   i-tipo-total = 8.
+        WHEN 7 THEN 
+            ASSIGN i-tipo-item  = 9
+                   i-tipo-total = 10.
+        WHEN 8 THEN 
+            ASSIGN i-tipo-item  = 13
+                   i-tipo-total = 13.
+        WHEN 9 THEN
+            ASSIGN i-tipo-item  = 20
+                   i-tipo-total = 0.
+        WHEN 11 THEN
+            ASSIGN i-tipo-item  = 16
+                   i-tipo-total = 17.
+        WHEN 12 THEN
+            ASSIGN i-tipo-item  = 14.
+        WHEN 21 THEN
+            ASSIGN i-tipo-item  = 0
+                   i-tipo-total = 21.
+        OTHERWISE DO:                 /** Validaá∆o para Documento Especifico **/
+            if can-find(first funcao
+                        where funcao.cd-funcao = "valida-doc-espec" + STRING(i-tipo)
+                        and   funcao.ativo     = yes) then do:
+                if c-it-codigo = "" then
+                    assign i-tipo-total = i-tipo.
+                else
+                    assign i-tipo-item = i-tipo.
+            end.
+            else
+                return.
+        END.
+END CASE.
+
+/* Valida se o documento est† parametrizado para ser aprovado, caso n∆o esteja, o documento Ç aprovado automaticamente */
+FIND FIRST mla-tipo-doc-aprov WHERE 
+    mla-tipo-doc-aprov.ep-codigo   = i-empresa AND   
+    mla-tipo-doc-aprov.cod-estabel = estabelec.cod-estabel AND     
+    mla-tipo-doc-aprov.cod-tip-doc = i-tipo-item AND
+    mla-tipo-doc-aprov.apr-tip-doc = YES NO-LOCK NO-ERROR.
+
+IF AVAIL mla-tipo-doc-aprov THEN
+     ASSIGN i-tipo-aprov = i-tipo-item
+            c-help-a     = string(mla-tipo-doc-aprov.cod-tip-doc) + "-" + mla-tipo-doc-aprov.des-tip-doc. 
+
+IF NOT AVAILABLE mla-tipo-doc-aprov THEN DO:
+    FIND FIRST mla-tipo-doc-aprov WHERE 
+        mla-tipo-doc-aprov.ep-codigo   = i-empresa AND 
+        mla-tipo-doc-aprov.cod-estabel = estabelec.cod-estabel AND     
+        mla-tipo-doc-aprov.cod-tip-doc = i-tipo-total AND
+        mla-tipo-doc-aprov.apr-tip-doc = YES NO-LOCK NO-ERROR.
+
+    IF AVAIL mla-tipo-doc-aprov THEN
+        ASSIGN i-tipo-aprov = i-tipo-total
+               c-help-a     = mla-tipo-doc-aprov.des-tip-doc.
+   
+END.
+
+if avail mla-tipo-doc-aprov then do:
+    find first mla-param-aprov
+        where mla-param-aprov.ep-codigo   = i-empresa
+        and   mla-param-aprov.cod-estabel = estabelec.cod-estabel no-lock no-error.
+    if not avail mla-param-aprov then do:
+        {utp/ut-liter.i N∆o_existe_parametrizaá∆o_Empresa_Estabeleciemnto_para_documento_movimentado *r}
+        assign c-trad-1 = return-value.
+        create tt-erro-aed.
+        assign tt-erro-aed.cd-erro  = 32504
+               tt-erro-aed.i-sequen = 1
+               tt-erro-aed.mensagem = c-msg-32504 + c-help-a 
+               tt-erro-aed.c-param  = c-help-a                       + "~~" +  
+                                  string(i-empresa)              + "~~" +  
+                                  string(estabelec.cod-estabel)  + "~~" +  
+                                  c-help-a                       + "~~" +  
+                                  " -" + c-trad-1.
+        return "nok".
+    end.
+end.
+
+/*INICIO PONTO UPC*/
+FOR each tt-epc:
+    delete tt-epc.
+end.
+
+create tt-epc.
+assign tt-epc.cod-event     = "beforemlaapi173":U
+       tt-epc.cod-parameter = "tip-doc"
+       tt-epc.val-parameter = string(i-tipo-aprov).
+
+create tt-epc.
+assign tt-epc.cod-event     = "beforemlaapi173":U
+       tt-epc.cod-parameter = "usuario-doc":U
+       tt-epc.val-parameter = c-usuario.
+
+{include/i-epc201.i "beforemlaapi173"}
+
+find first tt-epc no-lock  
+     where tt-epc.cod-event = "beforemlaapi173":U no-error.
+if avail tt-epc and  
+         tt-epc.cod-parameter = "novo-usuario":U then
+     assign c-usuario = tt-epc.val-parameter.
+
+/*FIM PONTO UPC*/
+
+IF AVAIL mla-tipo-doc-aprov THEN DO:
+    {utp/ut-liter.i Usu†rio_n∆o_cadastrado_no_MLA(MLA0103) * r}  
+    assign c-trad-1 = return-value.
+    
+    /* Verifica se usu†rio logado no sistema est† cadastrado como usu†rio do MLA */
+    find first mla-usuar-aprov 
+        where mla-usuar-aprov.cod-usuar = c-seg-usuario no-lock no-error.
+    if not available mla-usuar-aprov then do:
+        {utp/ut-liter.i Usu†rio_Logado_no_Sistema * r}  
+    
+         create tt-erro-aed.
+         assign tt-erro-aed.cd-erro  = 56
+                tt-erro-aed.i-sequen = 1
+                tt-erro-aed.mensagem = return-value
+                tt-erro-aed.c-param  = return-value + "~~" + c-trad-1 + c-seg-usuario.
+    
+         return "nok".  
+    
+    end. /* Fim da validaá∆o do usu†rio logado */
+    
+    /* Find para verificar se usu†rio responsavel pelo documento
+       existe como usu†rio do MLA e buscar lotaá∆o do mesmo */
+    find first mla-usuar-aprov 
+        where mla-usuar-aprov.cod-usuar = c-usuario no-lock no-error.
+    
+    if not available mla-usuar-aprov then do:
+        {utp/ut-liter.i Usu†rio_Responsavel_Documento * r}  
+    
+        create tt-erro-aed.
+        assign tt-erro-aed.cd-erro  = 56
+               tt-erro-aed.i-sequen = 1
+               tt-erro-aed.mensagem = return-value
+               tt-erro-aed.c-param  = return-value + "~~" + c-trad-1 + " " + c-usuario.
+    
+        return "nok".   
+    end.
+    
+     for each tt-epc:
+        delete tt-epc.
+     end.
+    
+     create tt-epc.
+     assign tt-epc.cod-event     = "Lotacao"
+            tt-epc.cod-parameter = "Lotacao"
+            tt-epc.val-parameter = string(p-lotacao-doc). 
+    
+     ASSIGN c-conta-contabil = p-referencia-item + p-lotacao-doc.
+     create tt-epc.
+     assign tt-epc.cod-event     = "Lotacao"
+            tt-epc.cod-parameter = "conta"
+            tt-epc.val-parameter = string(c-conta-contabil).
+    
+     create tt-epc.
+     assign tt-epc.cod-event     = "Lotacao"
+            tt-epc.cod-parameter = "tip-doc"
+            tt-epc.val-parameter = string(i-tipo).
+    
+     create tt-epc.
+     assign tt-epc.cod-event     = "Lotacao"
+            tt-epc.cod-parameter = "Usuario"
+            tt-epc.val-parameter = c-usuario.
+     {include/i-epc201.i "lotacao"}
+    
+     FIND FIRST tt-epc 
+          WHERE tt-epc.cod-event     = "Lotacao" 
+            AND tt-epc.cod-parameter = "Nova_Lotacao"
+            AND tt-epc.val-parameter <> "" NO-ERROR.
+     IF AVAIL tt-epc THEN
+         ASSIGN p-lotacao-doc = tt-epc.val-parameter NO-ERROR.
+END.
+    
+/* Mesma logica mlaapi001 */
+if avail mla-param-aprov then do:
+    if  mla-param-aprov.int-1 = 1 then 
+        /* 1 - Usuario da transacao */
+        find first mla-usuar-aprov where mla-usuar-aprov.cod-usuar = c-seg-usuario no-lock no-error.
+    else
+        /* 2 - Usuario do documento */
+        find first mla-usuar-aprov where mla-usuar-aprov.cod-usuar = c-usuario no-lock no-error.
+end.
+    
+if i-tipo-aprov = 1  or 
+   i-tipo-aprov = 3  or
+   i-tipo-aprov = 5  or
+   i-tipo-aprov = 6  or
+   i-tipo-aprov = 9  or
+   i-tipo-aprov = 14 or
+   i-tipo-aprov = 16 or
+   i-tipo-aprov = 18 or
+   i-tipo-aprov = 19 or
+   i-tipo-aprov = 20 OR         /** Solicitaá∆o de Servico mmi **/
+   i-tipo-aprov = 24 or         /** Documento do Financeiro **/
+   i-tipo-aprov = 25 or         /** Documento do Financeiro **/
+   i-tipo-aprov = 26 or         /** Documento do Financeiro **/
+   i-tipo-aprov = 28 or         /** Documento do Financeiro **/
+   i-tipo-aprov >= 500 then do: /** Documentos Especificos  **/
+
+   ASSIGN de-valor-final = de-valor-item
+          c-referencia   = p-referencia-item.
+
+     IF AVAIL mla-tipo-doc-aprov THEN DO:
+         IF AVAIL mla-usuar-aprov THEN DO:
+             /**  Lotaá∆o **/
+             IF mla-usuar-aprov.destino-lotacao = 1 THEN DO:
+                 
+                 /*Se Cotaá∆o, Pedido Compra Item ou Pedido Emergencial Item e marcado parÉmetro "Utiliza lotaá∆o usu†rio documento de origem" 
+                   utilizar a lotaá∆o do usu†rio da requisiá∆o que vem no p-lotacao-doc.
+                   substring(mla-usuar-aprov.char-1,2,1) = "Utiliza lotaá∆o usu†rio documento de origem"
+                 */    
+                 if (mla-tipo-doc-aprov.cod-tip-doc = 5 or /*Cotaá∆o*/
+                    mla-tipo-doc-aprov.cod-tip-doc = 6 or /*Pedido de Compra - Item*/
+                    mla-tipo-doc-aprov.cod-tip-doc = 19) and /*Pedido de Compra Emergencial - Item*/
+                    trim(substring(mla-usuar-aprov.char-1,2,1)) = "1" /*"Utiliza lotaá∆o usu†rio documento de origem"*/
+                    then do:
+                    ASSIGN c-lotacao = p-lotacao-doc.
+                    if c-lotacao = "" then
+                       ASSIGN c-lotacao = mla-usuar-aprov.cod-lotacao.
+                 end.
+                 else
+                    ASSIGN c-lotacao = mla-usuar-aprov.cod-lotacao.
+                    
+                 IF c-lotacao = "" THEN
+                     ASSIGN c-lotacao = p-lotacao-doc.
+                         
+             END.
+             ELSE DO:
+                 ASSIGN c-lotacao = p-lotacao-doc.
+                 IF c-lotacao = "" THEN
+                     ASSIGN c-lotacao = mla-usuar-aprov.cod-lotacao.
+                        
+             END.
+         END.
+     END.                                                                                                                                             
+END.                                                                                                                                                  
+ELSE DO:
+    ASSIGN de-valor-final = de-valor-total
+           c-referencia   = p-referencia-total.
+
+    IF AVAIL mla-tipo-doc-aprov THEN DO:
+        IF AVAIL mla-usuar-aprov THEN DO:
+            /**  Lotaá∆o **/
+            ASSIGN c-lotacao = mla-usuar-aprov.cod-lotacao.
+            IF c-lotacao = "" THEN
+                 ASSIGN c-lotacao = p-lotacao-doc.
+        END.
+    END.
+END.
+
+OUTPUT TO VALUE(SESSION:TEMP-DIRECTORY + "MLALog-MLAAPI173_" + string(i-tipo-aprov) + "_" + string(today,"99-99-99") + ".txt") append.
+PUT SKIP(1).
+PUT UNFORMATTED "====================================================================================================" skip.
+/* Inicio -- Projeto Internacional */
+{utp/ut-liter.i "Log_MLA" *}
+PUT UNFORMATTED ".:: " + RETURN-VALUE + " - " + string(today) + " - " + string(time,"hh:mm:ss") + " ::." SKIP.
+/* Inicio -- Projeto Internacional */
+{utp/ut-liter.i "Ponto_(A)" *}
+PUT UNFORMATTED "    " + RETURN-VALUE SKIP.
+/* Inicio -- Projeto Internacional */
+DEFINE VARIABLE c-lbl-liter-mlaapi173-verifica-parametri AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "MLAAPI173_-_Verifica_Parametrizacao_MLA" *}
+ASSIGN c-lbl-liter-mlaapi173-verifica-parametri = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-versao AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Versao" *}
+ASSIGN c-lbl-liter-versao = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-empresa AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Empresa" *}
+ASSIGN c-lbl-liter-empresa = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-estabeleciemnto AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Estabeleciemnto" *}
+ASSIGN c-lbl-liter-estabeleciemnto = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-tipo-de-aprovacao AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Tipo_de_Aprovacao" *}
+ASSIGN c-lbl-liter-tipo-de-aprovacao = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-item AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Item" *}
+ASSIGN c-lbl-liter-item = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-usuario AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Usuario" *}
+ASSIGN c-lbl-liter-usuario = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-lotacao-do-usuario AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Lotacao_do_Usuario" *}
+ASSIGN c-lbl-liter-lotacao-do-usuario = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-centro-de-custo AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Centro_de_Custo" *}
+ASSIGN c-lbl-liter-centro-de-custo = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-valor-do-item AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Valor_do_Item" *}
+ASSIGN c-lbl-liter-valor-do-item = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-valor-total AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Valor_Total" *}
+ASSIGN c-lbl-liter-valor-total = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-referencia-item AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Referencia_Item" *}
+ASSIGN c-lbl-liter-referencia-item = TRIM(RETURN-VALUE).
+DEFINE VARIABLE c-lbl-liter-referencia-total AS CHARACTER NO-UNDO.
+{utp/ut-liter.i "Referencia_Total" *}
+ASSIGN c-lbl-liter-referencia-total = TRIM(RETURN-VALUE).
+PUT UNFORMATTED "    " + c-lbl-liter-mlaapi173-verifica-parametri SKIP 
+                "    " + c-lbl-liter-versao + "..............:   " + STRING(c-prg-vrs) SKIP
+                "    " + c-lbl-liter-empresa + ".............:   " i-empresa SKIP    
+                "    " + c-lbl-liter-estabeleciemnto + ".....:   " c-estabelecimento SKIP
+                "    " + c-lbl-liter-tipo-de-aprovacao + "...:   " i-tipo-aprov SKIP           
+                "    " + c-lbl-liter-item + "................:   " c-it-codigo SKIP      
+                "    " + c-lbl-liter-usuario + ".............:   " c-usuario SKIP       
+                "    " + c-lbl-liter-lotacao-do-usuario + "..:   " c-lotacao SKIP
+                "    " + c-lbl-liter-centro-de-custo + ".....:   " p-lotacao-doc SKIP    
+                "    " + c-lbl-liter-valor-do-item + ".......:   " de-valor-item     SKIP
+                "    " + c-lbl-liter-valor-total + ".........:   " de-valor-total    SKIP
+                "    " + c-lbl-liter-referencia-item + ".....:   " p-referencia-item SKIP
+                "    " + c-lbl-liter-referencia-total + "....:   " p-referencia-total SKIP(1).
+OUTPUT CLOSE.
+
+if avail mla-tipo-doc-aprov then do:
+
+     find first item where item.it-codigo = c-it-codigo no-lock no-error.
+
+     if i-tipo-aprov = 2  or /*Tipos de aprovaá∆o por total do documento*/
+        i-tipo-aprov = 4  or          
+        i-tipo-aprov = 7  or
+        i-tipo-aprov = 8  or
+        i-tipo-aprov = 10 or
+        i-tipo-aprov = 13 or
+        i-tipo-aprov = 17 or
+        i-tipo-aprov = 21 or
+        i-tipo-aprov = 24 or         /** Documento do Financeiro **/ 
+        i-tipo-aprov = 25 or         /** Documento do Financeiro **/
+        i-tipo-aprov = 26 or         /** Documento do Financeiro **/
+        i-tipo-aprov = 28 or         /** Documento do Financeiro **/
+        i-tipo-aprov >= 500 then do: /** Documentos Especificos  **/
+
+        /* Inicio da valiá∆o para documentos por total - referencia/documento */
+
+        /* Prioridade:  REFER“NCIA */
+        if mla-tipo-doc-aprov.prioridade-aprov = 3 then do:
+
+            run pi-verifica-tipo-aprov-ref.
+            if  l-avail-ref then 
+                run pi-verifica-aprovadores(input i-cod-aprov,
+                                            input "ref":U ).
+            else do:
+                run pi-verifica-tipo-aprov-doc.
+                if  l-avail-doc then
+                    run pi-verifica-aprovadores(input i-cod-aprov,
+                                                input "doc":U).
+            end.
+
+            if  not l-avail-ref
+            and not l-avail-doc then do:
+                {utp/ut-liter.i Verificar_a_parametrizaá∆o_para_o_Referància/Documento *r}
+                assign c-trad-1 = return-value.
+                create tt-erro-aed.
+                assign tt-erro-aed.cd-erro  = 32504
+                       tt-erro-aed.i-sequen = 1
+                       tt-erro-aed.mensagem = c-msg-32504 + c-help-a 
+                       tt-erro-aed.c-param  = c-help-a                       + "~~" +  
+                                              string(i-empresa)              + "~~" +  
+                                              string(estabelec.cod-estabel)  + "~~" +  
+                                              c-help-a                       + "~~" +  
+                                              " -" + c-trad-1.
+                return "nok".
+            end.
+        end.
+
+        /* Prioridade:  DOCUMENTO */
+        else if mla-tipo-doc-aprov.prioridade-aprov = 1 then do:
+
+            run pi-verifica-tipo-aprov-doc.
+            if  l-avail-doc then
+                run pi-verifica-aprovadores(input i-cod-aprov,
+                                            input "doc":U).
+
+            if  not l-avail-doc then do:
+                {utp/ut-liter.i Verificar_a_parametrizaá∆o_para_o_Documento *r}
+                assign c-trad-1 = return-value.
+                create tt-erro-aed.
+                assign tt-erro-aed.cd-erro  = 32504
+                       tt-erro-aed.i-sequen = 1
+                       tt-erro-aed.mensagem = c-msg-32504 + c-help-a 
+                       tt-erro-aed.c-param  = c-help-a                   + "~~" +  
+                                          string(i-empresa)              + "~~" +  
+                                          string(estabelec.cod-estabel)  + "~~" +  
+                                          c-help-a                       + "~~" +  
+                                          " -" + c-trad-1.
+
+                return "nok".
+            end.
+        end. /* Fim da validaá∆o por referencia e documento por total */ 
+     end.
+     else  do: 
+         /* Inicio validaá∆o por referencia/item/familia/documento para controle por item */
+        if mla-tipo-doc-aprov.prioridade-aprov = 3 then do:
+
+            run pi-verifica-tipo-aprov-ref.
+            if  l-avail-ref then 
+                run pi-verifica-aprovadores(input i-cod-aprov,
+                                            input "ref":U).
+            else do:
+
+                run pi-verifica-tipo-aprov-item.
+                if  l-avail-item then 
+                    run pi-verifica-aprovadores(input i-cod-aprov,
+                                                input "item":U).
+                else do:
+
+                    run pi-verifica-tipo-aprov-fam.
+                    if  l-avail-fam then 
+                        run pi-verifica-aprovadores(input i-cod-aprov,
+                                                    input "fam":U).
+                    else do:
+
+                        run pi-verifica-tipo-aprov-doc.
+                        if  l-avail-doc then 
+                            run pi-verifica-aprovadores(input i-cod-aprov,
+                                                        input "doc":U).
+
+                    end.
+                end.
+            end. 
+
+            if  not l-avail-ref 
+            and not l-avail-item
+            and not l-avail-fam 
+            and not l-avail-doc then do:
+               {utp/ut-liter.i Verificar_a_parametrizaá∆o_para_o_Item/Fam°lia/Referància/Documento *r}
+                assign c-trad-1 = return-value.
+                create tt-erro-aed.
+                assign tt-erro-aed.cd-erro  = 32504
+                       tt-erro-aed.i-sequen = 1
+                       tt-erro-aed.mensagem = c-msg-32504 + c-help-a 
+                       tt-erro-aed.c-param  = c-help-a                       + "~~" +  
+                                          string(i-empresa)              + "~~" +  
+                                          string(estabelec.cod-estabel)  + "~~" +  
+                                          c-help-a                       + "~~" +  
+                                          " -" + c-trad-1.
+                return "nok".
+            end.
+        end. /* Fim validaá∆o por referencia/item/familia/documento */
+
+         /* Inicio validaá∆o por item/familia/documento */
+         if mla-tipo-doc-aprov.prioridade-aprov = 2 then do:
+
+             run pi-verifica-tipo-aprov-item.
+             if  l-avail-item then 
+                 run pi-verifica-aprovadores(input i-cod-aprov,
+                                             input "item":U).
+             else do:
+
+                 run pi-verifica-tipo-aprov-fam.
+                 if  l-avail-fam then 
+                     run pi-verifica-aprovadores(input i-cod-aprov,
+                                                 input "fam":U).
+                 else do:
+
+                     run pi-verifica-tipo-aprov-doc.
+                     if  l-avail-doc then 
+                         run pi-verifica-aprovadores(input i-cod-aprov,
+                                                     input "doc":U).
+                 end.
+             end.
+
+             if  not l-avail-item
+             and not l-avail-fam 
+             and not l-avail-doc then do:
+                 {utp/ut-liter.i Verificar_a_parametrizaá∆o_para_o_Item/Fam°lia/Documento *r}
+                 assign c-trad-1 = return-value.
+                 create tt-erro-aed.
+                 assign tt-erro-aed.cd-erro  = 32504
+                        tt-erro-aed.i-sequen = 1
+                        tt-erro-aed.mensagem = c-msg-32504 + c-help-a 
+                        tt-erro-aed.c-param  = c-help-a                       + "~~" +  
+                                           string(i-empresa)              + "~~" +  
+                                           string(estabelec.cod-estabel)  + "~~" +  
+                                           c-help-a                       + "~~" +  
+                                           " -" + c-trad-1.
+                 return "nok".
+             end.
+         end. /* Fim validaá∆o item/familia/documento */
+                 
+         /* Inicio da validaá∆o por documento */
+         if  mla-tipo-doc-aprov.prioridade-aprov = 1 then do:
+
+             run pi-verifica-tipo-aprov-doc.
+             if  l-avail-doc then 
+                 run pi-verifica-aprovadores(input i-cod-aprov,
+                                             input "doc":U).
+
+             if  not l-avail-doc then do:
+                 {utp/ut-liter.i Verificar_a_parametrizaá∆o_para_o_Documento *r}
+                 assign c-trad-1 = return-value.
+                 create tt-erro-aed.
+                 assign tt-erro-aed.cd-erro  = 32504
+                        tt-erro-aed.i-sequen = 1
+                        tt-erro-aed.mensagem = c-msg-32504 + c-help-a 
+                        tt-erro-aed.c-param  = c-help-a                       + "~~" +  
+                                               string(i-empresa)              + "~~" +  
+                                               string(estabelec.cod-estabel)  + "~~" +  
+                                               c-help-a                       + "~~" +  
+                                               "- " + c-trad-1. /*Cristiano*/
+
+                 return "nok".
+             end.
+         end. /* Fim validaá∆o por documento */
+     end.
+end.
+/** FIM **/ 
+
+OUTPUT TO VALUE(SESSION:TEMP-DIRECTORY + "MLALog-MLAAPI173_" + string(i-tipo-aprov) + "_" + string(today,"99-99-99") + ".txt") append.
+PUT SKIP(1).
+PUT UNFORMATTED "====================================================================================================" SKIP.
+OUTPUT CLOSE.
+                                             
+/* Procedures internas */
+procedure pi-verifica-tipo-aprov-ref:
+
+    find first mla-tipo-aprov-ref 
+        where mla-tipo-aprov-ref.ep-codigo        = i-empresa 
+        and   mla-tipo-aprov-ref.cod-tip-doc      = i-tipo-aprov 
+        and   mla-tipo-aprov-ref.codigo           = c-referencia 
+        and   mla-tipo-aprov-ref.prioridade-aprov = 0 no-lock no-error.
+
+    if not available mla-tipo-aprov-ref then 
+        find first mla-tipo-aprov-ref 
+            where mla-tipo-aprov-ref.ep-codigo        = i-empresa 
+            and   mla-tipo-aprov-ref.cod-tip-doc      = i-tipo-aprov 
+            and   mla-tipo-aprov-ref.codigo           = c-referencia 
+            and   mla-tipo-aprov-ref.prioridade-aprov = 10 no-lock no-error.
+
+    if available mla-tipo-aprov-ref then
+        assign i-cod-aprov  = mla-tipo-aprov-ref.cod-tip-aprov
+               i-prioridade = mla-tipo-aprov-ref.prioridade-aprov
+               l-avail-ref  = yes
+               l-aprov-com-limite = mla-tipo-aprov-ref.log-limite
+               nr-min-aprov       = mla-tipo-aprov-ref.nr-min-aprov.
+
+end procedure.
+
+procedure pi-verifica-tipo-aprov-item :
+
+    find first mla-tipo-aprov-item 
+        where  mla-tipo-aprov-item.ep-codigo        = i-empresa 
+        and    mla-tipo-aprov-item.it-codigo        = c-it-codigo 
+        and    mla-tipo-aprov-item.prioridade-aprov = 0 no-lock no-error.
+
+    if not available mla-tipo-aprov-item then 
+        find first mla-tipo-aprov-item 
+             where mla-tipo-aprov-item.ep-codigo        = i-empresa 
+             and   mla-tipo-aprov-item.it-codigo        = c-it-codigo 
+             and   mla-tipo-aprov-item.prioridade-aprov = 10 no-lock no-error.
+
+    if available mla-tipo-aprov-item then 
+        assign i-cod-aprov  = mla-tipo-aprov-item.cod-tip-aprov
+               i-prioridade = mla-tipo-aprov-item.prioridade-aprov
+               l-avail-item = yes
+               l-aprov-com-limite = mla-tipo-aprov-item.log-limite   
+               nr-min-aprov       = mla-tipo-aprov-item.nr-min-aprov.
+
+
+end procedure.
+
+procedure pi-verifica-tipo-aprov-fam:
+
+    find first mla-tipo-aprov-fam 
+        where mla-tipo-aprov-fam.ep-codigo        = i-empresa 
+        and mla-tipo-aprov-fam.fm-codigo        = item.fm-codigo 
+        and mla-tipo-aprov-fam.prioridade-aprov = 0 no-lock  no-error.
+
+    if not available mla-tipo-aprov-fam then
+        find first mla-tipo-aprov-fam 
+             where mla-tipo-aprov-fam.ep-codigo        = i-empresa 
+             and   mla-tipo-aprov-fam.fm-codigo        = item.fm-codigo 
+             and   mla-tipo-aprov-fam.prioridade-aprov = 10 no-lock  no-error.
+
+    if available mla-tipo-aprov-fam then 
+        assign i-cod-aprov  = mla-tipo-aprov-fam.cod-tip-aprov
+               i-prioridade = mla-tipo-aprov-fam.prioridade-aprov
+               l-avail-fam  = yes
+               l-aprov-com-limite = mla-tipo-aprov-fam.log-limite   
+               nr-min-aprov       = mla-tipo-aprov-fam.nr-min-aprov.
+end procedure.
+
+procedure pi-verifica-tipo-aprov-doc:
+
+    find first mla-tipo-aprov-doc 
+        where mla-tipo-aprov-doc.ep-codigo      = i-empresa 
+        and mla-tipo-aprov-doc.cod-tip-doc      = i-tipo-aprov 
+        and mla-tipo-aprov-doc.prioridade-aprov = 0 no-lock no-error.
+    if not available mla-tipo-aprov-doc then
+        find first mla-tipo-aprov-doc 
+        where mla-tipo-aprov-doc.ep-codigo      = i-empresa 
+        and mla-tipo-aprov-doc.cod-tip-doc      = i-tipo-aprov 
+        and mla-tipo-aprov-doc.prioridade-aprov = 10 no-lock no-error.
+
+    if available mla-tipo-aprov-doc then 
+        assign i-cod-aprov  = mla-tipo-aprov-doc.cod-tip-aprov
+               i-prioridade = mla-tipo-aprov-doc.prioridade-aprov
+               l-avail-doc  = yes
+               l-aprov-com-limite = mla-tipo-aprov-doc.log-limite
+               nr-min-aprov       = mla-tipo-aprov-doc.nr-min-aprov.
+
+    
+
+end procedure.
+
+procedure pi-verifica-aprovadores:
+
+    def input param p-cod-aprov  as int no-undo.
+    def input param p-tipo-aprov as char no-undo.
+
+    find first mla-tipo-aprov 
+        where  mla-tipo-aprov.cod-tip-aprov = p-cod-aprov no-lock no-error.
+
+    if avail mla-tipo-aprov then do:
+
+         output to value(session:temp-directory + "MLALog-MLAAPI173_" + string(i-tipo-aprov) + "_" + string(today,"99-99-99") + ".txt") append.
+         put skip(1).
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Ponto_(B)" *}
+         put unformatted "    " + RETURN-VALUE skip.
+         /* Inicio -- Projeto Internacional */
+         {utp/ut-liter.i "Tipo_de_Aprovacao" *}
+         put unformatted "    " + RETURN-VALUE + "...:   " mla-tipo-aprov.ind-tip-aprov skip(1).
+         output close.                     
+
+         CASE mla-tipo-aprov.ind-tip-aprov:
+             when 1 then  
+                 run pi-verifica-hierarquia.
+             when 2 then do: /*Lista*/
+
+                 if can-find(first mla-usuar-aprov 
+                             where mla-usuar-aprov.cod-usuar  = c-seg-usuario 
+                             and   mla-usuar-aprov.perm-aprov = yes 
+                             and   mla-usuar-aprov.aprova-auto-aprov = yes
+                             and   mla-usuar-aprov.aprova-auto = no) then  do:
+
+                     create tt-erro-aed.
+                     assign tt-erro-aed.cd-erro  = 32507
+                            tt-erro-aed.i-sequen = 1
+                            tt-erro-aed.mensagem = ""
+                            tt-erro-aed.c-param  = c-seg-usuario.
+                     return "nok".
+                 end.
+
+                 case p-tipo-aprov:
+                     when "ref" THEN 
+                         run pi-mla-lista-aprov-ref.  /*tipo aprovaá∆o por referencia*/
+                     when "item" then 
+                         run pi-mla-lista-aprov-item. /*tipo aprovaá∆o por item*/
+                     when "fam" then
+                         run pi-mla-lista-aprov-fam.  /*tipo aprovaá∆o por familia*/
+                     when "doc" then 
+                         run pi-mla-lista-aprov-doc.  /*tipo aprovaá∆o por documento*/
+                 end case.
+             end.
+             when 3 then  
+                 run pi-verifica-padrao.
+             when 4 then  
+                 run pi-verifica-padrao.
+             when 5 then  
+                 run pi-verifica-faixa.
+         end case.
+    end.
+            
+end procedure.
+
+{lap/mlaapi173.i}
+

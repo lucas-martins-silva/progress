@@ -1,0 +1,49 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/*
+**
+** IM9031.I1 - Impress∆o Despesas Importaá∆o na Impress∆o de Notas Fiscais
+**
+*/
+{cdp/cdcfgmat.i} /* include preprocessadores magnus */
+{imp/im9031.i} /* definicao de temp-tables */
+
+def input parameter p-rowid as rowid no-undo. /* Nota Fiscal */
+def output parameter table for tt-desp.
+
+{cdp/cd4300.i3}
+{rep/re1001a.i50}
+
+find nota-fiscal
+    where rowid(nota-fiscal) = p-rowid no-lock no-error.
+if avail nota-fiscal then do:
+    for each docum-est-cex
+        where docum-est-cex.serie        = nota-fiscal.serie
+        &if defined(bf-mat-comex) &then
+          and docum-est-cex.nro-docto    = string(nota-fiscal.nr-nota-fis)
+        &else              
+          and docum-est-cex.nro-docto    = nota-fiscal.nr-nota-fis        
+        &endif        
+          and docum-est-cex.cod-emitente = nota-fiscal.cod-emitente
+          and docum-est-cex.nat-operacao = nota-fiscal.nat-operacao
+          no-lock:
+        find desp-imp
+            where desp-imp.cod-desp = docum-est-cex.cod-desp
+            no-lock no-error.
+        /* Imprime Nota Fiscal */                
+        if desp-imp.log-1 then do:
+            create tt-desp.
+            assign tt-desp.cod-desp  = desp-imp.cod-desp
+                   tt-desp.descricao = desp-imp.descricao
+                   tt-desp.val-desp  = docum-est-cex.val-desp.
+        end.             
+    end.            
+end.    
+
+/* IM9031.I1 */

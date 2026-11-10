@@ -1,0 +1,33 @@
+define temp-table tt-classif-fisc              no-undo like classif-fisc.
+
+define temp-table tt-calculos-ordem-compra-emb no-undo 
+        field cod-estabel             like ordens-embarque.cod-estabel
+        field numero-ordem            like ordens-embarque.numero-ordem
+        field peso-liquido-total      as decimal format ">>>>>,>>>,>>9.99999"
+        field peso-bruto-total        as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-fornec-liq        as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-fornec-bru        as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-interno-liq       as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-interno-bru       as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-fornec-liq-total  as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-fornec-bru-total  as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-interno-liq-total as decimal format ">>>>>,>>>,>>9.99999"
+        field preco-interno-bru-total as decimal format ">>>>>,>>>,>>9.99999"
+        field ocupacao-total          as decimal format ">>>>>,>>>,>>9.99999".
+        
+define temp-table tt-ord-aliquotas no-undo         
+        field numero-ordem            like ordens-embarque.numero-ordem
+        field aliquota-ipi            LIKE item-doc-est.aliquota-ipi 
+        field trib-ipi                as char
+        field aliquota-icm            LIKE item-doc-est.aliquota-icm
+        field trib-icm                as char
+        field aliquota-pis            LIKE ordens-embarque.val-aliq-ext-pis
+        field trib-pis                as char
+        field aliquota-cofins         LIKE item-doc-est.val-aliq-ext-cofins
+        field trib-cofins             as char
+        field aliquota-ii             as decimal format ">>9.9999"
+        field trib-ii                 as char.  
+        
+        
+
+        

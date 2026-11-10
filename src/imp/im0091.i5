@@ -1,0 +1,77 @@
+                /* 
+                ** Determina Tributacao do IPI 
+                */
+                RUN cdp/cd4303.p ( ITEM.cd-trib-ipi,
+                                   natur-oper.cd-trib-ipi,
+                                   OUTPUT i-trib-ipi ).
+
+
+                /*
+                ** Determina aliquota do IPI
+                */
+
+                IF  ITEM.tipo-contr = 4 THEN
+                    FIND classif-fisc WHERE
+                         classif-fisc.class-fiscal = ITEM.class-fiscal NO-LOCK NO-ERROR.
+
+                /*--- Verifica se o regime especial esta zerado na cotacao ---*/
+                IF  INT(SUBSTR(cotacao-item.char-2,61,20)) = 0 THEN
+                    ASSIGN de-aliq-ipi = IF  ITEM.tipo-contr = 4 AND AVAIL classif-fisc THEN 
+                                             classif-fisc.aliquota-ipi 
+                                         ELSE 
+                                             ITEM.aliquota-ipi.
+                ELSE DO:
+                    
+                    /*--- busca o relacionamento pais origem x aliquota ---*/
+                    FIND pais-aliquota
+                         WHERE pais-aliquota.cod-pais      = cotacao-item.cdn-pais-orig 
+                           AND pais-aliquota.regime-import = INT(SUBSTR(cotacao-item.char-2,61,20))        
+                           AND pais-aliquota.class-fiscal  = IF  ITEM.tipo-contr = 4 THEN
+                                                                 SUBSTR(cotacao-item.char-1,81,20) 
+                                                             ELSE
+                                                                 ITEM.class-fiscal
+                    NO-LOCK NO-ERROR.
+                    
+                    /*--- se trabalhar com ipi especial ---*/
+                    IF  AVAIL pais-aliquota 
+                    AND pais-aliquota.log-ipi-especial = YES THEN DO:
+                        
+                        /*--- e foi informada natureza de operacao para o ipi especial 
+                              e nao foi informada aliquota ---*/
+                        IF  pais-aliquota.cod-natur-operac-ipi <> "" 
+                        AND pais-aliquota.aliquota-ipi = 0 /* aliquota ipi */ THEN DO:
+                             
+                            /*--- e cota automaticamente o valor do IPI ---*/
+                            IF  param-imp.log-cotac-autom-ipi THEN
+                                /*--- entao assume aliquota do item ---*/
+                                ASSIGN de-aliq-ipi = IF  ITEM.tipo-contr = 4 AND AVAIL classif-fisc THEN 
+                                                         classif-fisc.aliquota-ipi 
+                                                     ELSE 
+                                                         ITEM.aliquota-ipi.
+                            ELSE 
+                                /*--- se nao cota automaticamente, assume aliquota  
+                                      da cotacao ---*/
+                                ASSIGN de-aliq-ipi = cotacao-item.aliquota-ipi.
+
+                        END.
+                        ELSE DO:
+                            /*--- se trabalha com ipi especial 
+                                  e cota autom o valor do IPI ---*/
+                            IF  param-imp.log-cotac-autom-ipi THEN
+                                /*--- assume aliquota do pais de origem ---*/
+                                ASSIGN de-aliq-ipi = pais-aliquota.aliquota-ipi.
+                            ELSE
+                                /*--- senao assume aliquota da cotacao ---*/
+                                ASSIGN de-aliq-ipi = cotacao-item.aliquota-ipi.
+
+                        END.
+
+                    END.
+                    ELSE
+                        /*--- se nao trabalha com ipi especial, assume aliquota do item ---*/
+                        ASSIGN de-aliq-ipi = IF  ITEM.tipo-contr = 4 AND AVAIL classif-fisc THEN 
+                                                 classif-fisc.aliquota-ipi 
+                                             ELSE 
+                                                 ITEM.aliquota-ipi.
+
+                END.

@@ -1,0 +1,757 @@
+{include/i_dbvers.i}
+/*******************************************************************************************************
+**
+** PROCEDURE: EstornarReporte
+** OBJETIVO:  Estorno dos movimentos do reporte de opera‡Æo
+** PARAMETROS: rowid(rep-oper-ctrab)
+**             dt-estorno
+               output rowErrors
+       OBSERVA€ÇO: BO ALTERADA PARA CONTEMPLAR TODAS AS VALIDA€åES QUE ANTES FICAVAM NA B01IN536 (SF0303)
+**
+*******************************************************************************************************/
+{cpp/cpapi009.i}
+/*{cdp/cd0666.i} chamada movida para o .i4*/ 
+{method/dbotterr.i} /*rowErrors*/
+{cdp/cdcfgmat.i}
+{cpp/cp0311.i2} /*f-consiste-datas*/
+{cdp/cdcfgren.i} /* Defini‡Æo preprocessador custom_grendene */ 
+
+def var l-ult-oper as log init no no-undo.
+
+PROCEDURE EstornarReporte:
+   define input parameter r-rep-oper-ctrab as rowid no-undo.
+   define input parameter da-dt-estorno  as  date no-undo.
+   define output parameter table for rowErrors.
+   define output param r-ord-prod     as rowid no-undo.
+   define output param de-qt-estorn   as dec no-undo.
+   define output param rw-saldo-estoq as rowid no-undo.
+   
+   def var l-pede-data as log init no no-undo.
+   DEF VAR c-var-periodo    LIKE param-estoq.ult-per-fech NO-UNDO.
+   def var da-iniper-x      as date format "99/99/9999"   no-undo.
+   def var da-fimper-x      as date format "99/99/9999"   no-undo.
+   def var da-iniper-fech   as date format "99/99/9999"   no-undo.
+   def var da-fimper-fech   as date format "99/99/9999"   no-undo.
+   def var i-per-corrente   as INTEGER                    no-undo.
+   def var i-ano-corrente   as integer format "9999"      no-undo.
+   DEF VAR i-periodo        AS INTEGER                    NO-UNDO.
+   def var i-cod-msg        as int         init 0         no-undo.
+   def var l-msg-ficha-cq   as log                        no-undo.
+&IF "{&mguni_version}" >= "2.071" &THEN
+   def var i-empresa-prin   LIKE empresa.ep-codigo                        no-undo.
+&ELSE
+   def var i-empresa-prin   as int                        no-undo.
+&ENDIF
+   def var vr-tipo-pr-med   like param-estoq.tipo-pr-med  no-undo.
+   
+   find first rep-oper-ctrab where rowid(rep-oper-ctrab) = r-rep-oper-ctrab no-lock no-error.
+   if not avail rep-oper-ctrab then do:
+       {utp/ut-liter.i Reporte_Opera‡Æo *}
+       run criaErro(input 47,
+                    input return-value).  
+       return "NOK":U.  
+   end.
+   
+   find first ord-prod where ord-prod.nr-ord-produ = rep-oper-ctrab.nr-ord-produ no-lock no-error.
+   
+   RUN preValidaEstorno (INPUT ROWID(rep-oper-ctrab),
+                         output l-msg-ficha-cq,
+                         output l-pede-data,
+                         OUTPUT table rowErrors).
+
+   IF CAN-FIND(FIRST rowErrors
+               WHERE rowErrors.ErrorSubType = "ERROR":U) THEN RETURN "NOK":U. 
+   
+   if l-pede-data then do: /*rep-oper-ctrab.nr-reporte <> 0*/
+   
+       /******Valida‡äes quanto de Data**********/
+       
+       if not avail param-global then
+           FIND FIRST param-global NO-LOCK NO-ERROR.
+       if not avail param-estoq then
+           FIND FIRST param-estoq NO-LOCK NO-ERROR.   
+       
+       IF param-estoq.tp-fech = 1 THEN
+          ASSIGN c-var-periodo  = param-estoq.ult-per-fech
+                 vr-tipo-pr-med = param-estoq.tipo-pr-med.
+       ELSE DO:
+           FIND FIRST estab-mat
+                WHERE estab-mat.cod-estabel = ord-prod.cod-estabel NO-LOCK NO-ERROR.
+           IF AVAIL estab-mat THEN
+              ASSIGN c-var-periodo  = estab-mat.ult-per-fech
+                     vr-tipo-pr-med = estab-mat.tipo-pr-med.
+       END.
+   
+       /*
+          Este bloco verifica se o calculo do m²dio ² Batch Diÿrio , 
+          se for ele obrigara o usuÿrio a efetuar o estorno de material
+          no mesmo dia do acabado - Diogo Cezar Amaral.
+       */
+       /**********************************************************/
+       
+       IF (vr-tipo-pr-med = 1 )THEN DO:
+           IF (rep-oper-ctrab.dat-fim-reporte <> da-dt-estorno) THEN DO:
+               run criaErro(input 4405,
+                            input "":U). 
+               RETURN "NOK":U.
+           END.
+       END.
+       /**********************************************************/
+           
+       /* Procurar o per¡odo que o reporte foi executado, e verificar se 
+          ‚ o mesmo da data de estorno sugerida. Procurar a partir do ultimo
+          periodo fechado ou do primeiro periodo do ano do reporte */
+           
+       IF YEAR(rep-oper-ctrab.dat-inic-reporte) <> INTEGER(SUBSTRING(c-var-periodo,1,4)) THEN
+          ASSIGN c-var-periodo = string(YEAR(rep-oper-ctrab.dat-fim-reporte), "9999") + "01".
+       
+       find first  ano-fiscal where
+                   ano-fiscal.ep-codigo  = param-global.empresa-prin and
+                   ano-fiscal.ano-fiscal = INT(SUBSTRING(c-var-periodo,1,4)) no-lock no-error.
+      if avail ano-fiscal then do:             
+        
+               ASSIGN i-periodo = INT(SUBSTRING(c-var-periodo,5,2)). 
+               DO WHILE ano-fiscal.num-periodos >= i-periodo:
+                  ASSIGN SUBSTRING(c-var-periodo,5,2) = STRING(i-periodo,"99").
+               
+                  run cdp/cdapi005.p (input c-var-periodo,
+                                      output da-iniper-x,
+                                      output da-fimper-x,
+                                      output i-per-corrente,
+                                      output i-ano-corrente,
+                                      output da-iniper-fech,
+                                      output da-fimper-fech).
+                                      
+                  /* Se encontrado o per¡odo do reporte, e o estorno nao for do mesmo periodo,
+                     apresentar mensagem de erro */
+                  IF rep-oper-ctrab.dat-fim-reporte >= da-iniper-fech AND
+                     rep-oper-ctrab.dat-fim-reporte <= da-fimper-fech THEN DO:
+               
+                     IF da-dt-estorno < da-iniper-fech OR
+                        da-dt-estorno > da-fimper-fech THEN DO:
+                        run criaErro(input 4405,
+                                     input "":U).              
+                        RETURN "NOK":U.
+                     END.
+                  END.
+               
+                  ASSIGN i-periodo = i-periodo + 1.
+               END.
+       end.
+       
+       if da-dt-estorno < rep-oper-ctrab.dat-inic-reporte then do:
+          /* Data do estorno nao pode ser menor que a data do reporte */    
+          run criaErro(input 4162,
+                       input "":U).                                     
+          return "NOK":U.             
+       end.                                        
+   
+       /* F-consiste-datas e uma funcao definida na include cp0311.i2 */
+       assign i-cod-msg = f-consiste-datas(da-dt-estorno,
+                                           yes,
+                                           ord-prod.it-codigo,
+                                           ord-prod.cod-estabel,
+                                           0).
+
+       if i-cod-msg > 0 then do:
+          run criaErro(input i-cod-msg,
+                       input "":U).        
+          return "nok":U.
+       end.
+       
+       if not avail rep-oper or rep-oper.nr-reporte <> rep-oper-ctrab.nr-reporte then 
+           find first rep-oper where rep-oper.nr-reporte = rep-oper-ctrab.nr-reporte no-lock no-error.
+       if not avail rep-prod or rep-prod.nr-reporte <> rep-oper-ctrab.nr-reporte then 
+           find first rep-prod where rep-prod.nr-reporte = rep-oper-ctrab.nr-reporte no-lock no-error.
+       if not avail item or item.it-codigo <> ord-prod.it-codigo then
+           find first item where item.it-codigo = ord-prod.it-codigo no-lock no-error.
+       
+       if l-ult-oper and 
+          param-global.modulo-ce then do:
+          
+          if item.it-codigo  <> "" and
+             item.it-codigo  <> ?  and
+             item.tipo-contr <> 4 then do :
+   
+             if ord-prod.rep-prod = 1 or
+                not can-find (first oper-ord where 
+                oper-ord.nr-ord-produ = ord-prod.nr-ord-produ and 
+                oper-ord.sequencia   > rep-oper.op-seq no-lock) then do:
+                if item.tipo-con-est = 3 or 
+                   item.tipo-con-est = 4 then do:
+                   find first saldo-estoq use-index lote where
+                        saldo-estoq.lote      = rep-prod.lote-serie and 
+                        saldo-estoq.it-codigo = item.it-codigo no-lock no-error.                                                              
+                   if saldo-estoq.dt-vali-lote < today then do:
+                      /* Data de validade do lote vencida */
+                      run criaErro(input 1247,
+                                   input "":U).        
+                      return "nok":U.                       
+                   end.              
+                end.
+             end.
+          end. 
+   
+          assign i-empresa-prin = param-global.empresa-prin.
+          &IF DEFINED (bf_mat_conta_estab) &THEN
+              find first estabelec
+                   where estabelec.cod-estabel = rep-prod.cod-estabel no-lock no-error.
+              if avail estabelec then
+                 run cdp/cd9970.p (input rowid(estabelec),
+                                   output i-empresa-prin).
+          &ENDIF           
+   
+          if ord-prod.it-codigo = ?  or
+             ord-prod.it-codigo = "" or
+             item.tipo-contr    <> 2 then do:
+             find conta-contab use-index codigo where
+                  conta-contab.ep-codigo      = i-empresa-prin and
+                  conta-contab.conta-contabil = rep-prod.conta-aplicacao 
+                  no-lock no-error.
+             if not avail(conta-contab) then do:
+                {utp/ut-table.i mgadm conta-contab 1}
+                run criaErro(input 56,
+                             input return-value).        
+                return "nok":U.                      
+             end.
+             if (conta-contab.tipo <> 5 
+             and conta-contab.tipo <> 1
+             and conta-contab.tipo <> 4) or 
+                (conta-contab.estado <> 3) then do:
+                /* Conta contabil deve ser de ativo ou despesa e de sistema */
+                run criaErro(input 6282,
+                             input "":U).        
+                return "nok":U.                            
+             end.
+             if (conta-contab.estoque = 9) then do:
+                /* Conta contabil nao pode ser de saldo por grupo de estoque */
+                run criaErro(input 6610,
+                             input "":U).        
+                return "nok":U.                      
+             end.                                            
+          end.   
+       end.
+       
+       for each tt-rep-prod:
+           delete tt-rep-prod.
+       end.
+       
+       for each tt-relatorio :
+          delete tt-relatorio.
+       end.
+       
+       for each tt-erro :
+          delete tt-erro.
+       end.
+       
+       for each tt-bo-erro :
+          delete tt-bo-erro.
+       end.
+       
+       create tt-rep-prod.
+       if l-ult-oper then do:
+           buffer-copy rep-prod to tt-rep-prod
+           assign tt-rep-prod.cod-versao-integracao = 001
+                  tt-rep-prod.data                  = da-dt-estorno.                                         
+          
+       end. 
+       else do:
+           assign tt-rep-prod.cod-versao-integracao = 001
+                  tt-rep-prod.nr-reporte            = rep-oper-ctrab.nr-reporte
+                  tt-rep-prod.data                  = da-dt-estorno.                            
+       end.
+       assign r-ord-prod     = ?              
+              de-qt-estorn   = ?
+              rw-saldo-estoq = ?.
+                 
+       run cpp/cpapi011.p(input        table tt-rep-prod ,
+                          input-output table tt-erro     ,
+                          input        table tt-relatorio, 
+                          input        yes).
+                          
+       if return-value = "NOK":U or can-find(first tt-erro) then
+           for each tt-erro:
+               run copiaErro.
+               /*run criaErro(input tt-erro.cd-erro,
+                           input "":U).*/
+           end.
+       else
+           if l-ult-oper then do:
+              if param-global.modulo-pd then do:
+                 if not avail para-ped then
+                     find first para-ped no-lock no-error.
+                 if  para-ped.tp-aloca-ped = 2 then do:
+                    if can-find(first al-pr-op use-index ordem where
+                                      al-pr-op.nr-ord-produ = ord-prod.nr-ord-produ)
+                       then do:
+                       find first ord-rep where ord-rep.nr-reporte = rep-oper.nr-reporte
+                                            and ord-rep.sequencia  = rep-oper.op-seq no-lock no-error.
+                       if avail ord-rep then                    
+                         find first movto-estoq 
+                           &IF DEFINED(CUSTOM_GRENDENE) &THEN
+                               use-index reporte
+                           &ENDIF     
+                              where movto-estoq.nr-reporte = ord-rep.nr-reporte and
+                                    movto-estoq.esp-docto  = 1                  and
+                                    movto-estoq.it-codigo  = ord-prod.it-codigo
+                                    no-lock no-error.
+                       if avail movto-estoq then             
+                         find first  saldo-estoq use-index dep-estabel
+                               where saldo-estoq.cod-depos   = movto-estoq.cod-depos
+                               and   saldo-estoq.cod-estabel = movto-estoq.cod-estabel
+                               and   saldo-estoq.cod-localiz = movto-estoq.cod-localiz
+                               and   saldo-estoq.lote        = movto-estoq.lote
+                               and   saldo-estoq.it-codigo   = movto-estoq.it-codigo
+                               and   saldo-estoq.cod-refer   = movto-estoq.cod-refer no-lock no-error.
+                               
+                       assign r-ord-prod      = rowid(ord-prod)
+                              de-qt-estorn    = ord-rep.qt-reporte - ord-rep.qt-refugo
+                              rw-saldo-estoq  = rowid(saldo-estoq) no-error.
+                    end.
+                 end.           
+              end.              
+           end.
+   
+   end. /*l-pede-data*/
+   else do:
+       find current rep-oper-ctrab exclusive-lock no-error.
+       
+       run EliminarRepOperCtrab (buffer rep-oper-ctrab,    
+                                 output table tt-bo-erro). 
+                                              
+       for each tt-bo-erro:
+            run criaErro(input tt-bo-erro.cd-erro,
+                         input tt-bo-erro.parametros).           
+       end.
+       
+       if not can-find(first rowErrors) and 
+          (rep-oper-ctrab.qtd-operac-reptda = 0 or
+          ((ord-prod.reporte-mob = 1 or ord-prod.reporte-ggf = 1) 
+            and l-ult-oper = no)) then do:
+       
+          run pi-estorna-ggf-dir (input rep-oper-ctrab.nr-ord-produ,
+                                  input rep-oper-ctrab.num-seq-rep).
+
+          if return-value = "NOK":U or can-find(first tt-erro) then do:
+              for each tt-erro:
+                  run copiaErro.
+                  /*run criaErro(input tt-erro.cd-erro,
+                               input "":U).*/
+              end.
+          end.   
+        end.
+       
+       if  can-find(first rowErrors) then do:
+           release rep-oper-ctrab.
+           return "NOK":U.
+       end.     
+       else
+           delete rep-oper-ctrab. 
+
+   end.
+   
+   if can-find(first rowErrors) then
+       return "NOK":U.
+   
+   return "OK":U.
+END PROCEDURE.
+
+/*******************************************************************************************************
+**
+** PROCEDURE: preValidaEstorno
+** OBJETIVO:  Valida‡Æo Previa para a procedure EstornarReporte. 
+              chamada pela tela sf0303 (b01in536).
+** PARAMETROS: rowid(rep-oper-ctrab)
+**             output rowErrors
+**
+*******************************************************************************************************/
+procedure preValidaEstorno:
+def input param p-rep-oper-ctrab as rowid no-undo.
+def output param l-msg-ficha-cq as log init no no-undo.
+def output param l-pede-data as log init no no-undo.
+def output param table for rowErrors.
+
+def var l-problema as log no-undo.
+def var r-ult-oper as rowid no-undo.
+def var i-mensagem as int no-undo.
+def var l-acesso as log no-undo.
+
+def buffer b-oper-ord for oper-ord.
+
+empty temp-table rowErrors.
+
+find first rep-oper-ctrab where rowid(rep-oper-ctrab) = p-rep-oper-ctrab no-lock no-error.
+if not avail rep-oper-ctrab then do:
+    {utp/ut-liter.i Reporte_Opera‡Æo *}
+    run criaErro(input 47,
+                 input return-value).  
+    return "NOK":U.  
+end.
+
+find first ord-prod where ord-prod.nr-ord-produ = rep-oper-ctrab.nr-ord-produ no-lock no-error.
+
+if not avail param-global then
+    find first param-global no-lock no-error.
+if not avail param-sfc then
+   find first param-sfc no-lock no-error.    
+    
+if param-global.modulo-cs and ord-prod.estado = 8 then do:
+    /*Ordem de Produ‡Æo Finalizada!*/
+    run criaErro(input 32299,
+                 input "":U).  
+    return "NOK":U.        
+end.
+    
+if ord-prod.estado = 7 or ord-prod.estado = 8 then do:
+    /*Ordem de Produ‡Æo Finalizada!*/
+    run criaErro(input 32044,
+                 input ord-prod.nr-ord-produ).  
+    return "NOK":U.           
+end.
+
+/* ---- Consiste Rede Pert ----  */        
+IF NOT AVAIL param-global THEN
+    FIND FIRST param-global NO-LOCK NO-ERROR.
+
+if not avail param-sfc then
+    find first param-sfc no-lock no-error.
+
+find first pert-ordem where
+          pert-ordem.nr-ord-produ = ord-prod.nr-ord-produ no-lock no-error.
+
+FIND first split-operac WHERE
+    split-operac.nr-ord-produ     = rep-oper-ctrab.nr-ord-produ   AND
+    split-operac.num-operac-sfc   = rep-oper-ctrab.num-operac-sfc AND
+    split-operac.num-split-operac = rep-oper-ctrab.num-split-operac NO-LOCK NO-ERROR.
+
+                 
+FIND FIRST area-produc WHERE
+    area-produc.cod-area-produc = split-operac.cod-area-produc NO-LOCK NO-ERROR.
+
+IF AVAIL area-produc THEN DO:     
+    
+    RUN pi-verifica-acesso(INPUT area-produc.cod-area-produc,
+                           INPUT c-seg-usuario,
+                           OUTPUT l-acesso).
+                           
+    IF NOT l-acesso THEN DO:
+        run criaErro (input 36719,
+                      input area-produc.cod-area-produc).
+    END.    
+END.
+
+if avail(pert-ordem) and
+   (ord-prod.rep-prod = 2  or
+    ord-prod.rep-prod = 3) or
+   (ord-prod.rep-prod  = 1 and
+    param-global.modulo-ch AND
+    AVAIL param-sfc AND
+    param-sfc.log-consid-rede-pert) then do:
+
+      run "cpp/cp9000.p" (input  rowid(ord-prod) ,
+                          input  no              ,
+                          output l-problema      ,
+                          output r-ult-oper      ,
+                          output i-mensagem      ).
+      if l-problema then do:
+          run criaErro(input i-mensagem,
+                       input "":U).  
+          return "NOK":U.              
+      end.
+      
+      if (ord-prod.rep-prod = 1  and param-sfc.log-consid-rede-pert = yes) or
+         (ord-prod.rep-prod = 2) or (ord-prod.rep-prod = 3)                then do:
+          find first oper-ord
+               where oper-ord.nr-ord-produ    = ord-prod.nr-ord-produ
+                 and oper-ord.num-operac-sfc = rep-oper-ctrab.num-operac-sfc
+               no-lock no-error.
+          find first pert-ordem
+               where pert-ordem.nr-ord-produ = ord-prod.nr-ord-produ
+                 and pert-ordem.it-predec    = oper-ord.it-codigo
+                 and pert-ordem.rot-predec   = oper-ord.cod-roteiro
+                 and pert-ordem.op-predec    = oper-ord.op-codigo 
+               no-lock no-error.
+          find first b-oper-ord
+               where b-oper-ord.nr-ord-produ = pert-ordem.nr-ord-produ
+                 and b-oper-ord.it-codigo    = pert-ordem.it-codigo
+                 and b-oper-ord.cod-roteiro  = pert-ordem.cod-roteiro
+                 and b-oper-ord.op-codigo    = pert-ordem.op-codigo   
+               no-lock no-error.
+          
+          if avail(b-oper-ord) and avail (oper-ord) then do:
+                if round((rep-oper-ctrab.qtd-operac-refgda + rep-oper-ctrab.qtd-operac-aprov) * ord-prod.qt-ordem / oper-ord.qtd-previs-operac,4) 
+                   > 
+                   round(oper-ord.qt-produzida - b-oper-ord.qt-produzida,4) then do:
+		
+                         /* Quant deve ser menor que a utilizada na operacao posterior. */
+                        run criaErro (input 4545 ,
+                                      input "").
+                        return "NOK":U.
+                end.
+          end.
+      end.  
+end.  
+
+/*Possui rep-oper relacionado*/
+if rep-oper-ctrab.nr-reporte <> 0 then do:
+   assign l-pede-data = yes.
+   /* Comentado, pois vai fazer o tratamento para estornar pela producao quando for a operacao final.
+   &if defined(bf_man_sfc_magnus) &then
+   
+       if not avail param-sfc then
+             find first param-sfc no-lock no-error.
+             
+       FIND FIRST oper-ord 
+            WHERE oper-ord.nr-ord-produ   = rep-oper-ctrab.nr-ord-produ
+              AND oper-ord.num-operac-sfc = rep-oper-ctrab.num-operac-sfc NO-LOCK NO-ERROR.
+              
+       if avail param-sfc and 
+          avail oper-ord and
+          oper-ord.log-operac-final 
+          &if defined(bf_man_205) &then
+          &else
+            and param-sfc.ind-integracao-mfg = 1 
+          &endif
+          then do:
+          
+               /*Indica que ‚ a £ltima opera‡Æo. Antigamente, quando entrava nesse if, emitia a msg 17993,
+                 e o estorno s¢ era poss¡vel pela Produ‡Æo. A partir de agora, quando ocorrer essa situa‡Æo,
+                 serÆo feitas todas as consistˆncias iguais as da Produ‡Æo e o estorno ser  feito por aqui.*/ 
+               /*  
+               run criaErro(input 17993,
+                            input "":U).  
+               return "NOK":U.   
+               */
+               /*valida‡äes copiadas do b10in379.w (Estorno da Produ‡Æo)*/
+
+               /* Brandao, ksm35217, 16/MAR/05, Alerta usu rio sobre reportes j  liberados pelo CQ */        
+               &IF DEFINED(bf_man_204) &THEN
+               
+                    FOR EACH ord-rep
+                        WHERE ord-rep.nr-ord-produ = oper-ord.nr-ord-produ 
+                            AND ord-rep.nr-report  = rep-oper-ctrab.nr-reporte /* J  liberado pelo CQ */ NO-LOCK:
+                            IF CAN-FIND (FIRST ficha-cq 
+                                WHERE ficha-cq.nr-ficha = ord-rep.nr-ficha 
+                                  AND ficha-cq.situacao = 4 NO-LOCK) THEN DO:
+                                ASSIGN l-msg-ficha-cq = YES.
+                                LEAVE.
+                            END.
+                    END.
+                    
+                    /*
+                    IF l-aux THEN DO:
+                       RUN utp/ut-msgs.p (INPUT "SHOW":U, INPUT 31798, INPUT "":U).
+                       IF RETURN-VALUE = "NO":U THEN DO:
+                           RETURN NO-APPLY. /* NÆo executa extorno*/
+                       END.
+                    END.
+                      */
+                      
+               &ENDIF
+               
+               find first rep-oper where rep-oper.nr-reporte = rep-oper-ctrab.nr-reporte no-lock no-error.
+               if avail rep-oper then do:
+                     
+                     if rep-oper.qt-estorno > 0 or                   
+                        can-find (first movto-mat
+                                  where movto-mat.nr-reporte = rep-oper.nr-reporte
+                                    and movto-mat.it-codigo  = ord-prod.it-codigo
+                                    and movto-mat.esp-docto  = 8 /* EAC */ 
+                                    AND movto-mat.nr-ord-produ = ord-prod.nr-ord-produ no-lock) then do:
+                                    
+                        run criaErro(input 15633,
+                                     input "":U).  
+                        return "NOK":U.  
+                     
+               end. /*if avail rep-oper*/
+       end.
+   &endif /*nao 205 e bf_man_sfc_magnus*/
+   */
+end.     
+else /*nao possui rep-oper relacionado*/
+    assign l-pede-data = no. 
+
+return "OK":U.
+end procedure.
+
+
+procedure criaErro:
+     DEFINE INPUT PARAMETER pErrorNumber      AS INTEGER   NO-UNDO.
+     DEFINE INPUT PARAMETER pErrorParameters  AS CHARACTER NO-UNDO.
+     
+     DEFINE VARIABLE iErrorSequence    AS INTEGER    NO-UNDO.
+     DEFINE VARIABLE cErrorSubType     AS CHARACTER  NO-UNDO.
+     DEFINE VARIABLE cErrorDescription AS CHARACTER  NO-UNDO.
+     DEFINE VARIABLE cErrorHelp        AS CHARACTER  NO-UNDO.
+     
+     /** Busca o Tipo de Mensagem do EMS **/
+     RUN utp/ut-msgs.p (INPUT "TYPE":U,
+                        INPUT pErrorNumber,
+                        INPUT pErrorParameters).
+     CASE {uninc/i01un001.i 06 RETURN-VALUE}:
+         WHEN 1 THEN
+             ASSIGN cErrorSubType = "ERROR":U.
+         WHEN 2 THEN
+             ASSIGN cErrorSubType = "WARNING":U.
+         WHEN 4 THEN
+             ASSIGN cErrorSubType = "INFORMATION":U.
+     END CASE.
+     
+     /** Busca Texto da Mensagem **/
+     RUN utp/ut-msgs.p (INPUT "MSG":U,
+                        INPUT pErrorNumber,
+                        INPUT pErrorParameters).
+     ASSIGN cErrorDescription = RETURN-VALUE.
+     
+     /** Busca Help da Mensagem **/
+     RUN utp/ut-msgs.p (INPUT "HELP":U,
+                        INPUT pErrorNumber,
+                        INPUT pErrorParameters).
+     ASSIGN cErrorHelp = RETURN-VALUE.
+     
+     /*--- Atualiza vari˜vel de sequ¬ncia de erros ---*/
+     IF CAN-FIND(LAST rowErrors) THEN DO:
+         FIND LAST rowErrors.
+         ASSIGN iErrorSequence = rowErrors.ErrorSequence + 1.
+     END.
+     ELSE
+         ASSIGN iErrorSequence = iErrorSequence + 1.
+     
+     CREATE rowErrors.
+     ASSIGN rowErrors.ErrorSequence    = iErrorSequence
+            rowErrors.ErrorNumber      = pErrorNumber
+            rowErrors.ErrorType        = "EMS":U
+            rowErrors.ErrorSubType     = cErrorSubType
+            rowErrors.ErrorDescription = cErrorDescription
+            rowErrors.ErrorHelp        = cErrorHelp
+            rowErrors.ErrorParameters  = pErrorParameters.
+     
+     return "OK":U.
+end procedure.
+
+procedure pi-estorna-ggf-dir:
+   def input parameter p-nr-ord-produ as integer no-undo.
+   def input parameter p-num-seq-rep  as integer no-undo.
+   
+   def var l-erro as log init no no-undo.
+   
+   for each tt-movto-ggf: delete tt-movto-ggf. end.
+   for each tt-movto-dir: delete tt-movto-dir. end.
+   
+   do on error undo, return error:
+
+      for each movto-ggf use-index ordem
+          where movto-ggf.nr-ord-produ = p-nr-ord-produ
+            and movto-ggf.nr-reporte  = 0                            
+            and movto-ggf.tipo-trans  = 1               
+            &IF DEFINED(bf_man_207a) &THEN
+            and movto-ggf.num-seq-rep = p-num-seq-rep
+            &else
+            and movto-ggf.int-1       = p-num-seq-rep
+            &endif  exclusive-lock : 
+          
+          &IF DEFINED(bf_man_207a) &THEN
+          if movto-ggf.log-estorno = yes then next.  
+          assign movto-ggf.log-estorno = yes.
+          &ELSE
+          if substring(movto-ggf.char-1,1,1) = "S" then next.  
+          assign overlay(movto-ggf.char-1,1,1) = "S".
+          &endif                               
+          
+          create tt-movto-ggf.                
+          buffer-copy movto-ggf to tt-movto-ggf
+          assign tt-movto-ggf.cod-versao-integracao = 001
+                 tt-movto-ggf.nr-ord-produ    = movto-ggf.nr-ord-produ
+                 tt-movto-ggf.tipo-trans      = 2
+                 tt-movto-ggf.dt-retorno      = movto-ggf.dt-trans
+                 tt-movto-ggf.dt-trans        = movto-ggf.dt-trans
+                 tt-movto-ggf.lg-recalc-horas = yes /* Para que a api n’o recalcule
+                                                       a quantidade de horas     */                
+                 tt-movto-ggf.rw-mov-orig     = rowid(movto-ggf) 
+                 tt-movto-ggf.num-id-movto-ggf = ?.
+                
+      end.  
+                       
+      for each movto-dir use-index operacao
+          where movto-dir.nr-ord-produ = p-nr-ord-produ
+            and movto-dir.nr-reporte  = 0
+            and movto-dir.tipo-trans  = 1
+            &IF DEFINED(bf_man_207a) &THEN
+            and movto-dir.num-seq-rep       = p-num-seq-rep 
+            &else
+            and movto-dir.int-1       = p-num-seq-rep 
+            &endif exclusive-lock :    
+            
+          &IF DEFINED(bf_man_207a) &THEN      
+          if movto-dir.log-estorno = yes then next.  
+          assign movto-dir.log-estorno = yes.
+          &else
+          if substring(movto-dir.char-1,1,1) = "S" then next.  
+          assign overlay(movto-dir.char-1,1,1) = "S".
+          &endif
+          
+          create tt-movto-dir.
+          buffer-copy movto-dir to tt-movto-dir           
+          assign tt-movto-dir.cod-versao-integracao = 001
+                 tt-movto-dir.nr-ord-produ    = movto-dir.nr-ord-produ
+                 tt-movto-dir.tipo-trans      = 2
+                 tt-movto-dir.dt-retorno      = movto-dir.dt-trans
+                 tt-movto-dir.dt-trans        = movto-dir.dt-trans
+                 tt-movto-dir.lg-recalc-horas = yes /* Para que a api n’o recalcule
+                                                       a quantidade de horas     */
+                 tt-movto-dir.rw-mov-orig     = rowid(movto-dir) .
+                 &IF DEFINED (bf_man_204) &THEN
+                    assign
+                   tt-movto-dir.num-id-movto-dir = next-value(seq-movto-dir,mgind). 
+                 &ENDIF 
+      end.                          
+      
+      find first tt-movto-ggf no-error.
+      if avail tt-movto-ggf then do:
+         run cpp/cpapi005.p (input-output table tt-movto-ggf, 
+                             input-output table tt-erro     , 
+                             input no                       ).                                            
+         assign l-erro = (return-value = "nok").                       
+      end.
+      
+      find first tt-movto-dir no-error.
+      if not l-erro and avail tt-movto-dir then do :                       
+         run cpp/cpapi006.p (input-output table tt-movto-dir, 
+                             input-output table tt-erro     , 
+                             input no                       ).                     
+         assign l-erro = (return-value = "nok").                       
+      end.  
+      
+      if l-erro = yes then do:
+         for each tt-erro:
+             run copiaErro.
+             /*run criaErro(input tt-erro.cd-erro,
+                          input "":U).*/
+         end.
+         undo.
+         .return "NOK":U.
+      end.
+   end.   
+end.
+
+PROCEDURE copiaErro:
+
+DEFINE VARIABLE iErrorSequence AS INTEGER NO-UNDO.
+
+ IF CAN-FIND(LAST rowErrors) THEN DO:
+    FIND LAST rowErrors.
+    ASSIGN iErrorSequence = rowErrors.ErrorSequence + 1.
+ END.
+ ELSE
+     ASSIGN iErrorSequence = iErrorSequence + 1.
+ 
+ CREATE rowErrors.
+ ASSIGN rowErrors.ErrorSequence    = iErrorSequence
+        rowErrors.ErrorNumber      = tt-erro.cd-erro
+        rowErrors.ErrorType        = "EMS":U
+        rowErrors.ErrorSubType     = "ERROR":u
+        rowErrors.ErrorDescription = tt-erro.mensagem
+        rowErrors.ErrorHelp        = tt-erro.mensagem
+        rowErrors.ErrorParameters  = "".
+
+END PROCEDURE.

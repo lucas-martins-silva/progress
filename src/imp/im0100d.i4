@@ -1,0 +1,904 @@
+/* im0100d.i4 - main-block do im0100d */
+
+/* brSon4 */
+ON ENTRY OF tt-ordens-desemb.cdn-adicao IN BROWSE brSon4
+DO:
+   ASSIGN i-cdn-adicao-ant = INPUT BROWSE brSon4 tt-ordens-desemb.cdn-adicao.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cdn-adicao IN BROWSE brSon4
+DO:
+    RUN pi-leave-cdn-adicao-brSon4.
+    IF RETURN-VALUE = "NOK":U THEN
+        RETURN NO-APPLY.
+END.
+
+ON f5 OF tt-ordens-desemb.c-nat-fiscal IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.c-nat-fiscal IN BROWSE brSon4 DO:
+    /* guarda a linha que foi acionado o zoom para foráar as validaá‰es do leave do campo.
+      Problema: quando acionava o zoom 2 vezes seguidas n∆o estava fazendo as validaá‰es do leave do campo */
+    ASSIGN i-linha-zoom = brSon4:FOCUSED-ROW IN FRAME fPage2.
+    {include/zoomvar.i &prog-zoom=inzoom/z01in245.w
+                       &campo=tt-ordens-desemb.c-nat-fiscal
+                       &campozoom=nat-operacao
+                       &ExcludeVar=yes
+                       &browse=brSon4}.
+END.
+
+ON LEAVE OF tt-ordens-desemb.c-class-fiscal IN BROWSE brson4
+DO:
+    IF c-nom-prog-upc-mg97 <> "" THEN DO:
+        RUN VALUE(c-nom-prog-upc-mg97) (INPUT "leaveNcm":U, 
+                                        INPUT "":U, 
+                                        INPUT THIS-PROCEDURE, 
+                                        INPUT FRAME fPage2:HANDLE, 
+                                        INPUT STRING(TEMP-TABLE tt-ordens-desemb:HANDLE) + ",":U 
+                                           + tt-ordens-desemb.numero-ordem  :SCREEN-VALUE IN BROWSE brson4 + ",":U
+                                           + tt-ordens-desemb.parcela       :SCREEN-VALUE IN BROWSE brson4 + ",":U
+                                           + tt-ordens-desemb.c-class-fiscal:SCREEN-VALUE IN BROWSE brson4,
+                                        INPUT ?) NO-ERROR. 
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.c-nat-fiscal IN BROWSE brSon4
+DO:
+    RUN pi-leave-nat-fiscal-brSon4.
+    IF RETURN-VALUE = "NOK":U THEN
+        RETURN NO-APPLY.
+END.
+
+ON f5 OF tt-ordens-desemb.cClassTrib-IBSUF IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.cClassTrib-IBSUF IN BROWSE brSon4 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb.cClassTrib-IBSUF"
+                       &browse1="brSon4"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb.cClassTrib-IBSMun IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.cClassTrib-IBSMun IN BROWSE brSon4 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb.cClassTrib-IBSMun"
+                       &browse1="brSon4"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb.cClassTrib-CBS IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.cClassTrib-CBS IN BROWSE brSon4 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb.cClassTrib-CBS"
+                       &browse1="brSon4"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb.cClassTrib-IS IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.cClassTrib-IS IN BROWSE brSon4 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb.cClassTrib-IS"
+                       &browse1="brSon4"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb.c-un-trib-IS IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.c-un-trib-IS IN BROWSE brSon4 DO:
+  {include/zoomvar.i &prog-zoom=inzoom/z01in417.w
+                     &campo=tt-ordens-desemb.c-un-trib-IS
+                     &campozoom=un
+                     &ExcludeVar=yes
+                     &BROWSE=brSon4}.
+END.
+
+ON f5 OF tt-ordens-desemb.cClassTribReg-IBSUF IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.cClassTribReg-IBSUF IN BROWSE brSon4 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb.cClassTribReg-IBSUF"
+                       &browse1="brSon4"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb.cClassTribReg-IBSMun IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.cClassTribReg-IBSMun IN BROWSE brSon4 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb.cClassTribReg-IBSMun"
+                       &browse1="brSon4"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb.cClassTribReg-CBS IN BROWSE brSon4
+OR mouse-select-dblclick OF tt-ordens-desemb.cClassTribReg-CBS IN BROWSE brSon4 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb.cClassTribReg-CBS"
+                       &browse1="brSon4"
+                       &EnableImplant="NO"} 
+END.
+
+ON LEAVE OF tt-ordens-desemb.de-aliq-IBSUF IN BROWSE brSon4
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon4
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon4) <> 0 THEN
+            ASSIGN tt-ordens-desemb.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon4 = STRING(tt-ordens-desemb.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon4).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.de-aliq-IBSMun IN BROWSE brSon4
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon4
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon4) <> 0 THEN
+            ASSIGN tt-ordens-desemb.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon4 = STRING(tt-ordens-desemb.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon4).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.de-aliq-CBS IN BROWSE brSon4
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon4
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon4) <> 0 THEN
+            ASSIGN tt-ordens-desemb.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon4 = STRING(tt-ordens-desemb.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon4).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cClassTrib-IBSUF IN BROWSE brSon4
+DO:
+    IF tt-ordens-desemb.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon4 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon4
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon4).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb.cCST-IBSUF:SCREEN-VALUE IN BROWSE brSon4 = SUBSTRING(tt-ordens-desemb.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon4,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb.cClassTribReg-IBSUF:READ-ONLY IN BROWSE brSon4 = NO
+                       tt-ordens-desemb.cCSTReg-IBSUF:READ-ONLY IN BROWSE brSon4 = NO.
+                       
+                IF DEC(tt-ordens-desemb.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon4) <> 0 THEN 
+                    ASSIGN tt-ordens-desemb.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon4 = STRING(tt-ordens-desemb.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon4).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon4 = "0"
+                       tt-ordens-desemb.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon4 = ""
+                       tt-ordens-desemb.cCSTReg-IBSUF:SCREEN-VALUE IN BROWSE brSon4 = ""
+                       tt-ordens-desemb.cClassTribReg-IBSUF:READ-ONLY IN BROWSE brSon4 = YES
+                       tt-ordens-desemb.cCSTReg-IBSUF:READ-ONLY IN BROWSE brSon4 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cClassTrib-IBSMun IN BROWSE brSon4
+DO:
+    IF tt-ordens-desemb.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon4 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon4
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon4).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb.cCST-IBSMun:SCREEN-VALUE IN BROWSE brSon4 = SUBSTRING(tt-ordens-desemb.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon4,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb.cClassTribReg-IBSMun:READ-ONLY IN BROWSE brSon4 = NO
+                       tt-ordens-desemb.cCSTReg-IBSMun:READ-ONLY IN BROWSE brSon4 = NO.
+                       
+                IF DEC(tt-ordens-desemb.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon4) <> 0 THEN 
+                    ASSIGN tt-ordens-desemb.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon4 = STRING(tt-ordens-desemb.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon4).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon4 = "0"
+                       tt-ordens-desemb.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon4 = ""
+                       tt-ordens-desemb.cCSTReg-IBSMun:SCREEN-VALUE IN BROWSE brSon4 = ""
+                       tt-ordens-desemb.cClassTribReg-IBSMun:READ-ONLY IN BROWSE brSon4 = YES
+                       tt-ordens-desemb.cCSTReg-IBSMun:READ-ONLY IN BROWSE brSon4 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cClassTrib-CBS IN BROWSE brSon4
+DO:
+    IF tt-ordens-desemb.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon4 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon4
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon4).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb.cCST-CBS:SCREEN-VALUE IN BROWSE brSon4 = SUBSTRING(tt-ordens-desemb.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon4,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb.cClassTribReg-CBS:READ-ONLY IN BROWSE brSon4 = NO
+                       tt-ordens-desemb.cCSTReg-CBS:READ-ONLY IN BROWSE brSon4 = NO.
+                
+                IF DEC(tt-ordens-desemb.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon4) <> 0 THEN
+                    ASSIGN tt-ordens-desemb.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon4 = STRING(tt-ordens-desemb.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon4).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon4 = "0"
+                       tt-ordens-desemb.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon4 = ""
+                       tt-ordens-desemb.cCSTReg-CBS:SCREEN-VALUE IN BROWSE brSon4 = ""
+                       tt-ordens-desemb.cClassTribReg-CBS:READ-ONLY IN BROWSE brSon4 = YES
+                       tt-ordens-desemb.cCSTReg-CBS:READ-ONLY IN BROWSE brSon4 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cClassTrib-IS IN BROWSE brSon4
+DO:
+    IF tt-ordens-desemb.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon4 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon4
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon4).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb.cCST-IS:SCREEN-VALUE IN BROWSE brSon4 = SUBSTRING(tt-ordens-desemb.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon4,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cClassTribReg-IBSUF IN BROWSE brSon4
+DO:
+    IF tt-ordens-desemb.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon4 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon4
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon4).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb.cCSTReg-IBSUF:SCREEN-VALUE IN BROWSE brSon4 = SUBSTRING(tt-ordens-desemb.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon4,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cClassTribReg-IBSMun IN BROWSE brSon4
+DO:
+    IF tt-ordens-desemb.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon4 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon4
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon4).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb.cCSTReg-IBSMun:SCREEN-VALUE IN BROWSE brSon4 = SUBSTRING(tt-ordens-desemb.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon4,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb.cClassTribReg-CBS IN BROWSE brSon4
+DO:
+    IF tt-ordens-desemb.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon4 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon4
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon4).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb.cCSTReg-CBS:SCREEN-VALUE IN BROWSE brSon4 = SUBSTRING(tt-ordens-desemb.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon4,1,3).
+    END.
+END.
+
+/* brSon5 */
+ON f5 OF tt-ordens-desemb-acum.c-nat-fiscal IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.c-nat-fiscal IN BROWSE brSon5 DO:
+    ASSIGN i-linha-zoom = brSon5:FOCUSED-ROW IN FRAME fpage2.
+    {include/zoomvar.i &prog-zoom=inzoom/z01in245.w
+                       &campo=tt-ordens-desemb-acum.c-nat-fiscal
+                       &campozoom=nat-operacao
+                       &ExcludeVar=yes
+                       &BROWSE=brSon5}.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.c-nat-fiscal IN BROWSE brSon5
+DO:
+    RUN pi-leave-nat-fiscal-brSon5.
+    IF RETURN-VALUE = "NOK":U THEN
+        RETURN NO-APPLY.
+END.
+
+ON f5 OF tt-ordens-desemb-acum.cClassTrib-IBSUF IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.cClassTrib-IBSUF IN BROWSE brSon5 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum.cClassTrib-IBSUF"
+                       &browse1="brSon5"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum.cClassTrib-IBSMun IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.cClassTrib-IBSMun IN BROWSE brSon5 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum.cClassTrib-IBSMun"
+                       &browse1="brSon5"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum.cClassTrib-CBS IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.cClassTrib-CBS IN BROWSE brSon5 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum.cClassTrib-CBS"
+                       &browse1="brSon5"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum.cClassTrib-IS IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.cClassTrib-IS IN BROWSE brSon5 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum.cClassTrib-IS"
+                       &browse1="brSon5"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum.c-un-trib-IS IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.c-un-trib-IS IN BROWSE brSon5 DO:
+  {include/zoomvar.i &prog-zoom=inzoom/z01in417.w
+                     &campo=tt-ordens-desemb-acum.c-un-trib-IS
+                     &campozoom=un
+                     &ExcludeVar=yes
+                     &BROWSE=brSon5}.
+END.
+
+ON f5 OF tt-ordens-desemb-acum.cClassTribReg-IBSUF IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.cClassTribReg-IBSUF IN BROWSE brSon5 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum.cClassTribReg-IBSUF"
+                       &browse1="brSon5"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum.cClassTribReg-IBSMun IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.cClassTribReg-IBSMun IN BROWSE brSon5 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum.cClassTribReg-IBSMun"
+                       &browse1="brSon5"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum.cClassTribReg-CBS IN BROWSE brSon5
+OR mouse-select-dblclick OF tt-ordens-desemb-acum.cClassTribReg-CBS IN BROWSE brSon5 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum.cClassTribReg-CBS"
+                       &browse1="brSon5"
+                       &EnableImplant="NO"} 
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.de-aliq-IBSUF IN BROWSE brSon5
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon5
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb-acum.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon5) <> 0 THEN
+            ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon5 = STRING(tt-ordens-desemb-acum.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon5).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.de-aliq-IBSMun IN BROWSE brSon5
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon5
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb-acum.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon5) <> 0 THEN
+            ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon5 = STRING(tt-ordens-desemb-acum.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon5).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.de-aliq-CBS IN BROWSE brSon5
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon5
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb-acum.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon5) <> 0 THEN
+            ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon5 = STRING(tt-ordens-desemb-acum.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon5).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.cClassTrib-IBSUF IN BROWSE brSon5
+DO:
+    IF tt-ordens-desemb-acum.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon5 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon5
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon5).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb-acum.cCST-IBSUF:SCREEN-VALUE IN BROWSE brSon5 = SUBSTRING(tt-ordens-desemb-acum.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon5,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb-acum.cClassTribReg-IBSUF:READ-ONLY IN BROWSE brSon5 = NO
+                       tt-ordens-desemb-acum.cCSTReg-IBSUF:READ-ONLY IN BROWSE brSon5 = NO.
+                
+                IF DEC(tt-ordens-desemb-acum.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon5) <> 0 THEN
+                    ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon5 = STRING(tt-ordens-desemb-acum.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon5).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon5 = "0"
+                       tt-ordens-desemb-acum.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon5 = ""
+                       tt-ordens-desemb-acum.cCSTReg-IBSUF:SCREEN-VALUE IN BROWSE brSon5 = ""
+                       tt-ordens-desemb-acum.cClassTribReg-IBSUF:READ-ONLY IN BROWSE brSon5 = YES
+                       tt-ordens-desemb-acum.cCSTReg-IBSUF:READ-ONLY IN BROWSE brSon5 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.cClassTrib-IBSMun IN BROWSE brSon5
+DO:
+    IF tt-ordens-desemb-acum.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon5 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon5
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon5).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb-acum.cCST-IBSMun:SCREEN-VALUE IN BROWSE brSon5 = SUBSTRING(tt-ordens-desemb-acum.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon5,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb-acum.cClassTribReg-IBSMun:READ-ONLY IN BROWSE brSon5 = NO
+                       tt-ordens-desemb-acum.cCSTReg-IBSMun:READ-ONLY IN BROWSE brSon5 = NO.
+                
+                IF DEC(tt-ordens-desemb-acum.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon5) <> 0 THEN
+                    ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon5 = STRING(tt-ordens-desemb-acum.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon5).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon5 = "0"
+                       tt-ordens-desemb-acum.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon5 = ""
+                       tt-ordens-desemb-acum.cCSTReg-IBSMun:SCREEN-VALUE IN BROWSE brSon5 = ""
+                       tt-ordens-desemb-acum.cClassTribReg-IBSMun:READ-ONLY IN BROWSE brSon5 = YES
+                       tt-ordens-desemb-acum.cCSTReg-IBSMun:READ-ONLY IN BROWSE brSon5 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.cClassTrib-CBS IN BROWSE brSon5
+DO:
+    IF tt-ordens-desemb-acum.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon5 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon5
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon5).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb-acum.cCST-CBS:SCREEN-VALUE IN BROWSE brSon5 = SUBSTRING(tt-ordens-desemb-acum.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon5,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb-acum.cClassTribReg-CBS:READ-ONLY IN BROWSE brSon5 = NO
+                       tt-ordens-desemb-acum.cCSTReg-CBS:READ-ONLY IN BROWSE brSon5 = NO.
+                
+                IF DEC(tt-ordens-desemb-acum.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon5) <> 0 THEN 
+                    ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon5 = STRING(tt-ordens-desemb-acum.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon5).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb-acum.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon5 = "0"
+                       tt-ordens-desemb-acum.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon5 = ""
+                       tt-ordens-desemb-acum.cCSTReg-CBS:SCREEN-VALUE IN BROWSE brSon5 = ""
+                       tt-ordens-desemb-acum.cClassTribReg-CBS:READ-ONLY IN BROWSE brSon5 = YES
+                       tt-ordens-desemb-acum.cCSTReg-CBS:READ-ONLY IN BROWSE brSon5 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.cClassTrib-IS IN BROWSE brSon5
+DO:
+    IF tt-ordens-desemb-acum.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon5 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon5
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon5).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum.cCST-IS:SCREEN-VALUE IN BROWSE brSon5 = SUBSTRING(tt-ordens-desemb-acum.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon5,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.cClassTribReg-IBSUF IN BROWSE brSon5
+DO:
+    IF tt-ordens-desemb-acum.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon5 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon5
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb-acum.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon5).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum.cCSTReg-IBSUF:SCREEN-VALUE IN BROWSE brSon5 = SUBSTRING(tt-ordens-desemb-acum.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon5,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.cClassTribReg-IBSMun IN BROWSE brSon5
+DO:
+    IF tt-ordens-desemb-acum.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon5 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon5
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb-acum.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon5).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum.cCSTReg-IBSMun:SCREEN-VALUE IN BROWSE brSon5 = SUBSTRING(tt-ordens-desemb-acum.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon5,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum.cClassTribReg-CBS IN BROWSE brSon5
+DO:
+    IF tt-ordens-desemb-acum.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon5 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon5
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb-acum.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon5).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum.cCSTReg-CBS:SCREEN-VALUE IN BROWSE brSon5 = SUBSTRING(tt-ordens-desemb-acum.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon5,1,3).
+    END.
+END.
+
+/* brSon6 */
+ON f5 OF tt-ordens-desemb-acum-adicao.c-nat-fiscal IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.c-nat-fiscal IN BROWSE brSon6 DO:
+    ASSIGN i-linha-zoom = brSon6:FOCUSED-ROW IN FRAME fPage2.
+    {include/zoomvar.i &prog-zoom=inzoom/z01in245.w
+                       &campo=tt-ordens-desemb-acum-adicao.c-nat-fiscal
+                       &campozoom=nat-operacao
+                       &BROWSE=brSon6}.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.c-nat-fiscal IN BROWSE brSon6
+DO:
+    RUN pi-leave-nat-fiscal-brSon6.
+    IF RETURN-VALUE = "NOK":U THEN
+        RETURN NO-APPLY.
+END.
+        
+ON ENTRY OF tt-ordens-desemb-acum-adicao.de-taxa-siscomex IN BROWSE brSon6
+DO:
+   ASSIGN de-tx-siscomex-ant = INPUT BROWSE brSon6 tt-ordens-desemb-acum-adicao.de-taxa-siscomex.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.de-taxa-siscomex IN BROWSE brSon6
+DO:
+    IF INPUT BROWSE brSon6 tt-ordens-desemb-acum-adicao.de-taxa-siscomex <> de-tx-siscomex-ant THEN
+        ASSIGN l-atualizar-despesa = YES.
+   
+    ASSIGN de-tx-siscomex2     = de-tx-siscomex2 + (INPUT BROWSE brSon6 tt-ordens-desemb-acum-adicao.de-taxa-siscomex - de-tx-siscomex-ant)
+           de-tx-siscomex-ant = INPUT BROWSE brSon6 tt-ordens-desemb-acum-adicao.de-taxa-siscomex.
+
+    DISP de-tx-siscomex2 WITH FRAME fpage2.
+    
+    FOR EACH tt-ordens-desemb EXCLUSIVE-LOCK
+        WHERE tt-ordens-desemb.cdn-adicao     = tt-ordens-desemb-acum-adicao.cdn-adicao
+          AND tt-ordens-desemb.c-class-fiscal = tt-ordens-desemb-acum-adicao.c-class-fiscal:
+        ASSIGN tt-ordens-desemb.de-taxa-siscomex = INPUT BROWSE brSon6 tt-ordens-desemb-acum-adicao.de-taxa-siscomex.
+    END.
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF IN BROWSE brSon6 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF"
+                       &browse1="brSon6"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun IN BROWSE brSon6 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun"
+                       &browse1="brSon6"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.cClassTrib-CBS IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.cClassTrib-CBS IN BROWSE brSon6 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum-adicao.cClassTrib-CBS"
+                       &browse1="brSon6"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.cClassTrib-IS IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.cClassTrib-IS IN BROWSE brSon6 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z01in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum-adicao.cClassTrib-IS"
+                       &browse1="brSon6"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.c-un-trib-IS IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.c-un-trib-IS IN BROWSE brSon6 DO:
+  {include/zoomvar.i &prog-zoom=inzoom/z01in417.w
+                     &campo=tt-ordens-desemb-acum-adicao.c-un-trib-IS
+                     &campozoom=un
+                     &ExcludeVar=yes
+                     &BROWSE=brSon6}.
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF IN BROWSE brSon6 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF"
+                       &browse1="brSon6"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun IN BROWSE brSon6 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun"
+                       &browse1="brSon6"
+                       &EnableImplant="NO"} 
+END.
+
+ON f5 OF tt-ordens-desemb-acum-adicao.cClassTribReg-CBS IN BROWSE brSon6
+OR mouse-select-dblclick OF tt-ordens-desemb-acum-adicao.cClassTribReg-CBS IN BROWSE brSon6 DO:
+  {method/zoomfields.i &ProgramZoom="inzoom/z02in01127.w"
+                       &FieldZoom1="cod-cclass-trib"
+                       &FieldScreen1="tt-ordens-desemb-acum-adicao.cClassTribReg-CBS"
+                       &browse1="brSon6"
+                       &EnableImplant="NO"} 
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.de-aliq-IBSUF IN BROWSE brSon6
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon6
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb-acum-adicao.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon6) <> 0 THEN
+            ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon6 = STRING(tt-ordens-desemb-acum-adicao.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon6).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.de-aliq-IBSMun IN BROWSE brSon6
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon6
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb-acum-adicao.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon6) <> 0 THEN
+            ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon6 = STRING(tt-ordens-desemb-acum-adicao.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon6).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.de-aliq-CBS IN BROWSE brSon6
+DO:
+    FOR FIRST class-trib NO-LOCK
+        WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon6
+          AND class-trib.ind-tributo  = 1 /* IBS/CBS */ 
+          AND class-trib.trib-regular = 1:
+        IF DEC(tt-ordens-desemb-acum-adicao.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon6) <> 0 THEN
+            ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon6 = STRING(tt-ordens-desemb-acum-adicao.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon6).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF IN BROWSE brSon6
+DO:
+    IF tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon6 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon6
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon6).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb-acum-adicao.cCST-IBSUF:SCREEN-VALUE IN BROWSE brSon6 = SUBSTRING(tt-ordens-desemb-acum-adicao.cClassTrib-IBSUF:SCREEN-VALUE IN BROWSE brSon6,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF:READ-ONLY IN BROWSE brSon6 = NO
+                       tt-ordens-desemb-acum-adicao.cCSTReg-IBSUF:READ-ONLY IN BROWSE brSon6 = NO.
+                
+                IF DEC(tt-ordens-desemb-acum-adicao.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon6) <> 0 THEN 
+                    ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon6 = STRING(tt-ordens-desemb-acum-adicao.de-aliq-IBSUF:SCREEN-VALUE IN BROWSE brSon6).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-IBSUF:SCREEN-VALUE IN BROWSE brSon6 = "0"
+                       tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon6 = ""
+                       tt-ordens-desemb-acum-adicao.cCSTReg-IBSUF:SCREEN-VALUE IN BROWSE brSon6 = ""
+                       tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF:READ-ONLY IN BROWSE brSon6 = YES
+                       tt-ordens-desemb-acum-adicao.cCSTReg-IBSUF:READ-ONLY IN BROWSE brSon6 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun IN BROWSE brSon6
+DO:
+    IF tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon6 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon6
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon6).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb-acum-adicao.cCST-IBSMun:SCREEN-VALUE IN BROWSE brSon6 = SUBSTRING(tt-ordens-desemb-acum-adicao.cClassTrib-IBSMun:SCREEN-VALUE IN BROWSE brSon6,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun:READ-ONLY IN BROWSE brSon6 = NO
+                       tt-ordens-desemb-acum-adicao.cCSTReg-IBSMun:READ-ONLY IN BROWSE brSon6 = NO.
+                
+                IF DEC(tt-ordens-desemb-acum-adicao.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon6) <> 0 THEN 
+                    ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon6 = STRING(tt-ordens-desemb-acum-adicao.de-aliq-IBSMun:SCREEN-VALUE IN BROWSE brSon6).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-IBSMun:SCREEN-VALUE IN BROWSE brSon6 = "0"
+                       tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon6 = ""
+                       tt-ordens-desemb-acum-adicao.cCSTReg-IBSMun:SCREEN-VALUE IN BROWSE brSon6 = ""
+                       tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun:READ-ONLY IN BROWSE brSon6 = YES
+                       tt-ordens-desemb-acum-adicao.cCSTReg-IBSMun:READ-ONLY IN BROWSE brSon6 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.cClassTrib-CBS IN BROWSE brSon6
+DO:
+    IF tt-ordens-desemb-acum-adicao.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon6 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon6
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum-adicao.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon6).
+            RETURN NO-APPLY.
+        END.
+        ELSE DO:
+            ASSIGN tt-ordens-desemb-acum-adicao.cCST-CBS:SCREEN-VALUE IN BROWSE brSon6 = SUBSTRING(tt-ordens-desemb-acum-adicao.cClassTrib-CBS:SCREEN-VALUE IN BROWSE brSon6,1,3).
+            IF class-trib.trib-regular = 1 THEN DO:
+                ASSIGN tt-ordens-desemb-acum-adicao.cClassTribReg-CBS:READ-ONLY IN BROWSE brSon6 = NO
+                       tt-ordens-desemb-acum-adicao.cCSTReg-CBS:READ-ONLY IN BROWSE brSon6 = NO.
+                
+                IF DEC(tt-ordens-desemb-acum-adicao.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon6) <> 0 THEN
+                    ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon6 = STRING(tt-ordens-desemb-acum-adicao.de-aliq-CBS:SCREEN-VALUE IN BROWSE brSon6).
+            END.
+            ELSE
+                ASSIGN tt-ordens-desemb-acum-adicao.de-aliq-Reg-CBS:SCREEN-VALUE IN BROWSE brSon6 = "0"
+                       tt-ordens-desemb-acum-adicao.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon6 = ""
+                       tt-ordens-desemb-acum-adicao.cCSTReg-CBS:SCREEN-VALUE IN BROWSE brSon6 = ""
+                       tt-ordens-desemb-acum-adicao.cClassTribReg-CBS:READ-ONLY IN BROWSE brSon6 = YES
+                       tt-ordens-desemb-acum-adicao.cCSTReg-CBS:READ-ONLY IN BROWSE brSon6 = YES.
+        END.
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.cClassTrib-IS IN BROWSE brSon6
+DO:
+    IF tt-ordens-desemb-acum-adicao.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon6 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon6
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib":U + "~~" + tt-ordens-desemb-acum-adicao.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon6).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum-adicao.cCST-IS:SCREEN-VALUE IN BROWSE brSon6 = SUBSTRING(tt-ordens-desemb-acum-adicao.cClassTrib-IS:SCREEN-VALUE IN BROWSE brSon6,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF IN BROWSE brSon6
+DO:
+    IF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon6 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon6
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon6).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum-adicao.cCSTReg-IBSUF:SCREEN-VALUE IN BROWSE brSon6 = SUBSTRING(tt-ordens-desemb-acum-adicao.cClassTribReg-IBSUF:SCREEN-VALUE IN BROWSE brSon6,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun IN BROWSE brSon6
+DO:
+    IF tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon6 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon6
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon6).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum-adicao.cCSTReg-IBSMun:SCREEN-VALUE IN BROWSE brSon6 = SUBSTRING(tt-ordens-desemb-acum-adicao.cClassTribReg-IBSMun:SCREEN-VALUE IN BROWSE brSon6,1,3).
+    END.
+END.
+
+ON LEAVE OF tt-ordens-desemb-acum-adicao.cClassTribReg-CBS IN BROWSE brSon6
+DO:
+    IF tt-ordens-desemb-acum-adicao.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon6 <> "" THEN DO:
+        FIND FIRST class-trib NO-LOCK
+             WHERE class-trib.cod-cclass-trib = tt-ordens-desemb-acum-adicao.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon6
+               AND class-trib.ind-tributo = 1 /* IBS/CBS */ NO-ERROR.
+        IF NOT AVAIL class-trib THEN DO:
+            RUN utp/ut-msgs.p (INPUT "show":U,
+                               INPUT 2,
+                               INPUT "Class Trib Reg":U + "~~" + tt-ordens-desemb-acum-adicao.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon6).
+            RETURN NO-APPLY.
+        END.
+        ELSE
+            ASSIGN tt-ordens-desemb-acum-adicao.cCSTReg-CBS:SCREEN-VALUE IN BROWSE brSon6 = SUBSTRING(tt-ordens-desemb-acum-adicao.cClassTribReg-CBS:SCREEN-VALUE IN BROWSE brSon6,1,3).
+    END.
+END.
+

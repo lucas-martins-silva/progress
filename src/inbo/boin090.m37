@@ -1,0 +1,66 @@
+
+PROCEDURE consistNotaFatAntecip :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def input param piSerie        like nota-fiscal.serie          no-undo.
+    def input param piNrNotaFis    like nota-fiscal.nr-nota-fis    no-undo.
+    def input param piNatOperacao  like nota-fiscal.nat-operacao   no-undo.
+    def input param piDtEmissao    like docum-est.dt-emissao       no-undo.
+    
+    def var i-tipo-sal-terc        as int                          no-undo.
+    
+    def buffer b-natur-oper for natur-oper.
+    
+    if  not avail RowObject then 
+        RETURN "NOK":U.
+        
+	FOR FIRST movto-fatur-antecip                
+		WHERE movto-fatur-antecip.cod-estabel  = RowObject.cod-estabel 
+		  AND movto-fatur-antecip.serie-docto  = piSerie
+		  AND movto-fatur-antecip.nr-nota-fis  = piNrNotaFis
+		  AND movto-fatur-antecip.cod-emitente = RowObject.cod-emitente
+		  AND movto-fatur-antecip.nat-operacao = piNatOperacao no-lock: end.
+	
+	/**** Remessa Faturamento Antecipado ****/
+	IF AVAIL movto-fatur-antecip THEN DO:	
+		FIND FIRST sdo-fatur-antecip
+			 WHERE sdo-fatur-antecip.num-id-sdo = movto-fatur-antecip.num-id-sdo no-lock NO-ERROR.		
+	END.
+	/**** Fatura Faturamento Antecipado ****/
+	ELSE DO: 
+		for first sdo-fatur-antecip
+			where sdo-fatur-antecip.nr-nota-fis  = piNrNotaFis
+			  and sdo-fatur-antecip.serie-docto        = piSerie
+			  and sdo-fatur-antecip.nat-operacao = piNatOperacao
+			  and sdo-fatur-antecip.cod-emitente = RowObject.cod-emitente
+			  and sdo-fatur-antecip.cod-estabel  = RowObject.cod-estabel no-lock: end.
+	END.
+	
+    if  not avail sdo-fatur-antecip then do:
+        /* Inicio -- Projeto Internacional */
+        DEFINE VARIABLE c-lbl-liter-saldo-faturamento-antecipado AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Saldo_Faturamento_Antecipado" *}
+        ASSIGN c-lbl-liter-saldo-faturamento-antecipado = TRIM(RETURN-VALUE).
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="2"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U 
+                            &ErrorParameters="c-lbl-liter-saldo-faturamento-antecipado"}
+         RETURN "NOK":U.                             
+    end.
+    
+    run findNaturOper ( RowObject.nat-operacao ).
+    
+
+    RETURN "OK":U.                                
+
+END PROCEDURE.
+
+
+
+
+

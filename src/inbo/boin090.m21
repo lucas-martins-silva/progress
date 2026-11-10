@@ -1,0 +1,347 @@
+
+PROCEDURE validateCreateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def var c-nro-docto     as char     no-undo.
+    def buffer bf-natur-oper    for natur-oper.
+    def buffer bf-emitente      for emitente.
+    &if defined (bf_mat_bloqueio_fornec) &then        
+        def var i-situacao     as int  no-undo.  
+        def var dt-vig-ini     as date no-undo.  
+        def var dt-vig-fim     as date no-undo.  
+    &endif       
+    
+    def buffer bf-natur-oper-fut for natur-oper.
+    def buffer bf2-natur-oper-fut for natur-oper.
+    def var c-nat-ent-fut  like natur-oper.nat-operacao no-undo.
+
+    DEFINE VARIABLE c-aux-titulo         AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE c-aux-help           AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE l-valida-embarque    AS LOGICAL INITIAL YES NO-UNDO.
+    
+      
+    if  RowObject.cod-emitente = 0 then do:
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="6189"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U }
+    end.
+    
+    IF  i-pais-impto-usuario = 1 THEN DO:
+        find bf-natur-oper-fut where
+             bf-natur-oper-fut.nat-operacao = rowObject.nat-operacao no-lock no-error.
+        
+        if  avail bf-natur-oper-fut then do: 
+            /*--- include que contem a logica para identificar se a natureza do docum-est eh fatura faturamento 
+                  antecipado, remessa faturamento antecipado, fatura ent futura ou remessa ent futura ---*/
+            {cdp/cd9700.i1 bf-natur-oper-fut}                         
+            
+            if  l-fatura-ent-futura then do: /* Faturamento com entrega futura */
+                FIND bf2-natur-oper-fut WHERE
+                     bf2-natur-oper-fut.nat-operacao = bf-natur-oper-fut.nat-comp NO-LOCK NO-ERROR.
+
+                if  avail bf2-natur-oper-fut then
+                    assign c-nat-ent-fut = bf2-natur-oper-fut.nat-operacao.
+
+                IF  bf-natur-oper-fut.tipo-compra = 3
+                AND bf-natur-oper-fut.especie-doc = "NFD"
+                AND (SUBSTRING(bf-natur-oper-fut.char-1,1,5) = ""
+                OR  SUBSTRING(bf-natur-oper-fut.char-1,1,5) = "0")
+                AND ((bf-natur-oper-fut.tipo = 1 and bf2-natur-oper-fut.tipo = 2)       
+                OR  (bf-natur-oper-fut.tipo = 2 and bf2-natur-oper-fut.tipo = 1))
+                AND bf2-natur-oper-fut.terceiros THEN DO:  
+                        
+                        DEF VAR c-aux-liter-1 AS CHAR NO-UNDO.
+                        DEF VAR c-aux-liter-2 AS CHAR NO-UNDO.
+                        DEF VAR c-aux-liter-3 AS CHAR NO-UNDO.
+                        DEF VAR c-aux-liter-4 AS CHAR NO-UNDO.
+                        
+                        {utp/ut-liter.i "Erro_na_configura‡Æo_da_natureza_de_Entrega_Futura" *}
+                        ASSIGN c-aux-liter-1 = RETURN-VALUE.
+                        {utp/ut-liter.i "A_natureza_" *}
+                        ASSIGN c-aux-liter-2 = RETURN-VALUE.
+                        {utp/ut-liter.i "_que_‚_complementar_da_" *}
+                        ASSIGN c-aux-liter-3 = RETURN-VALUE.
+                        {utp/ut-liter.i "_deve_estar_cadastrada_E_deve_ser_do_tipo_sa¡da_E_deve_ser_de_opera‡Æo_com_terceiros_E_deve_ser_de_Retorno_Beneficiamento_" *}
+                        ASSIGN c-aux-liter-4 = RETURN-VALUE.
+
+                        IF bf2-natur-oper-fut.tp-oper-terc <> 2 THEN DO:
+                                {method/svc/errors/inserr.i
+                                        &ErrorNumber="17006"
+                                        &ErrorType="EMS":U
+                                        &ErrorSubType="ERROR":U 
+                                        &ErrorParameters="c-aux-liter-1 + '~~~~~' +
+                                                          c-aux-liter-2 + c-nat-ent-fut + c-aux-liter-3 + rowObject.nat-operacao +   
+                                                          c-aux-liter-4  "}                					
+                        END.
+                END.
+                ELSE DO:	
+                        if  not avail bf2-natur-oper-fut
+                        or  bf2-natur-oper-fut.terceiros = no
+                        or  bf2-natur-oper-fut.tipo <> 2
+                        or  (bf2-natur-oper-fut.tp-oper-terc <> 1
+                        and  bf2-natur-oper-fut.tp-oper-terc <> 2) /*14447 - Adicionado tipo opera‡Æo retorno beneficiamento*/ then do:
+                            /* Inicio -- Projeto Internacional */
+                            DEFINE VARIABLE c-lbl-liter-erro-na-configuracao-da-nature AS CHARACTER NO-UNDO.
+                            {utp/ut-liter.i "Erro_na_configura‡Æo_da_natureza_de_Entrega_Futura" *}
+                            ASSIGN c-lbl-liter-erro-na-configuracao-da-nature = TRIM(RETURN-VALUE).
+                            DEFINE VARIABLE c-lbl-liter-a-natureza AS CHARACTER NO-UNDO.
+                            {utp/ut-liter.i "A_natureza" *}
+                            ASSIGN c-lbl-liter-a-natureza = TRIM(RETURN-VALUE).
+                            DEFINE VARIABLE c-lbl-liter-que-e-complementar-da AS CHARACTER NO-UNDO.
+                            {utp/ut-liter.i "que_‚_complementar_da" *}
+                            ASSIGN c-lbl-liter-que-e-complementar-da = TRIM(RETURN-VALUE).
+                            DEFINE VARIABLE c-lbl-liter-deve-estar-cadastrada-e-deve-s AS CHARACTER NO-UNDO.
+                            {utp/ut-liter.i "deve_estar_cadastrada_E_deve_ser_do_tipo_sa¡da_E_deve_ser_de_opera‡Æo_com_terceiros_E_deve_ser_de_Remessa_Beneficiamento" *}
+                            ASSIGN c-lbl-liter-deve-estar-cadastrada-e-deve-s = TRIM(RETURN-VALUE).
+                            {method/svc/errors/inserr.i
+                                            &ErrorNumber="17006"
+                                            &ErrorType="EMS":U
+                                            &ErrorSubType="ERROR":U 
+                                            &ErrorParameters="c-lbl-liter-erro-na-configuracao-da-nature + '~~~~~' +
+                                                              c-lbl-liter-a-natureza + ' ' + c-nat-ent-fut + ' ' + c-lbl-liter-que-e-complementar-da + ' ' + rowObject.nat-operacao +   
+                                                              ' ' + c-lbl-liter-deve-estar-cadastrada-e-deve-s  "}                
+                        end.
+                                
+                        IF  bf-natur-oper-fut.especie-doc = "NFD"    /* Esp‚cie do documento = Nota de devolu‡Æo */
+                                AND bf-natur-oper-fut.tipo-compra = 3    /* Tipo compra = Devolu‡Æo cliente */
+                                AND RowObject.cod-observa <> 3 THEN DO:  /* Observa‡Æo <> Devolu‡Æo cliente */
+                                
+                                {utp/ut-liter.i Natureza_de_opera‡Æo_incompat¡vel_com_a_nota. *}
+                                ASSIGN c-aux-titulo = RETURN-VALUE.
+                                {utp/ut-liter.i A_natureza_de_opera‡Æo_‚_do_tipo_'Devolu‡Æo_Fatura_Entrega_Futura'._A_'Observa‡Æo'_da_nota_deve_ser_'Devolu‡Æo_Cliente'. *}
+                                ASSIGN c-aux-help = RETURN-VALUE.
+                                {method/svc/errors/inserr.i 
+                                                &ErrorNumber     = 17006
+                                                &ErrorType       = "EMS"
+                                                &ErrorSubType    = "ERROR"
+                                                &ErrorParameters = " c-aux-titulo + '~~~~' + c-aux-help"}.
+                        END.
+                END.
+            end.
+
+            IF bf-natur-oper-fut.terceiros = YES THEN DO:
+               IF CAN-FIND (first componente 
+                            where componente.cod-emitente  = RowObject.cod-emitente
+                              and componente.serie-docto   = RowObject.serie-docto
+                              and componente.nro-docto     = RowObject.nro-docto
+                              and componente.nat-operacao  = RowObject.nat-operacao)THEN DO:
+                     {utp/ut-liter.i J _existe_uma_implanta‡Æo_de_saldo_de_poder_de_Terceiros_com_a_chave_informada. *}
+                     ASSIGN c-aux-titulo = RETURN-VALUE.
+                     {utp/ut-liter.i J _existe_uma_implanta‡Æo_de_saldo_de_poder_de_Terceiros_com_o_mesmo_n£mero_de_emitente_,_natureza_de_opera‡Æo_,_s‚rie_e_n£mero_de_documento_informado *}
+                     ASSIGN c-aux-help = RETURN-VALUE.
+                                {method/svc/errors/inserr.i 
+                                                &ErrorNumber     = 17006
+                                                &ErrorType       = "EMS"
+                                                &ErrorSubType    = "ERROR"
+                                                &ErrorParameters = " c-aux-titulo + '~~~~' + c-aux-help"}.        
+                END.
+            END.
+        end.
+        if RowObject.origem <> "G" then
+            assign RowObject.nro-docto = left-trim(string(dec(RowObject.nro-docto), c-formato)) no-error.
+        
+        if (ERROR-STATUS:ERROR 
+            or (error-status:get-number(1) = 76
+                or error-status:get-number(1) = 74
+            and error-status:num-messages  <> 0))then do:
+                        
+            {method/svc/errors/inserr.i
+                            &ErrorNumber="36151"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U 
+                            &ErrorParameters=length(c-formato)}
+        end. 
+        
+        if  RowObject.nro-docto = "0000000":U 
+        or  RowObject.nro-docto = "":U then do:
+            {method/svc/errors/inserr.i
+                            &ErrorNumber="16686"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U }
+        end.
+        
+        IF  length(RowObject.nro-docto) > length(c-formato) THEN DO:
+            {method/svc/errors/inserr.i
+                            &ErrorNumber="36151"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U 
+                            &ErrorParameters=length(c-formato)}
+        end.
+        
+        assign de-nota = dec(RowObject.nro-docto) no-error.
+        if (ERROR-STATUS:ERROR 
+            or (error-status:get-number(1) = 76
+                or error-status:get-number(1) = 74
+            and error-status:num-messages  <> 0))then do:
+            {method/svc/errors/inserr.i
+                            &ErrorNumber="972"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U }
+        end.
+    END.
+    
+    if  not can-find(serie where serie.serie = RowObject.serie-docto) then do:
+        /* Inicio -- Projeto Internacional */
+        DEFINE VARIABLE c-lbl-liter-serie AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "S‚rie" *}
+        ASSIGN c-lbl-liter-serie = TRIM(RETURN-VALUE).
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="2"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U
+                            &ErrorParameters="c-lbl-liter-serie" }
+    end.
+
+    /*Alterado para incluir data de transa‡Æo na mensagem*/
+    FOR FIRST bf{&TableName} NO-LOCK
+        WHERE bf{&TableName}.serie-docto  = RowObject.serie-docto   AND
+              bf{&TableName}.nro-docto    = RowObject.nro-docto     AND
+              bf{&TableName}.cod-emitente = RowObject.cod-emitente  AND
+              bf{&TableName}.nat-operacao = RowObject.nat-operacao:
+        /* Inicio -- Projeto Internacional */
+        DEFINE VARIABLE c-lbl-liter-documento-estoque AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Documento_Estoque" *}
+        ASSIGN c-lbl-liter-documento-estoque = TRIM(RETURN-VALUE).
+        DEFINE VARIABLE c-data-transacao AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Data_Transa‡Æo:" *}
+        ASSIGN c-data-transacao = TRIM(RETURN-VALUE) + " " + STRING(bf{&TableName}.dt-trans).
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="57101"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U
+                            &ErrorParameters="c-lbl-liter-documento-estoque + '~~~~~' + c-data-transacao"}
+    END.
+    
+    if  param-global.modulo-bh 
+    and can-find ( first his-docum-est 
+                   where his-docum-est.serie-docto  = RowObject.serie-docto 
+                     and his-docum-est.nro-docto    = RowObject.nro-docto
+                     and his-docum-est.cod-emitente = RowObject.cod-emitente     
+                     and his-docum-est.nat-operacao = RowObject.nat-operacao ) then do:
+        /* Inicio -- Projeto Internacional */
+        DEFINE VARIABLE c-lbl-liter-documento-estoque-2 AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Documento_Estoque" *}
+        ASSIGN c-lbl-liter-documento-estoque-2 = TRIM(RETURN-VALUE).
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="28152"
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR"
+                            &ErrorParameters="c-lbl-liter-documento-estoque-2" }
+                     
+
+    end.                     
+
+    if  avail natur-oper then do:
+
+        if  natur-oper.tipo <> 1 then do:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="15026"
+                                &ErrorType="EMS":U
+                                &ErrorSubType="ERROR":U}
+        end.
+    
+
+        if  param-global.modulo-ft 
+        and natur-oper.imp-nota 
+        and natur-oper.atual-estat then do:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="5105"
+                                &ErrorType="EMS":U
+                                &ErrorSubType="ERROR":U}
+        end.
+    
+        &if defined (bf_mat_bloqueio_fornec) &then
+            /**Valida a situacao do fornecedor **/
+            if (not natur-oper.terceiros  and (   natur-oper.tipo-compra  <> 3   /* Devolucao Cliente      */
+                                              and natur-oper.tipo-compra  <> 4)) /* Material Agregado      */
+            or (natur-oper.terceiros      and (   natur-oper.tp-oper-terc <> 1   /* Remessa Beneficiamento */
+                                              and natur-oper.tp-oper-terc <> 2   /* Retorno Beneficiamento */
+                                              and natur-oper.tp-oper-terc <> 5)) then do: /* Devol. Consignacao */
+            
+
+                run cdp/cdapi029.p (input c-seg-usuario,
+                                    input 2,
+                                    input rowObject.dt-trans,
+                                    input rowObject.cod-emitente,
+                                    output i-situacao,  
+                                    output dt-vig-ini,  
+                                    output dt-vig-fim,  
+                                    output table tt-erro-cdapi029).
+                if return-value = "nok":U then
+                    for each tt-erro-cdapi029:
+                        if not can-find(first RowErrors
+                                        where RowErrors.ErrorNumber = tt-erro-cdapi029.cd-erro) then do:
+            
+
+                            {method/svc/errors/inserr.i &ErrorNumber="tt-erro-cdapi029.cd-erro"
+                                                        &ErrorType="EMS":U
+                                                        &ErrorSubType="ERROR":U   
+                                                        &ErrorParameters="tt-erro-cdapi029.c-param"}                                                                     
+                        end.
+                    end.
+                else if i-situacao = 3 then do:
+                    /**Fornecedor suspenso para Recebimento**/    
+                    /* Inicio -- Projeto Internacional */
+                    DEFINE VARIABLE c-lbl-liter-para-recebimento AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "para_Recebimento" *}
+                    ASSIGN c-lbl-liter-para-recebimento = TRIM(RETURN-VALUE).
+                    {method/svc/errors/inserr.i &ErrorNumber="27886"
+                                                &ErrorType="EMS":U
+                                                &ErrorSubType="WARNING":U
+                                                &ErrorParameters="c-lbl-liter-para-recebimento"}
+                                                
+
+                    assign l-grava-consist-nota = yes.                           
+                end.
+            end.
+        &endif
+                
+    end.
+    
+    run validaPosicao35Chave.
+
+    /*** Valida Embarque ***/
+    /*In¡cio Ponto UPC - 14405903 - BIO*/       
+    FOR EACH tt-epc 
+       WHERE tt-epc.cod-event = "beforeValidateEmbarque":U:
+        DELETE tt-epc.
+    END.
+    
+    CREATE tt-epc.
+    ASSIGN tt-epc.cod-event     = "beforeValidateEmbarque":U
+           tt-epc.cod-parameter = "CodEmitente":U
+           tt-epc.val-parameter = string(RowObject.cod-emitente).
+           
+    CREATE tt-epc.
+    ASSIGN tt-epc.cod-event     = "beforeValidateEmbarque":U
+           tt-epc.cod-parameter = "CodObserva":U
+           tt-epc.val-parameter = STRING(RowObject.cod-observa).
+           
+    {include/i-epc201.i beforeValidateEmbarque}
+    
+    FIND FIRST tt-epc
+         WHERE tt-epc.cod-event     = "beforeValidateEmbarque":U 
+           AND tt-epc.cod-parameter = "return":U NO-LOCK NO-ERROR.
+    IF AVAIL tt-epc THEN
+        ASSIGN l-valida-embarque = logical(tt-epc.val-parameter).
+    /*Fim Ponto UPC - 14405903 - BIO*/      
+     
+    IF l-valida-embarque THEN        
+        run validateEmbarque. 
+
+    run setDefaultsNota.
+    
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+
+
+

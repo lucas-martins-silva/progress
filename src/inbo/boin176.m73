@@ -1,0 +1,10 @@
+ASSIGN lSujTribMonofasica = NO.
+
+FIND FIRST item WHERE item.it-codigo = {1} NO-LOCK NO-ERROR.
+
+ASSIGN lSujTribMonofasica = AVAIL item AND 
+                            SUBSTRING(item.char-1,268,20) <> "" AND // Codigo ANP
+                            CAN-FIND(FIRST param-monofasico
+                                     WHERE param-monofasico.cod-anp = SUBSTRING(item.char-1,268,20)
+                                       AND param-monofasico.ind-trib-mono).
+.

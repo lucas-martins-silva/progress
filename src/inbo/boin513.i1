@@ -1,0 +1,819 @@
+
+def temp-table tt-item-fantasma NO-UNDO  like item .
+{cpp/cpapi029.i}
+/*********************************************************************************
+**
+** PROCEDURE: EncontrarSplitCtrab
+** Objetivo:  Encontrar opera‡äes aberta para o chÆo de f brica para poder reportar
+              com um centro de trabalho definido
+** Parametros: i-cod-ctrab
+               i-it-codigo
+               i-log-main      (Opera‡äes principais do item)
+               i-log-altern    (Opera‡äes alternativas para o item)
+               i-tt-ord-prod     (ordem de produ‡Æo - registro £nico)
+               o-tt-oper-ctrab   (opera‡äes encontradas)
+**                       
+*********************************************************************************/
+PROCEDURE EncontrarSplitCtrab:
+
+    define input  parameter p-cod-ctrab   like ctrab.cod-ctrab.
+    define input  parameter p-it-codigo   like operacao.it-codigo. 
+    define input  parameter p-item-pai    like operacao.it-codigo.
+    define input  parameter p-op-codigo   like operacao.op-codigo. 
+    define input  parameter p-cod-roteiro like operacao.cod-roteiro. 
+    define input  parameter table         for tt-ord-prod.
+    define output parameter table         for tt-split.
+    define output parameter table         for tt-bo-erro.
+
+    def var c-texto-1 as char no-undo.
+    def var c-texto-2 as char no-undo.
+    def var i-seq     as int  no-undo.
+
+
+    empty temp-table tt-bo-erro.
+
+    find first tt-ord-prod no-lock no-error.
+
+    /*** Encontra opera‡Æo para o centro de trabalho ***/
+    for each tt-oper-ctrab:
+       delete tt-oper-ctrab.
+    end.
+
+    find ctrab  
+        where ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+
+
+    run EncontrarOperCtrab (input p-cod-ctrab,
+                            input p-it-codigo,
+                            input p-item-pai,
+                            input p-op-codigo,
+                            input p-cod-roteiro,							
+                            input tt-ord-prod.cod-roteiro,
+                            yes,
+                            yes,
+                            output table tt-oper-ctrab).
+
+    if  not can-find (first tt-oper-ctrab) then do: 
+
+        create tt-bo-erro.
+        assign i-seq                 = i-seq + 1
+               tt-bo-erro.i-sequen   = i-seq
+               tt-bo-erro.cd-erro    = 25907
+               tt-bo-erro.parametros = ctrab.gm-codigo + "~~" + string(p-op-codigo).
+		
+	run utp/ut-msgs.p (input "help",
+                           input 25907,
+                           input tt-bo-erro.parametros).
+        assign tt-bo-erro.mensagem = return-value.
+        return.
+    end.
+
+    /*** Pode que tenhan sido encontradas + de 1 opera‡Æo poss¡vel 
+         ser  entÆo selecionada a primeira opera‡Æo encontrada 
+         posteriormente abriremos uma tela de di logo para perguntar
+         a opera‡Æo que o usu rio est  reportando ***/
+
+    /***
+    find tt-oper-ctrab no-error.
+    if not available tt-oper-ctrab then 
+       /*** primeira opera‡Æo principal ***/
+       find first tt-oper-ctrab where
+                  tt-oper-ctrab.gm-altern = "" no-lock no-error.
+
+    /*** primeira opera‡Æo alternativa ***/
+    if not available tt-oper-ctrab then 
+       find first tt-oper-ctrab no-lock no-error.
+    ***/ 
+
+
+    run EncontrarOperOrd (input p-cod-ctrab,
+                          input p-it-codigo,
+                          input  table tt-oper-ctrab,
+                          output table tt-split). 
+
+END PROCEDURE.
+
+
+/*********************************************************************************
+**
+** PROCEDURE: FindOperItemOP 
+** OBJETIVO:  Encontrar opera‡äes de itens fantasmas 
+**
+** LOGICA:    A procedure procurar  todas as opera‡äes que estejam abertas 
+**
+** PARAMETROS: i   p-cod-ctrab
+**             i   table tt-oper-ctrab = ""
+**             o table tt-split
+**
+********************************************************************************/
+PROCEDURE FindOperItemOP:
+
+    define input  parameter p-cod-ctrab   like ctrab.cod-ctrab.
+    define input  parameter p-it-codigo   like split-operac.it-codigo.
+    define input  parameter table         for tt-oper-ctrab.
+    define output parameter table         for tt-split.
+
+
+    for each op-sfc where
+             op-sfc.it-codigo = p-it-codigo and
+             op-sfc.ind-estado-op > 1 and
+             op-sfc.ind-estado-op < 4 no-lock :
+
+             for each oper-ord where
+                      oper-ord.nr-ord-produ = op-sfc.nr-ord-produ and
+                      oper-ord.it-codigo   <> op-sfc.it-codigo no-lock:
+
+                if not can-find (first tt-item-fantasma where
+                                       tt-item-fantasma.it-codigo = 
+                                       oper-ord.it-codigo) then do :
+
+                   create tt-item-fantasma.
+                   assign tt-item-fantasma.it-codigo = oper-ord.it-codigo.                     
+                end.                       
+             end.
+    end.         
+
+    for each tt-item-fantasma :
+      run FindOperOrdAber (input p-cod-ctrab,
+                           input tt-item-fantasma.it-codigo,
+                           input table tt-oper-ctrab,
+                           input-output table tt-split).
+
+    end.
+END PROCEDURE.
+
+
+/*********************************************************************************
+**
+** PROCEDURE: EncontrarOperCtrab
+** Objetivo:  Encontrar opera‡äes para um determinado item que podem ser
+              processadas num centro de trabalho
+** Parametros: i-cod-ctrab
+               i-it-codigo
+               i-cod-roteiro (opcional)
+               i-log-main      (Opera‡äes principais do item)
+               i-log-altern    (Opera‡äes alternativas para o item)
+               o-tt-oper-ctrab   (opera‡äes encontradas)
+**                       
+*********************************************************************************/
+
+PROCEDURE EncontrarOperCtrab:
+
+    define input  parameter p-cod-ctrab   like ctrab.cod-ctrab.
+    define input  parameter p-it-codigo   like operacao.it-codigo. 
+    define input  parameter p-item-pai    like operacao.it-codigo.
+    define input  parameter p-op-codigo   like operacao.op-codigo. 
+    define input  parameter p-cod-rot	  like operacao.cod-roteiro. 
+    define input  parameter p-cod-roteiro like operacao.cod-roteiro.
+    define input  parameter p-log-main    as logical.  
+    define input  parameter p-log-altern  as logical.
+    define output parameter table         for tt-oper-ctrab.
+DEFINE VARIABLE cCondicao   AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cFields     AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE hQuery      AS HANDLE      NO-UNDO.
+
+    def var i-seq as integer initial 1. 
+
+    if not available ctrab then
+        find ctrab  
+            where ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+			
+    /*** Procura opera‡äes principais + alternativas ***/
+    if can-find (first rot-item where
+                       rot-item.it-codigo = p-it-codigo) then 
+        for each rot-item
+           where rot-item.it-codigo     = p-it-codigo
+             and rot-item.data-inicio  <= today
+             and rot-item.data-termino  > today no-lock:
+
+             if  p-cod-roteiro <> ""
+             and p-cod-roteiro <> rot-item.cod-roteiro then
+                 next.
+
+            {inbo/boin513.i11 "''" rot-item.cod-roteiro p-op-codigo}
+        end.
+    else
+       {inbo/boin513.i11 p-item-pai "''" p-op-codigo}
+
+END PROCEDURE.
+
+/*********************************************************************************
+**
+** PROCEDURE: EncontrarOperOrdem
+** OBJETIVO:  Encontrar uma opera‡Æo em aberto para ser reportada
+**            Caso nÆo exista em fun‡Æo de parametriza‡Æo a ordem poderia ser criada
+**            de maneira autom tica
+** PARAMETROS: i-cod-ctrab
+**             i-it-codigo
+**             i-qt-reptda
+**             i table tt-oper-ctrab
+**             o table tt-split
+**
+*********************************************************************************/
+PROCEDURE EncontrarOperOrd:
+
+    define input  parameter p-cod-ctrab   like ctrab.cod-ctrab.
+    define input  parameter p-it-codigo   like operacao.it-codigo. 
+    define input  parameter table         for tt-oper-ctrab.
+    define output parameter table         for tt-split.
+
+    def var v-gm-codigo   like oper-ord.gm-codigo no-undo.
+    def var i-seq           as int                no-undo.
+    def var v-qtd-aberto    as dec                no-undo.
+    def var v-qtd-limite    as dec                no-undo.
+    def var v-rw-oper-ord   as rowid              no-undo.
+    def var h-boin535       as handle             no-undo.
+
+     find first param-sfc no-lock no-error.
+     if  not available param-cp then 
+         find first param-cp no-lock no-error.
+
+    find first tt-oper-ctrab
+        where  tt-oper-ctrab.gm-altern = "" no-error.
+    if  not available tt-oper-ctrab then 
+        find first tt-oper-ctrab.
+
+    if  tt-oper-ctrab.rw-op-altern = ? then 
+        find operacao where 
+             rowid(operacao) = tt-oper-ctrab.rw-operacao no-lock no-error.
+    else do:
+        find op-altern where 
+             rowid(op-altern) = tt-oper-ctrab.rw-op-altern no-lock no-error.
+        find operacao where 
+             rowid(operacao) = tt-oper-ctrab.rw-operacao no-lock no-error.
+    end.
+
+    assign v-rw-oper-ord = ?.
+    
+    if not valid-handle(h-cpapi029) then
+        run cpp/cpapi029.p persistent set h-cpapi029.
+    
+
+    /*** Encontrar uma opera‡Æo aberta entre opera‡äes iniciadas com saldo 
+         suficiente para ser reportado ***/
+		 
+    for each oper-ord where
+             oper-ord.num-id-operacao = operacao.num-id-operacao and
+             oper-ord.estado          = 2 no-lock:
+
+        find first ord-prod where 
+             ord-prod.nr-ord-produ = oper-ord.nr-ord-produ no-lock no-error.
+        if avail ord-prod then do :    
+
+            /*** Valida a ordem que deve coincidir com o processo selecionado ***/     
+            if tt-ord-prod.cod-lista-compon <> "" and
+               ord-prod.cod-lista-compon <> tt-ord-prod.cod-lista-compon then next.
+               
+            RUN pi-execute IN h-cpapi029 (INPUT 2,
+                                          INPUT ord-prod.cod-estabel,
+                                          INPUT ord-prod.nr-linha,
+                                          output c-dep-fabrica  ,
+                                          output d-var-rep      ,   
+                                          output d-var-req-menor,  
+                                          output d-var-requis   ,  
+                                          output d-var-transf   ,
+                                          output table tt-erro append).
+                                          
+        end. 
+        /*** Procurar ordem liberada ou iniciada para o sfc ***/
+        find op-sfc where
+             op-sfc.nr-ord-produ = oper-ord.nr-ord-produ and 
+             op-sfc.ind-estado-op   > 1 and
+             op-sfc.ind-estado-op   < 4 no-lock no-error.
+			 
+        if not available op-sfc then next.
+
+        /** Se quantidade que ser  reportada (unidades do item da ordem) ultrapasa
+            o limite permitido para reporte ser  procurada outra opera‡Æo ***/
+
+        assign v-qtd-aberto = op-sfc.qtd-op * (1 - oper-ord.val-perc-avanco / 100)
+               v-qtd-limite = op-sfc.qtd-op * (d-var-rep / 100) + v-qtd-aberto.
+
+        if (tt-ord-prod.qt-ordem > v-qtd-limite) and d-var-rep < 999 then 
+            next.
+
+        assign v-rw-oper-ord = rowid(oper-ord).
+        leave.
+    end.
+
+    /*** Encontrar uma opera‡Æo aberta entre opera‡äes nÆo iniciadas com saldo 
+         suficiente para ser reportado ***/
+
+			 
+    if  v-rw-oper-ord = ? then
+        for each oper-ord where
+                 oper-ord.num-id-operacao = operacao.num-id-operacao and
+                 oper-ord.estado          = 1 no-lock:
+	 
+            find first ord-prod where 
+                 ord-prod.nr-ord-produ = oper-ord.nr-ord-produ no-lock no-error.
+            if avail ord-prod then do :     
+            
+                RUN pi-execute IN h-cpapi029 (INPUT 2,
+                                              INPUT ord-prod.cod-estabel,
+                                              INPUT ord-prod.nr-linha,
+                                              output c-dep-fabrica  ,
+                                              output d-var-rep      ,   
+                                              output d-var-req-menor,  
+                                              output d-var-requis   ,  
+                                              output d-var-transf   ,
+                                              output table tt-erro).
+                                              			
+               /*** Valida a ordem que deve coincidir com o processo selecionado ***/     
+               if tt-ord-prod.cod-lista-compon <> "" and
+                  ord-prod.cod-lista-compon <> tt-ord-prod.cod-lista-compon then next.
+
+            end.
+            /*** Procurar ordem liberada ou iniciada para o sfc ***/
+            find op-sfc where
+                 op-sfc.nr-ord-produ = oper-ord.nr-ord-produ and 
+                 op-sfc.ind-estado-op   > 1 and
+                 op-sfc.ind-estado-op   < 4 no-lock no-error.
+
+			 
+            if not available op-sfc then next.
+
+            find first ord-prod where
+                 ord-prod.nr-ord-produ = oper-ord.nr-ord-produ no-lock no-error.
+
+				 
+            if avail ord-prod then 
+
+                if ord-prod.estado > 6 then next. 
+
+            assign v-qtd-aberto = op-sfc.qtd-op
+                   v-qtd-limite = op-sfc.qtd-op * (d-var-rep / 100) + v-qtd-aberto.
+	   
+            if (tt-ord-prod.qt-ordem > v-qtd-limite) and d-var-rep < 999 then 
+                next.
+
+            assign v-rw-oper-ord = rowid(oper-ord).
+            leave.
+        end.    
+		
+		
+   /*** Procurar um split para reportar ***/ 
+    if v-rw-oper-ord <> ?  then do:
+        find first oper-ord where
+             rowid(oper-ord) = v-rw-oper-ord no-lock no-error.
+
+        /*** Tenta encontrar split iniciado para o centro de trabalho ***/ 
+        find first split-operac
+             where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ
+               and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+               and split-operac.cod-ctrab        = p-cod-ctrab
+               and split-operac.ind-estado-split = 4 exclusive-lock no-error.
+			   
+        if not avail split-operac then do:
+
+            /*** Tenta encontrar split nÆo iniciado e programado ***/
+            find first split-operac
+                where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ
+                  and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+                  and split-operac.ind-estado-split = 2 
+                  and split-operac.cod-ctrab        = p-cod-ctrab exclusive-lock no-error.
+				  
+             /*** Tenta encontrar split nÆo iniciado para o centro trabalho ***/
+            IF NOT AVAIL split-operac THEN
+                find first split-operac
+                    where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ
+                      and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+                      and split-operac.ind-estado-split = 3 
+                      and (split-operac.cod-ctrab        = ""  
+                        or split-operac.cod-ctrab        = p-cod-ctrab) exclusive-lock no-error.
+						
+            if not available split-operac then do: 
+                 /*** Split alocado em outra m quina ***/
+                 find first split-operac
+                      where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ
+                        and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+                        and split-operac.ind-estado-split >= 3 
+                        and split-operac.ind-estado-split <= 4 exclusive-lock no-error.
+
+					/*** Split finalizado ***/
+                 if not available split-operac then
+                     find first split-operac 
+                          where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ
+                            and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc 
+                            and split-operac.ind-estado-split = 5 exclusive-lock no-error.
+
+				
+                 if avail split-operac then do:
+                     run inbo/boin535.p persistent set h-boin535.
+                     run DividirSplit in h-boin535 (buffer split-operac,
+                                                    0,
+                                                    tt-ord-prod.qt-ordem * oper-ord.val-operac-item,
+                                                    output table tt-bo-erro).
+                     find last split-operac  
+                         where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ
+                           and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+                           and split-operac.ind-estado-split = 3 exclusive-lock no-error.
+
+                     /*** Se grupo de m quina do centro de trabalho e split sÆo diferentes 
+                          muda o grupo de m quina do split para o grupo do centro de trab. ***/
+
+						  
+                     if available split-operac then do:
+                          assign split-operac.cod-ctrab = p-cod-ctrab
+                                 v-gm-codigo            = if tt-oper-ctrab.gm-altern = "" then 
+                                                            oper-ord.gm-codigo 
+                                                        else
+                                                            tt-oper-ctrab.gm-altern.
+
+                          /*** Transfere para grupo de m quina padrÆo da oper-ord ***/
+                          if oper-ord.gm-codigo <> split-operac.gm-codigo then
+                             run AlterarGrupoMaquinaSplit in h-boin535 (buffer split-operac, oper-ord.gm-codigo).
+                          /*** Transfere para grupo de m quina do centro de trabalho ***/
+                          if v-gm-codigo <> split-operac.gm-codigo then
+                             run AlterarGrupoMaquinaSplit in h-boin535 (buffer split-operac, v-gm-codigo).
+                     end.
+                     delete procedure h-boin535.
+                 end.
+            end.    
+        end.
+
+		
+        if available split-operac then do:
+            create tt-split.
+            assign tt-split.rw-split = rowid(split-operac).
+        end.    
+
+
+   end.
+   /*** Gera‡Æo de uma nova ordem para reportar ***/
+   else do: 
+      
+        if not available param-sfc then find first param-sfc no-lock no-error.
+        if param-sfc.log-op-automatica then do:
+
+            assign tt-ord-prod.origem = "SF".
+
+           {utp/ut-run.i cpp/cpapi301.p "input-output table tt-ord-prod,
+                                         input-output table tt-reapro,
+                                         input-output table tt-erro,
+                                         yes "}
+        end.
+        else do:
+            /*** NÆo existe ordem aberta para ser reportada ***/
+            run utp/ut-msgs.p (input "msg", input 17973, input "").
+            create tt-bo-erro.
+            assign i-seq               = i-seq + 1
+                   tt-bo-erro.i-sequen = i-seq
+                   tt-bo-erro.cd-erro  = 17973
+                   tt-bo-erro.mensagem = return-value.
+        end.                              
+        if  can-find (first tt-erro) then do:
+            for each tt-erro:
+                if  tt-erro.cd-erro = 8326 then /* ‚ s¢ advertˆncia */
+                    next.
+                create tt-bo-erro.
+                assign i-seq               = i-seq + 1
+                       tt-bo-erro.i-sequen = i-seq
+                       tt-bo-erro.cd-erro  = tt-erro.cd-erro
+                       tt-bo-erro.mensagem = return-value.
+            end.
+        end.
+        if  can-find (first tt-bo-erro) then
+            return.
+
+        find first tt-ord-prod no-error.
+        find first ord-prod
+            where rowid(ord-prod) = tt-ord-prod.rw-ord-prod no-lock no-error.
+        if avail ord-prod then do : 
+
+                 /*** Sumariza‡Æo da ordem de produ‡Æo ***/
+              run SumarizarOrdemProducao (input ord-prod.nr-ord-produ).
+
+              /*** Encontrar o split ***/  
+              find first oper-ord where
+                         oper-ord.nr-ord-produ    = ord-prod.nr-ord-produ and
+                         oper-ord.num-id-operacao = operacao.num-id-operacao and
+                         oper-ord.estado         < 3 no-lock no-error.
+
+              find first split-operac
+                   where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ
+                     and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+                     and split-operac.ind-estado-split = 3 no-lock no-error.
+
+
+              if available split-operac then do:
+
+                  create tt-split.
+                  assign tt-split.rw-split = rowid(split-operac).
+
+                  if not available ctrab then
+                     find ctrab where ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+
+                 /*** Mudan‡a de grupo de m quina caso o grupo de maquina da opera‡Æo nÆo 
+                      seja o grupo de m quina do centro de trabalho ***/       
+                  if ctrab.gm-codigo <> split-operac.gm-codigo then do:
+                      run inbo/boin535.p persistent set h-boin535.
+                      run AlterarGrupoMaquinaSplit in h-boin535 (buffer split-operac, ctrab.gm-codigo).
+                      delete procedure h-boin535.
+                  end.                     
+              end.
+        end.    
+   end. 
+   
+if valid-handle(h-cpapi029) then
+    delete procedure h-cpapi029.
+
+END PROCEDURE.
+
+/*********************************************************************************
+**
+** PROCEDURE: FindOperOrdAber
+** OBJETIVO:  Encontrar uma opera‡Æo em aberto para ser reportada
+**            Utilizando como parƒmetro de entrada uma temporƒria com opera‡äes
+**            padrÆo
+** LOGICA:    A procedure procurar  todas as opera‡äes que estejam abertas 
+**            independentes da quantidade a ser reportada
+**            Retornar  os rowid das parti‡äes de opera‡Æo com possibilidade
+**            de reporte
+** PARAMETROS: i p-cod-ctrab
+**             i table tt-oper-ctrab
+**             i-o table tt-split
+**
+*********************************************************************************/
+{sfc/sf9999.i}
+PROCEDURE FindOperOrdAber:
+
+    define input        parameter p-cod-ctrab   like ctrab.cod-ctrab.
+    define input        parameter p-it-codigo   like split-operac.it-codigo.
+    define input        parameter table         for tt-oper-ctrab.
+    define input-output parameter table         for tt-split.
+    
+    {cdp/cdcfgman.i}
+    def var l-mudancas-sfc as log init no no-undo.
+    assign l-mudancas-sfc = l-glob-novo-sfc.
+
+    for each tt-oper-ctrab:
+        if  tt-oper-ctrab.rw-op-altern = ? then 
+            find operacao where 
+                 rowid(operacao) = tt-oper-ctrab.rw-operacao no-lock no-error.
+        else do:
+            find op-altern where 
+                 rowid(op-altern) = tt-oper-ctrab.rw-op-altern no-lock no-error.
+            find operacao where 
+                 rowid(operacao) = tt-oper-ctrab.rw-operacao no-lock no-error.
+        end.
+
+        if available operacao then do:
+            for each oper-ord where
+                     oper-ord.num-id-operacao = operacao.num-id-operacao and
+                     oper-ord.estado         <= 2 no-lock:
+
+                {inbo/boin513.i12} /*** L¢gica de procura do split a reportar ***/
+
+                if avail split-operac then do:
+
+                   create tt-split.
+                   assign tt-split.rw-split = rowid(split-operac).
+                end.    
+
+            end.            
+        end.
+        else do:
+           find first oper-ord where
+                rowid(oper-ord) = tt-oper-ctrab.rw-operacao no-lock no-error.
+
+            if available oper-ord then do:
+               {inbo/boin513.i12} /*** L¢gica de procura do split a reportar ***/
+
+                if avail split-operac then do:
+
+                     create tt-split.
+                    assign tt-split.rw-split = rowid(split-operac).
+                end.    
+
+            end.    
+        end.    
+
+    end.
+    /*** Procura direta pela opera‡Æo da ordem caso nÆo exista opera‡Æo 
+         da engenharia - enxerga tambem o grupo de m quina como alternativo ***/   
+    if not can-find (first tt-oper-ctrab) then do:
+        find ctrab where
+             ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+        for each oper-ord where
+                 oper-ord.gm-codigo = ctrab.gm-codigo and
+                 oper-ord.it-codigo = p-it-codigo     and
+                 oper-ord.estado   <= 2 no-lock:
+
+            {inbo/boin513.i12} /*** L¢gica de procura do split a reportar ***/
+
+            if avail split-operac then do:
+
+                create tt-split.
+                assign tt-split.rw-split = rowid(split-operac).
+            end.    
+
+        end. 
+
+        for each grup-maq-altern where
+                 grup-maq-altern.gm-altern = ctrab.gm-codigo no-lock:
+
+            for each oper-ord where
+                     oper-ord.gm-codigo = grup-maq-altern.gm-codigo and
+                     oper-ord.it-codigo = p-it-codigo     and
+                     oper-ord.estado   <= 2 no-lock:
+
+                 {inbo/boin513.i12} /*** L¢gica de procura do split a reportar ***/
+
+                 if avail split-operac then do:
+                     create tt-split.
+                     assign tt-split.rw-split = rowid(split-operac).
+
+                 end.    
+            end.         
+        end.
+    end.
+
+END PROCEDURE.
+
+/*********************************************************************************
+**
+** PROCEDURE: FindSplitOperOrdAber
+** OBJETIVO:  Encontra ou gera um split para uma opera‡Æo de ordem em aberto
+** LOGICA:    Tentar  encontrar um split com dados do mesmo centro de trabalho
+**            Quando o split est  fechado ele ser  re-aberto para poder ser reportado.
+**            i   cod-ctrab
+**            i   qtd-operac 
+**            i-o rw-split 
+** 
+*********************************************************************************/
+PROCEDURE FindSplitOperOrdAber:
+
+    define input        parameter p-cod-ctrab   like ctrab.cod-ctrab.
+    define input        parameter p-qtd-operac  like operacao.it-codigo. 
+    define input-output parameter p-rw-split    as rowid.
+
+    define buffer b-ctrab for ctrab.
+    define buffer b-split-operac for split-operac.
+
+    def var h-boin535       as handle             no-undo.
+
+    find b-ctrab where
+         b-ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+
+    find split-operac where
+         rowid(split-operac) = p-rw-split exclusive-lock no-error.      
+    find first oper-ord where
+         oper-ord.nr-ord-produ   = split-operac.nr-ord-produ and
+         oper-ord.num-operac-sfc = split-operac.num-operac-sfc no-lock no-error.
+
+    find first tt-ord-prod where
+               tt-ord-prod.nr-ord-produ = oper-ord.nr-ord-produ no-lock no-error.
+    /*** Se split corresponde ao centro de trabalho e estiver liberado ou
+         iniciado ok ***/
+
+
+
+    if split-operac.cod-ctrab = p-cod-ctrab and
+       split-operac.ind-estado-split >= 3 and 
+       split-operac.ind-estado-split <= 4 then return.
+
+    /*** Se split corresponde ao centro de trabalho e estiver fechado ser 
+         reaberto ***/
+
+
+    if split-operac.cod-ctrab = p-cod-ctrab and
+       split-operac.ind-estado-split = 5 then do:
+       run AlterarEstadoSplit (buffer split-operac, input 4).
+       return.        
+
+    end.    
+
+
+    /*** Se split ‚ do mesmo grupo de m quina e nÆo est  iniciado > o 
+         centro de trabalho ser  alocado ***/
+    if split-operac.gm-codigo  = ctrab.gm-codigo and
+       split-operac.ind-estado-split = 3 then do:
+        assign split-operac.cod-ctrab = p-cod-ctrab.
+        return.
+    end.         
+
+
+    /*** Se split ‚ do diferente grupo de m quina e nÆo est  iniciado > o 
+         transferir grupo de m quina ***/
+    if split-operac.gm-codigo  <> ctrab.gm-codigo and
+       split-operac.ind-estado-split = 3 then do:
+        assign split-operac.cod-ctrab = p-cod-ctrab.
+        run inbo/boin535.p persistent set h-boin535.
+        run AlterarGrupoMaquinaSplit in h-boin535 (buffer split-operac, 
+                                                   ctrab.gm-codigo).
+        delete procedure h-boin535.
+        return.
+    end.         
+
+
+    /*** Se split ‚ de outro centro de trabalho e est  iniciado ou finalizado
+         dividir gerando outro ***/
+    if split-operac.cod-ctrab <> p-cod-ctrab then do:     
+
+
+        find first ord-prod where
+                   ord-prod.nr-ord-produ = oper-ord.nr-ord-produ no-lock no-error.
+
+        run inbo/boin535.p persistent set h-boin535.
+        run DividirSplit in h-boin535 (buffer split-operac,
+                                       0,
+                                       ord-prod.qt-ordem * oper-ord.val-operac-item,
+                                       output table tt-bo-erro).
+        find last b-split-operac  
+            where b-split-operac.nr-ord-produ     = split-operac.nr-ord-produ
+              and b-split-operac.num-operac-sfc   = split-operac.num-operac-sfc
+              and b-split-operac.ind-estado-split = 3 exclusive-lock no-error.
+
+        assign b-split-operac.cod-ctrab = p-cod-ctrab.
+
+        find first oper-ord where
+         oper-ord.nr-ord-produ   = b-split-operac.nr-ord-produ and
+         oper-ord.num-operac-sfc = b-split-operac.num-operac-sfc no-lock no-error.
+
+        if ctrab.gm-codigo <> oper-ord.gm-codigo then
+           run AlterarGrupoMaquinaSplit in h-boin535 (buffer b-split-operac, 
+                                                             ctrab.gm-codigo).
+        assign p-rw-split = rowid(b-split-operac).
+        delete procedure h-boin535.
+        return.
+
+    end.                                   
+
+END PROCEDURE.
+
+/*********************************************************************************
+**
+** PROCEDURE: SumarizarOrdemProducao
+** OBJETIVO:  Sumariza‡Æo da ordem aberta de forma autom tica no reporte SFC
+**
+*********************************************************************************/
+PROCEDURE SumarizarOrdemProducao:
+
+    def input param i-nr-ord-produ like ord-prod.nr-ord-produ.
+
+    find first ord-prod
+        where ord-prod.nr-ord-produ = i-nr-ord-produ exclusive-lock no-error.
+    assign ord-prod.nr-req-sum = ord-prod.nr-ord-produ.
+
+
+    for each reservas use-index codigo
+        where reservas.nr-ord-produ = ord-prod.nr-ord-produ
+        and   reservas.estado      = 1 exclusive-lock:
+
+        assign reservas.nr-req-sum   = ord-prod.nr-req-sum
+               reservas.quant-requis = reservas.quant-orig.
+
+        find item
+            where item.it-codigo = reservas.it-codigo
+            no-lock no-error.
+        if  item.tipo-requis <> 1 then
+            next.
+
+        find req-sum use-index codigo
+            where req-sum.nr-req-sum = ord-prod.nr-req-sum
+            and   req-sum.it-codigo  = reservas.it-codigo
+            and   req-sum.cod-refer  = reservas.cod-refer
+            exclusive-lock no-error.
+        if  avail req-sum then do:
+            if reservas.quant-orig > 0 then 
+            assign req-sum.qt-solicit = req-sum.qt-solicit + reservas.quant-orig.
+        end.
+        else do:
+            create req-sum.
+            assign req-sum.nr-req-sum  = ord-prod.nr-req-sum
+                   req-sum.it-codigo   = reservas.it-codigo
+                   req-sum.cod-refer   = reservas.cod-refer
+                   req-sum.qt-solicit  = reservas.quant-orig
+                   req-sum.un          = reservas.un
+                   req-sum.cod-localiz = reservas.cod-localiz
+                   req-sum.cod-depos   = reservas.cod-depos
+                   req-sum.op-codigo   = reservas.op-codigo
+                   req-sum.lote-serie  = reservas.lote-serie.
+        end.
+        /*--- Leitura do aloca reserva, necessario para alocacao de reserva ---*/
+        for each aloca-reserva
+            where aloca-reserva.nr-ord-produ = reservas.nr-ord-produ
+            and   aloca-reserva.item-pai     = reservas.item-pai
+            and   aloca-reserva.cod-roteiro  = reservas.cod-roteiro
+            and   aloca-reserva.op-codigo    = reservas.op-codigo
+            and   aloca-reserva.it-codigo    = reservas.it-codigo exclusive-lock:
+            assign aloca-reserva.nr-req-sum = req-sum.nr-req-sum.
+        end.
+        /*---------------------------------------------------------------------*/
+    end.
+
+    /* Grava ou atualiza o "mestre" da requisicao sumarizada. */
+    if not can-find (first cab-req-sum where
+                           cab-req-sum.nr-req-sum  = ord-prod.nr-req-sum) then do: 
+        create cab-req-sum.
+        assign cab-req-sum.cod-estabel = ord-prod.cod-estabel
+               cab-req-sum.dt-fim-pri  = ord-prod.dt-termino
+               cab-req-sum.dt-fim-ult  = ord-prod.dt-termino
+               cab-req-sum.dt-ini-pri  = ord-prod.dt-inicio
+               cab-req-sum.dt-ini-ult  = ord-prod.dt-inicio
+               cab-req-sum.nr-linha    = ord-prod.nr-linha
+               cab-req-sum.nr-req-sum  = ord-prod.nr-req-sum.
+    end.          
+
+END PROCEDURE.

@@ -1,0 +1,19 @@
+/*PROCEDURE pi-permite-doc-fluig:*/
+
+    DEFINE INPUT  PARAMETER pi-cod-tip-doc LIKE mla-tipo-doc-aprov.cod-tip-doc NO-UNDO.
+
+    IF pi-cod-tip-doc = 20 OR /*Solicita‡Æo de Servi‡o*/
+       pi-cod-tip-doc = 21 OR /*Avalia‡Æo de Cr‚dito*/
+       pi-cod-tip-doc = 24 OR /*Documento Normal*/
+       pi-cod-tip-doc = 25 OR /*Antecipa‡Æo*/
+       pi-cod-tip-doc = 26 OR /*PEF - Pagamento extra-fornecedor*/
+       pi-cod-tip-doc = 28 OR /*Pagamento*/ 
+       pi-cod-tip-doc = 29 OR /*Negocia‡Æo de Frete*/
+       pi-cod-tip-doc = 30 OR /*Documento de Frete*/
+       pi-cod-tip-doc = 31    /*Fatura de Frete*/ 
+       THEN
+        RETURN "NOK":U.
+        
+
+    RETURN "OK":U.
+

@@ -1,0 +1,30 @@
+/*
+**
+** IM9026.I2 - Include para e-mails de declara‡äes
+** 
+*/
+
+find emitente 
+    where emitente.cod-emitente = {1} no-lock no-error.
+if avail emitente then do:
+    &if defined(bf-mat-comex) &then                                             
+        find first cont-emit where
+                   cont-emit.cod-emitente = {1} no-lock no-error.
+        if avail cont-emit then 
+             assign decl-hist-embarq-imp.{2} = cont-emit.e-mail.
+    &else
+        assign decl-hist-embarq-imp.{2} = emitente.e-mail.            
+    &endif
+    find emitente-cex 
+        where emitente-cex.cod-emitente = emitente.cod-emitente no-lock no-error.
+    if avail emitente-cex then do:
+        find tt-idioma 
+            where tt-idioma.cod-idioma = emitente-cex.cod-idioma no-error.
+        if not avail tt-idioma then do:
+            create tt-idioma.
+            assign tt-idioma.cod-idioma = emitente-cex.cod-idioma.
+        end.     
+    end.     
+end.
+
+/* IM9026.I2 */

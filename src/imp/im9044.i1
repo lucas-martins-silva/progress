@@ -1,0 +1,33 @@
+DEF INPUT PARAMETER p-cod-estabel  LIKE estabelec.cod-estabel       NO-UNDO.
+DEF INPUT PARAMETER p-embarque     LIKE embarque-imp.embarque       NO-UNDO.
+DEF INPUT PARAMETER p-numero-ordem LIKE ordem-compra.numero-ordem   NO-UNDO.
+DEF INPUT PARAMETER p-parcela      LIKE prazo-compra.parcela        NO-UNDO.
+DEF OUTPUT PARAMETER p-peso-bruto    AS DEC FORMAT '>>>>,>>9.9999999999' NO-UNDO.
+
+{cxbo/bocx225e.i1}
+
+FIND ordens-embarque
+    WHERE ordens-embarque.cod-estabel  = p-cod-estabel
+      AND ordens-embarque.embarque     = p-embarque
+      AND ordens-embarque.numero-ordem = p-numero-ordem
+      AND ordens-embarque.parcela      = p-parcela NO-LOCK NO-ERROR.
+IF AVAIL ordens-embarque THEN DO:
+
+    {cxbo/bocx225e.i2 NO ordens-embarque}
+
+    ASSIGN p-peso-bruto = de-peso-bruto-i1.
+    
+    /* Como o armazenamento do peso bruto passou de UNITARIO para TOTAL
+     * foi necess†ria a divis∆o abaixo para n∆o distorcer os valores
+     * gerado no faturamento
+    */
+    &if '{&bf_mat_versao_ems}':U < '2.05':U &then
+     if  p-peso-bruto > 0 then
+         ASSIGN p-peso-bruto = p-peso-bruto / ordens-embarque.quantidade.
+    &endif
+
+END.
+
+
+
+

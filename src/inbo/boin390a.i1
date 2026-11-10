@@ -1,0 +1,125 @@
+def temp-table ttReservas no-undo
+    field nr-ord-produ    as int
+    field item-pai        as char
+    field cod-roteiro     as char
+    field op-codigo       as int
+    field it-codigo       as char
+    field desc-item       as char
+    field cod-refer       as char
+    field cod-depos       as char 
+    field cod-localiz     as char format "x(20)"
+    field lote-serie      as char format "x(40)"
+    field quant-orig      as dec
+    field quant-atend     as dec
+    field quant-aloc      as dec
+    field quant-a-req     as dec
+    field num-id-reservas as int
+    field tipo-formula    as int
+    field per-ppm         as dec
+    field veiculo         as log
+    field perm-saldo-neg  as int
+    field rowid           as rowid
+    /* Proj 346 Controle de Potˆncia */
+    field qt-aloc-lote    as dec
+    field qt-atend-lote   as dec 
+    field quant-calc      as dec
+    field saldo-zero      AS LOG
+    /* ***** */
+index codigo is primary unique nr-ord-produ
+                               item-pai
+                               cod-roteiro
+                               op-codigo
+                               it-codigo
+                               cod-refer
+index id num-id-reservas.
+
+def temp-table ttSaldoEstoq no-undo
+    field cod-estabel        as char
+    field cod-depos          as char
+    field cod-localiz        as char format "x(20)"
+    field lote               as char format "x(40)"
+    field it-codigo          as char
+    field cod-refer          as char
+    field qt-aloc-prod       as dec
+    field qtidade-atu        as dec
+    field saldo-disp         as dec
+    field dt-vali-lote       like saldo-estoq.dt-vali-lote
+    field num-id-saldo-estoq as int
+    field per-ppm            as dec
+    field log-disp           as log
+    field rowid              as rowid
+    field tipo-formula       as int
+    /* Proj 346 Controle de Potˆncia */
+    field log-alternativo    as log
+    field log-dep-processo   as log init yes
+    field qt-fisica          as dec
+    field item-pai           as char
+    field qt-aloc-prod-fis   as dec
+    field qtidade-atu-fis    as dec
+    field saldo-disp-fis     as dec
+    field alternativo-de     as char
+    field cod-refer-it-orig  as char
+    field alt-quant-usada    as dec
+    field alt-quant-origem   as dec
+    field alt-qtd-item-estrut as dec
+    field alt-qtd-compon-estrut as dec
+    /* ***** */
+    index codigo is unique cod-estabel cod-depos cod-localiz
+                           lote it-codigo cod-refer
+    index item   is primary it-codigo cod-refer
+    index id                num-id-saldo-estoq.
+    
+def temp-table ttAlocaReserva no-undo
+    field nr-ord-produ       as int
+    field item-pai           as char
+    field cod-roteiro        as char
+    field op-codigo          as int
+    field it-codigo          as char
+    field cod-refer          as char
+    field cod-estabel        as char
+    field cod-depos          as char
+    field cod-localiz        as char format "x(20)"
+    field lote-serie         as char format "x(40)"
+    field quant-aloc         as dec
+    field num-id-reservas    as int
+    field num-id-saldo-estoq as int
+    field per-ppm            as dec
+    field rowid              as rowid
+    field qtd-teorica        as dec
+    field dt-vali-lote       like saldo-estoq.dt-vali-lote
+    /* Proj 346 Controle de Potˆncia */
+    field qt-aloc-lote       as dec
+    /* ***** */
+    index codigo is primary unique nr-ord-produ item-pai cod-roteiro op-codigo it-codigo
+                                   cod-refer cod-estabel cod-depos cod-localiz lote-serie
+    index id                       num-id-reservas num-id-saldo-estoq.                                   
+
+def temp-table ttSaldoEstoqAux no-undo
+    field cod-estabel        as char
+    field cod-depos          as char
+    field cod-localiz        as char format "x(20)"
+    field lote               as char format "x(40)"
+    field it-codigo          as char
+    field cod-refer          as char
+    field qt-aloc-prod       as dec
+    field qtidade-atu        as dec
+    field saldo-disp         as dec
+    field dt-vali-lote       like saldo-estoq.dt-vali-lote
+    field num-id-saldo-estoq as int
+    field per-ppm            as dec
+    field log-disp           as log
+    field rowid              as rowid
+    field log-alternativo    as log
+    field qt-fisica          as dec
+    field nr-ord-produ       like ord-prod.nr-ord-prod
+    field item-pai           as char
+    field cod-roteiro        as char
+    field op-codigo          as int 
+    field log-aloca          as log
+    field r-rowid-tt         as rowid
+    field tipo-formula       as int
+    field alternativo-de     as char
+    field cod-refer-it-orig  as char
+    field log-dep-processo   as log init yes
+    field saldo-disp-fis     as dec
+    field saldo-inicial      as dec.

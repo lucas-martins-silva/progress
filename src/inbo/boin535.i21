@@ -1,0 +1,142 @@
+/**********************************************************************************
+** 
+** C†lculo de padr∆o de tempos em funá∆o da operaá∆o da ordem, operaá∆o engenharia
+** ou operaá∆o alternativa 
+** Operaá∆o da ordem:   CalcularTempoPadraoO  {1}: oper-ord
+                                              {2}: qtd-previs-operac
+                                              {3}: b-oper-ord.op-altern
+   Operacao Engenharia: CalcularTempoPadraoE  {1}: operacao
+                                              {2}: nr-unidades
+                                              {3}: 0
+   Operacao Alternativa: CalcularTempoPadraoA {1}: op-altern
+                                              {2}: nr-unidades
+                                              {3}: op-altern.op-altern
+**                      
+***********************************************************************************/    
+
+    define parameter buffer b-{1} for {1}.
+
+    define input  parameter  p-cod-ctrab   like split-operac.cod-ctrab      no-undo.
+    define input  parameter  p-cod-ferr    like split-operac.cod-ferr-prod  no-undo.
+    define input  parameter  p-qtd-refer                     as decimal     no-undo.
+    define output parameter  p-tempo-pad-maq                    as decimal  no-undo.
+    define output parameter  p-tempo-pad-mod                    as decimal  no-undo.
+    define output parameter  p-capac-pad                        as decimal  no-undo.  
+
+    def var de-fator              as decimal no-undo.
+    def var de-nr-lotes           as decimal no-undo.
+    def var de-qtd-carga-batch    as decimal no-undo.
+    def var de-ciclos-seg         as decimal no-undo.
+    def var de-un-ciclo           as decimal no-undo.
+    def var de-lote-orig          as decimal no-undo.
+    
+    def buffer b-ctrab             for ctrab.
+    
+    case b-{1}.un-med-tempo:
+         when 1 then
+              assign de-fator = 3600.
+         when 2 then                     
+              assign  de-fator = 60.
+         when 3 then         
+              assign  de-fator = 1.
+         when 4 then
+              assign de-fator = 86400.
+    end case.
+
+    assign p-capac-pad        = if b-{1}.{2} = 0 then 0 
+				else b-{1}.qtd-capac-operac * p-qtd-refer / b-{1}.{2}
+           de-qtd-carga-batch = b-{1}.qtd-carga-batch.
+    
+    case b-{1}.ind-tempo-operac:
+        /** Proporcional **/
+        when 1 then  
+             assign p-tempo-pad-maq = if b-{1}.{2} = 0 then 0 
+				      else b-{1}.tempo-maquin * de-fator * p-qtd-refer / b-{1}.{2}  
+                    p-tempo-pad-mod = if b-{1}.{2} = 0 then 0 
+				      else b-{1}.tempo-homem  * de-fator * p-qtd-refer / b-{1}.{2}.  
+
+        /** Fixo **/
+        when 2 then
+             assign p-tempo-pad-maq = b-{1}.tempo-maquin * de-fator 
+                    p-tempo-pad-mod = b-{1}.tempo-homem  * de-fator.
+
+        /** Por Lote **/
+        when 3 then do: 
+            /** O tamanho da batelada depende do centro de trabalho ***/
+            if  p-cod-ctrab <> "" then 
+                find ctrab
+                    where ctrab.cod-ctrab = p-cod-ctrab no-lock no-error.
+
+            if  available ctrab then
+                assign de-qtd-carga-batch = ctrab.qtd-carga-batch.
+
+            if  de-qtd-carga-batch = 0 then 
+                assign de-qtd-carga-batch = p-capac-pad.   
+
+            assign de-nr-lotes = p-capac-pad / de-qtd-carga-batch.
+            if  round(de-nr-lotes,0) < (de-nr-lotes * 0.995) then
+                assign de-nr-lotes = round(de-nr-lotes,0) + 1.
+            else 
+                assign de-nr-lotes = round(de-nr-lotes,0).
+                
+            if b-{1}.qtd-capac-operac / b-{1}.qtd-carga-batch <> 1 then
+                assign de-lote-orig    = b-{1}.qtd-capac-operac / b-{1}.qtd-carga-batch         
+                       de-lote-orig    = if round(de-lote-orig,0) < (de-lote-orig * 0.995) then 
+                                            round(de-lote-orig,0) + 1 else round(de-lote-orig,0).
+            else
+                assign de-lote-orig    = 1.
+
+            
+            assign p-tempo-pad-maq = b-{1}.tempo-maquin * de-fator / de-lote-orig * de-nr-lotes 
+                   p-tempo-pad-mod = b-{1}.tempo-homem  * de-fator / de-lote-orig * de-nr-lotes.
+        end.
+
+        /** Dep. Ferramenta **/
+        when 4 then do:
+
+
+            assign p-tempo-pad-maq = if b-{1}.{2} = 0 then 0 
+				     else b-{1}.tempo-maquin * de-fator * p-qtd-refer / b-{1}.{2}  
+                   p-tempo-pad-mod = if b-{1}.{2} = 0 then 0 
+				     else b-{1}.tempo-homem  * de-fator * p-qtd-refer / b-{1}.{2}.  
+                                     
+            if  p-cod-ferr <> "" and p-cod-ctrab <> "" then do:
+                assign de-un-ciclo     = 0.
+
+                find ferr-prod
+                    where ferr-prod.cod-ferr-prod = p-cod-ferr no-lock no-error.
+                if  available ferr-prod then
+                    assign de-un-ciclo = ferr-prod.un-ciclo.
+
+                if  de-un-ciclo = 0 then do:
+                    find first op-ferram
+                        where op-ferram.num-id-operacao = b-{1}.num-id-operacao
+                          and op-ferram.op-altern       = {3}
+                          and op-ferram.ferramenta      = p-cod-ferr no-lock no-error.
+                    if  available op-ferram then
+                        assign de-un-ciclo = op-ferram.un-ciclo.
+                end.
+
+                if  de-un-ciclo > 0 then do: 
+                    find first ctrab-ferram
+                         where ctrab-ferram.cod-ctrab     = p-cod-ctrab
+                           and ctrab-ferram.cod-ferr-prod = p-cod-ferr no-lock no-error.
+                    if  avail ctrab-ferram then do:
+                        case ctrab-ferram.un-med-tempo:
+                            when 1 then
+                                assign de-ciclos-seg = ctrab-ferram.qtd-ciclos-umt / 3600.
+                            when 2 then
+                                assign de-ciclos-seg = ctrab-ferram.qtd-ciclos-umt / 60.
+                            when 3 then
+                                assign de-ciclos-seg = ctrab-ferram.qtd-ciclos-umt.
+                            when 4 then
+                                assign de-ciclos-seg = ctrab-ferram.qtd-ciclos-umt / 86400.
+                        end case.    
+
+                        assign p-tempo-pad-maq = p-qtd-refer / (de-un-ciclo * de-ciclos-seg) 
+                               p-tempo-pad-mod = p-tempo-pad-maq.
+                    end.
+                end.    
+            end.  
+        end.
+    end case.

@@ -1,0 +1,23 @@
+/***************************************************************
+**
+**     BOIN366.I - Defini‡Æo Temp-Table TT-IMPOSTO
+**
+***************************************************************/
+
+def temp-table {1}
+    field cd-trib-ipi     like item-doc-est.cd-trib-ipi
+    field cd-trib-icm     like item-doc-est.cd-trib-icm
+    field aliquota-ipi    like item-doc-est.aliquota-ipi
+    field aliquota-icm    like item-doc-est.aliquota-icm
+    field perc-red-ipi    like natur-oper.perc-red-ipi
+    field perc-red-icm    like natur-oper.perc-red-icm
+    field cd-trib-pis     as int
+    field aliquota-pis    as decimal format ">9.9999"
+    field cd-trib-cofins  as int
+    field aliquota-cofins as decimal format ">9.9999"
+
+    /* Campos definidos para serem utilizados na WEB */
+    field valor-mercad    like docum-est.valor-mercad
+    field r-Rowid         as rowid. 
+
+/* fim da include */    

@@ -1,9 +1,0 @@
-Define Variable i-linha   As Integer Format '99' No-Undo.
-Define Variable i-coluna  As Integer Format '99' No-Undo. 
-Define new global shared var v_cod_usuar_corren 
-       As character 
-       format "x(12)" 
-       label "Usuario Corrente" 
-       column-label "Usuÿrio Corrente" 
-       no-undo. 
-

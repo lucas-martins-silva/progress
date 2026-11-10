@@ -1,0 +1,184 @@
+PROCEDURE afterDeleteRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    def var h-bocx090   as handle no-undo.
+    def var h-bocx100   as handle no-undo.
+    def var h-bocx255   as handle no-undo.
+    def var ha-bodi515  as handle no-undo.
+    def var h-bocx00488 as handle no-undo.
+    
+
+    /**********************************************************
+    ** Desenvolvimento Engenharia Controle de Seriais        **
+    ** Variavel indicara se a funcao SPP-SERIAIS-NF estara   **
+    ** ativa ou nao.                                         **
+    **********************************************************/
+    DEFINE VARIABLE l-funcao-spp-seriais-nf AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE l-frota-implantado      AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE h-boin735               AS HANDLE  NO-UNDO.
+    
+    FIND FIRST funcao
+         WHERE funcao.cd-funcao = "spp-seriais-nf":U AND
+               funcao.ativo     = YES                NO-LOCK NO-ERROR.
+
+    IF AVAIL funcao THEN
+        ASSIGN l-funcao-spp-seriais-nf = YES.
+    ELSE
+        ASSIGN l-funcao-spp-seriais-nf = NO.
+        
+    /*****************************************
+    ** Nova Funcionalidade Controle Seriais **
+    *****************************************/
+    &IF '{&bf_mat_versao_ems}' >= '2.05' &THEN
+        IF l-funcao-spp-seriais-nf THEN DO:
+            FOR EACH item-doc-est-serial
+               WHERE item-doc-est-serial.cod-ser-docto    = RowObject.serie-docto  AND
+                     item-doc-est-serial.cod-docto        = RowObject.nro-docto    AND
+                     item-doc-est-serial.cdn-emitente     = RowObject.cod-emitente AND
+                     item-doc-est-serial.cod-natur-operac = RowObject.nat-operacao EXCLUSIVE-LOCK:
+                     
+                DELETE item-doc-est-serial.
+            END.
+        END.
+    &ENDIF
+    
+    for each  docto-estoq-embal exclusive-lock
+        where docto-estoq-embal.cod-ser-docto     = RowObject.serie-docto
+        and   docto-estoq-embal.cod-docto         = RowObject.nro-docto 
+        and   docto-estoq-embal.cdn-emitente      = RowObject.cod-emitente 
+        and   docto-estoq-embal.cod-natur-operac  = RowObject.nat-operacao :
+        delete docto-estoq-embal.
+    end.
+ 
+    for each  docto-estoq-nfe-imp exclusive-lock
+        where docto-estoq-nfe-imp.cod-ser-docto    = RowObject.serie-docto    
+        and   docto-estoq-nfe-imp.cod-docto        = RowObject.nro-docto      
+        and   docto-estoq-nfe-imp.cdn-emitente     = RowObject.cod-emitente   
+        and   docto-estoq-nfe-imp.cod-natur-operac = RowObject.nat-operacao: 
+        
+        for each  item-docto-estoq-nfe-imp exclusive-lock
+            where item-docto-estoq-nfe-imp.cod-ser-docto     = docto-estoq-nfe-imp.cod-ser-docto    
+            and   item-docto-estoq-nfe-imp.cod-docto         = docto-estoq-nfe-imp.cod-docto        
+            and   item-docto-estoq-nfe-imp.cdn-emitente      = docto-estoq-nfe-imp.cdn-emitente     
+            and   item-docto-estoq-nfe-imp.cod-natur-operac  = docto-estoq-nfe-imp.cod-natur-operac :
+            delete  item-docto-estoq-nfe-imp.
+        end.    
+        delete docto-estoq-nfe-imp .
+    end.    
+
+        
+    /* 
+    ** Integra‡Æo M¢dulo Importa‡Æo
+    ** Objetivo: Eliminar as informa‡äes de IMporta‡Æo relacionadas ao documento
+    */
+
+    if avail param-global and
+        param-global.modulo-07 then do:
+        
+
+        /*
+        ** Despesas do Documento
+        */        
+        if not valid-handle (h-bocx090) then
+            run cxbo/bocx090.p persistent set h-bocx090.
+        run deleteRelacDocum-est in h-bocx090 (input rowObject.serie-docto,
+                                               input rowObject.nro-docto,
+                                               input rowObject.cod-emitente,
+                                               input rowObject.nat-operacao).
+        if valid-handle (h-bocx090) then do:
+            delete procedure h-bocx090.
+            assign h-bocx090 = ?.
+        end.
+        
+
+        /*
+        ** Duplicata de Despesas do Documento
+        */
+        if not valid-handle (h-bocx255) then
+            run cxbo/bocx255.p persistent set h-bocx255.
+        run deleteRelacDocum-est in h-bocx255 (input rowObject.serie-docto,
+                                               input rowObject.nro-docto,
+                                               input rowObject.cod-emitente,
+                                               input rowObject.nat-operacao).
+        if valid-handle (h-bocx255) then do:
+            delete procedure h-bocx255.
+            assign h-bocx255 = ?.
+        end.
+        /*
+        ** Despesas dos Itens do Documento
+        */
+        if not valid-handle (h-bocx100) then
+            run cxbo/bocx100.p persistent set h-bocx100.
+        run deleteRelacDocum-est in h-bocx100 (input rowObject.serie-docto,
+                                               input rowObject.nro-docto,
+                                               input rowObject.cod-emitente,
+                                               input rowObject.nat-operacao).
+        if valid-handle (h-bocx100) then do:
+            delete procedure h-bocx100.
+            assign h-bocx100 = ?.
+        end.
+        
+        IF  NOT VALID-HANDLE (h-bocx378) THEN
+            RUN cxbo/bocx378.p PERSISTENT SET h-bocx378.
+        RUN deleteRecord-2 IN h-bocx378 (INPUT rowObject.serie-docto,
+                                         INPUT rowObject.nro-docto,
+                                         INPUT rowObject.cod-emitente,
+                                         INPUT rowObject.nat-operacao).
+        DELETE PROCEDURE h-bocx378.
+                                         
+        /*
+        ** Elimina Relacionamento com DUIMP
+        */        
+        IF NOT VALID-HANDLE (h-bocx00488) THEN
+            RUN cxbo/bocx00488.p PERSISTENT SET h-bocx00488.
+        
+        RUN piRemoveDuimpNF IN h-bocx00488 (INPUT rowObject.serie-docto,
+                                            INPUT rowObject.nro-docto,
+                                            INPUT rowObject.cod-emitente,
+                                            INPUT rowObject.nat-operacao).
+        
+        IF VALID-HANDLE (h-bocx00488) THEN DO:
+            DELETE PROCEDURE h-bocx00488.
+            ASSIGN h-bocx00488 = ?.
+        END.
+        
+    end.
+
+    /* Informa‡äes complementares da Nota fiscal */
+    IF NOT CAN-FIND(FIRST nota-fiscal
+                    WHERE nota-fiscal.cod-estabel  = RowObject.cod-estabel
+                      AND nota-fiscal.serie        = RowObject.serie-docto
+                      AND nota-fiscal.nr-nota-fis  = RowObject.nro-docto
+                      AND nota-fiscal.nat-operacao = RowObject.nat-operacao
+                      AND nota-fiscal.cod-emitente = RowObject.cod-emitente ) THEN DO:
+        RUN dibo/bodi515.p PERSISTENT SET ha-bodi515.
+        IF VALID-HANDLE(ha-bodi515) THEN DO:
+            RUN eliminaNotaFiscAdcTudo IN ha-bodi515 (INPUT rowObject.cod-estabel,
+                                                      INPUT rowObject.serie-docto,        
+                                                      INPUT rowObject.nro-docto,        
+                                                      INPUT rowObject.cod-emitente,
+                                                      INPUT rowObject.nat-operacao).
+        END.
+        DELETE PROCEDURE ha-bodi515.
+    END.
+    
+    /*DMANRECEB-3823 - Elimina‡Æo dados de frota*/
+    run cdp/cd9903.p (input  1 /*Define a fun‡Æo que vai ser executada*/,
+                     output l-frota-implantado).
+    IF l-frota-implantado THEN
+        run abp/ab0804g.p (input  rowObject.serie-docto,
+                           input  rowObject.nro-docto,
+                           input  rowObject.cod-emitente,
+                           input  rowObject.nat-operacao,
+                           output table RowErrors).     
+    
+    RETURN "OK":U.
+        
+END PROCEDURE.
+
+
+
+

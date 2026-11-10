@@ -1,0 +1,112 @@
+/**********************************************************************
+** inbo/boin176.m96 - Atribui valor STA para o configurador de tributos
+**********************************************************************/
+    DEF VAR de-qtd-baixa-aux   AS DEC NO-UNDO.
+    DEF VAR de-base-sta-aux    AS DEC NO-UNDO.
+    DEF VAR de-aliq-sta-aux    AS DEC NO-UNDO.
+    DEF VAR de-valor-sta-aux   AS DEC NO-UNDO.
+    DEF VAR de-val-sta-fcp-aux AS DEC NO-UNDO.
+    
+    IF  ({1}.base-subs[1] > 0 OR {1}.vl-subs[1] > 0) AND
+        CAN-FIND (FIRST natur-oper NO-LOCK
+                  WHERE natur-oper.nat-operacao = {1}.nat-of 
+                    AND natur-oper.log-contrib-st-antec /*Contrib Substituido Antecip*/
+                    AND (natur-oper.tipo-compra = 1 OR natur-oper.tipo-compra = 3 OR natur-oper.transf)) THEN DO:
+                            
+        FIND FIRST tb-wt-it-imposto EXCLUSIVE-LOCK
+             WHERE tb-wt-it-imposto.seq-wt-docto    = 1
+               AND tb-wt-it-imposto.seq-wt-it-docto = {1}.sequencia.
+        IF tb-wt-it-imposto.vl-bsubs-it = 0 AND tb-wt-it-imposto.vl-bsubsit-e[1] = 0 THEN              
+              ASSIGN tb-wt-it-imposto.vl-bsubsit-e[1]  = {1}.base-subs[1]
+                     tb-wt-it-imposto.vl-icmsubit-e[1] = {1}.vl-subs[1].
+        
+        FOR FIRST ext-item-doc-est NO-LOCK 
+             WHERE ext-item-doc-est.serie-docto  = {1}.serie-docto
+               AND ext-item-doc-est.nro-docto    = {1}.nro-docto
+               AND ext-item-doc-est.cod-emitente = {1}.cod-emitente
+               AND ext-item-doc-est.nat-operacao = {1}.nat-operacao
+               AND ext-item-doc-est.sequencia    = {1}.sequencia
+               AND ext-item-doc-est.cod-param    = "fcp":U:
+             ASSIGN tb-wt-it-imposto.vl-icmsubit-e[2] = ext-item-doc-est.val-livre-6.
+        END.
+
+        FOR FIRST item-nf-adc NO-LOCK
+             WHERE item-nf-adc.cod-estab        = {2}
+               AND item-nf-adc.cod-serie        = {1}.serie-docto 
+               AND item-nf-adc.cod-nota-fisc    = {1}.nro-docto   
+               AND item-nf-adc.cdn-emitente     = {1}.cod-emitente
+               AND item-nf-adc.cod-natur-operac = {1}.nat-operacao
+               AND item-nf-adc.idi-tip-dado     = 1
+               AND item-nf-adc.num-seq          = 1
+               AND item-nf-adc.num-seq-item-nf  = {1}.sequencia   
+               AND item-nf-adc.cod-item         = {1}.it-codigo 
+               AND item-nf-adc.val-aliq-icms-st <> 0:
+            ASSIGN OVERLAY(tb-wt-it-imposto.char-1,71,6) = STRING(item-nf-adc.val-aliq-icms-st).
+        END.
+        
+        FOR FIRST ext-item-doc-est NO-LOCK
+             WHERE ext-item-doc-est.serie-docto  = {1}.serie-docto 
+               AND ext-item-doc-est.nro-docto    = {1}.nro-docto    
+               AND ext-item-doc-est.cod-emitente = {1}.cod-emitente 
+               AND ext-item-doc-est.nat-operacao = {1}.nat-operacao
+               AND ext-item-doc-est.sequencia    = {1}.sequencia   
+               AND ext-item-doc-est.cod-param    = "icms-sta":U
+               AND ext-item-doc-est.val-livre-1 <> 0:
+            ASSIGN OVERLAY(tb-wt-it-imposto.char-1,71,6) = STRING(ext-item-doc-est.val-livre-1).
+        END.
+    END.
+    
+    IF  {1}.nro-comp <> "" AND
+        ({1}.base-subs[1] = 0 AND {1}.vl-subs[1] = 0) AND
+        CAN-FIND (FIRST natur-oper NO-LOCK
+                  WHERE natur-oper.nat-operacao = {1}.nat-of 
+                    AND (natur-oper.tipo-compra = 3 OR natur-oper.transf)) AND
+        CAN-FIND (FIRST item-nfs-st NO-LOCK
+                  WHERE item-nfs-st.cod-estab-nfs = {3}
+                    AND item-nfs-st.cod-ser-nfs   = {1}.serie-comp
+                    AND item-nfs-st.cod-docto-nfs = {1}.nro-comp 
+                    AND item-nfs-st.cod-item      = {1}.it-codigo
+                    AND item-nfs-st.num-seq-nfs   = {1}.seq-comp) THEN DO: /*Devolu‡Æo ou Transferencia*/ 
+                    
+            ASSIGN de-qtd-baixa-aux     = 0
+                   de-base-sta-aux      = 0
+                   de-valor-sta-aux     = 0
+                   de-val-sta-fcp-aux = 0.
+
+            /*Acumula base e valor para calculo proporcional, em caso de devolucao parcial*/
+            FOR EACH item-nfs-st NO-LOCK
+               WHERE item-nfs-st.cod-estab-nfs = {3}
+                 AND item-nfs-st.cod-ser-nfs   = {1}.serie-comp
+                 AND item-nfs-st.cod-docto-nfs = {1}.nro-comp
+                 AND item-nfs-st.cod-item      = {1}.it-codigo
+                 AND item-nfs-st.num-seq-nfs   = {1}.seq-comp:
+                 ASSIGN de-qtd-baixa-aux   = de-qtd-baixa-aux   + item-nfs-st.val-livre-1 /*Quantidade*/
+                        de-base-sta-aux    = de-base-sta-aux    + item-nfs-st.val-livre-2 /*Base STA*/
+                        de-aliq-sta-aux    = DEC(SUBSTRING(item-nfs-st.cod-livre-1,1,8))       /*Aliquota STA*/ 
+                        de-valor-sta-aux   = de-valor-sta-aux   + item-nfs-st.val-livre-3 /*Valor STA*/
+                        de-val-sta-fcp-aux = de-val-sta-fcp-aux + DEC(SUBSTRING(item-nfs-st.cod-livre-1,37,20)). /*Valor FCP STA*/ 
+            END.
+
+            FIND FIRST tb-wt-it-imposto EXCLUSIVE-LOCK
+                 WHERE tb-wt-it-imposto.seq-wt-docto    = 1
+                   AND tb-wt-it-imposto.seq-wt-it-docto = {1}.sequencia.
+            ASSIGN tb-wt-it-imposto.vl-bsubs-it          = 0
+                   tb-wt-it-imposto.vl-icmsub-it         = 0
+                   OVERLAY(tb-wt-it-imposto.char-1,71,6) = STRING(de-aliq-sta-aux).
+            
+            /*Se a devolucao for parcial, deve-se recriar o saldo calculando a propor‡Æo em relacao aos saldos baixados*/
+            IF de-qtd-baixa-aux > {1}.quantidade THEN DO:
+                ASSIGN tb-wt-it-imposto.vl-bsubsit-e[1]   = (de-base-sta-aux / de-qtd-baixa-aux * {1}.quantidade)       /*Base STA*/
+                       tb-wt-it-imposto.vl-icmsubit-e[1]  = (de-valor-sta-aux / de-qtd-baixa-aux * {1}.quantidade)      /*Valor STA*/
+                       tb-wt-it-imposto.vl-icmsubit-e[2]  = (de-val-sta-fcp-aux / de-qtd-baixa-aux * {1}.quantidade). /*Valor FCP STA*/
+            END.
+            /*Se foi baixado saldo de STA menor ou igual a quantidade que esta sendo devolvida, os valor devem ser recriados conforme a baixa*/
+            ELSE DO:
+                ASSIGN tb-wt-it-imposto.vl-bsubsit-e[1]  = de-base-sta-aux       /*Base STA*/
+                       tb-wt-it-imposto.vl-icmsubit-e[1] = de-valor-sta-aux      /*Valor STA*/
+                       tb-wt-it-imposto.vl-icmsubit-e[2] = de-val-sta-fcp-aux. /*Valor FCP STA*/ 
+            END.
+        
+    END.               
+    
+/*** fim inbo/boin176.m96 ***/

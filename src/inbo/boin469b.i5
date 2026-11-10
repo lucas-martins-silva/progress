@@ -1,0 +1,426 @@
+/*****************************************************************************
+** Procedure Interna.....: pi-determina-tempo-evento
+** Objetivo..............: Determinar o tempo de duracao entre o inicio e fim
+**                         de um evento considerando padroes de turno e
+**                         calendario definidos.
+*****************************************************************************/
+{sfc/sf0018f.i1} /*pi-calcula-tempo-corrido*/
+
+
+PROCEDURE pi-determina-tempo-evento-extra:
+
+    def input        param p-cod-area         as char    format "x(12)"          no-undo.
+    def input        param p-cod-grp-maq      as char    format "x(9)"           no-undo.
+    def input        param p-cod-ctrab        as char    format "x(16)"          no-undo.
+    def input        param p-cod-calend-sfc   as char    format "x(8)"           no-undo.
+    def input        param p-dat-fim          as date    format "99/99/9999"     no-undo.
+    def input        param p-qtd-segs-fim     as decimal format ">>,>>9"         no-undo.
+    def input        param p-dat-inic         as date    format "99/99/9999"     no-undo.
+    def input        param p-qtd-segs-inic    as decimal format ">>,>>9"         no-undo.
+    def input        param p-cod-model-turno  as char                            no-undo.
+    def output       param p-qtd-tempo-util   as decimal format "->>,>>9.9999"  decimals 4 no-undo.
+    def output       param p-qtd-tempo-extra  as decimal format "->>,>>9.9999"  decimals 6 no-undo.
+    def output       param p-num-turno        as integer                                 no-undo.
+
+    /*Calcula Hora Extra*/
+    def var l-prim-entrada             as log     init no no-undo.
+    def var d-dat-ext                  as date            no-undo.
+    def var i-hra-ext                  as int             no-undo.
+    DEF var de-tempo-aux               AS DEC DECIMALS 0  NO-UNDO. /*Segundos*/
+
+    def var v-dat-temp                 as date            no-undo.
+    def var v-qtd-segs-temp            as decimal         no-undo.
+	def var i-cont-dias                as integer init 0  no-undo.
+    def buffer bf-calen-data for calen-data.
+    
+    def var i-turno   as integer no-undo.
+    def var d-dat-aux as date    no-undo.
+
+    /*** inicializa variavel a ser calculada, a saida da funcao‚ em horas ***/
+    assign v-dat-fim-valid      = date("01/01/0001")
+           p-qtd-tempo-util     = 0.
+
+    /* Sistema de inversao de datas caso data final seja menor a inicial */
+    if  p-dat-fim      < p-dat-inic
+    or (p-dat-fim      = p-dat-inic
+    and p-qtd-segs-fim < p-qtd-segs-inic) then do:
+   
+        assign v-dat-temp          = p-dat-fim
+               v-qtd-segs-temp     = p-qtd-segs-fim
+               p-dat-fim           = p-dat-inic
+               p-qtd-segs-fim      = p-qtd-segs-inic
+               p-dat-inic          = v-dat-temp
+               p-qtd-segs-inic     = v-qtd-segs-temp.
+    end.
+    
+    assign p-qtd-tempo-extra = 0
+           d-dat-ext         = p-dat-inic
+           i-hra-ext         = p-qtd-segs-inic
+           p-num-turno       = 0.
+           
+    assign l-prim-entrada = no.
+    /* inicia loop para calculo da data*/
+    bloco-calculo:
+    do  v-dat-calcul = p-dat-inic to p-dat-fim:
+
+        if  v-dat-fim-valid <= v-dat-calcul then do:
+            /* gera tabela de turno temporaria */
+            run pi-gera-tt-turno (input p-cod-area,
+                                  input p-cod-grp-maq,
+                                  input p-cod-ctrab,
+                                  input v-dat-calcul,
+                                  output v-dat-inic-valid,
+                                  output v-dat-fim-valid).
+        end.
+        
+        /* encontra data para verificar se e feriado */
+        find calen-data
+            where calen-data.cd-calen = p-cod-calend-sfc
+              and calen-data.data     = v-dat-calcul no-lock no-error.
+             
+        /* se a data nao e encontrada ou nao existe a data util - considera tempos para calculo */
+        assign v-num-dia-sema   = weekday(v-dat-calcul).
+        
+        /***********************************************************************
+               Troca de Turno e Inicio de turno no dia anterior
+        Este tratamento abaixo se faz necessario devido a mudan‡Æo de turno, quando temos 
+        um turno terminado no outro dia justamente no dia final de sua validade (grp x modelo), 
+        desta forma:
+        Modelo 1                 Modelo 2                  
+        Turno 1 - 08:00 - 16:00  Turno 1 - 22:00 - 06:00   
+                                 Turno 2 - 06:00 - 14:00   
+                                 Turno 3 - 14:00 - 20:00   
+        Validades do Turno
+        Modelo 1 01/01/2000 at‚ 20/02/2008
+        Modelo 2 20/02/2008 at‚ 31/12/9999
+        Calculando Datas e Hora de Fim a partir de 18/02/2008 …s 08:00 dura‡Æo de 20 horas
+        
+        Montagem corretas dos turnos
+        dia 18
+        08:00 - 16:00                                                 = 8 horas
+        dia 19                                                        
+        08:00 - 16:00 / 22:00 - 00:00                                 = 10 horas
+        dia 20
+        00:00 - 06:00 / 06:00 - 14:00 / 14:00 - 20:00 / 22:00 - 00:00 = 2 horas
+        Nesta situa‡Æo a data de fim correta ‚ dia 20/02/2008 …s 02:00
+        **************************************************************************
+        Antes ele tratava o dia 19 da seguinte maneira
+        dia 19
+        08:00 - 16:00                                                 = 8 horas
+        dia 20
+        00:00 - 06:00 / 06:00 - 14:00 / 14:00 - 20:00 / 22:00 - 00:00 = 4 horas
+        Nesta situa‡Æo a data de fim gerada era dia 20/02/2008 …s 04:00
+        **************************************************************************/
+        if v-dat-calcul = v-dat-inic-valid then do:
+            /* gera tabela de turno temporaria */
+            run pi-gera-tt-turno (input p-cod-area,
+                                  input p-cod-grp-maq,
+                                  input p-cod-ctrab,
+                                  input v-dat-calcul - 1,
+                                  output v-dat-inic-valid,
+                                  output v-dat-fim-valid).
+           for each tt-turno-semana
+               where tt-turno-semana.num-dia-sema = weekday(v-dat-calcul):
+
+               /*Filtra registros desnecessarios*/
+               if v-dat-calcul > p-dat-fim  or (v-dat-calcul = p-dat-fim  and tt-turno-semana.qtd-segs-inic-turno >= p-qtd-segs-fim) then next.
+               if v-dat-calcul < p-dat-inic or (v-dat-calcul = p-dat-inic and tt-turno-semana.qtd-segs-fim-turno  < p-qtd-segs-inic) then next.
+               
+               /*Determina dia real para descobrir se ‚ util ou nÆo*/
+               if tt-turno-semana.num-dia-turno <> 0 then
+                   assign i-turno   = (tt-turno-semana.num-dia-turno - tt-turno-semana.num-dia-sema)
+                          d-dat-aux = v-dat-calcul + i-turno.
+               else
+                   assign d-dat-aux = v-dat-calcul.
+               if d-dat-aux >= v-dat-calcul then next.
+               
+               /*Caso o dia real do turno seja posterior a data de validade do turno o
+               mesmo deve ser desconsiderado.
+               Ex: Turno 3 22:00 - 06:00  | Numa situa‡Æo em que 20/02 seja a data de termino do modelo de turno
+                   Turno 1 06:00 - 14:00  | o intervalo das 22:00 - 00:00 que pertence ao turno 3 do dia 21 nÆo 
+                   Turno 2 14:00 - 22:00  | deve ser considerado
+               */
+               if d-dat-aux >= v-dat-fim-valid then next.
+               if d-dat-aux <  v-dat-inic-valid then next.
+               
+               find calen-data no-lock
+                    where calen-data.cd-calen = p-cod-calend-sfc
+                      and calen-data.data     = d-dat-aux no-error.
+               
+               /*‚ dia util se nÆo o registro e desconsiderado*/
+               if avail calen-data         and 
+                  calen-data.tipo-dia <> 1 then next.   
+
+			   
+               /*Calcula Hora Extra no Inicio do Periodo*/   
+               if l-prim-entrada = no and 
+                  (p-dat-inic < v-dat-calcul or (p-dat-inic = v-dat-calcul and p-qtd-segs-inic < tt-turno-semana.qtd-segs-inic-turno)) then do: 
+                  assign de-tempo-aux = ?.
+                  RUN pi-calcula-tempo-corrido (INPUT-OUTPUT p-dat-inic,
+                                                INPUT-OUTPUT p-qtd-segs-inic,
+                                                INPUT-OUTPUT v-dat-calcul,
+                                                INPUT-OUTPUT tt-turno-semana.qtd-segs-inic-turno,
+                                                INPUT-OUTPUT de-tempo-aux).                            
+                  assign p-qtd-tempo-extra = de-tempo-aux
+                         p-num-turno       = tt-turno-semana.num-turno-produc.
+               end. 
+			                  
+               /*Determina Tempo Real*/   
+               assign p-qtd-tempo-util = p-qtd-tempo-util + tt-turno-semana.qtd-tempo-dispon-turno.
+               if  v-dat-calcul = p-dat-inic and tt-turno-semana.qtd-segs-inic-turno < p-qtd-segs-inic then do:
+                   assign v-qtd-segs-calcul = min(p-qtd-segs-inic,tt-turno-semana.qtd-segs-fim-turno)
+                          p-qtd-tempo-util = p-qtd-tempo-util - (v-qtd-segs-calcul - tt-turno-semana.qtd-segs-inic-turno).
+               end.
+               if  v-dat-calcul = p-dat-fim and tt-turno-semana.qtd-segs-fim-turno > p-qtd-segs-fim then do:
+                   assign v-qtd-segs-calcul = max(p-qtd-segs-fim,tt-turno-semana.qtd-segs-inic-turno)
+                          p-qtd-tempo-util = p-qtd-tempo-util - (tt-turno-semana.qtd-segs-fim-turno - v-qtd-segs-calcul).
+               end.
+			   
+			   assign l-prim-entrada = yes.
+	               
+               /*Determina Turno e Tempo Extra*/
+               if (v-dat-calcul < p-dat-fim) OR
+                  (v-dat-calcul = p-dat-fim AND tt-turno-semana.qtd-segs-inic-turno < p-qtd-segs-fim) then
+                   assign d-dat-ext   = v-dat-calcul 
+                          i-hra-ext   = tt-turno-semana.qtd-segs-fim-turno
+                          p-num-turno = if p-num-turno <> tt-turno-semana.num-turno-produc and p-num-turno <> 0 then 9999 else tt-turno-semana.num-turno-produc.
+           end.
+        end.
+        /*******************************************************************
+                        Tratamento para o dia normal
+        ********************************************************************/
+        if  v-dat-fim-valid <= v-dat-calcul then do:
+            /* gera tabela de turno temporaria */
+            run pi-gera-tt-turno (input p-cod-area,
+                                  input p-cod-grp-maq,
+                                  input p-cod-ctrab,
+                                  input v-dat-calcul,
+                                  output v-dat-inic-valid,
+                                  output v-dat-fim-valid).
+        end.
+
+        
+        for each tt-turno-semana
+            where tt-turno-semana.num-dia-sema = v-num-dia-sema:
+
+            /*Filtra registros desnecessarios*/
+            if v-dat-calcul > p-dat-fim  or (v-dat-calcul = p-dat-fim  and tt-turno-semana.qtd-segs-inic-turno >= p-qtd-segs-fim) then next.
+            if v-dat-calcul < p-dat-inic or (v-dat-calcul = p-dat-inic and tt-turno-semana.qtd-segs-fim-turno  <= p-qtd-segs-inic) then next.
+            
+            /*Determina dia real para descobrir se ‚ util ou nÆo*/
+            if tt-turno-semana.num-dia-turno <> 0 then
+                assign i-turno   = (tt-turno-semana.num-dia-turno - tt-turno-semana.num-dia-sema)
+                       d-dat-aux = v-dat-calcul + i-turno.
+            else 
+                assign d-dat-aux = v-dat-calcul.
+            
+            /*Caso o dia real do turno seja posterior a data de validade do turno o
+            mesmo deve ser desconsiderado.
+            Ex: Turno 3 22:00 - 06:00  | Numa situa‡Æo em que 20/02 seja a data de termino do modelo de turno
+                Turno 1 06:00 - 14:00  | o intervalo das 22:00 - 00:00 que pertence ao turno 3 do dia 21 nÆo 
+                Turno 2 14:00 - 22:00  | deve ser considerado
+            */
+            if d-dat-aux >= v-dat-fim-valid then next.
+            if d-dat-aux <  v-dat-inic-valid then next.
+                
+            find bf-calen-data no-lock
+                 where bf-calen-data.cd-calen = p-cod-calend-sfc
+                   and bf-calen-data.data     = d-dat-aux        no-error.
+            /*‚ dia util se nÆo o registro e desconsiderado*/
+            if avail bf-calen-data         and 
+               bf-calen-data.tipo-dia <> 1 then next.   
+
+			
+            /*Calcula Hora Extra no Inicio do Periodo*/   
+            if l-prim-entrada = no and 
+               (p-dat-inic < v-dat-calcul or (p-dat-inic = v-dat-calcul and p-qtd-segs-inic < tt-turno-semana.qtd-segs-inic-turno)) then do: 
+               assign de-tempo-aux = ?.
+               RUN pi-calcula-tempo-corrido (INPUT-OUTPUT p-dat-inic,
+                                             INPUT-OUTPUT p-qtd-segs-inic,
+                                             INPUT-OUTPUT v-dat-calcul,
+                                             INPUT-OUTPUT tt-turno-semana.qtd-segs-inic-turno,
+                                             INPUT-OUTPUT de-tempo-aux).                            
+               assign p-qtd-tempo-extra = de-tempo-aux
+                      p-num-turno       = tt-turno-semana.num-turno-produc.
+            end.            
+            
+            /*Calcula Tempo Real*/   
+            assign p-qtd-tempo-util = p-qtd-tempo-util + tt-turno-semana.qtd-tempo-dispon-turno.
+            if  v-dat-calcul = p-dat-inic and tt-turno-semana.qtd-segs-inic-turno < p-qtd-segs-inic then do:
+                assign v-qtd-segs-calcul = min(p-qtd-segs-inic,tt-turno-semana.qtd-segs-fim-turno)
+                       p-qtd-tempo-util = p-qtd-tempo-util - (v-qtd-segs-calcul - tt-turno-semana.qtd-segs-inic-turno).
+            end.
+            if  v-dat-calcul = p-dat-fim and tt-turno-semana.qtd-segs-fim-turno > p-qtd-segs-fim then do:
+                assign v-qtd-segs-calcul = max(p-qtd-segs-fim,tt-turno-semana.qtd-segs-inic-turno)
+                       p-qtd-tempo-util = p-qtd-tempo-util - (tt-turno-semana.qtd-segs-fim-turno - v-qtd-segs-calcul).
+            end.
+			
+			assign l-prim-entrada = yes.
+	
+            /*Determina Turno e Tempo Extra*/
+            if (v-dat-calcul < p-dat-fim) OR
+               (v-dat-calcul = p-dat-fim AND tt-turno-semana.qtd-segs-inic-turno < p-qtd-segs-fim) then
+                assign d-dat-ext   = v-dat-calcul
+                       i-hra-ext   = tt-turno-semana.qtd-segs-fim-turno
+                       p-num-turno = if p-num-turno <> tt-turno-semana.num-turno-produc and p-num-turno <> 0 then 9999 else tt-turno-semana.num-turno-produc.
+        end.
+        /***********************************************************************
+                  Troca de Turno e Termino do turno no dia posterior
+        Este tratamento abaixo se faz necessario devido a mudan‡Æo de turno, quando temos 
+        um turno terminado no outro dia justamente no dia final de sua validade (grp x modelo), 
+        desta forma:
+        Modelo 1                  Modelo 2
+        Turno 1 - 06:00 - 14:00   Turno 1 - 08:00 - 16:00
+        Turno 2 - 14:00 - 22:00
+        Turno 3 - 22:00 - 05:00
+        Validades do Turno
+        Modelo 1 01/01/2000 at‚ 20/02/2008
+        Modelo 2 20/02/2008 at‚ 31/12/9999
+        Calculando Datas e Hora de Fim a partir de 18/02/2008 …s 06:00 dura‡Æo de 44 horas
+        
+        Montagem corretas dos turnos
+        dia 18
+                        06:00 - 14:00 / 14:00 - 22:00 / 22:00 - 00:00 = 18 horas
+        dia 19
+        00:00 - 05:00 / 06:00 - 14:00 / 14:00 - 22:00 / 22:00 - 00:00 = 23 horas
+        dia 20
+        00:00 - 05:00 / 08:00 - 16:00                                 = 3 horas
+        Nesta situa‡Æo a data de fim correta ‚ dia 20/02/2008 …s 03:00
+        **************************************************************************
+        Antes ele tratava o dia 20 da seguinte maneira
+        dia 20
+        08:00 - 16:00                                                 = 3 horas
+        Nesta situa‡Æo a data de fim gerada era dia 20/02/2008 …s 11:00
+        **************************************************************************/
+        if v-dat-calcul + 1 = v-dat-fim-valid then do:
+        
+            /* gera tabela de turno temporaria */
+            run pi-gera-tt-turno (input p-cod-area,
+                                  input p-cod-grp-maq,
+                                  input p-cod-ctrab,
+                                  input v-dat-calcul + 1,
+                                  output v-dat-inic-valid,
+                                  output v-dat-fim-valid).
+		   
+           for each tt-turno-semana
+               where tt-turno-semana.num-dia-sema = weekday(v-dat-calcul):
+               
+               /*Filtra registros desnecessarios*/
+               if v-dat-calcul = p-dat-fim  and tt-turno-semana.qtd-segs-inic-turno >= p-qtd-segs-fim  then next.
+               if v-dat-calcul = p-dat-inic and tt-turno-semana.qtd-segs-fim-turno < p-qtd-segs-inic then next.
+               
+               /*Determina dia real para descobrir se ‚ util ou nÆo*/
+               if tt-turno-semana.num-dia-turno <> 0 then
+                   assign i-turno   = (tt-turno-semana.num-dia-turno - tt-turno-semana.num-dia-sema)
+                          d-dat-aux = v-dat-calcul + i-turno.
+               else
+                   assign d-dat-aux = v-dat-calcul.
+               if d-dat-aux <= v-dat-calcul then next.
+               
+               /*Caso o dia real do turno seja posterior a data de validade do turno o
+               mesmo deve ser desconsiderado.
+               Ex: Turno 3 22:00 - 06:00  | Numa situa‡Æo em que 20/02 seja a data de termino do modelo de turno
+                   Turno 1 06:00 - 14:00  | o intervalo das 22:00 - 00:00 que pertence ao turno 3 do dia 21 nÆo 
+                   Turno 2 14:00 - 22:00  | deve ser considerado
+               */
+               if d-dat-aux >= v-dat-fim-valid then next.
+               if d-dat-aux < v-dat-inic-valid then next.
+
+               find calen-data no-lock
+                    where calen-data.cd-calen = p-cod-calend-sfc
+                      and calen-data.data     = d-dat-aux no-error.
+               /*‚ dia util se nÆo o registro e desconsiderado*/
+               if avail calen-data         and 
+                  calen-data.tipo-dia <> 1 then next.   
+        
+			   
+               /*Calcula Hora Extra no Inicio do Periodo*/   
+               if l-prim-entrada = no and 
+                  (p-dat-inic < v-dat-calcul or (p-dat-inic = v-dat-calcul and p-qtd-segs-inic < tt-turno-semana.qtd-segs-inic-turno)) then do: 
+                  assign de-tempo-aux = ?
+                         d-dat-aux    = v-dat-calcul.
+                  RUN pi-calcula-tempo-corrido (INPUT-OUTPUT p-dat-inic,
+                                                INPUT-OUTPUT p-qtd-segs-inic,
+                                                INPUT-OUTPUT d-dat-aux,
+                                                INPUT-OUTPUT tt-turno-semana.qtd-segs-inic-turno,
+                                                INPUT-OUTPUT de-tempo-aux).                            
+                  assign p-qtd-tempo-extra = de-tempo-aux
+                         p-num-turno       = tt-turno-semana.num-turno-produc.
+               end.            
+                  
+               /*Calcula Tempo Real*/   
+               assign p-qtd-tempo-util = p-qtd-tempo-util + tt-turno-semana.qtd-tempo-dispon-turno.
+               if  v-dat-calcul = p-dat-inic and tt-turno-semana.qtd-segs-inic-turno < p-qtd-segs-inic then do:
+                   assign v-qtd-segs-calcul = min(p-qtd-segs-inic,tt-turno-semana.qtd-segs-fim-turno)
+                          p-qtd-tempo-util = p-qtd-tempo-util - (v-qtd-segs-calcul - tt-turno-semana.qtd-segs-inic-turno).
+               end.
+               if  v-dat-calcul = p-dat-fim and tt-turno-semana.qtd-segs-fim-turno > p-qtd-segs-fim then do:
+                   assign v-qtd-segs-calcul = max(p-qtd-segs-fim,tt-turno-semana.qtd-segs-inic-turno)
+                          p-qtd-tempo-util = p-qtd-tempo-util - (tt-turno-semana.qtd-segs-fim-turno - v-qtd-segs-calcul).
+               end.
+			   
+			   assign l-prim-entrada = yes.
+	               
+               /*Determina Turno e Tempo Extra*/
+               if (v-dat-calcul < p-dat-fim) OR
+                  (v-dat-calcul = p-dat-fim AND tt-turno-semana.qtd-segs-inic-turno < p-qtd-segs-fim) then
+                   assign d-dat-ext   = v-dat-calcul
+                          i-hra-ext   = tt-turno-semana.qtd-segs-fim-turno
+                          p-num-turno = if p-num-turno <> tt-turno-semana.num-turno-produc and p-num-turno <> 0 then 9999 else tt-turno-semana.num-turno-produc.
+           end.
+        end.
+        assign i-cont-dias = i-cont-dias + 1.
+    end.
+         
+
+    if p-num-turno = 9999 then 
+       assign p-num-turno = 0.
+
+    if p-qtd-segs-fim = 86400 then
+       assign p-dat-fim      = p-dat-fim + 1
+              p-qtd-segs-fim = 0.
+
+    /*Calculo de Hora Extra no Final do Periodo*/
+    if (d-dat-ext < p-dat-fim) OR
+       (d-dat-ext = p-dat-fim and i-hra-ext < p-qtd-segs-fim) and
+       (l-prim-entrada = no or (p-dat-inic <> d-dat-ext or p-qtd-segs-inic <> i-hra-ext) or (p-qtd-tempo-extra + p-qtd-tempo-util = 0)) then do:
+       RUN pi-calcula-tempo-corrido (INPUT-OUTPUT d-dat-ext,
+                                     INPUT-OUTPUT i-hra-ext,
+                                     INPUT-OUTPUT p-dat-fim,
+                                     INPUT-OUTPUT p-qtd-segs-fim,
+                                     INPUT-OUTPUT de-tempo-aux).                            
+       assign p-qtd-tempo-extra = p-qtd-tempo-extra + de-tempo-aux.
+    end.
+	
+	assign p-qtd-tempo-util  = truncate(p-qtd-tempo-util  / 3600, 4).
+               p-qtd-tempo-extra = truncate(p-qtd-tempo-extra / 3600, 4).
+
+END PROCEDURE.
+
+PROCEDURE pi-determina-tempo-evento:
+    def input        param p-cod-area         as char    format "x(12)"          no-undo.
+    def input        param p-cod-grp-maq      as char    format "x(9)"           no-undo.
+    def input        param p-cod-ctrab        as char    format "x(16)"          no-undo.
+    def input        param p-cod-calend-sfc   as char    format "x(8)"           no-undo.
+    def input        param p-dat-fim          as date    format "99/99/9999"     no-undo.
+    def input        param p-qtd-segs-fim     as decimal format ">>,>>9"         no-undo.
+    def input        param p-dat-inic         as date    format "99/99/9999"     no-undo.
+    def input        param p-qtd-segs-inic    as decimal format ">>,>>9"         no-undo.
+    def output       param p-qtd-tempo-util   as decimal format "->>,>>9.99"  decimals 4 no-undo.
+    
+    def var p-qtd-tempo-extra as decimal format "->>,>>9.99"  decimals 4 no-undo.
+    def var p-num-turno       as integer                                 no-undo.
+    
+    run pi-determina-tempo-evento-extra (input  p-cod-area,       
+                                         input  p-cod-grp-maq,    
+                                         input  p-cod-ctrab,      
+                                         input  p-cod-calend-sfc, 
+                                         input  p-dat-fim,        
+                                         input  p-qtd-segs-fim,   
+                                         input  p-dat-inic,       
+                                         input  p-qtd-segs-inic,  
+                                         input  "":U,
+                                         output p-qtd-tempo-util,
+                                         output p-qtd-tempo-extra,
+                                         output p-num-turno).
+end.

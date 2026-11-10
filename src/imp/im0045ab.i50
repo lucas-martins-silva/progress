@@ -1,0 +1,22 @@
+/******************************************************************************
+**
+**  im0045.i50 - Definicao das variaveis que serao utilizadas pela include
+**               im0045.i51.
+**
+**  Significado das variaveis:
+**
+**  i-nr-ato-concessorio...: Codigo nr-ato-concessorio.
+**  
+******************************************************************************/
+
+/* variaveis char-1 */
+def {1} var c-nr-ato-concessorio as char format "x(20)" no-undo.
+
+
+/*Sao 3 variaveis para o char-1*/
+assign aux-i-num-var[1] = 3  /* Sempre que for criada uma nova variavel nesse */
+                             /* programa, devera  ser  acrescentado  um  para */
+                             /* essa variavel.                                */
+       aux-i-tamanho[1] = 20.  /* espaco padrao utilizado na variavel char-1 */       
+
+/*  CC9019.I50  */

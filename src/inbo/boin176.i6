@@ -1,0 +1,17 @@
+/********************************************************************************
+*
+*    BOIN176.I6 - Definicao TEMP-TABLE {1}
+*                 Utilizado na Modifica‡Æo de Quantidades por Item das Notas 
+**                de Retorno de Beneficiamento
+*
+*********************************************************************************/
+
+def temp-table {1} no-undo
+    field rw-item-doc-est as rowid
+    field quant-ant       like item-doc-est.quantidade
+    field quantidade      like item-doc-est.quantidade
+    field preco-ant       like componente.preco-total extent 0
+    field preco-total     like componente.preco-total extent 0.
+    
+    
+/* fim da include */    

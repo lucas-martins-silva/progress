@@ -1,0 +1,461 @@
+
+PROCEDURE setTotaisNota :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def input param table for tt-total-item.
+    def input param piTotaliza as int no-undo.
+    
+    DEF VAR de-tot-vl-simpl-nac  AS   DECIMAL              NO-UNDO.
+    DEF VAR de-tot-bs-simpl-nac  AS   DECIMAL              NO-UNDO.
+    DEF VAR de-tot-vl-fcp        AS   DECIMAL              NO-UNDO.
+    DEF VAR de-tot-bs-fcp        AS   DECIMAL              NO-UNDO.
+    DEF VAR de-tot-vl-fcp-st     AS   DECIMAL              NO-UNDO.
+    DEF VAR de-tot-bs-fcp-st     AS   DECIMAL              NO-UNDO.
+    def var de-icm-fonte         like docum-est.icm-fonte  no-undo.
+    def var de-tot-valor         like docum-est.tot-valor  no-undo.
+    def var c-cod-cfop           as   char                 no-undo.
+    def var l-origem-im0100      as   log                  no-undo.    
+    def var c-observacao-diferim like docum-est.observacao no-undo.
+    def var h-reapi428           as handle                 no-undo.
+    def var h-boin01126          as handle                 no-undo.
+    def var de-tot-tribut        as decimal                no-undo.
+    
+    find first tt-total-item no-lock no-error.
+    
+    if not avail param-re then
+        find first param-re
+                where param-re.usuario = RowObject.usuario no-lock no-error.
+
+    /* Leitura Natureza Operaá∆o */
+    run findNaturOper ( RowObject.nat-operacao ).
+    
+
+   &if  defined(bf_dis_formato_CFOP) &then
+        ASSIGN c-cod-cfop = natur-oper.cod-cfop.
+    &else
+        ASSIGN c-cod-cfop = substring(natur-oper.char-1,45,10).
+    &endif
+    
+    if not valid-handle(h-reapi428) then do:    
+        RUN rep/reapi428.p PERSISTENT SET h-reapi428.
+        
+        RUN retornaMensagemNatur IN h-reapi428 (INPUT RowObject.r-rowid,
+                                                OUTPUT RowObject.obs-infcpl,
+                                                OUTPUT RowObject.obs-infadfisco).
+    end.
+                                                   
+    if avail tt-total-item then do:
+    
+        if  tt-total-item.total-icms-diferim <> 0 then
+            run atualizaObservDiferimICMS (input  RowObject.r-rowid,
+                                           input  tt-total-item.total-icms-diferim,
+                                           output c-observacao-diferim).
+        
+        IF param-global.modulo-07                            AND
+          (rowObject.observacao BEGINS "Conforme DI: ":U     OR
+           rowObject.observacao BEGINS "Conforme DUIMP: ":U) THEN
+           ASSIGN l-origem-im0100 = YES.    
+
+        assign RowObject.observacao   = RowObject.observacao + c-observacao-diferim
+               
+               RowObject.base-iss     = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.base-iss = 0)  
+                                        then tt-total-item.base-iss
+                                        else RowObject.base-iss
+                                       
+
+               RowObject.iss-deb-cre  = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.iss-deb-cre = 0)
+                                        then tt-total-item.valor-iss
+                                        else RowObject.iss-deb-cre
+                                       
+
+               RowObject.base-subs    = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.base-subs = 0)
+                                        then tt-total-item.base-subs
+                                        else RowObject.base-subs
+                                       
+
+               RowObject.vl-subs      = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.vl-subs = 0)
+                                        then tt-total-item.valor-subs
+                                        else RowObject.vl-subs
+                                       
+
+               RowObject.icm-complem  = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.icm-complem = 0)
+                                        then tt-total-item.icm-complem
+                                        else RowObject.icm-complem
+                                       
+
+               RowObject.base-ipi     = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.base-ipi = 0)
+                                        then tt-total-item.base-ipi
+                                        else RowObject.base-ipi
+                                       
+
+               RowObject.ipi-deb-cre  = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.ipi-deb-cre = 0)
+                                        then tt-total-item.valor-ipi
+                                        else RowObject.ipi-deb-cre
+                                       
+
+               RowObject.base-icm     = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.base-icm = 0)
+                                        then tt-total-item.base-icm
+                                        else RowObject.base-icm
+                                       
+
+               RowObject.icm-deb-cre  = if  piTotaliza = 0
+                                        or (piTotaliza = 1 and RowObject.icm-deb-cre = 0)
+                                        then tt-total-item.valor-icm
+                                        else RowObject.icm-deb-cre
+               
+
+               RowObject.despesa-nota = if  RowObject.despesa-nota = 0
+                                        or (piTotaliza = 1 and RowObject.despesa-nota = 0)
+                                        then tt-total-item.despesa-nota
+                                        else RowObject.despesa-nota
+                                        
+               RowObject.valor-frete = if  RowObject.valor-frete = 0
+                                        or (piTotaliza = 1 and RowObject.valor-frete = 0)
+                                        then tt-total-item.valor-frete
+                                        else RowObject.valor-frete
+                                        
+               OVERLAY(RowObject.char-2,153,13) = if  dec(SUBSTR(RowObject.char-2,153,13)) = 0
+                                        or (piTotaliza = 1 and dec(SUBSTR(RowObject.char-2,153,13)) = 0)
+                                        then string(tt-total-item.valor-pedagio)
+                                        else SUBSTR(RowObject.char-2,153,13)
+                                        
+               OVERLAY(RowObject.char-2,191,20) = if  piTotaliza = 0
+                                                  or (piTotaliza = 1 and dec(SUBSTR(RowObject.char-2,191,20)) = 0)
+                                                  then string(tt-total-item.base-icm-complem)
+                                                  else SUBSTR(RowObject.char-2,191,20).
+               
+
+
+        /* Quando o usu†rio utiliza FIFO e n∆o inclui itens na tela do RE1001B4, estava zerando esse 
+           campos aqui e assim acabava rateando as despesas e frete no primeiro item da nota. */
+        IF  tt-total-item.valor-mercad <> 0 THEN
+            ASSIGN RowObject.valor-mercad = if (piTotaliza = 0 and RowObject.valor-mercad = 0)
+                                            or (piTotaliza = 1 and RowObject.valor-mercad = 0)
+                                            or (RowObject.cod-observa = 3)                     /* Devolucao Cliente  */
+                                            or (avail natur-oper and natur-oper.terceiros)     /* Notas de Terceiros */
+                                            then tt-total-item.valor-mercad
+                                            else RowObject.valor-mercad.
+                                            
+
+        /*Quando o documento teve sua origem pelo conversor, o valor  da mercadoria ( tt-total-item.valor-mercad ) Ç diferente de zero
+         e com isso n∆o aplica o desconto de icms desonerado no total da nota gerando uma diferenáa.*/
+        IF  tt-total-item.valor-mercad <> 0
+        and rowObject.origem           <> ''
+        and can-find (FIRST ext-item-doc-est
+                      WHERE ext-item-doc-est.serie-docto  = RowObject.serie-docto 
+                      AND   ext-item-doc-est.nro-docto    = RowObject.nro-docto   
+                      AND   ext-item-doc-est.cod-emitente = RowObject.cod-emitente
+                      AND   ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+                      AND   ext-item-doc-est.cod-param    = "icms-deson":U
+                      AND   ext-item-doc-est.log-livre-1  = yes) then  /*aplica como desconto*/
+            ASSIGN RowObject.valor-mercad = tt-total-item.valor-mercad.
+        
+        
+        IF  tt-total-item.tot-peso <> 0 THEN
+             ASSIGN RowObject.tot-peso    = if  piTotaliza = 0 
+                                            or (piTotaliza = 1 and RowObject.tot-peso = 0)
+                                            or (RowObject.cod-observa = 3)                     /* Devolucao Cliente  */
+                                            or (avail natur-oper and natur-oper.terceiros)     /* Notas de Terceiros */
+                                            then tt-total-item.tot-peso
+                                            else RowObject.tot-peso.
+        
+        ASSIGN RowObject.tot-desconto = if (piTotaliza = 0 and RowObject.tot-desconto = 0)
+                                        or (piTotaliza = 1 and RowObject.tot-desconto = 0)
+                                        or (RowObject.cod-observa = 3)                          /* Devolucao Cliente  */
+                                        or (avail natur-oper and natur-oper.terceiros)          /* Notas de Terceiros */
+                                        OR (AVAIL param-re AND param-re.rateia-desc = NO)       /* Recalcula o desconto de acordo com cabeáalho do NF */
+                                        then tt-total-item.tot-desconto
+                                        else RowObject.tot-desconto
+                                        
+               RowObject.vl-pis-subs  = if piTotaliza = 0 
+                                        or (piTotaliza = 1 and RowObject.vl-pis-subs = 0) 
+                                        then tt-total-item.total-pis-subst 
+                                        else RowObject.vl-pis-subs
+                                        
+               RowObject.vl-cofins-subs = if piTotaliza = 0
+                                          or (piTotaliza = 1 and RowObject.vl-cofins-subs = 0)
+                                          then tt-total-item.total-cofins-subs
+                                          else RowObject.vl-cofins-subs.
+                                          
+               assign RowObject.peso-bruto-tot  = if c-cod-cfop begins "3"      /* Notas de importaá∆o  */
+                                                     then RowObject.peso-bruto-tot
+                                                  else if RowObject.cod-observa = 3  /* Devoluá∆o Cliente */   
+                                                     then tt-total-item.peso-bruto-tot
+                                                  else RowObject.tot-peso.  
+    end.
+    
+    if  (RowObject.valor-frete + RowObject.valor-seguro + RowObject.valor-embal + RowObject.valor-outras + dec(SUBSTR(RowObject.char-2,153,13))) < RowObject.despesa-nota then
+        assign RowObject.valor-outras = RowObject.valor-outras + 
+                                        (RowObject.despesa-nota - (RowObject.valor-frete + RowObject.valor-seguro + RowObject.valor-embal + RowObject.valor-outras + dec(SUBSTR(RowObject.char-2,153,13)))).
+                           
+    
+    run setFlagsNota ( RowObject.cod-observa,
+                       RowObject.nat-operacao ).                           
+
+    /* Substituiá∆o Tribut†ria do Frete */  
+    if avail tt-total-item then
+        run calculateICMSFonte ( input tt-total-item.valor-icm,
+                                 output de-icm-fonte ).
+    
+
+    if  return-value <> "NOK":U then    
+        assign RowObject.icm-fonte = de-icm-fonte.                                 
+    
+    {method/svc/custom/custom.i &Event = "AfterCalculaICMSFonte"}        
+
+    IF  NOT VALID-HANDLE(h-boin01016) THEN
+        RUN inbo/boin01016.p PERSISTENT SET h-boin01016.
+    RUN openQueryStatic IN h-boin01016 (INPUT "Main":U) NO-ERROR.
+
+    /* Simples Nacional */
+    FOR EACH ext-item-doc-est NO-LOCK
+       WHERE ext-item-doc-est.serie-docto  = RowObject.serie-docto 
+         AND ext-item-doc-est.nro-docto    = RowObject.nro-docto   
+         AND ext-item-doc-est.cod-emitente = RowObject.cod-emitente
+         AND ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+         AND ext-item-doc-est.cod-param    = "simplesnacional":U :
+        ASSIGN de-tot-bs-simpl-nac = de-tot-bs-simpl-nac + ext-item-doc-est.val-livre-2
+               de-tot-vl-simpl-nac = de-tot-vl-simpl-nac + ext-item-doc-est.val-livre-3.
+    END.
+    
+    IF de-tot-vl-simpl-nac <> 0 THEN DO:
+        EMPTY TEMP-TABLE tt-ext-docum-est. 
+        CREATE tt-ext-docum-est.
+        ASSIGN tt-ext-docum-est.serie-docto  = RowObject.serie-docto
+               tt-ext-docum-est.nro-docto    = RowObject.nro-docto
+               tt-ext-docum-est.cod-emitente = RowObject.cod-emitente
+               tt-ext-docum-est.nat-operacao = RowObject.nat-operacao
+               tt-ext-docum-est.cod-param    = "simplesnacional".
+        ASSIGN tt-ext-docum-est.val-livre-2  = de-tot-bs-simpl-nac  /*base simples nac*/
+               tt-ext-docum-est.val-livre-3  = de-tot-vl-simpl-nac. /*valor simples nac*/
+        
+        RUN goToKey IN h-boin01016 (INPUT RowObject.serie-docto, 
+                                    INPUT RowObject.nro-docto,   
+                                    INPUT RowObject.cod-emitente,
+                                    INPUT RowObject.nat-operacao,
+                                    INPUT "simplesnacional"). 
+                                    
+        IF  RETURN-VALUE = "OK":U THEN DO:
+            RUN emptyRowErrors IN h-boin01016.
+            RUN setRecord IN h-boin01016 (INPUT TABLE tt-ext-docum-est).
+            RUN updateRecord IN h-boin01016.  
+        END.    
+        ELSE DO:
+            RUN emptyRowErrors IN h-boin01016.
+            RUN setRecord IN h-boin01016 (INPUT TABLE tt-ext-docum-est).
+            RUN createRecord IN h-boin01016.
+        END.
+    END.
+    ELSE DO: /*Elimina ext-docum-est Simples Nacional*/
+        RUN goToKey IN h-boin01016 (INPUT RowObject.serie-docto, 
+                                    INPUT RowObject.nro-docto,   
+                                    INPUT RowObject.cod-emitente,
+                                    INPUT RowObject.nat-operacao,
+                                    INPUT "simplesnacional"). 
+        IF  RETURN-VALUE = "OK":U THEN
+            RUN deleteRecord IN h-boin01016.  
+    END.
+    /* Simples Nacional */
+    
+    /* FCP */
+    FOR EACH ext-item-doc-est NO-LOCK
+       WHERE ext-item-doc-est.serie-docto  = RowObject.serie-docto 
+         AND ext-item-doc-est.nro-docto    = RowObject.nro-docto   
+         AND ext-item-doc-est.cod-emitente = RowObject.cod-emitente
+         AND ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+         AND ext-item-doc-est.cod-param    = "fcp":U:
+        ASSIGN de-tot-bs-fcp    = de-tot-bs-fcp    + ext-item-doc-est.val-livre-1
+               de-tot-vl-fcp    = de-tot-vl-fcp    + ext-item-doc-est.val-livre-3
+               de-tot-bs-fcp-st = de-tot-bs-fcp-st + ext-item-doc-est.val-livre-4
+               de-tot-vl-fcp-st = de-tot-vl-fcp-st + ext-item-doc-est.val-livre-6.
+    END.
+    
+    IF de-tot-bs-fcp    = 0 AND
+       de-tot-vl-fcp    = 0 AND
+       de-tot-bs-fcp-st = 0 AND
+       de-tot-vl-fcp-st = 0 THEN DO:         /* se todos os valores forem zero */
+        RUN goToKey IN h-boin01016 (INPUT RowObject.serie-docto, 
+                                    INPUT RowObject.nro-docto,   
+                                    INPUT RowObject.cod-emitente,
+                                    INPUT RowObject.nat-operacao,
+                                    INPUT "fcp":U). 
+
+        IF  RETURN-VALUE = "OK":U THEN DO:   /* e existir o registro */
+            RUN deleteRecord IN h-boin01016. /* eliminar o registro */
+        END.    
+    END.
+    ELSE DO:                            /* se os valores forem diferentes de zero */
+        EMPTY TEMP-TABLE tt-ext-docum-est. 
+        CREATE tt-ext-docum-est.
+        ASSIGN tt-ext-docum-est.serie-docto  = RowObject.serie-docto
+               tt-ext-docum-est.nro-docto    = RowObject.nro-docto
+               tt-ext-docum-est.cod-emitente = RowObject.cod-emitente
+               tt-ext-docum-est.nat-operacao = RowObject.nat-operacao
+               tt-ext-docum-est.cod-param    = "fcp":U.
+        ASSIGN tt-ext-docum-est.val-livre-1  = de-tot-bs-fcp     /*base fcp*/
+               tt-ext-docum-est.val-livre-3  = de-tot-vl-fcp     /*valor fcp*/
+               tt-ext-docum-est.val-livre-4  = de-tot-bs-fcp-st  /*base fcp ST*/  
+               tt-ext-docum-est.val-livre-6  = de-tot-vl-fcp-st. /*valor fcp ST*/ 
+               
+        RUN goToKey IN h-boin01016 (INPUT RowObject.serie-docto, 
+                                    INPUT RowObject.nro-docto,   
+                                    INPUT RowObject.cod-emitente,
+                                    INPUT RowObject.nat-operacao,
+                                    INPUT "fcp":U). 
+                                    
+        IF  RETURN-VALUE = "OK":U THEN DO:
+            RUN emptyRowErrors IN h-boin01016.
+            RUN setRecord IN h-boin01016 (INPUT TABLE tt-ext-docum-est).
+            RUN updateRecord IN h-boin01016.  /* atualizar */
+        END.    
+        ELSE DO:
+            RUN emptyRowErrors IN h-boin01016.
+            RUN setRecord IN h-boin01016 (INPUT TABLE tt-ext-docum-est).
+            RUN createRecord IN h-boin01016.  /* ou criar o registro */
+        END.
+        EMPTY TEMP-TABLE tt-ext-docum-est. 
+    END.
+    /* FCP */
+    
+    
+    assign de-tot-tribut = 0.
+    if l-spp-NT2024002 then do:                   
+                   
+        RUN inbo/boin01126.p PERSISTENT SET h-boin01126.
+        RUN createTotaisDocumEstTribut IN h-boin01126 (INPUT RowObject.serie-docto,
+                                                       INPUT RowObject.nro-docto,
+                                                       INPUT RowObject.cod-emitente,
+                                                       INPUT RowObject.nat-operacao,
+                                                       OUTPUT TABLE tt-docum-est-tribut).
+                                  
+                                  
+        RUN setConstraintOfDocumEst IN h-boin01126 (INPUT RowObject.serie-docto,     
+                                                    INPUT RowObject.nro-docto,      
+                                                    INPUT RowObject.cod-emitente,    
+                                                    INPUT RowObject.nat-operacao).      
+        RUN openQueryStatic in h-boin01126 (INPUT "OfDocumEst":U).  
+        
+        FOR EACH tt-docum-est-tribut:
+            
+            RUN emptyRowObject  IN h-boin01126.
+            EMPTY TEMP-TABLE tt-docum-est-tribut-aux.
+            CREATE tt-docum-est-tribut-aux.
+            BUFFER-COPY tt-docum-est-tribut TO tt-docum-est-tribut-aux.
+
+            IF tt-docum-est-tribut.cod-campo = rep.imp.AtributoImposto:VALOR and
+               (tt-docum-est-tribut.nom-trib = rep.imp.Imposto:CBS     or
+                tt-docum-est-tribut.nom-trib = rep.imp.Imposto:IBS-UF  or 
+                tt-docum-est-tribut.nom-trib = rep.imp.Imposto:IBS-MUN or 
+                tt-docum-est-tribut.nom-trib = rep.imp.Imposto:IS) then 
+                assign de-tot-tribut = de-tot-tribut + dec(tt-docum-est-tribut.cod-conteudo).
+        
+            RUN goToKey IN h-boin01126 (INPUT tt-docum-est-tribut-aux.cod-serie-docto,
+                                        INPUT tt-docum-est-tribut-aux.cod-num-docto,    
+                                        INPUT tt-docum-est-tribut-aux.cdn-emitente,     
+                                        INPUT tt-docum-est-tribut-aux.cod-natur-operac,
+                                        INPUT tt-docum-est-tribut-aux.nom-trib,         
+                                        input tt-docum-est-tribut-aux.cod-campo).                                        
+                                 
+            IF  RETURN-VALUE = "OK":U THEN DO:
+                RUN emptyRowErrors IN h-boin01126.
+                RUN setRecord IN h-boin01126 (INPUT TABLE tt-docum-est-tribut-aux).
+                RUN updateRecord IN h-boin01126.  
+            END.    
+            ELSE DO:
+                RUN emptyRowErrors IN h-boin01126.
+                RUN setRecord IN h-boin01126 (INPUT TABLE tt-docum-est-tribut-aux).
+                RUN createRecord IN h-boin01126.
+            END.                                    
+        END.    
+    END.
+    /* Total da Nota */
+    run calculateTotalNota ( output de-tot-valor ).       
+    
+    if  return-value <> "NOK":U 
+    and (    piTotaliza = 0 
+         or (piTotaliza = 1 and RowObject.tot-valor = 0)) then
+        assign RowObject.tot-valor       = de-tot-valor
+               RowObject.valor-tot-nf-rt = if l-spp-NT2024002 then de-tot-valor + de-tot-tribut else 0.
+               
+    /*--- Marca registro com exclusive-lock ---*/
+    &IF "{&CHANGE-QUERY-TO-FIND}":U EQ "TRUE":U &THEN
+        IF  AVAIL {&TableName} THEN
+            FIND CURRENT {&TableName} EXCLUSIVE-LOCK NO-WAIT NO-ERROR.
+    &ELSE
+        GET CURRENT {&QueryName} EXCLUSIVE-LOCK NO-WAIT.
+    &ENDIF
+
+    /* EPC utilizada pela Grendene para sempre atualizar o peso total, est† fora do 
+       padr∆o para poder passar o peso total dos itens tt-total-item.peso-total */
+       
+
+    for each tt-epc where tt-epc.cod-event = "totaliza-peso":
+        delete tt-epc.
+    end.
+
+    if avail tt-total-item then do:
+        create tt-epc.
+        assign tt-epc.cod-event = "totaliza-peso":U
+               tt-epc.cod-parameter = string(this-procedure:handle)
+               tt-epc.val-parameter = string(tt-total-item.tot-peso) + "*":U + string(tt-total-item.base-icm) + "*":U + STRING(tt-total-item.base-ipi) .
+    end.
+    {include/i-epc201.i totaliza-peso}
+
+    run _copyTT2Buffer.            
+    
+
+    if  return-value <> "OK":U then do:
+        &IF "{&CHANGE-QUERY-TO-FIND}":U EQ "TRUE":U &THEN
+        IF  AVAIL {&TableName} THEN
+            FIND CURRENT {&TableName} NO-LOCK NO-WAIT NO-ERROR.
+        &ELSE
+            GET CURRENT {&QueryName} NO-LOCK NO-WAIT.
+        &ENDIF  
+        return "NOK":U.
+    end.
+
+    {method/svc/custom/custom.i &Event = "AfterSetTotaisNota"}      
+    
+
+    &IF "{&CHANGE-QUERY-TO-FIND}":U EQ "TRUE":U &THEN
+    IF  AVAIL {&TableName} THEN
+        FIND CURRENT {&TableName} NO-LOCK NO-WAIT NO-ERROR.
+    &ELSE
+        GET CURRENT {&QueryName} NO-LOCK NO-WAIT.
+    &ENDIF  
+   
+
+    return "OK":U.
+                
+    FINALLY:
+        DELETE PROCEDURE h-reapi428 NO-ERROR.
+        assign h-reapi428 = ?.
+        
+        IF VALID-HANDLE(h-boin01016) THEN DO:
+            DELETE PROCEDURE h-boin01016.
+            ASSIGN h-boin01016 = ?.
+        END.
+        
+        IF VALID-HANDLE(h-boin01126) THEN DO:
+            DELETE PROCEDURE h-boin01126.
+            ASSIGN h-boin01126 = ?.
+        END.
+    END FINALLY.
+END PROCEDURE.
+
+
+
+
+

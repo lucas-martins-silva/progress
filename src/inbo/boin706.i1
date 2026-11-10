@@ -1,0 +1,10 @@
+/*********************************************************
+**
+** INLCUDE BOIN706.I1 - Respons vel por executar a boin706 
+**
+**********************************************************/
+
+    run inbo/boin706.p persistent set h-boin706.
+    run openQueryStatic in h-boin706("main":U).
+
+/** FIM INCLUDE **/

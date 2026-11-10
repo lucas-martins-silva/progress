@@ -1,0 +1,85 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/******************************************************************************
+**
+**  Include: imr2020.i2 - Processo de Exporta‡Æo - Defini‡Æo dos Form(s)
+**
+*******************************************************************************/
+
+/******************************Defini‡Æo dos Form(s) ****************************/
+
+
+
+
+form 
+skip(01)
+
+     with no-box width 132 stream-io frame f-titulo.
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-titulo:HANDLE).
+
+
+
+form 
+skip(01)
+     "*-----------------------------------------------------------" at 01 
+     "------------------------------------------------------------" at 61
+     "-----------*"                                                 at 121  skip
+     "|" at 01
+      tt-aux-aprov.fixo
+      "|" at 132  skip
+           "|" at 01
+           "|" at 132
+     "|" at 01
+    c-ped-drb at 03
+    c-dt-emis at 25
+    c-mod at 39
+    c-mot at 57
+      "|" at 132  skip
+           "|" at 01
+           "|" at 132            
+     with no-box no-labels width 132 stream-io frame f-fixo-aprov.
+
+form 
+skip(01)
+     "*-----------------------------------------------------------" at 01 
+     "------------------------------------------------------------" at 61
+     "-----------*"                                                 at 121  skip
+     "|" at 01
+      tt-aux-reprov.fixo
+      "|" at 132  skip
+           "|" at 01
+           "|" at 132
+     "|" at 01
+    c-ped-drb at 03
+    c-dt-emis at 25
+    c-mod at 39
+    c-mot at 57
+      "|" at 132  skip
+           "|" at 01
+           "|" at 132     
+     with no-box no-labels width 132 stream-io frame f-fixo-reprov.         
+
+form 
+     "|" at 01 
+     tt-aux-aprov.nr-pedido at 03
+     tt-aux-aprov.dt-emis at 25
+     tt-aux-aprov.modalidade at 39
+      "|" at 132  skip            
+     with no-box no-labels width 132 stream-io frame f-aprovado.    
+     
+form 
+     "|" at 01 
+     tt-aux-reprov.nr-pedido at 03
+     tt-aux-reprov.dt-emis at 25
+     tt-aux-reprov.modalidade at 39     
+     tt-aux-reprov.motivo-reprov at 57
+      "|" at 132  skip            
+     with no-box no-labels width 132 stream-io frame f-reprovado.              
+     

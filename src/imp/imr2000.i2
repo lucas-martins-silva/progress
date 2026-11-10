@@ -1,0 +1,76 @@
+/********************************************************************************
+** Copyright DATASUL S.A. (1997)
+** Todos os Direitos Reservados.
+**
+** Este fonte e de propriedade exclusiva da DATASUL, sua reproducao
+** parcial ou total por qualquer meio, so podera ser feita mediante
+** autorizacao expressa.
+*******************************************************************************/
+/******************************************************************************
+**
+**  Include: imr2000.i2 - Processo de Exporta‡Æo - Defini»’o dos Form(s)
+**
+*******************************************************************************/
+
+/******************************Defini»’o dos Form(s) ****************************/
+
+                            
+form skip
+     c-empresa-prin at 03
+     c-empresa-cgc at 55
+     c-nr-ato-con at 88 skip
+     "*-----------------------------------------------------------" at 01 
+     "------------------------------------------------------------" at 61
+     "-----------*"                                                 at 121  skip
+     c-di-re at 03
+     c-dt-di-re at 24     
+     c-nf at 35
+     c-dt-nf at 52
+     c-class-fisc at 63
+     c-peso to 90
+     c-quant to 101
+     c-vl-merc to 118     
+     c-vl-tot to 130 skip
+     c-moeda-tot to 130 skip
+     "*-----------------------------------------------------------" at 01 
+     "------------------------------------------------------------" at 61
+     "-----------*"                                                 at 121  skip     
+     with no-box no-labels width 132 stream-io frame f-cabecalho.
+
+
+form 
+         " "                          at 01       
+         tt-unificado-re.nr-re       /*at 03*/
+         tt-unificado-re.data-re     /*at 24*/
+         tt-unificado-re.nr-nota-fis /*at 36*/
+         tt-unificado-re.data-nf     /*at 54*/
+         tt-unificado-re.cod-ncm     /*at 66*/
+         tt-unificado-re.peso        /*at 78*/
+         tt-unificado-re.quantidade  /*at 88*/
+         tt-unificado-re.valor       /*at 98*/
+         tt-unificado-re.valor-me      to 130 /*at 108*/ skip
+         tt-unificado-re.un            at 98
+         tt-unificado-re.sigla         at 113
+         with no-box no-labels width 132 stream-io frame f-unificado-re.
+     
+form 
+        " "                                      at 01       
+         tt-unificado-di.declaracao-import       /*at 03*/
+         tt-unificado-di.data-di                 /*at 24*/
+         tt-unificado-di.nr-nota-fis             /*at 36*/
+         tt-unificado-di.data-nf                 /*at 54*/
+         tt-unificado-di.cod-ncm                 /*at 66*/
+         tt-unificado-di.peso                    /*at 78*/
+         tt-unificado-di.quantidade              /*at 88*/
+         tt-unificado-di.valor                   /*at 98*/
+         tt-unificado-di.valor-me                   to 130 /*at 108*/ skip
+         tt-unificado-di.un                         at 98
+         tt-unificado-di.sigla                      at 113
+     with no-box no-labels width 132 stream-io frame f-unificado-di.
+
+
+form 
+     "|" at 01 
+      "|" at 132  skip            
+     with no-box no-labels width 132 stream-io frame f-total.     
+     

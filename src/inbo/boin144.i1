@@ -1,0 +1,28 @@
+/**********************************************************************************
+**
+** ExportarAtributosOperacao
+** OBJETIVO: Exportaá∆o de atributos para operaá‰es engenharia, 
+             padr∆o e alternativas
+**
+**********************************************************************************/
+PROCEDURE ExportarAtributosOperacao:
+
+    define parameter buffer b-grup-maquina for grup-maquina.
+    
+    for each operacao where
+             operacao.gm-codigo = b-grup-maquina.gm-codigo:
+    
+        assign operacao.qtd-carga-batch  = b-grup-maquina.qtd-carga-batch 
+               operacao.ind-tempo-operac = b-grup-maquina.ind-tempo-operac.
+               
+    end.
+  
+    for each op-altern where
+             op-altern.gm-codigo = b-grup-maquina.gm-codigo:
+    
+        assign op-altern.qtd-carga-batch  = b-grup-maquina.qtd-carga-batch 
+               op-altern.ind-tempo-operac = b-grup-maquina.ind-tempo-operac.
+               
+    end.
+    
+END PROCEDURE.    

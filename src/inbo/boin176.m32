@@ -1,0 +1,245 @@
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE recalculateImposto DBOProgram 
+PROCEDURE recalculateImposto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:  Recalcu os impostos da nota (IPI/ISS), essa procedure ≤ executada 
+          atrav≤s do botío de recalcula do re1001b2.
+       
+
+------------------------------------------------------------------------------*/
+
+    def input param piQuantidade     like item-doc-est.quantidade     no-undo.
+    def input param piPrecoUnit      like item-doc-est.preco-unit[1]  no-undo.
+    def input param piPrecoTotal     like item-doc-est.preco-total[1] no-undo.
+    def input param piDesconto       like item-doc-est.desconto[1]    no-undo.
+    def input param piAliquotaIPI    like item-doc-est.aliquota-ipi   no-undo.
+    def input param piTribIPI        like item-doc-est.cd-trib-ipi    no-undo.
+    def input param piAliquotaISS    like item-doc-est.aliquota-iss   no-undo.
+    def input param piTribISS        like item-doc-est.cd-trib-iss    no-undo.
+    def input param piAliquotaICM    like item-doc-est.aliquota-icm   no-undo.
+    def input param piTribICM        like item-doc-est.cd-trib-icm    no-undo.
+    def input param pdePercIPI       as dec                           no-undo.
+    def input param pdePercICM       as dec                           no-undo.
+    def input param piICMRet         like item-doc-est.log-2          no-undo.
+    def input param piTribPIS        as int                           no-undo.
+    def input param piAliquotaPIS    as dec format ">9,9999"          no-undo.
+    def input param piTribCOFINS     as int                           no-undo.
+    def input param piAliquotaCOFINS as dec format ">9,9999"          no-undo.
+    def input param piRecalcula      as   logical                     no-undo.
+    
+
+    def var         c-estab        like docum-est.cod-estabel         no-undo.           
+    def var         h-ex3051       as   handle                        no-undo.           
+    def var         i-tp-dev-exp   as   integer                       no-undo.           
+    def var         i-reab-pd      as   integer                       no-undo.
+    
+        
+    ASSIGN de-aliquota-pis        = piAliquotaPIS
+           de-aliquota-cofins     = piAliquotaCOFINS
+           l-recalcula-pis-cofins = YES.
+    
+    if not avail natur-oper then  
+        run findNaturOper (RowObject.nat-operacao).
+
+    /*** DMANRECEB-5445 - Recalculo de PIS/Cofins por unidade ***/
+    if avail emitente and
+       emitente.log-calcula-pis-cofins-unid then do: /*emitente com pis/cofins por unidade*/
+        if (emitente.idi-tributac-cofins = 1 or emitente.idi-tributac-pis = 1) or 
+            natur-oper.tipo-compra = 3 /*tributado*/ then do:
+            for first item-mat fields (char-1)
+                where item-mat.it-codigo = RowObject.it-codigo no-lock: end.
+            if  avail item-mat and 
+               (substring(item-mat.char-1,40,1) = "S" or    /*Calcula pis por unidade*/
+                substring(item-mat.char-1,41,1) = "S") then /*Calcula cofins por unidade*/
+                assign l-recalcula-pis-cofins = no.
+        end. /*if (emitente.idi-tributac-cofins = 1 or emitente.idi-tributac-pis = 1)*/       
+        else do:
+            for first item-fornec fields (char-2)
+                where item-fornec.it-codigo    = RowObject.it-codigo
+                  and item-fornec.cod-emitente = RowObject.cod-emitente no-lock: end.
+            if  avail item-fornec and 
+               (substring(item-fornec.char-2,1,1) = "S" or    /*Calcula pis por unidade*/
+                substring(item-fornec.char-2,2,1) = "S") then /*Calcula cofins por unidade*/
+                assign l-recalcula-pis-cofins = no.
+        end. /*else do*/    
+    end. /*if avail emitente*/  
+    
+    
+    assign RowObject.qt-do-forn             = piQuantidade
+           RowObject.desconto[1]            = piDesconto 
+           RowObject.aliquota-ipi           = piAliquotaIpi
+           RowObject.aliquota-icm           = piAliquotaIcm
+           RowObject.aliquota-iss           = piAliquotaIss
+           RowObject.cd-trib-ipi            = piTribIpi
+           RowObject.cd-trib-icm            = piTribIcm
+           RowObject.cd-trib-iss            = piTribIss
+           RowObject.log-2                  = piICMRet
+           RowObject.val-perc-rep-ipi       = pdePercIPI
+           RowObject.val-perc-red-icms      = pdePercICM
+           l-recalcula                      = piRecalcula
+           RowObject.idi-tributac-pis       = piTribPIS
+           RowObject.val-aliq-pis           = piAliquotaPIS
+           RowObject.idi-tributac-cofins    = piTribCOFINS
+           RowObject.val-aliq-cofins        = piAliquotaCOFINS.         
+
+    IF natur-oper.tp-oper-terc <> 4 and not piRecalcula THEN DO:
+        /* Recalcula preco unitario/total */
+        IF RowObject.preco-unit[1] <> piPrecoUnit THEN
+            ASSIGN RowObject.preco-total[1] = piPrecoUnit * RowObject.qt-do-forn
+                   RowObject.preco-unit[1]  = piPrecoUnit.
+        ELSE
+            ASSIGN RowObject.preco-unit[1]  = piPrecoTotal 
+                                            / (RowObject.qt-do-forn + int(RowObject.qt-do-forn = 0))
+                   RowObject.preco-total[1] = piPrecoTotal.
+    END.
+                                    
+    /***Sugest∆o cClassTrib/CST do CBS/IBS***/
+    IF NOT piRecalcula THEN
+        RUN sugereCClassTrib.
+
+    run createTempTableImpostos.      
+    
+    /***ICMS Desonerado***/
+    if l-apl-desc-icm-recalc and de-val-desc-icm-recalc > 0 then do:
+        find first tb-wt-it-docto exclusive-lock
+             where tb-wt-it-docto.seq-wt-docto    = 1
+               and tb-wt-it-docto.seq-wt-it-docto = RowObject.sequencia no-error.
+        if avail tb-wt-it-docto then do:
+            assign tb-wt-it-docto.vl-merc-liq = (RowObject.preco-total[1] - RowObject.desconto[1] - de-val-desc-icm-recalc)
+                   tb-wt-it-docto.vl-preuni   = if tb-wt-it-docto.quantidade[1] <> 0 then
+                                                    (tb-wt-it-docto.vl-merc-liq / tb-wt-it-docto.quantidade[1])
+                                                else tb-wt-it-docto.vl-merc-liq.
+            if valid-handle(h_bodi317im2bra) then 
+                run enviaTbWtItDocto in h_bodi317im2bra (input table tb-wt-it-docto).
+        end. /*if avail tb-wt-it-docto */                                                
+    end.
+    /********************/
+
+    run assignValueImposto.
+    
+    /* Sugest∆o de CST no Recebimento*/
+    IF NOT piRecalcula THEN
+        RUN sugereCST (INPUT "RECALC":U).
+        
+    /* Devoluá∆o de cliente o estorno Ç feito na atualizaá∆o da nota */
+    if  avail natur-oper
+    and natur-oper.tipo-compra = 3 then do:
+                                      
+        &IF '{&bf_dis_versao_ems}' >= '2.06' &THEN
+        
+        If NOT AVAIL param-global then
+           find first param-global no-lock no-error.
+        
+        if  connected ("mgcex":U)
+        and AVAIL param-global
+        and param-global.modulo-07 = yes                    /* M¢dulo Importaá∆o */
+        and param-global.modulo-ex = yes then DO:           /* M¢dulo Exportaá∆o */
+            run getCharField in h-boin090 (input "cod-estabel", output c-estab).                  
+            run exp/ex3051.p persistent set h-ex3051.                                             
+            run RetornaDevolucaoExportacao in h-ex3051 (input RowObject.cod-emitente,       
+                                                        input RowObject.serie-docto,        
+                                                        input RowObject.nro-docto,          
+                                                        input RowObject.nat-operacao,       
+                                                        input c-estab,                            
+                                                        output i-tp-dev-exp,                      
+                                                        output i-reab-pd).                        
+            delete procedure h-ex3051. 
+            assign h-ex3051 = ?.                                                           
+            if i-tp-dev-exp > 0 then                                                              
+               return "OK":U.                                                                     
+        end.                                                                                  
+        &endif
+    end.
+    return "OK":U.
+    
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE recalculaDespesa DBOProgram 
+PROCEDURE recalculaDespesa :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:  Recalcula a despesa do item
+------------------------------------------------------------------------------*/
+    def input param piPrecoUnit      like item-doc-est.preco-unit[1]  no-undo.
+    def input param piPrecoTotal     like item-doc-est.preco-total[1] no-undo.
+    def input param piDespesa        like item-doc-est.despesas[1]    no-undo.
+    def input param piFrete          like item-doc-est.pr-total-cmi   no-undo.
+    def input param piPeso           like item-doc-est.peso-liquido   no-undo.
+    def input param piPedagio        as   decimal                     no-undo.
+    def input param piRecalcula      as   logical                     no-undo.
+    
+
+    def var         de-frete       as   decimal                     no-undo.
+    def var         de-desp        as   decimal                     no-undo.
+    def var         l-recalc-frete as   logical                     no-undo.
+    def var         l-recalc-desp  as   logical                     no-undo.
+    def var         de-pedagio-ant as   decimal                       no-undo.
+           
+    if (RowObject.preco-total[1] <> piPrecoTotal OR
+        RowObject.preco-unit[1]  <> piPrecoUnit  OR
+        Rowobject.peso-liquido   <> piPeso) then
+        assign l-recalc-frete = yes.
+                     
+    if (RowObject.pr-total-cmi <> piFrete) 
+    or (DEC(SUBSTR(RowObject.char-2,819,13)) <> piPedagio) THEN
+        assign l-recalc-desp = yes.
+        
+    assign de-pedagio-ant                   = DEC(SUBSTR(RowObject.char-2,819,13))
+           de-frete                         = RowObject.pr-total-cmi
+           de-desp                          = RowObject.despesas[1]
+           RowObject.despesas[1]            = piDespesa
+           RowObject.pr-total-cmi           = piFrete
+           Rowobject.peso-liquido           = piPeso
+           OVERLAY(RowObject.char-2,819,13) = string(piPedagio)
+           l-recalcula                      = piRecalcula.         
+     
+    /* Rateio Frete */
+    if  not l-recalcula
+    and avail docum-est
+    and avail param-re then do:
+    
+
+        if  l-recalc-frete then do:
+            /* Esta l¢gica Ç para que o valor da despesa n∆o fique negativo */
+            if  RowObject.despesas[1] = 0 then
+                assign RowObject.despesas[1] = RowObject.pr-total-cmi + piPedagio.
+            else if  RowObject.despesas[1] < (RowObject.pr-total-cmi + piPedagio) then
+                     assign RowObject.despesas[1] = RowObject.despesas[1] + RowObject.pr-total-cmi + piPedagio. 
+                     
+           
+            assign de-frete = 0.
+
+            run rep/re1001r.p (rowid(docum-est),
+                               if avail param-re and param-re.rateia-frete = 1 
+                               then Rowobject.peso-liquido
+                               else RowObject.preco-total[1],
+                               2,
+                               output de-frete).
+            
+            assign RowObject.despesas[1]  = RowObject.despesas[1] - RowObject.pr-total-cmi - piPedagio
+                   RowObject.pr-total-cmi = de-frete
+                   RowObject.despesas[1]  = RowObject.despesas[1] + de-frete + piPedagio.
+                   
+            
+        end.
+        else 
+            if  l-recalc-desp then 
+                if  de-desp = 0 then
+                    assign RowObject.despesas[1] = RowObject.pr-total-cmi + piPedagio.
+                else 
+                    assign RowObject.despesas[1] = ( de-desp - de-frete - de-pedagio-ant) + RowObject.pr-total-cmi + piPedagio. 
+
+    end.
+    
+    
+    return "OK":U.
+    
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME

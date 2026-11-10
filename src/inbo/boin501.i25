@@ -1,0 +1,59 @@
+/*** Elimina‡Æo de indicadores desativados ***/
+
+find first tt-indicador.
+
+if  available tt-indicador then do:
+    
+    assign v-cod-visao = tt-indicador.cod-visao.
+    
+    for each ind-vis-man where
+             ind-vis-man.cod-visao     = v-cod-visao and
+             ind-vis-man.log-reg-dtsul EXCLUSIVE-LOCK :
+       
+        if  not can-find (first tt-indicador where 
+                                tt-indicador.cod-visao   = v-cod-visao   and
+                                tt-indicador.cod-ind-int = ind-vis-man.cod-ind-int) then do:
+            
+            if  can-find (first est-ind-man
+                          where est-ind-man.cod-visao    = v-cod-visao
+                            and est-ind-man.cod-ind-comp = ind-vis-man.cod-ind-int) then
+                next.
+            
+            for each ind-hrq-man
+                where ind-hrq-man.cod-ind-int = ind-vis-man.cod-ind-int EXCLUSIVE-LOCK :
+                delete ind-hrq-man.
+            end.
+            
+            /*** Eliminar relacionamentos ind-vis-man ???? formulas ??? ***/
+            delete ind-vis-man.
+        end.
+    end.
+    
+    find last ind-vis-man
+        where ind-vis-man.cod-visao = v-cod-visao no-lock no-error.
+    if  avail ind-vis-man then
+        assign i-seq-ind = ind-vis-man.seq-ind + 1.
+    else
+        assign i-seq-ind = 1.
+    
+    for each tt-indicador where
+             tt-indicador.cod-visao = v-cod-visao:
+        
+        find first ind-vis-man where
+                   ind-vis-man.cod-visao   = tt-indicador.cod-visao and
+                   ind-vis-man.cod-ind-int = tt-indicador.cod-ind-int EXCLUSIVE-LOCK no-error.
+        
+        if  not available ind-vis-man then do:
+            create ind-vis-man.
+            buffer-copy tt-indicador except seq-ind to ind-vis-man
+            assign ind-vis-man.seq-ind = i-seq-ind
+                   i-seq-ind           = i-seq-ind + 1.
+        end.
+        else
+            assign ind-vis-man.des-ind-man = tt-indicador.des-ind-man
+                   ind-vis-man.formato     = tt-indicador.formato
+                   ind-vis-man.formula     = tt-indicador.formula.
+        
+        delete tt-indicador.
+    end.
+end.

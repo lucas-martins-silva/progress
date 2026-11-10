@@ -1,0 +1,9 @@
+/* bocx140.i01                                          */
+/* Criada em 25/05/2004 - Eliza F.C.                    */
+/* Include para tratar re-planejamento das parcelas no 
+   MRP, conforme atividade 116178                       */
+
+assign prazo-compra.int-2 = 2. /* Parcela fixada (n∆o ser† re-planejada) */
+
+  
+

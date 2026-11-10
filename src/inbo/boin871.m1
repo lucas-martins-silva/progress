@@ -1,0 +1,676 @@
+    DEF INPUT  PARAM pr-nota AS ROWID NO-UNDO.
+    DEF OUTPUT PARAM l-ok    AS LOG   NO-UNDO.
+
+    DEF VAR ch-acesso             AS CHAR                          NO-UNDO.
+    DEF VAR i-cod-emitente        LIKE docto-orig-cte.cod-emitente NO-UNDO.
+    DEF VAR c-cod-estabel         LIKE docto-orig-cte.cod-estabel  NO-UNDO.
+    DEF VAR c-serie-docto         LIKE docto-orig-cte.nro-docto    NO-UNDO.
+    DEF VAR c-nro-docto           LIKE docto-orig-cte.nro-docto    NO-UNDO.
+    DEF VAR h-reapi316b           AS HANDLE                        NO-UNDO.
+    DEF VAR i-error-status-number AS INT                           NO-UNDO.
+    DEF VAR c-error-status-msg    AS CHAR                          NO-UNDO.
+
+    EMPTY TEMP-TABLE tt-docum-est.
+    EMPTY TEMP-TABLE tt-item-doc-est.
+    EMPTY TEMP-TABLE tt-dupli-apagar. 
+    EMPTY TEMP-TABLE tt-erro.
+    EMPTY TEMP-TABLE tt-rat-docum.
+    EMPTY TEMP-TABLE tt-docum-est-transp.
+    EMPTY TEMP-TABLE RowErrorsAdvert.
+    
+    ASSIGN l-ok = YES.
+
+    blocoNota:
+    FOR FIRST bf{&TableName} EXCLUSIVE-LOCK
+        WHERE ROWID(bf{&TableName}) = pr-nota:
+        
+        ASSIGN i-cod-emitente = bf{&TableName}.cod-emitente
+               c-cod-estabel  = bf{&TableName}.cod-estabel
+               c-serie-docto  = bf{&TableName}.serie-docto
+               c-nro-docto    = bf{&TableName}.nro-docto.
+
+        FOR EACH bfmsg-ret-nfe NO-LOCK
+           WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+             AND bfmsg-ret-nfe.idi-orig-trad      = 2:
+
+            FOR FIRST msg-ret-nfe EXCLUSIVE-LOCK
+                WHERE msg-ret-nfe.seq-msg = bfmsg-ret-nfe.seq-msg:
+                ASSIGN msg-ret-nfe.log-ativo = NO.
+            END.
+            RELEASE msg-ret-nfe.
+        END.
+
+        IF  CAN-FIND(FIRST rat-docto-orig-cte NO-LOCK
+                     WHERE rat-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                       AND rat-docto-orig-cte.idi-orig-trad     = 2 ) THEN DO:
+
+            FIND FIRST estabelec NO-LOCK WHERE estabelec.cod-estabel = bf{&TableName}.cod-estabel NO-ERROR.
+
+            IF  bf{&TableName}.cod-cnpj-dest <> "99999999000191" THEN DO:
+                FIND FIRST natur-oper NO-LOCK
+                     WHERE natur-oper.nat-operacao = bf{&TableName}.nat-operacao NO-ERROR.
+                IF  AVAIL natur-oper THEN DO:
+                    IF  natur-oper.nota-rateio THEN do:
+                        FIND FIRST estabelec NO-LOCK WHERE estabelec.cgc = bf{&TableName}.cod-cnpj-dest NO-ERROR.
+                        
+                        IF NOT AVAIL estabelec THEN
+                           FIND FIRST estabelec NO-LOCK WHERE estabelec.cod-estabel = bf{&TableName}.cod-estabel NO-ERROR.
+                    end.
+                    ELSE do:
+                        FIND FIRST estabelec NO-LOCK WHERE estabelec.cod-estabel = bf{&TableName}.cod-estabel NO-ERROR.
+                    end.
+                END.
+            END.
+            ELSE
+                FIND FIRST estabelec NO-LOCK WHERE estabelec.cgc = bf{&TableName}.cnpj-emit NO-ERROR.
+
+            IF NOT AVAIL estabelec THEN DO:
+                {utp/ut-liter.i N∆o_existe_estabelecimento_para_o_CNPJ_destino._A_nota_deve_ser_cancelada *}
+                RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 17567, RETURN-VALUE + ".":U, 1).
+                ASSIGN l-ok = NO.
+                LEAVE blocoNota.
+            END.
+        END.
+        ELSE
+            IF NOT bf{&TableName}.log-livre-1 THEN DO: /* Sera feita validadacao quando existir tt-infNFe (reapi324.i5) */
+                IF  bf{&TableName}.cod-cnpj-dest <> "99999999000191" THEN
+                    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = bf{&TableName}.cod-cnpj-dest NO-ERROR.
+                ELSE
+                    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = bf{&TableName}.cnpj-emit NO-ERROR.
+
+                IF NOT AVAIL emitente THEN DO:
+                    If  not can-find(first estabelec
+                                     Where estabelec.cgc = bf{&TableName}.cod-cnpj-dest) then do:
+
+                        {utp/ut-liter.i N∆o_existe_cliente_para_o_CNPJ_destino._A_nota_deve_ser_cancelada *}
+                        RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 17567, RETURN-VALUE + ".":U, 1).
+                        ASSIGN l-ok = NO.
+                        LEAVE blocoNota.
+                    END.
+                END.
+            END.
+
+        ASSIGN ch-acesso  = bf{&TableName}.cod-aces-comp-nfe.
+
+        FIND FIRST emitente NO-LOCK
+             WHERE emitente.cgc = bf{&TableName}.cnpj-emit NO-ERROR.
+
+        IF NOT AVAIL emitente THEN DO:
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "fornecedor_com_o_CNPJ_do_conhecimento_de_transporte" *}
+            RUN utp/ut-msgs.p (INPUT "MSG":U,
+                               INPUT 32099,
+                               INPUT RETURN-VALUE).
+
+            ASSIGN texto-msg  = RETURN-VALUE.
+
+            FIND FIRST msg-ret-nfe NO-LOCK
+                 WHERE msg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                   AND msg-ret-nfe.idi-orig-trad      = 2
+                   AND msg-ret-nfe.log-ativo          = YES
+                   AND msg-ret-nfe.cd-msg             = 32099 NO-ERROR.
+            IF NOT AVAIL msg-ret-nfe THEN DO:
+                RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 32099, texto-msg, 1).
+                ASSIGN l-ok = NO.
+                LEAVE blocoNota.
+            END.
+        END.
+        ELSE /* Fornecedor Emite Documento Eletronico */
+            IF (NOT emitente.log-nf-eletro        AND emitente.identific <> 2)
+            OR (NOT emitente.log-possui-nf-eletro AND emitente.identific <> 1) THEN DO:
+                FIND CURRENT emitente EXCLUSIVE-LOCK NO-ERROR.
+                ASSIGN emitente.log-nf-eletro        = YES WHEN emitente.identific <> 2
+                       emitente.log-possui-nf-eletro = YES WHEN emitente.identific <> 1.
+                FIND CURRENT emitente NO-LOCK NO-ERROR.
+            END.
+        
+        FIND FIRST natur-oper NO-LOCK
+             WHERE natur-oper.nat-operacao = bf{&TableName}.nat-operacao NO-ERROR.
+             
+        IF  AVAIL natur-oper THEN DO:
+        
+            /* Validaá∆o C¢digo IBGE Municipio Origem*/
+            IF SUBSTRING(bf{&TableName}.cod-livre-1,21,10) = "" THEN DO:
+                IF  natur-oper.tipo-compra = 2 AND 
+                   (SUBSTRING(bf{&TableName}.cod-aces-comp-nfe,21,2) = "57" OR 
+                    SUBSTRING(bf{&TableName}.cod-aces-comp-nfe,21,2) = "63" OR 
+                    SUBSTRING(bf{&TableName}.cod-aces-comp-nfe,21,2) = "67") THEN DO:
+                    {utp/ut-liter.i "Origem" *}
+                    RUN utp/ut-msgs.p (INPUT "msg", INPUT 55636, INPUT TRIM(RETURN-VALUE)).
+                    RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 55636, RETURN-VALUE, 1).
+                END.
+            END.
+            
+            /* Validaá∆o C¢digo IBGE Municipio Destino*/
+            IF SUBSTRING(bf{&TableName}.cod-livre-1,31,10) = "" THEN DO: 
+                IF  natur-oper.tipo-compra = 2 AND 
+                   (SUBSTRING(bf{&TableName}.cod-aces-comp-nfe,21,2) = "57" OR 
+                    SUBSTRING(bf{&TableName}.cod-aces-comp-nfe,21,2) = "63" OR 
+                    SUBSTRING(bf{&TableName}.cod-aces-comp-nfe,21,2) = "67") THEN DO:
+                    {utp/ut-liter.i "Destino" *}
+                    RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 55636, RETURN-VALUE, 1).
+                END.
+            END.
+
+            IF  natur-oper.nota-rateio  = NO THEN DO:
+
+                IF  CAN-FIND(FIRST rat-docto-orig-cte NO-LOCK
+                             WHERE rat-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                               AND rat-docto-orig-cte.idi-orig-trad     = 2 ) THEN DO:
+        
+                    /* Inicio -- Projeto Internacional */
+                    {utp/ut-liter.i "sugerida_pela_regra_deve_ser_de_rateio._Altere_a_natureza_ou_informe_as_notas_atraves_do_botao_'Relaciona'" *}
+                    RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                       INPUT 35041,
+                                       INPUT RETURN-VALUE).
+        
+                    ASSIGN texto-msg  = RETURN-VALUE.
+        
+                    FIND FIRST msg-ret-nfe NO-LOCK
+                         WHERE msg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                           AND msg-ret-nfe.idi-orig-trad      = 2
+                           AND msg-ret-nfe.log-ativo          = YES
+                           AND msg-ret-nfe.cd-msg             = 35041 NO-ERROR.
+                    IF NOT AVAIL msg-ret-nfe THEN DO:
+                        RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 35041, texto-msg, 1).
+                        ASSIGN l-ok = NO.
+                        LEAVE blocoNota.
+                    END.
+                END.
+                ELSE IF  NOT CAN-FIND(FIRST item-docto-orig-cte NO-LOCK
+                                      WHERE item-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                                        AND item-docto-orig-cte.idi-orig-trad     = 2 ) THEN DO:
+
+                     /* Nota de serviáo de frete deve ter um item DD informado. */
+                     RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                        INPUT 52469,
+                                        INPUT "").
+                     ASSIGN texto-msg  = RETURN-VALUE.
+
+                     FIND FIRST msg-ret-nfe NO-LOCK
+                          WHERE msg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                            AND msg-ret-nfe.idi-orig-trad      = 2
+                            AND msg-ret-nfe.log-ativo          = YES
+                            AND msg-ret-nfe.cd-msg             = 52469 NO-ERROR.
+                     IF NOT AVAIL msg-ret-nfe THEN DO:
+                         RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 52469, texto-msg, 4).
+                         ASSIGN l-ok = NO.
+                         LEAVE blocoNota.
+                     END.
+                END.
+            END.
+            
+            IF  natur-oper.nota-rateio  = YES THEN DO:
+                IF  CAN-FIND(FIRST item-docto-orig-cte NO-LOCK
+                             WHERE item-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                               AND item-docto-orig-cte.idi-orig-trad     = 2 ) THEN DO:
+
+                    /* Inicio -- Projeto Internacional */
+                    {utp/ut-liter.i "sugerida_pela_regra_N«O_pode_ser_de_rateio._Altere_a_natureza_ou_inclua_as_notas_atravÇs_do_botao_'Relaciona'" *}
+                    RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                       INPUT 35041,
+                                       INPUT RETURN-VALUE).
+                    ASSIGN texto-msg  = RETURN-VALUE.
+
+                    FIND FIRST msg-ret-nfe NO-LOCK
+                         WHERE msg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                           AND msg-ret-nfe.idi-orig-trad      = 2
+                           AND msg-ret-nfe.log-ativo          = YES
+                           AND msg-ret-nfe.cd-msg             = 35041 NO-ERROR.
+                    IF NOT AVAIL msg-ret-nfe THEN DO:
+                        RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 35041, texto-msg, 1).
+                        ASSIGN l-ok = NO.
+                        LEAVE blocoNota.
+                    END.
+                END.
+                ELSE IF NOT CAN-FIND(FIRST rat-docto-orig-cte NO-LOCK
+                                     WHERE rat-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                                       AND rat-docto-orig-cte.idi-orig-trad     = 2 ) THEN DO:
+
+                    /* Nota de Rateio deve conter NFE's relacionadas ao CT-e. */
+                    RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                       INPUT 52470,
+                                       INPUT "").
+                    ASSIGN texto-msg  = RETURN-VALUE.
+
+                    FIND FIRST msg-ret-nfe NO-LOCK
+                         WHERE msg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                           AND msg-ret-nfe.idi-orig-trad      = 2
+                           AND msg-ret-nfe.log-ativo          = YES
+                           AND msg-ret-nfe.cd-msg             = 52470 NO-ERROR.
+                    IF NOT AVAIL msg-ret-nfe THEN DO:
+                        RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 52470, texto-msg, 1).
+                        ASSIGN l-ok = NO.
+                        LEAVE blocoNota.
+                    END.
+                END.
+            END.
+
+            IF  natur-oper.nota-rateio THEN DO:
+                FIND FIRST rat-docto-orig-cte NO-LOCK
+                     WHERE rat-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                       AND rat-docto-orig-cte.idi-orig-trad     = 2 NO-ERROR.
+                IF NOT AVAIL rat-docto-orig-cte THEN DO:
+                    {utp/ut-liter.i Devem_ser_informadas_as_notas_fiscais_que_receber∆o_o_rateio_de_custo_de_frete *}
+                    RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 17567, RETURN-VALUE + ".":U, 1).
+                    ASSIGN l-ok = NO.
+                    LEAVE blocoNota.
+                END.
+
+                FIND FIRST item-docto-orig-cte NO-LOCK
+                     WHERE item-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                       AND item-docto-orig-cte.idi-orig-trad     = 2 NO-ERROR.
+                IF AVAIL item-docto-orig-cte THEN DO:
+                    {utp/ut-liter.i Item_de_serviáo_n∆o_pode_ser_informado_para_Notas_de_Rateio_de_Frete *}
+                    RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 17567, RETURN-VALUE + ".":U, 1).
+                    ASSIGN l-ok = NO.
+                    LEAVE blocoNota.
+                END.
+
+            END.
+            ELSE DO:
+                FIND FIRST item-docto-orig-cte NO-LOCK
+                     WHERE item-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                       AND item-docto-orig-cte.idi-orig-trad     = 2 NO-ERROR.
+                IF AVAIL item-docto-orig-cte THEN DO:
+                    find first item no-lock
+                         where item.it-codigo = item-docto-orig-cte.it-codigo no-error.
+                    if avail item and item.tipo-contr <> 4 /* debito direto */ then do:
+                        {utp/ut-liter.i Obrigat¢rio_informar_o_Item_de_Serviáo_de_frete *}
+                        RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 17567, RETURN-VALUE + ".":U, 1).
+                        ASSIGN l-ok = NO.
+                        LEAVE blocoNota.
+                    end.
+                END.
+                else do:
+                    FIND FIRST rat-docto-orig-cte NO-LOCK
+                         WHERE rat-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                           AND rat-docto-orig-cte.idi-orig-trad     = 2 NO-ERROR.
+                    IF AVAIL rat-docto-orig-cte THEN DO:
+                        {utp/ut-liter.i Nota_de_compra_de_serviáo_de_frete_n∆o_pode_ter_notas_informadas_para_rateio *}
+                        RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 17567, RETURN-VALUE + ".":U, 1).
+                        ASSIGN l-ok = NO.
+                        LEAVE blocoNota.
+                    END.
+                end.
+            END.
+
+            IF natur-oper.nota-rateio THEN DO:
+
+                /* Pi para criar a tt-docum-est */
+                RUN createTT-docum-est.
+                
+                FOR EACH rat-docto-orig-cte EXCLUSIVE-LOCK
+                   WHERE rat-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                     AND rat-docto-orig-cte.idi-orig-trad     = 2:
+
+                    IF rat-docto-orig-cte.nf-nat-oper = "" THEN DO:    
+                        FOR EACH docum-est fields (cod-chave-aces-nf-eletro ce-atual nat-operacao) NO-LOCK 
+                           WHERE docum-est.cod-chave-aces-nf-eletro = trim(substring(rat-docto-orig-cte.cod-livre-1,1,50)) 
+                             AND docum-est.ce-atual                 = YES:
+                            ASSIGN rat-docto-orig-cte.nf-nat-oper = docum-est.nat-operacao.
+                        END.
+                    END.
+                END.
+
+                FOR EACH rat-docto-orig-cte NO-LOCK
+                   WHERE rat-docto-orig-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                     AND rat-docto-orig-cte.idi-orig-trad     = 2:
+
+                    CREATE tt-rat-docum.
+                    ASSIGN tt-rat-docum.cod-emitente  = tt-docum-est.cod-emitente
+                           tt-rat-docum.ind-origem-nf = 1
+                           tt-rat-docum.nat-operacao  = tt-docum-est.nat-operacao
+                           tt-rat-docum.nro-docto     = tt-docum-est.nro-docto
+                           tt-rat-docum.serie-docto   = tt-docum-est.serie-docto
+                           tt-rat-docum.nf-nro        = rat-docto-orig-cte.nf-nro
+                           tt-rat-docum.nf-emitente   = rat-docto-orig-cte.nf-emitente
+                           tt-rat-docum.nf-serie      = rat-docto-orig-cte.nf-serie
+                           tt-rat-docum.nf-nat-oper   = rat-docto-orig-cte.nf-nat-oper
+                           tt-rat-docum.tipo-nota     = 1.
+                END.
+
+                /* ******************************** INICIO EPC ********************************/
+                if  c-nom-prog-dpc-mg97  <> "" or  
+                    c-nom-prog-appc-mg97 <> "" or  
+                    c-nom-prog-upc-mg97  <> "" then do:
+                    EMPTY TEMP-TABLE tt-epc.
+        
+                    CREATE tt-epc.
+                    ASSIGN tt-epc.cod-event     = "RateioNatureza"
+                           tt-epc.cod-parameter = "rowid_docto-orig-cte"
+                           tt-epc.val-parameter = string(rowid(bf{&TableName})).
+
+                    CREATE tt-epc.
+                    ASSIGN tt-epc.cod-event     = "RateioNatureza"
+                           tt-epc.cod-parameter = "handle_tt-docum-est"
+                           tt-epc.val-parameter = string(TEMP-TABLE tt-docum-est:HANDLE).
+
+                    CREATE tt-epc.
+                    ASSIGN tt-epc.cod-event     = "RateioNatureza"
+                           tt-epc.cod-parameter = "handle_tt-rat-docum"
+                           tt-epc.val-parameter = string(TEMP-TABLE tt-rat-docum:HANDLE).
+
+                    {include/i-epc201.i "RateioNatureza"}
+        
+                    EMPTY TEMP-TABLE tt-epc.
+                END.
+                /* ********************************* FIM EPC **********************************/                
+
+                /* ABERTA TRANSACAO PARA PODER DESFAZER A CRIACAO DA TABELA **
+                ** CASO OCORRA ERRO DURANTE A GERACAO DO FIFO.              */
+                DO  ON ERROR UNDO, LEAVE:
+                  IF NOT l-frete-embarcador OR CAN-FIND(funcao WHERE funcao.cd-funcao = "spp-cte-mre" and funcao.ativo) THEN
+                    
+                    RUN rep/reapi316b.p PERSISTENT SET h-reapi316b (INPUT  "ADD",
+                                                                    INPUT  TABLE tt-docum-est,
+                                                                    INPUT  TABLE tt-rat-docum,
+                                                                    INPUT  TABLE tt-item-doc-est,
+                                                                    INPUT  TABLE tt-dupli-apagar,
+                                                                    INPUT  TABLE tt-dupli-imp,
+                                                                    OUTPUT TABLE tt-erro).
+                                                                    
+                    RUN setTTExtDocumEst    IN h-reapi316b (INPUT TABLE tt-ext-docum-est).                                                                    
+                                                                    
+                    RUN pi-execute IN h-reapi316b NO-ERROR. //Mantendo a logica de antes com no-error
+                    
+                    RUN getTTErro IN h-reapi316b (OUTPUT TABLE tt-erro).
+
+                    FOR EACH bfmsg-ret-nfe NO-LOCK
+                        WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                          AND bfmsg-ret-nfe.idi-orig-trad      = 2:
+            
+                        FOR FIRST msg-ret-nfe EXCLUSIVE-LOCK
+                            WHERE msg-ret-nfe.seq-msg = bfmsg-ret-nfe.seq-msg:
+                            ASSIGN msg-ret-nfe.log-ativo = NO.
+                        END.
+                        RELEASE msg-ret-nfe.
+                    END.
+                            
+                    RUN getRowErrorsAdvert IN h-reapi316b (OUTPUT TABLE RowErrorsAdvert).
+                         
+                    FOR EACH RowErrorsAdvert:
+                        RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, RowErrorsAdvert.ErrorNumber, RowErrorsAdvert.ErrorDescription + " " + RowErrorsAdvert.ErrorHelp, 0).
+                    END.
+                         
+                    FOR EACH tt-erro:
+                        FIND FIRST bfmsg-ret-nfe NO-LOCK
+                             WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                               AND bfmsg-ret-nfe.idi-orig-trad      = 2
+                               AND bfmsg-ret-nfe.log-ativo          = YES
+                               AND bfmsg-ret-nfe.cd-msg             = tt-erro.cd-erro NO-ERROR.
+
+                        IF NOT AVAIL bfmsg-ret-nfe THEN DO:
+                            RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, tt-erro.cd-erro, tt-erro.desc-erro, 0).
+                            ASSIGN l-ok = NO.
+                        END.
+                    END. /* FOR EACH tt-erro */
+
+                    IF  NOT CAN-FIND(FIRST tt-erro) THEN DO:
+                        if  not avail tt-docum-est then
+                             find first tt-docum-est no-error.
+                         
+                         if  avail tt-docum-est then do:
+
+                             /* ******************************** INICIO EPC ********************************/
+                             if  c-nom-prog-dpc-mg97  <> "" or  
+                                 c-nom-prog-appc-mg97 <> "" or  
+                                 c-nom-prog-upc-mg97  <> "" then do:
+                                 EMPTY TEMP-TABLE tt-epc.
+                
+                                 CREATE tt-epc.
+                                 ASSIGN tt-epc.cod-event     = "EmiteDuplicata"
+                                        tt-epc.cod-parameter = "handle_tt-docum-est"
+                                        tt-epc.val-parameter = string(TEMP-TABLE tt-docum-est:HANDLE).
+                
+                                 {include/i-epc201.i "EmiteDuplicata"}
+                
+                                 EMPTY TEMP-TABLE tt-epc.
+                             END.
+                             /* ********************************* FIM EPC **********************************/                
+                             
+                             find first natur-oper where natur-oper.nat-operacao = tt-docum-est.nat-operacao no-lock no-error.
+                             
+                             if avail natur-oper and natur-oper.emite-duplic then do:
+                             
+                                 /*--- geracao de duplicatas ---*/
+                                 find first bf-docum-est
+                                      where bf-docum-est.cod-emitente = tt-docum-est.cod-emitente
+                                        and bf-docum-est.nat-operacao = tt-docum-est.nat-operacao
+                                        and bf-docum-est.nro-docto    = tt-docum-est.nro-docto   
+                                        and bf-docum-est.serie-docto  = tt-docum-est.serie-docto no-lock no-error.
+                                 if  avail bf-docum-est
+                                 and not can-find(first dupli-apagar
+                                                  where dupli-apagar.cod-emitente = tt-docum-est.cod-emitente
+                                                    and dupli-apagar.nat-operacao = tt-docum-est.nat-operacao
+                                                    and dupli-apagar.nro-docto    = tt-docum-est.nro-docto   
+                                                    and dupli-apagar.serie-docto  = tt-docum-est.serie-docto) then do:
+                                                    
+                                     run rep/re9341.p (rowid(bf-docum-est),no).
+                                     
+                                 end.
+                             end.
+                        end.
+                        ASSIGN bf{&TableName}.idi-situacao = 1 /* Digitada Recebimento */ .
+                        RELEASE bf{&TableName}.
+                    END.
+                END.
+            END.
+            ELSE DO:
+                /* Pi para criar a tt-docum-est */
+                RUN createTT-docum-est.
+                /* Cria os documentos transportados so quando nao eh rateio */
+                RUN createTT-docum-est-transp.
+
+                IF bf{&TableName}.log-frete-saida AND
+                   CAN-FIND(FIRST rat-despes-cte
+                            WHERE rat-despes-cte.cod-aces-comp-nfe = bf{&TableName}.cod-aces-comp-nfe) THEN DO:
+                    RUN createTT-item-doc-est-rateio-despesas.
+                    IF RETURN-VALUE = "NOK":U THEN DO:
+                        ASSIGN l-ok = NO.
+                        LEAVE blocoNota.
+                    END.
+                END.
+                ELSE DO:
+                    RUN createTT-item-doc-est (INPUT 10,                         //Sequencia
+                                               INPUT 1,                          //Quantidade
+                                               INPUT tt-docum-est.valor-mercad,  //Preco total
+                                               INPUT "":U,                       //Conta
+                                               INPUT "":U,                       //Centro custo
+                                               INPUT "":U).                      //Unidade negocio
+                END.
+
+                /* ******************************** INICIO EPC ********************************/
+                if  c-nom-prog-dpc-mg97  <> "" or  
+                    c-nom-prog-appc-mg97 <> "" or  
+                    c-nom-prog-upc-mg97  <> "" then do:
+                    EMPTY TEMP-TABLE tt-epc.
+        
+                    CREATE tt-epc.
+                    ASSIGN tt-epc.cod-event     = "RateioNaturezaFrete"
+                           tt-epc.cod-parameter = "rowid_docto-orig-cte"
+                           tt-epc.val-parameter = string(rowid(bf{&TableName})).
+
+                    CREATE tt-epc.
+                    ASSIGN tt-epc.cod-event     = "RateioNaturezaFrete"
+                           tt-epc.cod-parameter = "handle_tt-docum-est"
+                           tt-epc.val-parameter = string(TEMP-TABLE tt-docum-est:HANDLE).
+
+                    CREATE tt-epc.
+                    ASSIGN tt-epc.cod-event     = "RateioNaturezaFrete"
+                           tt-epc.cod-parameter = "handle_tt-item-doc-est"
+                           tt-epc.val-parameter = string(TEMP-TABLE tt-item-doc-est:HANDLE).
+
+                    {include/i-epc201.i "RateioNaturezaFrete"}
+        
+                    EMPTY TEMP-TABLE tt-epc.
+                END.
+                /* ********************************* FIM EPC **********************************/                
+
+                /* ABERTA TRANSACAO PARA PODER DESFAZER A CRIACAO DA TABELA **
+                ** CASO OCORRÊ ERRO                                         */
+                DO  ON ERROR UNDO, LEAVE:
+                  IF NOT l-frete-embarcador OR CAN-FIND(funcao WHERE funcao.cd-funcao = "spp-cte-mre" and funcao.ativo) THEN
+                    ASSIGN i-error-status-number = 0.
+                    FOR EACH bfmsg-ret-nfe NO-LOCK
+                       WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                         AND bfmsg-ret-nfe.idi-orig-trad      = 2:
+
+                        FOR FIRST msg-ret-nfe EXCLUSIVE-LOCK
+                            WHERE msg-ret-nfe.seq-msg = bfmsg-ret-nfe.seq-msg:
+                            ASSIGN msg-ret-nfe.log-ativo = NO.
+                        END.
+                        RELEASE msg-ret-nfe.
+                    END.
+
+                    RUN rep/reapi316b.p PERSISTENT SET h-reapi316b (INPUT  "ADD",
+                                                                    INPUT  TABLE tt-docum-est,
+                                                                    INPUT  TABLE tt-rat-docum,
+                                                                    INPUT  TABLE tt-item-doc-est,
+                                                                    INPUT  TABLE tt-dupli-apagar,
+                                                                    INPUT  TABLE tt-dupli-imp,
+                                                                    OUTPUT TABLE tt-erro).
+                    RUN setTTDocumEstTransp IN h-reapi316b (INPUT TABLE tt-docum-est-transp).
+                    RUN setTTExtDocumEst    IN h-reapi316b (INPUT TABLE tt-ext-docum-est).
+
+                    RUN pi-execute IN h-reapi316b NO-ERROR. //Mantendo a logica de antes com no-error
+                    IF ERROR-STATUS:ERROR THEN
+                        ASSIGN i-error-status-number = ERROR-STATUS:GET-NUMBER(1)
+                               c-error-status-msg    = ERROR-STATUS:GET-MESSAGE(1).
+
+                    RUN getTTErro IN h-reapi316b (OUTPUT TABLE tt-erro).
+                   
+
+                    IF i-error-status-number <> 0 THEN DO:
+                        /* Aloca novamente o saldo da ordem que havia sido desalocado antes da exec. do reapi316b.p */
+                        IF  item-docto-orig-cte.num-parcela <> 0 THEN DO:
+                            IF  NOT VALID-HANDLE(h-boin356) THEN
+                                RUN inbo/boin356.p PERSISTEN SET h-boin356.
+    
+                            RUN aloca-ordem-cc IN h-boin356 (INPUT tt-item-doc-est.numero-ordem,
+                                                             INPUT tt-item-doc-est.parcela,
+                                                             INPUT tt-item-doc-est.quantidade).
+                        END.
+
+                        FIND FIRST bfmsg-ret-nfe NO-LOCK
+                             WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                               AND bfmsg-ret-nfe.idi-orig-trad      = 2
+                               AND bfmsg-ret-nfe.log-ativo          = YES
+                               AND bfmsg-ret-nfe.cd-msg             = i-error-status-number NO-ERROR.
+
+                        IF NOT AVAIL bfmsg-ret-nfe THEN DO:
+                            RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, i-error-status-number, c-error-status-msg, 1).
+                            ASSIGN l-ok = NO.
+                        END.
+                    END.
+
+                    FOR EACH tt-erro:
+                        FIND FIRST bfmsg-ret-nfe NO-LOCK
+                             WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                               AND bfmsg-ret-nfe.idi-orig-trad      = 2
+                               AND bfmsg-ret-nfe.log-ativo          = YES
+                               AND bfmsg-ret-nfe.cd-msg             = tt-erro.cd-erro NO-ERROR.
+
+                        IF NOT AVAIL bfmsg-ret-nfe THEN DO:
+                            RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, tt-erro.cd-erro, tt-erro.desc-erro, 0).
+                            ASSIGN l-ok = NO.
+                        END.
+                    END. /* FOR EACH tt-erro */
+
+                    IF NOT CAN-FIND(FIRST tt-erro) THEN DO:
+                        if  not avail tt-docum-est then
+                             find first tt-docum-est no-error.
+                         
+                         if  avail tt-docum-est then do:
+
+                             /* ******************************** INICIO EPC ********************************/
+                             if  c-nom-prog-dpc-mg97  <> "" or  
+                                 c-nom-prog-appc-mg97 <> "" or  
+                                 c-nom-prog-upc-mg97  <> "" then do:
+                                 EMPTY TEMP-TABLE tt-epc.
+                
+                                 CREATE tt-epc.
+                                 ASSIGN tt-epc.cod-event     = "EmiteDuplicata"
+                                        tt-epc.cod-parameter = "handle_tt-docum-est"
+                                        tt-epc.val-parameter = string(TEMP-TABLE tt-docum-est:HANDLE).
+                
+                                 {include/i-epc201.i "EmiteDuplicata"}
+                
+                                 EMPTY TEMP-TABLE tt-epc.
+                             
+                             END.
+                             /* ********************************* FIM EPC **********************************/                
+                             
+                             find first natur-oper where natur-oper.nat-operacao = tt-docum-est.nat-operacao no-lock no-error.
+                             
+                             if avail natur-oper and natur-oper.emite-duplic then do:
+                             
+                                 /*--- geracao de duplicatas ---*/
+                                 find first bf-docum-est
+                                      where bf-docum-est.cod-emitente = tt-docum-est.cod-emitente
+                                        and bf-docum-est.nat-operacao = tt-docum-est.nat-operacao
+                                        and bf-docum-est.nro-docto    = tt-docum-est.nro-docto   
+                                        and bf-docum-est.serie-docto  = tt-docum-est.serie-docto no-lock no-error.
+                                 if  avail bf-docum-est
+                                 and not can-find(first dupli-apagar
+                                                  where dupli-apagar.cod-emitente = tt-docum-est.cod-emitente
+                                                    and dupli-apagar.nat-operacao = tt-docum-est.nat-operacao
+                                                    and dupli-apagar.nro-docto    = tt-docum-est.nro-docto   
+                                                    and dupli-apagar.serie-docto  = tt-docum-est.serie-docto) then do:
+                                                    
+                                     run rep/re9341.p (rowid(bf-docum-est),no).
+                                     
+                                 end.
+                             end.
+                        end.
+                        ASSIGN bf{&TableName}.idi-situacao = 1 /* Digitada Recebimento */ .
+                        RELEASE bf{&TableName}.
+                    END.
+                END.
+            END. /* ELSE DO: */
+        END.
+        ELSE DO:
+            FIND FIRST bfmsg-ret-nfe NO-LOCK
+                 WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-aces-comp-nfe
+                   AND bfmsg-ret-nfe.idi-orig-trad      = 2
+                   AND bfmsg-ret-nfe.log-ativo          = YES
+                   AND bfmsg-ret-nfe.cd-msg             = tt-erro.cd-erro NO-ERROR.
+            IF NOT AVAIL bfmsg-ret-nfe THEN DO:
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "Natureza_Operaá∆o" *}
+                RUN utp/ut-msgs.p (INPUT "MSG":U,
+                                   INPUT 2, /* Nao encontrada natureza de operacao para a chave informada */
+                                   INPUT RETURN-VALUE).
+                RUN pi-create-msg-ret-nfe (bf{&TableName}.cod-aces-comp-nfe, 2, RETURN-VALUE, 0).
+                ASSIGN l-ok = NO.
+                LEAVE blocoNota.
+            END.
+        END.
+    END. /* FOR FIRST bf{&TableName} EXCLUSIVE-LOCK */
+
+    IF NOT l-ok THEN DO:
+        RUN atualizaSituacao (INPUT i-cod-emitente,
+                              INPUT c-cod-estabel,
+                              INPUT c-serie-docto,
+                              INPUT c-nro-docto,
+                              INPUT 2).
+    END.
+
+    RETURN "OK":U.
+
+    FINALLY:
+    
+        FOR FIRST bf{&TableName} NO-LOCK
+            WHERE ROWID(bf{&TableName}) = pr-nota:  
+            RUN setProcessamento (INPUT bf{&TableName}.cod-aces-comp-nfe, INPUT false).
+        END.
+        IF VALID-HANDLE(h-reapi316b) THEN DO:
+           DELETE PROCEDURE h-reapi316b NO-ERROR.
+           ASSIGN h-reapi316b = ?.
+        END.
+         
+        IF  VALID-HANDLE(h-boin356) THEN DO:
+            DELETE PROCEDURE h-boin356 NO-ERROR.
+            ASSIGN h-boin356 = ?.
+        END.  
+    END.

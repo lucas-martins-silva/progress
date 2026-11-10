@@ -1,0 +1,304 @@
+{inbo/boin567.i tt-dupli-imp}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE marcaREINFDocumEst DBOProgram 
+PROCEDURE marcaREINFDocumEst :
+/*------------------------------------------------------------------------------
+  Purpose: Trata marcação parametro REINF no Recebimento     
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER p-serie-docto  LIKE docum-est.serie-docto  NO-UNDO.
+DEFINE INPUT PARAMETER p-nro-docto    LIKE docum-est.nro-docto    NO-UNDO.
+DEFINE INPUT PARAMETER p-cod-emitente LIKE docum-est.cod-emitente NO-UNDO.
+DEFINE INPUT PARAMETER p-nat-operacao LIKE docum-est.nat-operacao NO-UNDO.
+DEFINE INPUT PARAMETER p-recalcula    AS   LOGICAL                NO-UNDO.
+
+DEFINE VARIABLE h-reapi406 AS HANDLE NO-UNDO.
+
+DEFINE BUFFER documEstREINF FOR docum-est.
+
+FOR FIRST documEstREINF EXCLUSIVE-LOCK
+    WHERE documEstREINF.serie-docto  = p-serie-docto
+      AND documEstREINF.nro-docto    = p-nro-docto
+      AND documEstREINF.cod-emitente = p-cod-emitente
+      AND documEstREINF.nat-operacao = p-nat-operacao:
+
+    /*marca o parametro REINF*/
+    ASSIGN OVERLAY(documEstREINF.char-2,256,1) = "S":U.
+
+END.
+
+IF AVAIL RowObject THEN /*marca o parametro REINF*/
+    ASSIGN OVERLAY(RowObject.char-2,256,1) = "S":U.
+
+/*deverá recalcular as informações adicionais*/
+IF p-recalcula THEN DO:
+
+    IF NOT VALID-HANDLE(h-reapi406) THEN
+        RUN rep/reapi406.p PERSISTENT SET h-reapi406.
+
+        FOR EACH dupli-imp NO-LOCK
+            WHERE dupli-imp.serie-docto  = RowObject.serie-docto 
+              AND dupli-imp.nro-docto    = RowObject.nro-docto   
+              AND dupli-imp.cod-emitente = RowObject.cod-emitente 
+              AND dupli-imp.nat-operacao = RowObject.nat-operacao:
+
+            IF dupli-imp.ind-tipo-imposto = "Inst Nacional Seguro Social (INSS)" THEN DO: /* INSS */
+
+                EMPTY TEMP-TABLE tt-dupli-imp.
+            
+                CREATE tt-dupli-imp.
+                BUFFER-COPY dupli-imp TO tt-dupli-imp.
+
+                RUN createInfoAdc IN h-reapi406 (INPUT TABLE tt-dupli-imp).
+
+            END.
+    
+        END.
+
+    IF VALID-HANDLE(h-reapi406) THEN DO:
+        DELETE PROCEDURE h-reapi406.
+        ASSIGN h-reapi406 = ?. 
+    END.
+
+END.
+
+
+RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME  
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE desmarcaREINFDocumEst DBOProgram 
+PROCEDURE desmarcaREINFDocumEst :
+/*------------------------------------------------------------------------------
+  Purpose: Trata marcação parametro REINF no Recebimento     
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER p-serie-docto  LIKE docum-est.serie-docto  NO-UNDO.
+DEFINE INPUT PARAMETER p-nro-docto    LIKE docum-est.nro-docto    NO-UNDO.
+DEFINE INPUT PARAMETER p-cod-emitente LIKE docum-est.cod-emitente NO-UNDO.
+DEFINE INPUT PARAMETER p-nat-operacao LIKE docum-est.nat-operacao NO-UNDO.  
+
+DEFINE BUFFER documEstREINF FOR docum-est.
+
+DEFINE VARIABLE h-bodi515 AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-bodi516 AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin176 AS HANDLE NO-UNDO.
+
+FOR FIRST documEstREINF EXCLUSIVE-LOCK
+    WHERE documEstREINF.serie-docto  = p-serie-docto
+      AND documEstREINF.nro-docto    = p-nro-docto
+      AND documEstREINF.cod-emitente = p-cod-emitente
+      AND documEstREINF.nat-operacao = p-nat-operacao:
+
+    /*desmarca o parametro REINF*/
+    ASSIGN OVERLAY(documEstREINF.char-2,256,1) = "N":U.
+
+END.
+
+IF AVAIL RowObject THEN /*desmarca o parametro REINF*/
+    ASSIGN OVERLAY(RowObject.char-2,256,1) = "N":U.
+
+/*elimina informações adicionais*/
+IF NOT VALID-HANDLE(h-bodi515) THEN
+    RUN dibo/bodi515.p PERSISTENT SET h-bodi515.
+RUN openQueryStatic IN h-bodi515 (INPUT "Main":U).
+
+IF NOT VALID-HANDLE(h-bodi516) THEN
+    RUN dibo/bodi516.p PERSISTENT SET h-bodi516.
+RUN openQueryStatic IN h-bodi516 (INPUT "Main":U).
+
+IF NOT VALID-HANDLE(h-boin176) THEN
+    RUN inbo/boin176.p PERSISTENT SET h-boin176.
+
+/*delete nota-fisc-adc*/
+RUN goToKey IN h-bodi515 (INPUT documEstREINF.cod-estabel,
+                          INPUT documEstREINF.serie-docto,
+                          INPUT documEstREINF.nro-docto,
+                          INPUT documEstREINF.cod-emitente,
+                          INPUT documEstREINF.nat-operacao,
+                          INPUT 27, /*serv tomados*/ 
+                          INPUT 1). /*sequencia - sempre 1*/
+
+IF RETURN-VALUE = "OK":U THEN DO: /* registro existe, irá eliminar */                         
+    RUN emptyRowErrors IN h-bodi515.
+    RUN deleteRecord   IN h-bodi515.
+    RUN getRowErrors   IN h-bodi515 (OUTPUT TABLE rowErrors).
+END.
+/**********************/
+
+/*delete item-nf-adc*/
+FOR EACH item-doc-est NO-LOCK
+    WHERE item-doc-est.serie-docto  = documEstREINF.serie-docto
+      AND item-doc-est.nro-docto    = documEstREINF.nro-docto
+      AND item-doc-est.cod-emitente = documEstREINF.cod-emitente
+      AND item-doc-est.nat-operacao = documEstREINF.nat-operacao:
+
+    RUN goToKey IN h-bodi516 (INPUT documEstREINF.cod-estabel,       
+                              INPUT documEstREINF.serie-docto,       
+                              INPUT documEstREINF.nro-docto,   
+                              INPUT documEstREINF.cod-emitente,    
+                              INPUT item-doc-est.nat-of, /*deve utilizar a natureza do item*/
+                              INPUT 27, /*serv tomados*/
+                              INPUT item-doc-est.sequencia,
+                              INPUT item-doc-est.sequencia,
+                              INPUT item-doc-est.it-codigo).
+
+    IF RETURN-VALUE = "OK":U THEN DO: /* registro existe, irá eliminar */                         
+        RUN emptyRowErrors IN h-bodi516.
+        RUN deleteRecord   IN h-bodi516.
+        RUN getRowErrors   IN h-bodi516 (OUTPUT TABLE rowErrors).
+    END.
+
+    RUN tiraTpServico IN h-boin176 (INPUT item-doc-est.serie-docto,
+                                          item-doc-est.nro-docto,  
+                                          item-doc-est.cod-emitente,
+                                          item-doc-est.nat-operacao,
+                                          item-doc-est.sequencia).
+
+END.    
+/********************/
+
+IF VALID-HANDLE(h-bodi516) THEN DO:
+    DELETE PROCEDURE h-bodi516.
+    ASSIGN h-bodi516 = ?.
+END.
+
+IF VALID-HANDLE(h-bodi515) THEN DO:
+    DELETE PROCEDURE h-bodi515.
+    ASSIGN h-bodi515 = ?.
+END.
+
+IF VALID-HANDLE(h-boin176) THEN DO:
+    RUN destroy IN h-boin176.
+    DELETE PROCEDURE h-boin176 NO-ERROR.
+    ASSIGN h-boin176 = ?.
+END.
+
+RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME  
+
+/********************************************************************************/
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE marcaREINFRetenc DBOProgram 
+PROCEDURE marcaREINFRetenc :
+
+    DEFINE INPUT PARAMETER p-serie-docto  LIKE docum-est.serie-docto  NO-UNDO.
+    DEFINE INPUT PARAMETER p-nro-docto    LIKE docum-est.nro-docto    NO-UNDO.
+    DEFINE INPUT PARAMETER p-cod-emitente LIKE docum-est.cod-emitente NO-UNDO.
+    DEFINE INPUT PARAMETER p-nat-operacao LIKE docum-est.nat-operacao NO-UNDO.
+    DEFINE INPUT PARAMETER p-recalcula    AS   LOGICAL                NO-UNDO.
+    
+    DEFINE VARIABLE h-reapi416 AS HANDLE NO-UNDO.
+    
+    DEFINE BUFFER documEstREINF FOR docum-est.
+    
+    FOR FIRST documEstREINF EXCLUSIVE-LOCK
+        WHERE documEstREINF.serie-docto  = p-serie-docto
+          AND documEstREINF.nro-docto    = p-nro-docto
+          AND documEstREINF.cod-emitente = p-cod-emitente
+          AND documEstREINF.nat-operacao = p-nat-operacao:
+    
+        /*marca o parametro REINF*/
+        ASSIGN OVERLAY(documEstREINF.char-2,269,1) = "S":U.
+    END.
+    
+    IF AVAIL RowObject THEN /*marca o parametro REINF*/
+        ASSIGN OVERLAY(RowObject.char-2,269,1) = "S":U.
+        
+    /*devera recalcular as informacoes adicionais*/
+    IF p-recalcula THEN DO:
+        IF NOT VALID-HANDLE(h-reapi416) THEN
+            RUN rep/reapi416.p PERSISTENT SET h-reapi416.
+    
+        FOR EACH dupli-imp NO-LOCK
+           WHERE dupli-imp.serie-docto  = RowObject.serie-docto 
+             AND dupli-imp.nro-docto    = RowObject.nro-docto   
+             AND dupli-imp.cod-emitente = RowObject.cod-emitente 
+             AND dupli-imp.nat-operacao = RowObject.nat-operacao:
+    
+            IF dupli-imp.ind-tipo-imposto = "Imposto de Renda Retido na Fonte":U or
+               dupli-imp.ind-tipo-imposto = "Imposto COFINS  PIS  CSLL Retido":U THEN DO:
+    
+                EMPTY TEMP-TABLE tt-dupli-imp.     
+                CREATE tt-dupli-imp.
+                BUFFER-COPY dupli-imp TO tt-dupli-imp.
+    
+                RUN createInfoAdc IN h-reapi416 (INPUT TABLE tt-dupli-imp).
+            END.
+        END.
+    
+        IF VALID-HANDLE(h-reapi416) THEN DO:
+            DELETE PROCEDURE h-reapi416.
+            ASSIGN h-reapi416 = ?. 
+        END.
+    END.
+    
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME  
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE desmarcaREINFRetenc DBOProgram 
+PROCEDURE desmarcaREINFRetenc :
+
+    DEFINE INPUT PARAMETER p-serie-docto  LIKE docum-est.serie-docto  NO-UNDO.
+    DEFINE INPUT PARAMETER p-nro-docto    LIKE docum-est.nro-docto    NO-UNDO.
+    DEFINE INPUT PARAMETER p-cod-emitente LIKE docum-est.cod-emitente NO-UNDO.
+    DEFINE INPUT PARAMETER p-nat-operacao LIKE docum-est.nat-operacao NO-UNDO.  
+    DEFINE INPUT PARAMETER p-recalcula    AS   LOGICAL                NO-UNDO.
+    
+    DEFINE VARIABLE h-reapi416 AS HANDLE NO-UNDO.
+    
+    DEFINE BUFFER documEstREINF FOR docum-est.
+    
+    FOR FIRST documEstREINF EXCLUSIVE-LOCK
+        WHERE documEstREINF.serie-docto  = p-serie-docto
+          AND documEstREINF.nro-docto    = p-nro-docto
+          AND documEstREINF.cod-emitente = p-cod-emitente
+          AND documEstREINF.nat-operacao = p-nat-operacao:
+    
+        /*desmarca o parametro REINF*/
+        ASSIGN OVERLAY(documEstREINF.char-2,269,1) = "N":U.
+    END.
+    
+    IF AVAIL RowObject THEN /*desmarca o parametro REINF*/
+        ASSIGN OVERLAY(RowObject.char-2,269,1) = "N":U.
+        
+    /*devera recalcular as informacoes adicionais*/
+    IF p-recalcula THEN DO:
+        IF NOT VALID-HANDLE(h-reapi416) THEN
+            RUN rep/reapi416.p PERSISTENT SET h-reapi416.
+    
+        FOR EACH dupli-imp NO-LOCK
+           WHERE dupli-imp.serie-docto  = RowObject.serie-docto 
+             AND dupli-imp.nro-docto    = RowObject.nro-docto   
+             AND dupli-imp.cod-emitente = RowObject.cod-emitente 
+             AND dupli-imp.nat-operacao = RowObject.nat-operacao:
+    
+            IF dupli-imp.ind-tipo-imposto = "Imposto de Renda Retido na Fonte":U or
+               dupli-imp.ind-tipo-imposto = "Imposto COFINS  PIS  CSLL Retido":U THEN DO:
+    
+                EMPTY TEMP-TABLE tt-dupli-imp.     
+                CREATE tt-dupli-imp.
+                BUFFER-COPY dupli-imp TO tt-dupli-imp.
+    
+                RUN deleteInfoAdc IN h-reapi416 (INPUT TABLE tt-dupli-imp).
+            END.
+        END.
+    
+        IF VALID-HANDLE(h-reapi416) THEN DO:
+            DELETE PROCEDURE h-reapi416.
+            ASSIGN h-reapi416 = ?. 
+        END.
+    END.
+    
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME  

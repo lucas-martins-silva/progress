@@ -1,0 +1,59 @@
+/****************************************************************************************
+***  IM0663.I2 - Logica do programa de Controle de Importacao
+***
+***  Obs.: {1} - Controla a ordenacao.
+***
+*****************************************************************************************/
+
+for each tt-embarque no-lock
+         break by tt-embarque.embarque:
+         
+         if line-counter < 7 then do:
+            disp c-lb-embarque         
+                 c-lb-desembarque      
+                 c-lb-embarque1         
+                 c-lb-est              
+                 c-lb-item             
+                 c-lb-quantidade
+                 c-lb-un
+                 c-lb-fornecedor       
+                 c-lb-dt-prev-emb      
+                 c-lb-dt-prev-des      
+                 c-lb-veiculo      
+                 c-lb-local            
+                 c-lb-descricao       
+                 c-lb-dt-efet-emb     
+                 c-lb-dt-efet-des     
+                 with frame f-lab-cabecalho.         
+         end.
+
+         
+         assign de-quant-total = de-quant-total + tt-embarque.quantidade.
+         
+        if can-find(first tt-embarque) then do:
+
+               disp   tt-embarque.embarque
+                      tt-embarque.cod-estabel
+                      tt-embarque.it-codigo
+                      de-quant-total
+                      tt-embarque.unidade
+                      tt-embarque.nome-fornec
+                      tt-embarque.dt-prev-emb
+                      tt-embarque.dt-prev-des
+                      tt-embarque.veiculo-tra
+                      tt-embarque.local          skip
+                      tt-embarque.desc-item                      
+                      tt-embarque.dt-efet-emb
+                      tt-embarque.dt-efet-des
+  
+               with frame f-detalhe.
+               down with frame f-detalhe.
+               assign de-quant-total = 0.
+               put skip(1).
+        end.
+                    
+                   
+         if line-counter  > (page-size - 3) then
+            page.
+             
+end.

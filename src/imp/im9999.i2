@@ -1,0 +1,23 @@
+/*******************************************************************************
+**
+**   Programa: IM9999.I2 - Preenchimento dos espaáos em branco das literais 
+**                         com pontinhos.
+**                         {1}   - vari†vel a ser adicionados os pontinhos
+**                         {2}   - o tamanho da vari†vel a ser preenchida
+**                         As vari†veis i-aux e i-cont dever∆o ser definidas
+**                         no programas chamador.
+**
+*******************************************************************************/
+
+assign i-aux = {2}.
+
+do  i-cont = 1 to {2}:
+    if  substr({1},i-aux,1) = "" then 
+        assign substr({1},i-aux,1) = ".".
+    else leave.
+    assign i-aux = i-aux - 1.
+end.
+ 
+ 
+
+ 

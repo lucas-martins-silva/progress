@@ -1,0 +1,25 @@
+/* Subse‡Æo Nota Fiscal (NF) */
+
+/* Tipo */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-tipo-nf
+       ttFormatLine.iIniPos = 1
+       ttFormatLine.iLength = 2.
+       
+/* N£mero da NF */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-numero-nf
+       ttFormatLine.iIniPos = 3
+       ttFormatLine.iLength = 10.
+       
+/* Data da NF */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-dat-nf
+       ttFormatLine.iIniPos = 13
+       ttFormatLine.iLength = 10.
+       
+/* C¢digo da opera‡Æo */
+CREATE ttFormatLine.
+ASSIGN ttFormatLine.cInfo   = c-codigo-operacao
+       ttFormatLine.iIniPos = 23
+       ttFormatLine.iLength = 1.

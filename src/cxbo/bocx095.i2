@@ -1,0 +1,7 @@
+
+define temp-table {1} no-undo
+    field cod-lista as character format "x(100)"
+    field des-lista as character format "x(100)"
+    field tipo-res  as integer
+    index codigo is primary unique
+          cod-lista.

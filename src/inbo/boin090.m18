@@ -1,0 +1,335 @@
+PROCEDURE setDefaultsNota :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    DEFINE VARIABLE i-nivel             AS INT     INIT 1   NO-UNDO.
+    DEFINE VARIABLE l-copia             AS LOGICAL INIT YES NO-UNDO.
+    DEFINE VARIABLE c-nat-oper-comp-aux AS CHARACTER        NO-UNDO.
+    DEFINE VARIABLE i-cod-observa-aux   AS INTEGER          NO-UNDO.
+
+    if  not avail RowObject then
+        RETURN "NOK":U.
+
+    /* SETA DATA VENCIMENTO DOS IMPOSTOS */
+    assign RowObject.dt-venc-icm = RowObject.dt-trans
+           RowObject.dt-venc-ipi = RowObject.dt-trans
+           RowObject.dt-venc-iss = RowObject.dt-trans.
+
+    /* ACESSA ESTABELECIMENTO */
+    run findEstabelec( input RowObject.cod-estabel).
+    if  l-spp-NT2024002    
+    and not can-find(first ext-docum-est no-lock
+                     where ext-docum-est.serie-docto  = RowObject.serie-docto
+                       and ext-docum-est.nro-docto    = RowObject.nro-docto
+                       and ext-docum-est.cod-emitente = RowObject.cod-emitente
+                       and ext-docum-est.nat-operacao = RowObject.nat-operacao
+                       and ext-docum-est.cod-param    = 'fatogeradorCBS-IBS':U)    
+    and avail estabelec then do:
+        run SetDadosFatoGerador (input estabelec.cidade,
+                                 input estabelec.estado,
+                                 input estabelec.pais).
+        RUN CreatettExtDocumEst(INPUT "fatogeradorCBS-IBS":U).
+    end.
+
+    /* ACESSA NATUREZA DE OPERAøÇO */
+    run findNaturOper ( input RowObject.nat-operacao ).
+
+    /* ACESSA EMITENTE */
+    run findEmitente ( input RowObject.cod-emitente ).
+
+    REPEAT WHILE PROGRAM-NAME(i-nivel) <> ?:
+        IF PROGRAM-NAME(i-nivel) = "PI-ATUALIZA-DOCUM-EST rep/reapi316a.p":U THEN DO:
+           ASSIGN l-copia = NO.
+           LEAVE.
+        END.
+        ASSIGN i-nivel = i-nivel + 1.
+    END.
+
+    /* SETA DEFAULT UNIDADE DE FEDERACAO */
+    if  avail emitente
+    AND (RowObject.uf     = ""
+         OR (RowObject.uf <> emitente.estado and l-copia)) then 
+        assign RowObject.uf = emitente.estado.
+    
+    if  avail natur-oper then do:
+
+        /* SETA NOTA MATERIAL AGREGADO */
+        if  natur-oper.tipo-compra = 4 then
+            assign RowObject.mod-atual = 1.
+
+        if  natur-oper.tipo-compra = 3 then            
+            assign RowObject.cod-observa = 3.  /* Devolu‡Æo Cliente */
+
+        if  natur-oper.log-2 then  /* Nota Comercio */
+            assign RowObject.cod-observa = 2.
+            
+
+        /* SETA FLAGS DE CONTROLE */
+        run setFlagsNota ( RowObject.cod-observa,
+                           ? ).
+
+        /* SETA DEFAULT DA ESPÔCIE FISCAL */
+        assign RowObject.esp-fiscal = if  RowObject.esp-fiscal = "" 
+                                      then natur-oper.especie-doc
+                                      else RowObject.esp-fiscal.
+        
+        /* ****** In¡cio EPC Grendene ******** */
+        for each tt-epc where tt-epc.cod-event = "conta-transitoria":U:
+            delete tt-epc.
+        end.
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "conta-transitoria":U
+               tt-epc.cod-parameter = "":U
+               tt-epc.val-parameter = string(this-procedure:handle).
+
+        {include/i-epc201.i conta-transitoria}
+        /* ***** Fim EPC Grendene ***** */
+
+        /* SETA DEFAULT DA CONTA TRANSIT¹RIA */
+        if  RowObject.ct-transit = "":U then 
+            run defaultContaTransit ( output RowObject.ct-transit,
+                                      output RowObject.sc-transit).
+
+        /* Tipo Operacao */
+        RUN defaultTipoOperacao (input-output RowObject.idi-tip-operac).
+        
+        /* Observacao da nota */
+        ASSIGN i-cod-observa-aux = 0.
+
+        IF (RowObject.cod-observa <> 2 AND RowObject.cod-observa <> 3) THEN DO: /*Comercio e devolucao de cliente nao pode sobrepor*/
+            RUN defaultCodObserva (OUTPUT i-cod-observa-aux).
+           IF (i-cod-observa-aux = 1 OR i-cod-observa-aux = 4) THEN DO: /* Somente grava o retorno do engine se for industria ou serviço*/
+                ASSIGN RowObject.cod-observa = i-cod-observa-aux.
+           END.
+        END.
+        
+        /* SETA DEFAULT ESPÔCIE DO DOCUMENTO */
+        run getEspDocto ( output RowObject.esp-docto ).
+
+        /* SETA DEFAULT ESTABELECIMENTO FISCAL */
+        if  RowObject.estab-fisc = "":U then 
+            assign RowObject.estab-fisc = RowObject.cod-estabel.                                   
+
+        /*SETA TIPO DFE*/
+        IF  RowObject.tipo-dfe-docto = "" THEN
+            RUN determinaTipoDFe (INPUT  RowObject.nat-operacao,
+                                  OUTPUT RowObject.tipo-dfe-docto).
+            
+        /* SETA DEFAULT ESTABELECIMENTO ORIGEM */
+        if  l-transf then do:
+        
+            IF  (RowObject.origem = "i":U or RowObject.origem = "XML":U)
+            AND CAN-FIND(FIRST doc-orig-nfe
+                         WHERE doc-orig-nfe.ch-acesso-comp-nfe = RowObject.cod-chave-aces-nf-eletro) THEN DO:
+
+                /* Verifica se a nota veio do Conversor NF-e e se existe natureza de opera‡Æo complementar a ser buscada */         
+                if not valid-handle(h-boin847) or
+                    h-boin847:type      <> "PROCEDURE":U or
+                    h-boin847:file-name <> "inbo/boin847.p":U THEN                    
+                    RUN inbo/boin847.p PERSISTENT SET h-boin847.
+                   
+                run retornaNatComp in h-boin847(input  RowObject.cod-chave-aces-nf-eletro,
+                                                input  RowObject.cod-emitente, 
+                                                input  RowObject.cod-estabel,  
+                                                input  RowObject.serie-docto,  
+                                                input  RowObject.nro-docto,    
+                                                input  RowObject.nat-operacao, 
+                                                output c-nat-oper-comp-aux).
+                ASSIGN c-nat-oper-comp = c-nat-oper-comp-aux WHEN NOT c-nat-oper-comp-aux = "".
+                /* FIM - Busca Natureza complementar Conversor NF-e */   
+            END.
+
+            if c-nat-oper-comp <> "" then do:
+               for first saldo-terc                                                
+                   fields ( saldo-terc.cod-estabel saldo-terc.dt-retorno char-1
+                            saldo-terc.cod-cta-ctbl-transit saldo-terc.cod-subconta-ctbl-transit)       
+                        where saldo-terc.cod-emitente  = RowObject.cod-emitente          
+                          and saldo-terc.nro-docto     = RowObject.nro-docto             
+                          and saldo-terc.serie-docto   = RowObject.serie-docto 
+                          and saldo-terc.nat-operacao <> RowObject.nat-operacao          
+                          and saldo-terc.nat-operacao  = c-nat-oper-comp
+                          and saldo-terc.tipo-sal-terc = 3      /* Transf */            
+                          and saldo-terc.quantidade    > 0 no-lock :                     
+               end.                                                                
+            end.
+            else do:
+                for first saldo-terc
+                fields ( saldo-terc.cod-estabel saldo-terc.dt-retorno char-1
+                         saldo-terc.cod-cta-ctbl-transit saldo-terc.cod-subconta-ctbl-transit) 
+                    where saldo-terc.cod-emitente  = RowObject.cod-emitente
+                      and saldo-terc.nro-docto     = RowObject.nro-docto
+                      and saldo-terc.serie-docto   = RowObject.serie-docto 
+                      and saldo-terc.nat-operacao <> RowObject.nat-operacao 
+                      and saldo-terc.tipo-sal-terc = 3      /* Transf */
+                      and saldo-terc.quantidade    > 0 no-lock :
+                end.                  
+            end.
+            
+            if  avail saldo-terc then do:
+                if  RowObject.estab-de-or = "":U then 
+                    assign RowObject.estab-de-or = saldo-terc.cod-estabel.
+
+                assign RowObject.dt-emissao = saldo-terc.dt-retorno.
+                run findContaContab (input saldo-terc.cod-cta-ctbl-transit,
+                                     input saldo-terc.cod-subconta-ctbl-transit,
+                                     input saldo-terc.cod-estabel).
+                                     
+                IF return-value = "ok" then
+                   assign RowObject.ct-transit = saldo-terc.cod-cta-ctbl-transit
+                          RowObject.sc-transit = saldo-terc.cod-subconta-ctbl-transit.
+            end.
+                
+            /* SETA UNIDADE FEDERACAO NOTA TRANSFERENCIA */
+            find b-estabelec where b-estabelec.cod-estabel = RowObject.estab-de-or no-lock no-error.
+            
+            if avail b-estabelec then do:
+                find b-emitente where 
+                     b-emitente.cod-emitente = b-estabelec.cod-emitente no-lock no-error.
+                
+                assign RowObject.uf = if  avail b-emitente and l-copia
+                                      then b-emitente.estado
+                                      else RowObject.uf.
+            end.
+        end.
+
+        if avail emitente and l-copia then do:
+            if RowObject.cod-entrega        = ""
+            OR (AVAIL b-emitente
+                AND RowObject.cod-entrega  <> b-emitente.cod-entrega)
+            OR RowObject.cod-entrega       <> emitente.cod-entrega then 
+               assign RowObject.cod-entrega = if avail b-emitente then
+                                                       b-emitente.cod-entrega 
+                                              else emitente.cod-entrega.
+            if RowObject.endereco           = ""
+            OR (AVAIL b-emitente
+                AND RowObject.endereco     <> b-emitente.endereco)
+            OR RowObject.endereco          <> emitente.endereco then 
+               assign RowObject.endereco    = if avail b-emitente then
+                                                       b-emitente.endereco 
+                                              else emitente.endereco.
+            if RowObject.bairro             = ""
+            OR (AVAIL b-emitente
+                AND RowObject.bairro       <> b-emitente.bairro)
+            OR RowObject.bairro            <> emitente.bairro  then
+               assign RowObject.bairro      = if avail b-emitente then
+                                                       b-emitente.bairro 
+                                               else emitente.bairro.
+            if RowObject.cidade             = ""
+            OR (AVAIL b-emitente
+                AND RowObject.cidade       <> b-emitente.cidade)
+            OR RowObject.cidade            <> emitente.cidade then 
+               assign RowObject.cidade      = if avail b-emitente then 
+                                                       b-emitente.cidade 
+                                              else emitente.cidade.
+            if RowObject.cep                = ""
+            OR (AVAIL b-emitente
+                AND RowObject.cep          <> b-emitente.cep)
+            OR RowObject.cep               <> emitente.cep then
+               assign RowObject.cep         = if avail b-emitente then
+                                                       b-emitente.cep 
+                                              else emitente.cep.
+            if RowObject.pais               = ""
+            OR (AVAIL b-emitente
+                AND RowObject.pais         <> b-emitente.pais)
+            OR RowObject.pais              <> emitente.pais then
+               assign RowObject.pais        = if avail b-emitente then 
+                                                       b-emitente.pais 
+                                              else emitente.pais.
+        end.
+        else if avail emitente then do:
+             if rowobject.cod-entrega        = "" then 
+                assign rowobject.cod-entrega = if avail b-emitente then
+                                                        b-emitente.cod-entrega 
+                                               else emitente.cod-entrega.
+             if rowobject.endereco           = "" then 
+                assign rowobject.endereco    = if avail b-emitente then
+                                                        b-emitente.endereco 
+                                               else emitente.endereco.
+             if rowobject.bairro             = "" then
+                assign rowobject.bairro      = if avail b-emitente then
+                                                        b-emitente.bairro 
+                                                else emitente.bairro.
+             if rowobject.cidade             = "" then 
+                assign rowobject.cidade      = if avail b-emitente then 
+                                                        b-emitente.cidade 
+                                               else emitente.cidade.
+             if rowobject.cep                = "" then
+                assign rowobject.cep         = if avail b-emitente then
+                                                        b-emitente.cep 
+                                               else emitente.cep.
+             if rowobject.pais               = "" then
+                assign rowobject.pais        = if avail b-emitente then 
+                                                        b-emitente.pais 
+                                               else emitente.pais.
+        end.
+        
+
+        /*** SugestÆo UF Coleta/Destino ***/
+        IF  substring(RowObject.char-2,211,2) = ""
+        and AVAIL emitente THEN do:
+            if natur-oper.tipo-compra = 2 then 
+               OVERLAY(RowObject.char-2,211,2) = emitente.estado.
+               
+            /************************************************************
+            * Ser  sugerida a UF Recinto de acordo com a 
+            * regra cadastrada no program cd0358
+            ************************************************************/   
+            
+
+            IF CAN-FIND (FIRST sit-tribut-relacto
+                            WHERE sit-tribut-relacto.cdn-tribut       = 30  /* UF recinto*/           
+                              AND sit-tribut-relacto.idi-tip-docto    = 1 ) /* 1-Entrada e 2-sa¡da */   THEN DO:
+                   
+                IF NOT VALID-HANDLE(h-reapi413) THEN
+                   RUN rep/reapi413.p PERSISTENT SET h-reapi413.
+                   
+                   RUN setCodNatOperacao   IN h-reapi413 (rowobject.nat-operacao).
+                   RUN setCodEstabel       IN h-reapi413 (rowobject.cod-estabel).
+                   RUN setCodEmitente      IN h-reapi413 (rowobject.cod-emitente).
+                   RUN setDtEmissao        IN h-reapi413 (rowobject.dt-emissao).
+                   RUN setCodGrupEmit      IN h-reapi413 (emitente.cod-gr-forn).
+                   RUN piVerificaSitTribut IN h-reapi413.
+                   RUN getUfRecinto        IN h-reapi413 (OUTPUT cUfRecinto).
+                   
+                if cUfRecinto <> "" THEN
+                   ASSIGN OVERLAY(RowObject.char-2,211,2) = cUfRecinto.
+                   
+                DELETE PROCEDURE h-reapi413.
+                ASSIGN h-reapi413 = ?.
+                
+            END.
+            /*************************************************************/
+
+            
+        end.
+        /**********************************/
+        
+        if (RowObject.tipo-dfe-docto = "NFSe Municipal":U or
+            RowObject.tipo-dfe-docto = "NFSe Nacional":U  or
+            RowObject.tipo-dfe-docto = "NFSe Via":U) and
+           RowObject.dt-competencia = ?            then
+            assign RowObject.dt-competencia = RowObject.dt-emissao.           
+         
+        release b-emitente.
+    end.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+PROCEDURE setEstabelOC:
+/*------------------------------------------------------------------------------
+    Purpose:    Passagem como parƒmetro o c¢digo do estabelecimento da Ordem de compra 
+    Parameters: Input p-c-cod-estabel-oc - Character - C¢digo do estabelecimento da ordem de compra
+    Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER p-c-cod-estabel LIKE ordem-compra.cod-estabel NO-UNDO.
+    
+    ASSIGN c-cod-estabel-oc = p-c-cod-estabel.
+
+    RETURN "OK":U.
+END.

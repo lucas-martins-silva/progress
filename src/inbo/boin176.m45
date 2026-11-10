@@ -1,0 +1,107 @@
+PROCEDURE validateUpdateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Valida»’o somente para a modifica»’o do item.
+------------------------------------------------------------------------------*/
+
+    find tb-wt-it-imposto
+        where tb-wt-it-imposto.seq-wt-docto    = 1
+          and tb-wt-it-imposto.seq-wt-it-docto = RowObject.sequencia 
+        exclusive-lock no-error.
+    if  not avail tb-wt-it-imposto then  do:
+    
+        RUN recalculaDespesa (INPUT RowObject.preco-unit[1],
+                              INPUT RowObject.preco-total[1],
+                              INPUT RowObject.despesas[1],
+                              INPUT RowObject.pr-total-cmi,
+                              INPUT RowObject.peso-liquido,
+                              INPUT SUBSTRING(RowObject.char-2,819,13), //Ped gio
+                              INPUT yes).
+           
+        run recalculateImposto ( input RowObject.qt-do-forn,
+                                 INPUT RowObject.preco-unit[1],
+                                 input RowObject.preco-total[1],
+                                 input RowObject.desconto[1],
+                                 input RowObject.aliquota-ipi,
+                                 input RowObject.cd-trib-ipi,
+                                 input RowObject.aliquota-iss,
+                                 input RowObject.cd-trib-iss,
+                                 input RowObject.aliquota-icm,
+                                 input RowObject.cd-trib-icm,
+                                 input RowObject.val-perc-rep-ipi, /* perc ipi */
+                                 input RowObject.val-perc-red-icms, /* perc icm  */
+                                 input RowObject.log-2,
+                                 input RowObject.idi-tributac-pis,
+                                 input IF ROUND(RowObject.val-aliq-pis,2) = ROUND(de-aliquota-pis,2) THEN de-aliquota-pis ELSE RowObject.val-aliq-pis,
+                                 input RowObject.idi-tributac-cofins,
+                                 input IF ROUND(RowObject.val-aliq-cofins,2) = ROUND(de-aliquota-cofins,2) THEN de-aliquota-cofins ELSE RowObject.val-aliq-cofins,
+                                 input yes).
+    end.                                 
+    if  l-retorno then do:
+        find saldo-terc 
+           where saldo-terc.cod-emitente = RowObject.cod-emitente  
+             and saldo-terc.nro-docto    = RowObject.nro-comp       
+             and saldo-terc.serie-docto  = RowObject.serie-comp  
+             and saldo-terc.nat-operacao = RowObject.nat-comp    
+             and saldo-terc.it-codigo    = RowObject.it-codigo   
+             and saldo-terc.cod-refer    = RowObject.cod-refer   
+             and saldo-terc.sequencia    = RowObject.seq-comp   
+             no-lock no-error.
+        if  l-pede-qtd 
+        and avail saldo-terc  
+        and RowObject.quantidade > (saldo-terc.quantidade - saldo-terc.dec-1 + item-doc-est.quantidade) then do: 
+            {method/svc/errors/inserr.i
+                            &ErrorNumber="15192" /*Quantidade superior ao saldo em poder de terceiros*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR" }
+        end.
+
+        if  not avail saldo-terc then do:
+            DEFINE VARIABLE c-lbl-liter-msg AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Saldo_em_Poder_de_Terceiros" *}
+            ASSIGN c-lbl-liter-msg = RETURN-VALUE.
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="2"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR" 
+                                &ErrorParameters="c-lbl-liter-msg"}
+        end.
+    end.
+
+
+    if  can-find (first docum-est
+                  where docum-est.cod-emitente = RowObject.cod-emitente
+                  and   docum-est.serie-docto    = RowObject.serie-docto
+                  and   docum-est.nro-docto      = RowObject.nro-docto
+                  and   docum-est.nat-operacao   = RowObject.nat-operacao
+                  and   docum-est.log-1 /*NF atualizada no Faturamento*/) then do:
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="30845"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="WARNING":U}
+                            
+        run beforeValidateBoin060 (input 1). /* Instancia */
+        
+        run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                             RowObject.serie-docto,
+                                             RowObject.nro-docto,
+                                             RowObject.nat-operacao,
+                                             RowObject.sequencia,
+                                             no,
+                                             0,
+                                             0,
+                                             30845, /* Nota fiscal j  atualizada no Faturamento */
+                                             2).
+                                             
+        run beforeValidateBoin060 (input 2). /* Elimina */
+                            
+    end.
+
+    return "OK":U.
+
+END PROCEDURE.
+
+
+
+

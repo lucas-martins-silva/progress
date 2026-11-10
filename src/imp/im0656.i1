@@ -1,0 +1,32 @@
+{include/i_dbvers.i}
+/********************************************************************************
+**
+** IM0656.i1 - Defini‡Æo temp-table tt-param.
+**
+********************************************************************************/
+
+define temp-table tt-param
+&IF "{&mguni_version}" >= "2.071" &THEN
+    field ep-codigo            LIKE empresa.ep-codigo
+&ELSE
+    field ep-codigo            as integer
+&ENDIF
+    field destino              as integer   /* IMPRESSORA - 1, ARQUIVO - 2, E-MAIL - 3 */
+    field arquivo              as char format "x(30)"   /* Nome do Arquivo */
+    field diretorio            as char      /* Diretorio do arquivo */
+    field usuario              as char      /* Usuario */
+    field data-exec            as date      /* Data execu‡Æo */
+    field hora-exec            as integer   /* Hora execu‡Æo */
+    field i-cod-itiner-ini     like historico-proc-imp.cod-itiner /* Itiner rio Inicial */
+    field i-cod-itiner-fim     as integer   /* Itiner rio Final */
+    field c-nome-abrev-ini     like emitente.nome-abrev  /* Fornecedor Inicial */    
+    field c-nome-abrev-fim     like emitente.nome-abrev   /* Fornecedor Final */
+    field c-it-codigo-ini      like ordem-compra.it-codigo /* Item Inicial */
+    field c-it-codigo-fim      as char   /* item Final */
+    field i-percentual         as integer format ">>>9" /* percentual de erro */
+    field d-data-ini           as date format "99/99/9999"  /* Data Inicial */
+    field d-data-fim           as date format "99/99/9999"  /* Data Final */
+    field l-imprime            as logical   /* Imprime P gina Parƒmetros */
+    field c-destino            as char      /* Cliente Servidor */
+    field c-endmail            as char.     /* Endere‡o e-mail remetente - Magnus */
+ 

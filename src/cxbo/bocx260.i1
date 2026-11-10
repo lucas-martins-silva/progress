@@ -1,0 +1,571 @@
+ /*******************************************************************************
+**  BOCX260.i1
+**
+**  proc-nota-fiscal - 
+**
+**  Ultima altera‡Æo: 04/05/99 - GeraBO
+**  Ultima altera‡Æo: 06/05/99 - brv9586
+*******************************************************************************/
+{cdp/cdcfgdis.i} /* Definicao de pre-processadores */
+
+DEFINE var c-cod-estabel    like proc-nota-fiscal.cod-estabel no-undo.
+DEFINE var c-nr-proc-exp    like proc-nota-fiscal.nr-proc-exp no-undo. 
+DEFINE VAR h-bocx195        as handle no-undo.
+define var c-rowid          as char   no-undo.
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.001
+&scoped-define FIRST-TABLE-IN-QUERY proc-nota-fiscal
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME proc-nota-fiscal
+ 
+{include/boini.i}
+ 
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+{cxbo/bocx260.i RowObject}
+{cxbo/bocx260.i tt-proc-nota-fiscal}
+
+&IF DEFINED(bf-dis-comex) &THEN
+&ELSE
+    {include/i-epc200.i "bocx260"}
+&ENDIF
+
+procedure setConstraint1:
+
+end.
+
+PROCEDURE setConstraint2:
+    def input parameter p-cod-estab like proc-nota-fiscal.cod-estabel no-undo. 
+    def input parameter p-proc-exp  like proc-nota-fiscal.nr-proc-exp no-undo.
+        assign c-cod-estabel    = p-cod-estab 
+               c-nr-proc-exp    = p-proc-exp.
+               
+END PROCEDURE.
+
+PROCEDURE setConstraint3:
+    def input parameter r-chave as rowid no-undo.
+    find processo-exp  no-lock
+         where rowid(processo-exp) = r-chave no-error.
+END PROCEDURE.
+
+PROCEDURE setConstraint4:
+    def input parameter p-proc-exp  like proc-nota-fiscal.nr-proc-exp no-undo.
+    assign c-nr-proc-exp = p-proc-exp.
+
+END PROCEDURE.
+
+procedure openQuery:
+    
+    define input parameter i-abertura as integer no-undo.
+    assign i-bo-query = i-abertura.
+    assign l-query = yes.
+    case i-abertura:
+        when 1 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock. 
+        when 2 then do:
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where proc-nota-fiscal.cod-estabel = c-cod-estabel and ~     
+                                                                  proc-nota-fiscal.nr-proc-exp = c-nr-proc-exp no-lock.
+        end.                                                          
+        when 3 then 
+            if c-nr-proc-exp = "" then do:
+               open query {&QUERY-NAME} for each {&TABLE-NAME} of processo-exp no-lock 
+                     by proc-nota-fiscal.nr-nota-fis 
+                     by proc-nota-fiscal.serie
+                     by proc-nota-fiscal.cod-estabel.
+            end.
+            else do:
+               open query {&QUERY-NAME} for each {&TABLE-NAME} where proc-nota-fiscal.nr-proc-exp = c-nr-proc-exp no-lock
+                     by proc-nota-fiscal.nr-nota-fis 
+                     by proc-nota-fiscal.serie
+                     by proc-nota-fiscal.cod-estabel.
+            end.   
+        when 4 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where proc-nota-fiscal.nr-proc-exp = c-nr-proc-exp no-lock.
+    end case.
+   
+end procedure.
+
+ 
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-dis-comex) &then    
+&else
+    {include/bocomver.i}
+    {include/bogetver.i}
+&endif
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+{include/boexecre.i}
+{include/boexeupt.i}
+{include/boexedel.i}
+{include/bovalupt.i}
+{include/bovaldel.i}
+
+
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+    find first rowObject
+        no-lock no-error.
+    
+            run startMethod ("validateFields").
+            run exp/exapi005.p (input table rowObject, output table tt-bo-erro).
+            
+         
+            if rowObject.cod-estabel = ? then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                run utp/ut-msgs.p (input "msg",
+                                   input 190,
+                                   input "").
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 190
+                       tt-bo-erro.mensagem     = return-value.
+            end.
+         
+            if rowObject.nr-nota-fis = ? then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                run utp/ut-msgs.p (input "msg",
+                                   input 190,
+                                   input "").
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 190
+                       tt-bo-erro.mensagem     = return-value.
+            end.
+         
+         
+            if rowObject.nr-proc-exp = ? then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                run utp/ut-msgs.p (input "msg",
+                                   input 190,
+                                   input "").
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 190
+                       tt-bo-erro.mensagem     = return-value.
+            end.
+         
+            run endMethod ("validateFields").
+end procedure.
+
+PROCEDURE initializeFields:
+
+   /** Inicializa campos da tela **/
+      
+END PROCEDURE.
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+ 
+    run startMethod ("initializeValidade").
+ 
+    run endMethod   ("initializeValidade").
+end procedure.
+
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+ 
+    case c-field:
+        when "char-1"       then c-value = RowObject.char-1.
+        when "char-2"       then c-value = RowObject.char-2.
+        when "check-sum"    then c-value = RowObject.check-sum.
+        when "cod-estabel"  then c-value = RowObject.cod-estabel.
+        when "nr-nota-fis"    then c-value = RowObject.nr-nota-fis.
+        when "nr-proc-exp"  then c-value = RowObject.nr-proc-exp.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+ 
+    case c-field:
+        when "dec-1" then c-value = RowObject.dec-1.
+        when "dec-2" then c-value = RowObject.dec-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+ 
+    case c-field:
+        when "int-1" then c-value = RowObject.int-1.
+        when "int-2" then c-value = RowObject.int-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+ 
+    case c-field:
+        when "data-1" then c-value = RowObject.data-1.
+        when "data-2" then c-value = RowObject.data-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+ 
+    case c-field:
+        when "log-1" then c-value = RowObject.log-1.
+        when "log-2" then c-value = RowObject.log-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure cancelaNota:
+/*Atualiza a situa‡Æo do processo de exporta‡Æo no momento do cancelamento de uma NF no Faturamento*/
+
+  def input  parameter c-cod-estabel      like nota-fiscal.cod-estabel    no-undo.
+  def input  parameter i-nr-proc-exp      like nota-fiscal.nr-proc-exp    no-undo.
+  def input  parameter c-serie            like nota-fiscal.serie          no-undo.
+  def input  parameter i-nr-nota-fis      like nota-fiscal.nr-nota-fis    no-undo.
+   
+  def var l-encontrou as logical no-undo. /* identifica se existe mais notas para o processo */
+
+  find processo-exp exclusive-lock where 
+     processo-exp.cod-estabel = c-cod-estabel and
+     &if defined(bf-dis-comex) &then
+       processo-exp.nr-proc-exp = string(i-nr-proc-exp)
+     &else
+       processo-exp.nr-proc-exp = i-nr-proc-exp
+     &endif no-error.
+  
+  if avail processo-exp then do:
+     assign l-encontrou = no.
+     
+     find nota-fiscal no-lock where 
+          nota-fiscal.cod-estabel = c-cod-estabel and                
+          nota-fiscal.serie       = c-serie       and                
+          &if defined(bf-dis-comex) &then                                           
+             nota-fiscal.nr-nota-fis = int(i-nr-nota-fis) no-error. 
+          &else                                                                     
+             nota-fiscal.nr-nota-fis = i-nr-nota-fis no-error.      
+           &endif
+     
+     if avail nota-fiscal and
+              &if defined (bf-dis-comex) &then
+                 nota-fiscal.ind-tip-nota = "D" then leave.
+              &else
+                 nota-fiscal.ind-tip-nota = 3 then leave.
+              &endif
+     
+     nota:
+     for each proc-nota-fiscal where 
+         proc-nota-fiscal.cod-estabel =  processo-exp.cod-estabel and
+         proc-nota-fiscal.nr-proc-exp =  processo-exp.nr-proc-exp and
+         proc-nota-fiscal.serie       =  c-serie no-lock :
+         &if defined(bf-dis-comex) &then
+             if proc-nota-fiscal.nr-nota-fis = string(i-nr-nota-fis) then next.
+         &else
+             if proc-nota-fiscal.nr-nota-fis = i-nr-nota-fis then next.
+         &endif
+         
+        /**************************************************
+        *     Engenharia Devolucao Nota de Exportacao     *
+        **************************************************/
+        &IF  DEFINED(bf_dis_versao_ems) &THEN
+            &IF  "{&bf_dis_versao_ems}":U >= "2.06":U &THEN
+                IF  proc-nota-fiscal.log-nf-devolvid THEN NEXT.
+            &ELSEIF "{&bf_dis_versao_ems}":U >= "2.04":U &THEN
+                IF  proc-nota-fiscal.log-1 THEN NEXT.
+            &ENDIF
+        &ENDIF
+        
+         find nota-fiscal no-lock where
+            nota-fiscal.cod-estabel = proc-nota-fiscal.cod-estabel and
+            nota-fiscal.serie       = proc-nota-fiscal.serie       and
+            &if defined(bf-dis-comex) &then
+                nota-fiscal.nr-nota-fis = int(proc-nota-fiscal.nr-nota-fis) no-error.
+            &else
+                nota-fiscal.nr-nota-fis = proc-nota-fiscal.nr-nota-fis no-error.
+            &endif
+         if avail nota-fiscal then
+            if nota-fiscal.dt-cancela = ? then do:
+                assign l-encontrou = yes.
+                leave nota.           
+            end.
+         
+     end. /* bloco nota */
+     if l-encontrou then       
+        assign processo-exp.cod-sit-proc = 7. /* Faturado Parcial */
+     else
+        assign processo-exp.cod-sit-proc = 1. /* Aberto */
+  
+  end. /* if avail processo-exp ... */
+                
+end procedure.
+
+
+PROCEDURE criaProcNota:
+    /*
+    ** Cria relacionamento entre nota fiscal
+    */ 
+    def input parameter r-nota-fiscal as rowid.
+  
+    def var h-bocx265 as handle no-undo.
+
+    DEF VAR l-funcao-implantada AS LOGICAL NO-UNDO.
+
+    /*
+    ** Tratamento da fun‡Æo desenvolvida para o cliente UBV - EMS 2.01 para permitir a vincula‡Æo parcial de pedidos ao processo
+    */
+    &IF DEFINED(bf-dis-comex) &THEN /* Magnus */
+    &ELSE
+    
+        &IF DEFINED(bf_dis_versao_ems) &THEN
+        &ELSE
+        
+            IF CAN-FIND(funcao 
+                            WHERE funcao.cd-funcao = "spp-ubv-pedido-parcial":U
+                              AND funcao.ativo) THEN DO:
+                              
+                ASSIGN l-funcao-implantada = YES.
+
+                FIND nota-fiscal NO-LOCK  
+                    WHERE ROWID(nota-fiscal) = r-nota-fiscal NO-ERROR.
+
+                FOR EACH it-nota-fisc NO-LOCK OF nota-fiscal:
+
+                    FIND proc-ped-ent
+                        WHERE proc-ped-ent.cod-estabel  = it-nota-fisc.cod-estabel
+                          and proc-ped-ent.nr-proc-exp  = nota-fiscal.nr-proc-exp
+                          and proc-ped-ent.nome-abrev   = it-nota-fisc.nome-ab-cli
+                          and proc-ped-ent.nr-pedcli    = it-nota-fisc.nr-pedcli
+                          and proc-ped-ent.nr-sequencia = it-nota-fisc.nr-seq-ped
+                          AND proc-ped-ent.cod-refer    = it-nota-fisc.cod-refer
+                          AND proc-ped-ent.nr-entrega   = it-nota-fisc.nr-entrega                           
+                          AND proc-ped-ent.it-codigo    = it-nota-fisc.it-codigo
+                          NO-LOCK NO-ERROR.
+                    IF AVAIL proc-ped-ent THEN DO:
+
+                        find proc-nota-fiscal no-lock 
+                            where proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel         
+                              AND proc-nota-fiscal.nr-proc-exp = proc-ped-ent.nr-proc-exp         
+                              AND proc-nota-fiscal.serie       = nota-fiscal.serie               
+                              AND proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis NO-ERROR.
+                        IF NOT AVAIL proc-nota-fiscal THEN DO:
+            
+                            CREATE proc-nota-fiscal.
+                            ASSIGN proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel 
+                                   proc-nota-fiscal.nr-proc-exp = proc-ped-ent.nr-proc-exp
+                                   proc-nota-fiscal.serie       = nota-fiscal.serie       
+                                   proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis.
+                                
+                        END.
+
+                        FIND proc-it-nota-fisc NO-LOCK 
+                            WHERE proc-it-nota-fisc.cod-estabel = it-nota-fisc.cod-estabel        
+                              AND proc-it-nota-fisc.nr-proc-exp = proc-ped-ent.nr-proc-exp        
+                              AND proc-it-nota-fisc.serie       = nota-fiscal.serie               
+                              AND proc-it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis         
+                              AND proc-it-nota-fisc.nr-seq-fat  = it-nota-fisc.nr-seq-fat         
+                              AND proc-it-nota-fisc.it-codigo   = it-nota-fisc.it-codigo NO-ERROR.
+                        IF NOT AVAIL proc-it-nota-fisc THEN DO:
+
+                           CREATE proc-it-nota-fisc.
+                           ASSIGN proc-it-nota-fisc.cod-estabel  = it-nota-fisc.cod-estabel 
+                                  proc-it-nota-fisc.serie        = it-nota-fisc.serie        
+                                  proc-it-nota-fisc.nr-nota-fis  = it-nota-fisc.nr-nota-fis
+                                  proc-it-nota-fisc.nr-seq-fat   = it-nota-fisc.nr-seq-fat
+                                  proc-it-nota-fisc.it-codigo    = it-nota-fisc.it-codigo
+                                  proc-it-nota-fisc.nr-sequencia = it-nota-fisc.nr-seq-ped 
+                                  proc-it-nota-fisc.nome-abrev   = it-nota-fisc.nome-ab-cli
+                                  proc-it-nota-fisc.nr-pedcli    = it-nota-fisc.nr-pedcli
+                                  proc-it-nota-fisc.cod-refer    = it-nota-fisc.cod-refer
+                                  proc-it-nota-fisc.nr-entrega   = it-nota-fisc.nr-entrega
+                                  proc-it-nota-fisc.nr-proc-exp  = proc-ped-ent.nr-proc-exp
+                                  proc-it-nota-fisc.nr-pedido    = proc-ped-ent.nr-pedido
+                                  proc-it-nota-fisc.cod-fabric   = proc-ped-ent.cod-fabric.
+                    
+                        END.
+                    END.
+                END.
+            END.
+
+        &ENDIF
+    &ENDIF
+    
+    IF l-funcao-implantada THEN
+        LEAVE.
+
+    FIND nota-fiscal NO-LOCK  
+        WHERE ROWID(nota-fiscal) = r-nota-fiscal NO-ERROR.
+    if avail nota-fiscal then do:
+
+        &IF DEFINED(bf-dis-comex) &THEN /* Magnus */
+        &ELSE
+            /************************************************************************************
+            ** EPC - Implementado para poder atualizar a nota antes de relacionar com o processo
+            ************************************************************************************/
+            for each tt-epc 
+                where tt-epc.cod-event = "BEFORE-CREATEPROCNOTA": 
+                delete tt-epc. 
+            end.
+            /*** Criacao do registro para temp-table tt-epc ***/
+            {include/i-epc200.i2 &CodEvent='"BEFORE-CREATEPROCNOTA"'
+                                 &CodParameter='"TABLE-ROWID"'
+                                 &ValueParameter=string(ROWID(nota-fiscal))}
+                 
+            /*** Chamada do programa EPC ***/
+            {include/i-epc201.i "BEFORE-CREATEPROCNOTA"}
+        &ENDIF
+      
+        FIND CURRENT nota-fiscal NO-LOCK NO-ERROR.
+
+        &IF DEFINED(bf_dis_proc_ent) &then /* EMS 2.04 */   
+        &ELSE /* Magnus, EMS 2.00, EMS 2.02 */
+            
+            find proc-nota-fiscal no-lock 
+                where proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel         
+                  AND 
+                &if defined(bf-dis-comex) &then
+                      proc-nota-fiscal.nr-proc-exp = string(nota-fiscal.nr-proc-exp) 
+                  AND
+                &else
+                      proc-nota-fiscal.nr-proc-exp = nota-fiscal.nr-proc-exp         
+                  AND
+                &endif    
+                      proc-nota-fiscal.serie       = nota-fiscal.serie               
+                  AND 
+                &if defined(bf-dis-comex) &then
+                      proc-nota-fiscal.nr-nota-fis = string(nota-fiscal.nr-nota-fis) NO-ERROR.
+                &else
+                      proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis NO-ERROR.
+                &endif
+                       
+            IF NOT AVAIL proc-nota-fiscal THEN DO:
+
+                CREATE proc-nota-fiscal.
+                assign proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel 
+                    &if defined(bf-dis-comex) &then
+                       proc-nota-fiscal.nr-proc-exp = string(nota-fiscal.nr-proc-exp)
+                    &else
+                       proc-nota-fiscal.nr-proc-exp = nota-fiscal.nr-proc-exp 
+                    &endif       
+                       proc-nota-fiscal.serie       = nota-fiscal.serie       
+                    &if defined(bf-dis-comex) &then
+                       proc-nota-fiscal.nr-nota-fis = string(nota-fiscal.nr-nota-fis) 
+                    &else
+                       proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis
+                    &endif.
+                    
+            END.
+
+        &ENDIF
+    
+        FOR EACH it-nota-fisc NO-LOCK OF nota-fiscal:
+
+            &if defined(bf_dis_proc_ent) &then /* EMS 2.04 */
+                FIND proc-ped-ent
+                     WHERE proc-ped-ent.cod-estabel  = it-nota-fisc.cod-estabel
+                       and proc-ped-ent.nr-proc-exp  = nota-fiscal.nr-proc-exp
+                       and proc-ped-ent.nome-abrev   = it-nota-fisc.nome-ab-cli
+                       and proc-ped-ent.nr-pedcli    = it-nota-fisc.nr-pedcli
+                       and proc-ped-ent.nr-sequencia = it-nota-fisc.nr-seq-ped
+                       AND proc-ped-ent.cod-refer    = it-nota-fisc.cod-refer
+                       AND proc-ped-ent.nr-entrega   = it-nota-fisc.nr-entrega                        
+                       AND proc-ped-ent.it-codigo    = it-nota-fisc.it-codigo
+                       NO-LOCK NO-ERROR.
+                          
+                IF  AVAIL proc-ped-ent THEN DO:
+                    find proc-nota-fiscal no-lock where 
+                         proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel  and
+                         proc-nota-fiscal.nr-proc-exp = proc-ped-ent.nr-proc-exp and
+                         proc-nota-fiscal.serie       = nota-fiscal.serie        and
+                         proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis 
+                         no-error.
+                    if not avail proc-nota-fiscal then do:
+                        
+                        create proc-nota-fiscal.
+                        assign proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel 
+                               proc-nota-fiscal.nr-proc-exp = proc-ped-ent.nr-proc-exp 
+                               proc-nota-fiscal.serie       = nota-fiscal.serie       
+                               proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis.
+                    end.
+                end.
+
+            &ENDIF
+
+            run cxbo/bocx265.p persistent set h-bocx265.
+            run criaProcItNota in h-bocx265 (input rowid(it-nota-fisc)).
+            delete procedure h-bocx265.
+
+        END. /* for each it-nota-fisc ... */       
+
+    END. /* if avail nota-fiscal ... */
+
+    &IF DEFINED(bf-dis-comex) &THEN /* Magnus */
+    &ELSE
+        /************************************************************************************
+        ** EPC - Implementado para poder atualizar o ralacionamento nota e processo
+        ************************************************************************************/
+        for each tt-epc 
+            where tt-epc.cod-event = "AFTER-CREATEPROCNOTA": 
+            delete tt-epc. 
+        end.
+        /*** Criacao do registro para temp-table tt-epc ***/
+        {include/i-epc200.i2 &CodEvent='"AFTER-CREATEPROCNOTA"'
+                             &CodParameter='"TABLE-ROWID"'
+                             &ValueParameter=string(ROWID(nota-fiscal))}
+          
+        /*** Chamada do programa EPC ***/
+        {include/i-epc201.i "AFTER-CREATEPROCNOTA"}
+    &ENDIF        
+  
+END PROCEDURE.
+
+
+PROCEDURE deleteProcessobyNotafiscal:
+    /*
+    ** Elimina relacionamento Nota Fiscal x Processo de Exporta‡Æo
+    */
+    DEF INPUT PARAMETER r-nota-fiscal AS ROWID NO-UNDO.
+    
+    FIND nota-fiscal
+        WHERE ROWID(nota-fiscal) = r-nota-fiscal NO-LOCK NO-ERROR.
+
+    FOR EACH proc-nota-fiscal
+        WHERE proc-nota-fiscal.cod-estabel = nota-fiscal.cod-estabel
+          AND proc-nota-fiscal.serie       = nota-fiscal.serie
+        &IF DEFINED(bf-dis-comex) &THEN
+          AND proc-nota-fiscal.nr-nota-fis = STRING(nota-fiscal.nr-nota-fis) EXCLUSIVE-LOCK:
+        &ELSE
+          AND proc-nota-fiscal.nr-nota-fis = nota-fiscal.nr-nota-fis EXCLUSIVE-LOCK:
+        &ENDIF
+        
+        DELETE proc-nota-fiscal.
+
+    END.
+
+    FOR EACH proc-it-nota-fisc
+        WHERE proc-it-nota-fisc.cod-estabel = nota-fiscal.cod-estabel
+          AND proc-it-nota-fisc.serie       = nota-fiscal.serie
+        &IF DEFINED(bf-dis-comex) &THEN
+          AND proc-it-nota-fisc.nr-nota-fis = STRING(nota-fiscal.nr-nota-fis) EXCLUSIVE-LOCK:
+        &ELSE
+          AND proc-it-nota-fisc.nr-nota-fis = nota-fiscal.nr-nota-fis EXCLUSIVE-LOCK:
+        &ENDIF
+
+        DELETE proc-it-nota-fisc.
+
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.

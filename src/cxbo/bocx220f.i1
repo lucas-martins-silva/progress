@@ -1,0 +1,19 @@
+/*
+**
+** BOCX220F.I1 - Defini‡Æo Temp-table Auxiliar
+**
+*/
+
+def temp-table {1} no-undo
+    field c-cod-estabel   like estabelec.cod-estabel
+    field c-embarque      like embarque-imp.embarque
+    field c-embarque-novo like embarque-imp.embarque
+    field c-embarque-inicial like embarque-imp.embarque
+    field da-nova-entrega as   date format "99/99/9999"
+    field c-fatura        like invoice-emb-imp.nr-invoice
+    field log-embarq-transf-draw like embarque-imp.log-embarq-transf-draw
+    index codigo is unique
+        c-cod-estabel
+        c-embarque.
+
+/* BOCX220F.I1 */

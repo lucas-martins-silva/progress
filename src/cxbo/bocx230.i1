@@ -1,0 +1,80 @@
+/*
+*/
+
+PROCEDURE retornadatapartida:
+/*
+Procedure criada para retornar a data do ponto de controle base para a primeira
+ordem vinculada ao embarque.
+*/
+
+     DEF INPUT  PARAMETER p-cod-estabel    LIKE embarque-imp.cod-estabel          NO-UNDO.
+     DEF INPUT  PARAMETER p-embarque       LIKE embarque-imp.embarque             NO-UNDO.
+     DEF OUTPUT PARAMETER dt-partida-efetiva  LIKE historico-embarque.dt-efetiva  NO-UNDO.
+     DEF OUTPUT PARAMETER dt-partida-prevista LIKE historico-embarque.dt-ult-prev NO-UNDO.
+
+     FIND LAST ordens-embarque WHERE
+               ordens-embarque.cod-estabel = p-cod-estabel AND
+               ordens-embarque.embarque    = p-embarque    NO-LOCK NO-ERROR.
+
+     IF AVAIL ordens-embarque THEN DO:
+
+         FIND processo-imp WHERE
+              processo-imp.cod-estabel = ordens-embarque.cod-estabel AND
+              processo-imp.nr-proc-imp = ordens-embarque.nr-proc-imp NO-LOCK NO-ERROR.
+         
+         IF NOT AVAIL processo-imp THEN LEAVE.
+
+         FIND ordem-compra WHERE
+              ordem-compra.numero-ordem = ordens-embarque.numero-ordem NO-LOCK NO-ERROR.
+         IF AVAIL ordem-compra THEN DO:
+
+             find cotacao-item WHERE 
+                  cotacao-item.numero-ordem = ordem-compra.numero-ordem    and 
+                  cotacao-item.cod-emitente = ordem-compra.cod-emitente    and 
+                  cotacao-item.it-codigo    = ordem-compra.it-codigo       and 
+                  cotacao-item.cot-aprovada no-lock no-error.
+
+             if not avail cotacao-item then LEAVE.
+             
+             {ccp/cc9019.i50} /* include tratamento atributo livre cotacao-item.char-1 */
+
+             &if defined(bf-mat-comex) &then
+                assign i-mapa-cotacao-i50  = int(substring(cotacao-item.char-1,6,2))
+                       c-cod-incoterm-i50  = substring(cotacao-item.char-1,8,3)
+                       i-cod-pto-contr-i50 = int(substring(cotacao-item.char-1,11,5))
+                       de-aliq-ii-i50      = dec(substring(cotacao-item.char-1,17,6))
+                       c-class-fiscal-i50  = substring(cotacao-item.char-1,23,10).
+             &else
+                {cdp/cd4300.i4 "yes" cotacao-item.char-1}
+                {ccp/cc9019.i51 "yes"}
+             &endif
+             IF NOT VALID-HANDLE(h-bocx407) THEN
+                 RUN cxbo/bocx407.p PERSISTENT SET h-bocx407.
+             
+             if i-cod-pto-contr-i50 > 0 then
+                find historico-embarque where historico-embarque.cod-estabel   = ordens-embarque.cod-estabel   
+                                        and   historico-embarque.embarque      = ordens-embarque.embarque
+                                        and   historico-embarque.cod-pto-contr = i-cod-pto-contr-i50
+                                        no-lock no-error.
+                                        
+             if not avail historico-embarque then do:
+                RUN retorna-seq-ponto-nacionaliz IN h-bocx407(INPUT ordens-embarque.embarque,
+                                                              INPUT ordens-embarque.cod-estabel,
+                                                              OUTPUT l-seq-nac).
+                find historico-embarque where historico-embarque.cod-estabel   = ordens-embarque.cod-estabel
+                                        and   historico-embarque.embarque      = ordens-embarque.embarque
+                                        and   historico-embarque.sequencia     = l-seq-nac
+                                        no-lock no-error.
+             end.
+                  
+             assign dt-partida-efetiva  = if AVAIL historico-embarque then historico-embarque.dt-efetiva 
+                                          else ?
+                    dt-partida-prevista = IF AVAIL historico-embarque THEN historico-embarque.dt-ult-previsao
+                                          ELSE ?.
+         END.
+     END.
+     
+     IF VALID-HANDLE(h-bocx407) THEN 
+          delete procedure h-bocx407.
+
+END PROCEDURE.

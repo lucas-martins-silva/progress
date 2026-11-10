@@ -1,0 +1,243 @@
+    /*
+    ** calculo do icms im7777
+    */
+    
+    {include/i_fncrowid.i}    
+    
+    FIND LAST tt-docto NO-LOCK.
+    
+    &if defined(bf-mat-comex) &then
+        /* Calcula a base e o valor do ICMS */
+        run rep/re1906.p ( &IF {&ROWID_READY} = YES &THEN 
+                                ROWID(tt-docto)
+                           &ELSE 
+                                recid(tt-docto)
+                           &ENDIF,
+                           yes,                /* ICMS */
+                           no,                 /* Subst. Tributar */
+                           no).                /* ICMS Complement */
+    &else
+        /* Calcula a base e o valor do ICMS */
+        run rep/re1906.p ( tt-docto.seq-tt-docto,
+                           yes,                /* ICMS */
+                           no,                 /* Subst. Tributaria */
+                           no,                 /* ICMS Complementar */
+                           input        table tt-docto,
+                           input        table tt-it-docto,
+                           input-output table tt-it-imposto).
+    &endif
+    
+    /* 
+    ** Tratamento Fundap
+    ** Adiciona o valor calculado o ICMS ao valor da mercadoria para a nota de entrada
+    */
+    if l-fornec-fundap then do:
+        
+        find first tt-docum-est.
+        
+        for each tt-it-docto:
+    
+            assign de-bicms-fundap  = 0
+                   de-vlicms-fundap = 0.
+        
+            find tt-it-imposto 
+              &if defined(bf-mat-comex) &then               
+                where tt-it-imposto.r-tt-it-docto   = &IF {&ROWID_READY} = YES &THEN 
+                                                        ROWID(tt-it-docto)
+                                                      &ELSE 
+                                                        recid(tt-it-docto)
+                                                      &ENDIF                
+                                                      no-error.
+              &else
+                where tt-it-imposto.seq-tt-it-docto = tt-it-docto.seq-tt-it-docto no-error.
+              &endif
+              
+            /*
+            ** O valor calculado da base de c culo representa (100 - Al¡quota do ICM)% do valor real da mercadoria
+            */
+            assign de-bicms-fundap  = (tt-it-imposto.vl-bicms-it * 100) / (100 - tt-it-imposto.aliquota-icm)
+                   de-vlicms-fundap = de-bicms-fundap - tt-it-imposto.vl-bicms-it. 
+    
+            find tt-item-doc-est 
+                where tt-item-doc-est.cod-emitente = tt-it-docto.cod-emitente 
+                  and tt-item-doc-est.nro-docto    = tt-it-docto.nr-nota 
+                  and tt-item-doc-est.serie-docto  = tt-it-docto.serie 
+                  and tt-item-doc-est.nat-operacao = tt-it-docto.nat-operacao 
+                  and tt-item-doc-est.sequencia    = tt-it-docto.nr-sequencia.
+    
+            assign tt-item-doc-est.preco-total  = tt-item-doc-est.preco-total  + de-vlicms-fundap
+                   tt-docum-est.valor-mercad    = tt-docum-est.valor-mercad    + de-vlicms-fundap.
+            
+            find tt-itens 
+                where tt-itens.sequencia = tt-item-doc-est.sequencia.
+            assign tt-itens.preco-unit  = tt-itens.preco-unit  + de-vlicms-fundap + (de-vlicms-fundap / tt-item-doc-est.quantidade)
+                   tt-itens.preco-total = tt-itens.preco-total + de-vlicms-fundap.
+            
+            assign tt-it-docto.vl-preuni    = tt-it-docto.vl-preuni   + de-vlicms-fundap
+                   tt-it-docto.vl-preori    = tt-it-docto.vl-preori   + de-vlicms-fundap
+                   tt-it-docto.vl-merc-liq  = tt-it-docto.vl-merc-liq + de-vlicms-fundap
+                   tt-it-docto.vl-merc-ori  = tt-it-docto.vl-merc-ori + de-vlicms-fundap.
+            
+            find tt-it-imposto-aux 
+              &if defined(bf-mat-comex) &then               
+                where tt-it-imposto-aux.r-tt-it-docto   = tt-it-imposto.r-tt-it-docto no-error.
+              &else
+                where tt-it-imposto-aux.seq-tt-it-docto = tt-it-imposto.seq-tt-it-docto no-error.
+              &endif
+                           
+            assign tt-it-imposto-aux.vl-ipi-it  = tt-it-imposto.vl-ipi-it.
+    
+        end.
+    
+        for each tt-it-imposto:
+            delete tt-it-imposto.
+        end.
+        
+        for each tt-it-imposto-aux:
+            create tt-it-imposto.
+            buffer-copy tt-it-imposto-aux to tt-it-imposto.
+        end.
+    
+        for each tt-item-doc-est:
+    
+            find tt-it-docto
+                where tt-item-doc-est.cod-emitente = tt-it-docto.cod-emitente 
+                  and tt-item-doc-est.nro-docto    = tt-it-docto.nr-nota 
+                  and tt-item-doc-est.serie-docto  = tt-it-docto.serie 
+                  and tt-item-doc-est.nat-operacao = tt-it-docto.nat-operacao 
+                  and tt-item-doc-est.sequencia    = tt-it-docto.nr-sequencia.
+    
+            find tt-it-imposto 
+              &if defined(bf-mat-comex) &then               
+                where tt-it-imposto.r-tt-it-docto   = &IF {&ROWID_READY} = YES &THEN 
+                                                        ROWID(tt-it-docto)
+                                                      &ELSE 
+                                                        recid(tt-it-docto)
+                                                      &ENDIF
+                                                      no-error.
+              &else
+                where tt-it-imposto.seq-tt-it-docto = tt-it-docto.seq-tt-it-docto no-error.
+              &endif
+            
+            find last tt-docto      no-lock no-error.
+            
+            &if defined(bf-mat-comex) &then
+            &else
+                if l-acomp then do:
+                    {utp/ut-liter.i Calculo_IPI/ICMS... * L}
+                    assign c-acomp = trim(return-value).
+                    run pi-acompanhar in h-acomp (input c-acomp).
+                end.
+            &endif    
+        
+            &if defined(bf-mat-comex) &then
+            
+                /* Calculo a base e o valor do IPI  */
+                run cdp/cd4306.p ( &IF {&ROWID_READY} = YES &THEN 
+                                    ROWID(tt-it-docto)
+                                   &ELSE 
+                                    recid(tt-it-docto)
+                                   &ENDIF,
+                                   yes,                /* Natureza Entrada */
+                                   natur-oper.char-2,  /* Frete Base IPI   */
+                                   no ).               /* Nota Comercio    */
+        
+                                   
+            &else
+            
+                /* Calculo a base e o valor do IPI  */
+                run cdp/cd4306.p ( tt-it-docto.seq-tt-it-docto,
+                                   1,                  /* Natureza Entrada */
+                                   natur-oper.char-2,  /* Frete Base IPI   */
+                                   no,                 /* Nota Comercio    */
+                                   input        table tt-docto,
+                                   input        table tt-it-docto,
+                                   input-output table tt-it-imposto).
+            &endif    
+            
+            find tt-it-imposto 
+              &if defined(bf-mat-comex) &then               
+                where tt-it-imposto.r-tt-it-docto   = &IF {&ROWID_READY} = YES &THEN 
+                                                        ROWID(tt-it-docto)
+                                                      &ELSE 
+                                                        recid(tt-it-docto)
+                                                      &ENDIF                 
+                                                      no-error.
+              &else
+                where tt-it-imposto.seq-tt-it-docto = tt-it-docto.seq-tt-it-docto no-error.
+              &endif
+                           
+            assign tt-item-doc-est.base-ipi    = tt-it-imposto.vl-bipi-it
+                   tt-item-doc-est.valor-ipi   = tt-it-imposto.vl-ipi-it
+                   tt-item-doc-est.ipi-ntrib   = tt-it-imposto.vl-ipint-it
+                   tt-item-doc-est.ipi-outras  = tt-it-imposto.vl-ipiou-it.
+    
+        end.
+        
+        /* Calcula a base e o valor do ICMS */
+        
+        find last tt-docto.
+        
+        &if defined(bf-mat-comex) &then
+            /* Calcula a base e o valor do ICMS */
+            run rep/re1906.p ( &IF {&ROWID_READY} = YES &THEN 
+                                ROWID(tt-docto)
+                               &ELSE 
+                                recid(tt-docto)
+                               &ENDIF,
+                               yes,                /* ICMS */
+                               no,                 /* Subst. Tributar */
+                               no).                /* ICMS Complement */
+        &else
+            /* Calcula a base e o valor do ICMS */
+            run rep/re1906.p ( tt-docto.seq-tt-docto,
+                               yes,                /* ICMS */
+                               no,                 /* Subst. Tributaria */
+                               no,                 /* ICMS Complementar */
+                               input        table tt-docto,
+                               input        table tt-it-docto,
+                               input-output table tt-it-imposto).
+        &endif
+    
+    end.
+    
+    /* 
+    ** INFORMANDO ICMS NOS ITENS DA NOTA 
+    */
+    for each tt-it-docto:
+    
+        find tt-it-imposto 
+          &if defined(bf-mat-comex) &then               
+            where tt-it-imposto.r-tt-it-docto   = &IF {&ROWID_READY} = YES &THEN
+                                                    ROWID(tt-it-docto)
+                                                  &ELSE
+                                                    recid(tt-it-docto)
+                                                  &ENDIF
+                                                  no-error.
+          &else
+            where tt-it-imposto.seq-tt-it-docto = tt-it-docto.seq-tt-it-docto no-error.
+          &endif
+    
+        find tt-item-doc-est 
+            where tt-item-doc-est.cod-emitente = tt-it-docto.cod-emitente 
+              and tt-item-doc-est.nro-docto    = tt-it-docto.nr-nota 
+              and tt-item-doc-est.serie-docto  = tt-it-docto.serie 
+              and tt-item-doc-est.nat-operacao = tt-it-docto.nat-operacao 
+              and tt-item-doc-est.sequencia    = tt-it-docto.nr-sequencia.
+    
+        assign tt-item-doc-est.base-icm    = tt-it-imposto.vl-bicms-it
+               tt-item-doc-est.valor-icm   = tt-it-imposto.vl-icms-it
+               tt-item-doc-est.icm-ntrib   = tt-it-imposto.vl-icmsnt-it
+               tt-item-doc-est.icm-outras  = tt-it-imposto.vl-icmsou-it.
+               
+        /* inclui icms nas despesas do item e no total outras para contabiliza-lo segundo uma importacao */
+        
+        if not l-fornec-fundap then 
+            assign tt-item-doc-est.despesas = tt-item-doc-est.despesas
+                                            + tt-item-doc-est.valor-icm
+                   de-tot-outras            = de-tot-outras
+                                            + tt-item-doc-est.valor-icm
+                   de-tot-outras-aux        = de-tot-outras-aux
+                                            + tt-item-doc-est.valor-icm.                                         
+                                             
+    end.

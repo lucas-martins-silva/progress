@@ -1,0 +1,41 @@
+IF ((ordem-compra.situacao    = 1 AND lg_nao_confirmada = NO)  
+    OR (ordem-compra.situacao = 2 AND lg_confirmada     = NO) 
+    OR (ordem-compra.situacao = 3 AND lg_cotada         = NO) 
+    OR (ordem-compra.situacao = 4 AND lg_eliminada      = NO) 
+    OR (ordem-compra.situacao = 5 AND lg_em_cotacao     = NO) 
+    OR (ordem-compra.situacao = 6 AND lg_recebida       = NO)) THEN NEXT.
+
+IF ((ordem-compra.natureza = 1 AND lg_compra         = NO)
+    OR (ordem-compra.natureza  = 2 AND lg_servico        = NO)
+    OR (ordem-compra.natureza  = 3 AND lg_beneficiamento = NO)) THEN NEXT.
+
+IF ((ordem-compra.cod-estabel < c-estab-ini)  OR
+   (ordem-compra.cod-estabel  > c-estab-fim)) THEN NEXT.
+
+IF ((ordem-compra.numero-ordem < i-numero-ordem-ini)  OR 
+   (ordem-compra.numero-ordem  > i-numero-ordem-fim)) THEN NEXT.
+
+IF ((ordem-compra.data-emissao < da-emissao-ini)  OR
+   (ordem-compra.data-emissao  > da-emissao-fim)) THEN NEXT.
+
+IF ((ordem-compra.it-codigo < c-it-codigo-ini)  OR
+   (ordem-compra.it-codigo  > c-it-codigo-fim)) THEN NEXT.
+
+IF ((ordem-compra.num-pedido < i-num-pedido-ini)  OR
+   (ordem-compra.num-pedido  > i-num-pedido-fim)) THEN NEXT.
+
+IF ((ordem-compra.cod-emitente < i-cod-emitente-ini)  OR
+   (ordem-compra.cod-emitente  > i-cod-emitente-fim)) THEN NEXT.
+
+IF ((ordem-compra.nr-processo < i-nr-processo-ini)  OR
+   (ordem-compra.nr-processo  > i-nr-processo-fim)) THEN NEXT.
+
+IF ((ordem-compra.requisitante < c-requisitante-ini)  OR
+   (ordem-compra.requisitante  > c-requisitante-fim)) THEN NEXT.
+
+
+IF ((ordem-compra.nr-requisicao < i-nr-requisicao-ini)  OR
+   (ordem-compra.nr-requisicao  > i-nr-requisicao-fim)) THEN NEXT.
+   
+
+

@@ -1,0 +1,81 @@
+PROCEDURE createTbWtDocto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    run findNaturOper ( RowObject.nat-operacao ).
+
+    if  return-value <> "OK":U then 
+        RETURN "NOK":U.
+    
+
+    run findEmitente ( RowObject.cod-emitente ).
+    
+
+    if  return-value <> "OK":U then 
+        RETURN "NOK":U.
+
+    run findEstabelec ( RowObject.cod-estabel ).
+    
+
+    if  return-value <> "OK":U then 
+        RETURN "NOK":U.
+        
+
+    run setHandleBOImpto.
+     
+
+    for each tb-wt-docto exclusive-lock:
+        delete tb-wt-docto.
+    end.
+                    
+
+    create tb-wt-docto.
+    assign tb-wt-docto.cod-des-merc = if  natur-oper.consum-final then 
+                                          2
+                                      else 1
+           tb-wt-docto.cod-emitente = RowObject.cod-emitente
+           tb-wt-docto.cod-estabel  = RowObject.cod-estabel
+           tb-wt-docto.dt-emis-nota = RowObject.dt-trans
+           tb-wt-docto.esp-docto    = RowObject.esp-docto
+           tb-wt-docto.ind-tip-nota = 8
+           tb-wt-docto.mo-codigo    = RowObject.mo-codigo
+           tb-wt-docto.nat-operacao = RowObject.nat-operacao
+           tb-wt-docto.nome-abrev   = emitente.nome-abrev
+           tb-wt-docto.nr-nota      = RowObject.nro-docto
+           tb-wt-docto.seq-wt-docto = 1
+           tb-wt-docto.vl-embalagem = RowObject.valor-embal
+           tb-wt-docto.vl-frete     = RowObject.valor-frete
+           tb-wt-docto.vl-mercad    = RowObject.valor-mercad
+           
+
+           /* Soma Valor Outros no Seguro para considerar no c lculo dos impostos */
+           tb-wt-docto.vl-seguro    = RowObject.valor-seguro + RowObject.valor-outras.
+
+
+    /* Devolu‡Æo de Cliente ou Devolu‡Æo de Consigna‡Æo */
+    
+
+    if  RowObject.cod-observa = 3
+    or  ( natur-oper.terceiros and natur-oper.tp-oper-terc = 5 ) then 
+        assign tb-wt-docto.cidade       = emitente.estado
+               tb-wt-docto.estado       = emitente.cidade
+               tb-wt-docto.pais         = emitente.pais.
+    else
+        assign tb-wt-docto.cidade       = estabelec.estado
+               tb-wt-docto.estado       = estabelec.cidade
+               tb-wt-docto.pais         = estabelec.pais.
+               
+
+    if  valid-handle(h_bodi317im2bra) then 
+        run enviaTbWtDocto in h_bodi317im2bra ( input table tb-wt-docto ) .
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+
+

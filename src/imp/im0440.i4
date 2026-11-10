@@ -1,0 +1,981 @@
+/*****************************************************************************
+**       Programa: IM0440.I4
+**       Objetivo: Denifir as FORM's/FRAMES utilizadas na impressao do relatorio IM0440
+**       OBS.....: 
+*******************************************************************************/
+
+/* Cabecalho Geral - f_cabec1 */
+FORM tt-decla-import.num-di-ems         LABEL "Nr.DI-EMS"        FORMAT ">>>>>>>>>9":U AT 001
+     tt-decla-import.cod-estab          LABEL "Estabelecimento"  FORMAT "X(5)":U       AT 031
+     tt-decla-import.cod-di-siscomex    LABEL "Nr. Di Siscomex"  FORMAT "X(13)":U      AT 056
+     tt-decla-import.dat-di             LABEL "Data Di"          FORMAT "99/99/9999":U AT 088
+     tt-decla-import.dat-retif          LABEL "Data Retif."      FORMAT "99/99/9999":U AT 110 SKIP
+     tt-decla-import.idi-motiv-retif    LABEL "Motivo Retif."    FORMAT "99":U         AT 001     
+    WITH WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f_cabec1.
+
+
+/*Principal DI - f-cabecPrinDi*/
+FORM HEADER 
+     SKIP(2) "*" TRIM(fill("-", 57)) FORMAT "x(57)":U
+     "PRINCIPAL DI" 
+     FILL("-", 57) FORMAT "x(57)":U
+     "*" SKIP
+    WITH DOWN WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-cabecPrinDi. 
+
+/* f-PrinDi */
+FORM c-cgc                                                 FORMAT "X(19)":U   COLON 043 SKIP
+     c-tipo-decla                 LABEL "Tipo Declara‡Æo"  FORMAT "X(80)":U   COLON 043 SKIP /*buscar include - idi-tip-decla-import*/
+     c-carac-oper                 LABEL "Caract Opera‡Æo"  FORMAT "X(30)":U   COLON 043 SKIP /*idi-caract-operac*/
+     c-consig                     LABEL "Consignat rio"                       COLON 043 SKIP /*cdn-consign*/
+     c-cgc-emit                                            FORMAT "X(19)":U   COLON 043 SKIP
+     c-desp                       LABEL "Despachante"      FORMAT "x(30)":U   COLON 043 SKIP
+     tt-decla-import.log-fundap                            FORMAT "Sim/NÆo"   COLON 043 SKIP
+     c-modal-despach              LABEL "Modalid Despacho"                    COLON 043 SKIP /*idi-modalid-despch*/ 
+     tt-decla-import.num-adicoes                           FORMAT ">>9":U     COLON 043 SKIP
+     c-natur-opera                LABEL "Natur Opera‡Æo"                      COLON 043 SKIP /*cod-natur-operac (mgind.natur-oper)*/
+    WITH WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-PrinDi. 
+
+/*Observacoes DI - f-cabecObsDi */
+FORM HEADER 
+     SKIP(2) "*" TRIM(FILL("-":U, 56)) FORMAT "x(56)":U
+     "OBSERVA€åES DI" 
+     FILL("-", 56) FORMAT "x(56)":U
+     "*"
+    WITH DOWN WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-cabecObsDi.
+
+
+/* B sicas DI e Cota‡äes - f-cabecBasiCota */
+FORM HEADER
+    SKIP(1) 
+    "*":U FILL("-":U,23) FORMAT "X(23)":U "BµSICAS DI" FILL("-":U,23) FORMAT "X(23)":U "*":U
+    FILL(" ",16) FORMAT "X(16)":U
+    "*":U FILL("-":U,11) FORMAT "X(11)":U "COTA€åES" FILL("-":U,11) FORMAT "X(11)":U "*":U
+    WITH DOWN WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-cabecBasiCota.
+
+
+/* f-BasiCota */
+FORM lb-moeda                           NO-LABEL                    FORMAT "x(10)":U   AT 081
+     lb-cotacao                         NO-LABEL                    FORMAT "x(10)":U   AT 109 SKIP
+     tt-decla-import.cdn-urf-entr       LABEL "URF Entrada Pa¡s"    FORMAT ">>>>>>9":U AT 002
+     tt-decla-import.cdn-urf-despch     LABEL "URF de Despacho"     FORMAT ">>>>>>9":U AT 038
+     lb-separador                       NO-LABEL                    FORMAT "X(35)":U   AT 081
+    WITH DOWN WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-BasiCota.
+
+
+
+/* f-moeda */
+FORM c-moeda                      FORMAT "X(18)":U             AT 081
+     tt-decla-imp-cotac.val-cotac FORMAT "->>>,>>9.99999999":U AT 99
+    WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-moeda.
+
+
+/* Processo Vinculado - f-cabecProcVinc */
+FORM HEADER 
+    FILL("-":U,13) FORMAT "X(13)":U AT 006
+    "Processo Vinculado"            AT 020
+    FILL("-":U,14) FORMAT "X(14)":U AT 039 SKIP
+    "Tipo"                          AT 006 
+    "Processo Vinculado"            AT 033 SKIP
+    FILL("-":U,26) FORMAT "X(26)":U AT 006
+    FILL("-":U,20) FORMAT "X(20)":U AT 033
+   WITH DOWN WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-cabecProcVinc.
+
+/* f-ProcVinc */
+FORM tt-decla-import-proc.desc-tipo             FORMAT "X(25)":U AT 006
+     tt-decla-import-proc.cod-proces-vincul     FORMAT "X(20)":U AT 033
+    WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-ProcVinc.
+
+/*Transporte DI*/
+IF tt-param.l-transporte <> NO THEN DO:
+    
+    /* f-cabecTransDi */
+    FORM HEADER
+        SKIP(2)
+        "*":U FILL("-":U,56) FORMAT "X(56)":U "TRANSPORTE DI" FILL("-":U,57) FORMAT "X(57)":U "*":U
+        WITH DOWN WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-cabecTransDi.
+
+    
+    /* f-transDi */
+    FORM c-doc-cheg-carg                     LABEL "Doc.Cheg.Carga"         FORMAT "X(20)":U          COLON 21
+         c-via-transp                        LABEL "Via de Transporte"      FORMAT "X(20)":U          COLON 69 SKIP
+         tt-decla-import.cod-identif         LABEL "Identifica‡Æo"          FORMAT "X(15)":U          COLON 21
+         tt-decla-import.cdn-transp          LABEL "Transportador"          FORMAT "999999999":U      COLON 69 SKIP
+         c-tipo-conhe-transp                 LABEL "Tipo Conhec.Transp."    FORMAT "X(7)":U           COLON 21
+         c-pais-transp                       LABEL "Pa¡s Transp."           FORMAT "X(20)":U          COLON 69 SKIP
+         tt-decla-import.cod-conhecto-master LABEL "Conhecimento Master"    FORMAT "X(25)":U          COLON 21    
+         tt-decla-import.idi-ind-utiliz      LABEL "Utiliza‡Æo"             FORMAT ">9":U             COLON 69 SKIP
+         tt-decla-import.cod-conhecto-house  LABEL "Conhecimento House"     FORMAT "X(25)":U          COLON 21
+        WITH WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-transDi.
+
+END.
+
+/*Carga DI - f-cabecCargaDi */
+FORM HEADER
+    SKIP(2)
+    "*":U FILL("-":U,59) FORMAT "X(59)":U "CARGA DI":U FILL("-":U,59) FORMAT "X(59)":U "*":U
+    WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecCargaDi.
+
+/* f-cargaDi */
+FORM c-pais-proceden                          LABEL "Pa¡s Procedˆncia"       FORMAT "X(20)":U                      COLON 21  
+     c-agent-transp                           LABEL "Agente Transportador"   FORMAT "X(50)":U                      COLON 79  
+     tt-decla-import.val-peso-liq-di          LABEL "Peso Liq. TOTAL (Kg)"   FORMAT "->>,>>>,>>>,>>9.9999999999":U COLON 21  
+     c-cnpj-agente-transp                     LABEL "CNPJ Agente Transp"     FORMAT "x(18)":U                      COLON 79  
+     tt-decla-import.val-peso-brut-merc       LABEL "Peso Bruto Merc.(Kg)"   FORMAT "->>,>>>,>>>,>>9.9999999999":U COLON 21  
+     tt-decla-import.cdn-recinto-alfand       LABEL "Recinto Alfandegado"    FORMAT ">>>>>>9":U                    COLON 79  
+     tt-decla-import.val-peso-embal-di        LABEL "Peso Bru. Embal (kg)"   FORMAT "->>,>>>,>>>,>>9.9999999999":U COLON 21  
+     tt-decla-import.cdn-setor-armaz          LABEL "Setor Armazenamento"    FORMAT ">>9":U                        COLON 79  
+     tt-decla-import.val-peso-brut-tot-di     LABEL "Peso Bruto TOTAL(Kg)"   FORMAT "->>,>>>,>>>,>>9.9999999999":U COLON 21
+   WITH WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-cargaDi.
+
+
+/* f-cabecEmbalagem */
+FORM HEADER 
+    SKIP(1)
+    "Qtde"        AT 037
+    "Sigla"       AT 044
+    "Embalagem"   AT 051 SKIP
+    "-----  -----  ------------------------------" AT 037
+  WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecEmbalagem.
+
+/* f-embalagem */
+FORM tt-decla-imp-embal.qtd-vol-embal  FORMAT ">>>,>>9":U AT 035
+     tt-decla-imp-embal.cod-sig-embal  FORMAT "!xx":U     AT 045
+     embalag.descricao                 FORMAT "X(30)":U   AT 051
+   WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-embalagem.
+
+/*Itinierario DI*/
+IF tt-param.l-Itinerario <> NO THEN DO:
+
+    /* f-cabecItinDi */
+    FORM HEADER 
+        SKIP(1)
+        "*":U FILL("-":U,57) FORMAT "X(57)":U "ITINERµRIO DI" FILL("-":U,56) FORMAT "X(56)":U "*":U SKIP
+        "Seq"              /*tt-histor-di.num-seq            */  AT 002
+        "Pto.Cont"         /*tt-histor-di.cdn-pto-control    */  AT 006
+        "Descri‡Æo"        /*c-pto-desc                      */  AT 015
+        "PrevisÆo"         /*tt-histor-di.dat-prev-origin    */  AT 047
+        "Ult.Prev."        /*tt-histor-di.dat-ult-prev       */  AT 058
+        "Efetiva"          /*tt-histor-di.dat-efetivo        */  AT 069
+        "Ve¡culo Transp."  /*tt-histor-di.cod-meio-transp    */  AT 083
+        "Observa‡Æo"       /*tt-histor-di.dsl-observacao     */  AT 107
+        WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecItinDi.
+    
+    /* f-itinDi */
+    FORM tt-histor-di.num-seq              AT 002
+         tt-histor-di.cdn-pto-control      AT 006
+         c-pto-desc                        AT 015
+         tt-histor-di.dat-prev-origin      AT 047
+         tt-histor-di.dat-ult-prev         AT 058
+         tt-histor-di.dat-efetiva          AT 069  
+         tt-histor-di.cod-meio-transp      AT 083
+         c-dsl-obs  format "X(25)"         AT 107
+       WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-itinDi.
+END.
+
+/*Despesas DI*/
+IF tt-param.l-despesas <> NO THEN DO:
+
+    /* f-cabecDespDi */
+    FORM HEADER
+        SKIP(2)
+        "*":U FILL("-":U,57) FORMAT "X(57)":U "DESPESAS DI" FILL("-":U,58) FORMAT "X(58)":U "*":U
+        SKIP
+        "Despesa"          AT 007
+        "Moeda"            AT 040
+        "Taxa Cƒmbio"      AT 059
+        "Forma Pre."       AT 074
+        "Tipo Despesa"     AT 086
+        "Incoterm"         AT 110 
+       SKIP
+        "Fornecedor"       AT 007
+        "Condi‡Æo Pagto"   AT 040
+        "Dupl"             AT 067
+        "II"               AT 074
+        "IPI"              AT 080
+        "ICMS"             AT 086
+        "PIS-ADU"          AT 093
+        "PIS-DESP"         AT 102
+        "COFINS-ADU"       AT 112
+        SKIP
+        "COFINS-DESP"      AT 007 
+        "Valor-ME"         AT 040
+        "Valor-MN"         AT 072
+        FILL("-":U,130) FORMAT "X(130)":U AT 002
+        WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecDespDi.
+
+    /* f-despDi */
+    FORM "Ponto de Controle: "                                  AT 002
+         tt-despes-decla-import.cdn-pto-control                 AT 021
+         "-"                                                    AT 028
+         c-desc-pto-control                                     AT 030
+        SKIP(1)                                                
+         tt-despes-decla-import.cdn-despes                      AT 007
+         c-desc-desp                                            AT 013
+         c-desp-moeda                                           AT 040
+         d-taxa-camb                                            AT 053
+         tt-despes-decla-import.log-forma-preco-compra          AT 074
+         c-tipo-despes                                          AT 086
+         tt-despes-decla-import.cod-incoterm-rat                AT 110
+        SKIP                                                    
+         tt-despes-decla-import.cdn-emit-despes                 AT 007
+         c-desc-emitente                                        AT 016
+         tt-despes-decla-import.cdn-cond-pagto                  AT 040
+         c-desc-cond-pagto                                      AT 044
+         l-duplic                                               AT 067
+         l-ii                                                   AT 074
+         l-ipi                                                  AT 080
+         l-icms                                                 AT 086
+         l-pis-adu                                              AT 093
+         l-pis-desp                                             AT 102
+         l-cofins-adu                                           AT 113
+        SKIP
+         l-cofins-desp                                          AT 007
+         d-valor-me                                             AT 024
+         d-valor-mn                                             AT 056
+        SKIP(2)
+       WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-despDi.
+       
+       
+    /* Reforma Tribut ria - Novos Tributos (DBACKRTDTS-798) */
+    /* f-cabecDespDiCbsIbs */
+    FORM HEADER
+        SKIP(2)
+        "*":U FILL("-":U,57) FORMAT "X(57)":U "DESPESAS DI" FILL("-":U,58) FORMAT "X(58)":U "*":U
+        SKIP
+        "Despesa"          AT 007
+        "Moeda"            AT 040
+        "Taxa Cƒmbio"      AT 059
+        "Forma Pre."       AT 074
+        "Tipo Despesa"     AT 086
+        "Incoterm"         AT 110 
+       SKIP
+        "Fornecedor"       AT 007
+        "Condi‡Æo Pagto"   AT 040
+        "Dupl"             AT 067
+        "II"               AT 074
+        "IPI"              AT 080
+        "ICMS"             AT 086
+        "PIS-ADU"          AT 093
+        "PIS-DESP"         AT 102
+        "COFINS-ADU"       AT 112
+        SKIP
+        "COFINS-DESP"      AT 007 
+        "Valor-ME"         AT 040
+        "Valor-MN"         AT 072
+        SKIP
+        "IBS UF"           AT 007
+        "IBS Mun"          AT 017
+        "CBS"              AT 027
+        FILL("-":U,130) FORMAT "X(130)":U AT 002
+        WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecDespDiCbsIbs.
+        
+    /* f-despDiCbsIbs */
+    FORM "Ponto de Controle: "                                  AT 002
+         tt-despes-decla-import.cdn-pto-control                 AT 021
+         "-"                                                    AT 028
+         c-desc-pto-control                                     AT 030
+        SKIP(1)                                                
+         tt-despes-decla-import.cdn-despes                      AT 007
+         c-desc-desp                                            AT 013
+         c-desp-moeda                                           AT 040
+         d-taxa-camb                                            AT 053
+         tt-despes-decla-import.log-forma-preco-compra          AT 074
+         c-tipo-despes                                          AT 086
+         tt-despes-decla-import.cod-incoterm-rat                AT 110
+        SKIP                                                    
+         tt-despes-decla-import.cdn-emit-despes                 AT 007
+         c-desc-emitente                                        AT 016
+         tt-despes-decla-import.cdn-cond-pagto                  AT 040
+         c-desc-cond-pagto                                      AT 044
+         l-duplic                                               AT 067
+         l-ii                                                   AT 074
+         l-ipi                                                  AT 080
+         l-icms                                                 AT 086
+         l-pis-adu                                              AT 093
+         l-pis-desp                                             AT 102
+         l-cofins-adu                                           AT 113
+        SKIP
+         l-cofins-desp                                          AT 007
+         d-valor-me                                             AT 024
+         d-valor-mn                                             AT 056
+        SKIP
+         l-ibs-uf                                               AT 007
+         l-ibs-mun                                              AT 017
+         l-cbs                                                  AT 027
+        SKIP(2)
+       WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-despDiCbsIbs.
+    /* FIM -- Reforma Tribut ria - Novos Tributos (DBACKRTDTS-798) */
+
+    
+    /*Despesas Embarque - f-cabecDespEmbarq */
+    FORM HEADER
+        SKIP(2)
+        "*":U FILL("-":U,54) FORMAT "X(54)":U "DESPESAS EMBARQUE" FILL("-":U,55) FORMAT "X(55)":U "*":U
+        SKIP
+        "Despesa"          AT 007           
+        "Moeda"            AT 040           
+        "Taxa Cƒmbio"      AT 059           
+        "Forma Pre."       AT 074           
+        "Tipo Despesa"     AT 086           
+        "Incoterm"         AT 110           
+        SKIP                                 
+        "Fornecedor"       AT 007           
+        "Condi‡Æo Pagto"   AT 040           
+        "Dupl"             AT 067           
+        "II"               AT 074           
+        "IPI"              AT 080           
+        "ICMS"             AT 086           
+        "PIS-ADU"          AT 093           
+        "PIS-DESP"         AT 102           
+        "COFINS-ADU"       AT 112           
+        SKIP                                
+        "COFINS-DESP"      AT 007           
+        "Valor-ME"         AT 040           
+        "Valor-MN"         AT 072           
+        FILL("-":U,130) FORMAT "X(130)":U AT 002
+        WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecDespEmbarq.
+
+    /* f-despEmbarq */
+    FORM "Ponto de Controle: "                                  AT 002 
+         tt-despes-decla-import.cdn-pto-control                 AT 021 
+         "-"                                                    AT 028 
+         c-desc-pto-control                                     AT 030 
+        SKIP(1)                                                        
+         tt-despes-decla-import.cdn-despes                      AT 007 
+         c-desc-desp                                            AT 013 
+         c-desp-moeda                                           AT 040 
+         d-taxa-camb                                            AT 053 
+         tt-despes-decla-import.log-forma-preco-compra          AT 074 
+         c-tipo-despes                                          AT 086 
+         tt-despes-decla-import.cod-incoterm-rat                AT 110 
+        SKIP                                                           
+         tt-despes-decla-import.cdn-emit-despes                 AT 007 
+         c-desc-emitente                                        AT 016 
+         tt-despes-decla-import.cdn-cond-pagto                  AT 040 
+         c-desc-cond-pagto                                      AT 044 
+         l-duplic                                               AT 067 
+         l-ii                                                   AT 074 
+         l-ipi                                                  AT 080 
+         l-icms                                                 AT 086 
+         l-pis-adu                                              AT 093 
+         l-pis-desp                                             AT 102 
+         l-cofins-adu                                           AT 113 
+        SKIP                                                           
+         l-cofins-desp                                          AT 007 
+         d-valor-me                                             AT 024 
+         d-valor-mn                                             AT 056 
+        WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-despEmbarq.
+END.
+
+/*Total das despesas quebradas pelo ponto de controle - f-totPtoContr*/
+FORM d-tot-pto-contr COLON 065 SKIP(1)
+    WITH WIDTH 132 SIDE-LABEL STREAM-IO FRAME f-totPtoContr.
+
+
+/*Totais das despesas di / despesas embarque - f-cabecTotDesp */
+FORM HEADER 
+     SKIP(2)
+     "*":U FILL("-":U,44) FORMAT "X(44)":U "TOTAIS DESPESAS DI / DESPESAS EMBARQUE" FILL("-":U,44) FORMAT "X(44)":U "*":U
+     SKIP(1)
+    WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecTotDesp.
+
+/* f-totDesp */
+FORM d-tot-pto-nac    COLON 065 SKIP  
+     d-tot-geral-desp COLON 065  
+    WITH WIDTH 132 SIDE-LABEL NO-BOX STREAM-IO FRAME f-totDesp.
+
+
+/* valores - f-cabecValores */
+FORM HEADER 
+    SKIP(1)
+     "*":U AT 023 FILL("-":U,37) FORMAT "X(37)":U "VALORES" FILL("-":U,37) FORMAT "X(37)":U "*":U 
+     SKIP
+     "Moeda"                           AT 034
+     "Valor MN"                        AT 072
+     "Valor ME"                        AT 098
+     SKIP
+     FILL("-":U,20) FORMAT "X(20)":U   AT 034
+     FILL("-":U,24) FORMAT "X(24)":U   AT 056
+     FILL("-":U,24) FORMAT "X(24)":U   AT 082
+    WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecValores.
+
+/* f-valores */
+FORM lb-frete                                     AT 027
+     tt-valores-decla-import.frete-moeda          AT 034              
+     tt-valores-decla-import.frete-valor-me       AT 056              
+     tt-valores-decla-import.frete-valor-mn       AT 082              
+    SKIP                                                              
+     lb-seguro                                    AT 026              
+     tt-valores-decla-import.seguro-moeda         AT 034              
+     tt-valores-decla-import.seguro-valor-me      AT 056              
+     tt-valores-decla-import.seguro-valor-mn      AT 082              
+    SKIP                                                              
+     lb-vmle                                      AT 028              
+     tt-valores-decla-import.vmle-moeda           AT 034              
+     tt-valores-decla-import.vmle-valor-me        AT 056              
+     tt-valores-decla-import.vmle-valor-mn        AT 082              
+    SKIP                                                              
+     lb-vmld                                      AT 028              
+     tt-valores-decla-import.vmld-moeda           AT 034             
+     tt-valores-decla-import.vmld-valor-me        AT 056
+     tt-valores-decla-import.vmld-valor-mn        AT 082
+    SKIP
+     lb-vmcv                                      AT 028
+     tt-valores-decla-import.vmcv-moeda           AT 034
+     tt-valores-decla-import.vmcv-valor-me        AT 056
+     tt-valores-decla-import.vmcv-valor-mn        AT 082
+    WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-valores.
+
+/* IMPOSTOS - f-cabecImpostos */
+FORM HEADER 
+    SKIP(1)
+     "*":U AT 017 FILL("-":U,44) FORMAT "X(44)":U "IMPOSTOS" FILL("-":U,44) FORMAT "X(44)":U "*":U 
+     SKIP
+     "Base C lculo"                     AT 035
+     "Suspenso"                         AT 062
+     "A Recolher"                       AT 083
+     "Outro"                            AT 111
+     SKIP
+     FILL("-":U,22) FORMAT "X(22)":U    AT 025
+     FILL("-":U,22) FORMAT "X(22)":U    AT 048
+     FILL("-":U,22) FORMAT "X(22)":U    AT 071
+     FILL("-":U,22) FORMAT "X(22)":U    AT 094
+    WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecImpostos.
+
+/* f-impostos */
+FORM lb-ii                                                  AT 021
+     tt-valores-decla-import.val-base-ii                    AT 025
+     tt-valores-decla-import.val-ii-nao-tribut              AT 048
+     tt-valores-decla-import.val-ii-db-cr                   AT 071
+     tt-valores-decla-import.val-ii-outras                  AT 094
+    SKIP
+     lb-ipi                                                 AT 020
+     tt-valores-decla-import.val-base-ipi                   AT 025     
+     tt-valores-decla-import.val-ipi-nao-tributad           AT 048     
+     tt-valores-decla-import.val-ipi-db-cr                  AT 071     
+     tt-valores-decla-import.val-ipi-outras                 AT 094     
+    SKIP
+     lb-pis                                                 AT 020
+     tt-valores-decla-import.val-base-pis                   AT 025
+     tt-valores-decla-import.val-pis-nao-tributad           AT 048
+     tt-valores-decla-import.val-pis-db-cr                  AT 071
+     tt-valores-decla-import.val-pis-outras                 AT 094
+    SKIP
+     lb-cofins                                              AT 017
+     tt-valores-decla-import.val-base-cofins                AT 025
+     tt-valores-decla-import.val-cofins-nao-tributad        AT 048
+     tt-valores-decla-import.val-cofins-db-cr               AT 071
+     tt-valores-decla-import.val-cofins-outras              AT 094
+    SKIP
+     lb-icms                                                AT 019
+     tt-valores-decla-import.val-base-icms                  AT 025
+     tt-valores-decla-import.val-icms-nao-tributad          AT 048
+     tt-valores-decla-import.val-icms-db-cr                 AT 071
+     tt-valores-decla-import.val-icms-outras                AT 094
+    SKIP
+     lb-fcp                                                 AT 020
+     de-v-base-fcp                                          AT 025
+     de-v-susp-fcp                                          AT 048
+     de-v-recolhe-fcp                                       AT 071
+     de-v-outros-fcp                                        AT 094
+    SKIP
+     lb-fcp-st                                              AT 017
+     de-v-base-fcp-st                                       AT 025
+     de-v-susp-fcp-st                                       AT 048
+     de-v-recolhe-fcp-st                                    AT 071
+     de-v-outros-fcp-st                                     AT 094
+    SKIP
+     lb-icms-st                                             AT 016
+     de-v-base-icms-st                                      AT 025
+     de-v-susp-icms-st                                      AT 048
+     de-v-recolhe-icms-st                                   AT 071
+     de-v-outros-icms-st                                    AT 094
+    SKIP
+     lb-icms-compl                                          AT 013
+     de-v-base-icms-compl                                   AT 025
+     de-v-susp-icms-compl                                   AT 048
+     de-v-recolhe-icms-compl                                AT 071
+     de-v-outros-icms-compl                                 AT 094
+    SKIP(1)
+     lb-totais                                              AT 017
+     d-tot-base                                             AT 025
+     d-tot-nao-tribut                                       AT 048
+     d-tot-db-cr                                            AT 071
+     d-tot-outras                                           AT 094
+    WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-impostos.
+    
+    
+/* Reforma Tribut ria - Novos Tributos (DBACKRTDTS-798) */
+/* f-impostosCbsIbs */
+FORM lb-ii                                                  AT 021
+     tt-valores-decla-import.val-base-ii                    AT 025
+     tt-valores-decla-import.val-ii-nao-tribut              AT 048
+     tt-valores-decla-import.val-ii-db-cr                   AT 071
+     tt-valores-decla-import.val-ii-outras                  AT 094
+    SKIP
+     lb-ipi                                                 AT 020
+     tt-valores-decla-import.val-base-ipi                   AT 025     
+     tt-valores-decla-import.val-ipi-nao-tributad           AT 048     
+     tt-valores-decla-import.val-ipi-db-cr                  AT 071     
+     tt-valores-decla-import.val-ipi-outras                 AT 094     
+    SKIP
+     lb-pis                                                 AT 020
+     tt-valores-decla-import.val-base-pis                   AT 025
+     tt-valores-decla-import.val-pis-nao-tributad           AT 048
+     tt-valores-decla-import.val-pis-db-cr                  AT 071
+     tt-valores-decla-import.val-pis-outras                 AT 094
+    SKIP
+     lb-cofins                                              AT 017
+     tt-valores-decla-import.val-base-cofins                AT 025
+     tt-valores-decla-import.val-cofins-nao-tributad        AT 048
+     tt-valores-decla-import.val-cofins-db-cr               AT 071
+     tt-valores-decla-import.val-cofins-outras              AT 094
+    SKIP
+     lb-icms                                                AT 019
+     tt-valores-decla-import.val-base-icms                  AT 025
+     tt-valores-decla-import.val-icms-nao-tributad          AT 048
+     tt-valores-decla-import.val-icms-db-cr                 AT 071
+     tt-valores-decla-import.val-icms-outras                AT 094
+    SKIP
+     lb-fcp                                                 AT 020
+     de-v-base-fcp                                          AT 025
+     de-v-susp-fcp                                          AT 048
+     de-v-recolhe-fcp                                       AT 071
+     de-v-outros-fcp                                        AT 094
+    SKIP
+     lb-fcp-st                                              AT 017
+     de-v-base-fcp-st                                       AT 025
+     de-v-susp-fcp-st                                       AT 048
+     de-v-recolhe-fcp-st                                    AT 071
+     de-v-outros-fcp-st                                     AT 094
+    SKIP
+     lb-icms-st                                             AT 016
+     de-v-base-icms-st                                      AT 025
+     de-v-susp-icms-st                                      AT 048
+     de-v-recolhe-icms-st                                   AT 071
+     de-v-outros-icms-st                                    AT 094
+    SKIP
+     lb-icms-compl                                          AT 013
+     de-v-base-icms-compl                                   AT 025
+     de-v-susp-icms-compl                                   AT 048
+     de-v-recolhe-icms-compl                                AT 071
+     de-v-outros-icms-compl                                 AT 094
+     
+    SKIP
+     lb-ibs-uf                                              AT 017
+     tt-valores-decla-import.val-base-ibs-uf                AT 025
+     tt-valores-decla-import.val-ibs-uf-nao-tributad        AT 048
+     tt-valores-decla-import.val-ibs-uf-db-cr               AT 071
+     tt-valores-decla-import.val-ibs-uf-outras              AT 094
+    SKIP
+     lb-ibs-mun                                             AT 016
+     tt-valores-decla-import.val-base-ibs-mun               AT 025
+     tt-valores-decla-import.val-ibs-mun-nao-tributad       AT 048
+     tt-valores-decla-import.val-ibs-mun-db-cr              AT 071
+     tt-valores-decla-import.val-ibs-mun-outras             AT 094
+    SKIP
+     lb-cbs                                                 AT 020
+     tt-valores-decla-import.val-base-cbs                   AT 025
+     tt-valores-decla-import.val-cbs-nao-tributad           AT 048
+     tt-valores-decla-import.val-cbs-db-cr                  AT 071
+     tt-valores-decla-import.val-cbs-outras                 AT 094
+    SKIP
+     lb-ibs-uf-reg                                          AT 013
+     tt-valores-decla-import.val-base-ibs-uf-reg            AT 025
+     tt-valores-decla-import.val-ibs-uf-outras-reg          AT 094
+    SKIP
+     lb-ibs-mun-reg                                         AT 012
+     tt-valores-decla-import.val-base-ibs-mun-reg           AT 025
+     tt-valores-decla-import.val-ibs-mun-outras-reg         AT 094
+    SKIP
+     lb-cbs-reg                                             AT 016
+     tt-valores-decla-import.val-base-cbs-reg               AT 025
+     tt-valores-decla-import.val-cbs-outras-reg             AT 094
+     
+    SKIP(1)
+     lb-totais                                              AT 017
+     d-tot-base                                             AT 025
+     d-tot-nao-tribut                                       AT 048
+     d-tot-db-cr                                            AT 071
+     d-tot-outras                                           AT 094
+    WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-impostosCbsIbs.
+/* FIM -- Reforma Tribut ria - Novos Tributos (DBACKRTDTS-798) */
+
+/* CUSTOS DE NACIONALIZA€ÇO E INTERNA€ÇO  */
+IF tt-param.l-cus-nacio <> NO THEN DO:
+
+    /* f-cabecCustNacInt */
+    FORM HEADER 
+        SKIP(3)
+        "*":U FILL("-":U,44) FORMAT "X(44)":U "CUSTOS DE NACIONALIZA€ÇO E INTERNA€ÇO" FILL("-":U,45) FORMAT "X(45)":U "*":U
+        SKIP(1)
+        "Moeda"                                     AT 032
+        "Valor MN"                                  AT 070
+        "Valor ME"                                  AT 096
+        "% Nac"                                     AT 108
+        "% Interna‡Æo"                              AT 115
+       SKIP
+        FILL("-":U,20) FORMAT "X(20)":U             AT 032
+        FILL("-":U,24) FORMAT "X(24)":U             AT 054
+        FILL("-":U,24) FORMAT "X(24)":U             AT 080
+        FILL("-":U,6)  FORMAT "X(6)":U              AT 107
+        FILL("-":U,12) FORMAT "X(12)":U             AT 115
+       WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecCustNacInt.
+
+    /* f-custNacInt */
+    FORM 
+        "Valor Mercadoria(VMCV) :"                        AT 006
+        tt-valores-decla-import.vmcv-moeda                AT 032
+        tt-valores-decla-import.vmcv-valor-me             AT 054
+        tt-valores-decla-import.vmcv-valor-mn             AT 080
+        tt-valores-decla-import.vmcv-perc-naci            AT 107
+        tt-valores-decla-import.vmcv-perc-inte            AT 121
+       SKIP                                              
+        "Frete :"                                         AT 023
+        tt-valores-decla-import.frete-moeda               AT 032
+        tt-valores-decla-import.frete-valor-me            AT 054
+        tt-valores-decla-import.frete-valor-mn            AT 080
+        tt-valores-decla-import.frete-perc-naci           AT 107
+        tt-valores-decla-import.frete-perc-inte           AT 121
+       SKIP                                              
+        "Seguro :"                                        AT 022
+        tt-valores-decla-import.seguro-moeda              AT 032
+        tt-valores-decla-import.seguro-valor-me           AT 054
+        tt-valores-decla-import.seguro-valor-mn           AT 080
+        tt-valores-decla-import.seguro-perc-naci          AT 107
+        tt-valores-decla-import.seguro-perc-inte          AT 121
+       SKIP                                              
+        "Acr‚scimos :"                                    AT 018
+        tt-valores-decla-import.acresc-moeda              AT 032
+        tt-valores-decla-import.acresc-valor-me           AT 054
+        tt-valores-decla-import.acresc-valor-mn           AT 080
+        tt-valores-decla-import.acresc-perc-naci          AT 107
+        tt-valores-decla-import.acresc-perc-inte          AT 121
+       SKIP                                              
+        "Valor Aduaneiro(VMLD) :"                         AT 007
+        tt-valores-decla-import.vmld-moeda                AT 032
+        tt-valores-decla-import.vmld-valor-me             AT 054
+        tt-valores-decla-import.vmld-valor-mn             AT 080
+        tt-valores-decla-import.vmld-perc-naci            AT 107
+        tt-valores-decla-import.vmld-perc-inte            AT 121
+       SKIP(1)                                           
+        "II :"                                            AT 026
+        tt-valores-decla-import.ii-moeda                  AT 032
+        tt-valores-decla-import.ii-valor-me               AT 056
+        tt-valores-decla-import.val-ii-db-cr              AT 082
+        tt-valores-decla-import.ii-perc-naci              AT 107
+        tt-valores-decla-import.ii-perc-inte              AT 121
+       SKIP                                              
+        "IPI :"                                           AT 025
+        tt-valores-decla-import.ipi-moeda                 AT 032
+        tt-valores-decla-import.ipi-valor-me              AT 056
+        tt-valores-decla-import.val-ipi-db-cr             AT 082
+        tt-valores-decla-import.ipi-perc-naci             AT 107
+        tt-valores-decla-import.ipi-perc-inte             AT 121
+       SKIP                                              
+        "PIS/PASEP :"                                     AT 019
+        tt-valores-decla-import.pis-moeda                 AT 032
+        tt-valores-decla-import.pis-valor-me              AT 056
+        tt-valores-decla-import.val-pis-db-cr             AT 082
+        tt-valores-decla-import.pis-perc-naci             AT 107
+        tt-valores-decla-import.pis-perc-inte             AT 121
+       SKIP                                              
+        "COFINS :"                                        AT 022
+        tt-valores-decla-import.cofins-moeda              AT 032
+        tt-valores-decla-import.cofins-valor-me           AT 056
+        tt-valores-decla-import.val-cofins-db-cr          AT 082
+        tt-valores-decla-import.cofins-perc-naci          AT 107
+        tt-valores-decla-import.cofins-perc-inte          AT 121
+       SKIP                                              
+        "ICMS :"                                          AT 024
+        tt-valores-decla-import.icms-moeda                AT 032
+        tt-valores-decla-import.icms-valor-me             AT 056
+        tt-valores-decla-import.val-icms-db-cr            AT 082
+        tt-valores-decla-import.icms-perc-naci            AT 107
+        tt-valores-decla-import.icms-perc-inte            AT 121
+       SKIP(1)                                           
+        "TOTAL Impostos :"                                AT 014
+        tt-valores-decla-import.val-tot-imp-me            AT 056
+        tt-valores-decla-import.val-tot-imp-mn            AT 082
+        tt-valores-decla-import.val-tot-imp-naci          AT 107
+        tt-valores-decla-import.val-tot-imp-inte          AT 121
+       SKIP(1)
+        "VALOR NACIONALIZADO :"                           AT 009                      
+        tt-valores-decla-import.val-nac-moeda             AT 032 
+        tt-valores-decla-import.val-nac-valor-me          AT 054
+        tt-valores-decla-import.val-nac-valor-mn          AT 080
+        tt-valores-decla-import.val-nac-perc-naci         AT 107
+        tt-valores-decla-import.val-nac-perc-inte         AT 121
+       SKIP(1)
+        "Despesas Complementares :"                       AT 005                      
+        tt-valores-decla-import.desp-comp-moeda           AT 032 
+        tt-valores-decla-import.desp-comp-valor-me        AT 054
+        tt-valores-decla-import.desp-comp-valor-mn        AT 080
+        tt-valores-decla-import.desp-comp-perc-inte       AT 121 
+       SKIP                                             
+         "VALOR INTERNALIZADO :"                          AT 009
+         tt-valores-decla-import.val-int-moeda            AT 032
+         tt-valores-decla-import.val-int-valor-me         AT 054
+         tt-valores-decla-import.val-int-valor-mn         AT 080
+         tt-valores-decla-import.val-int-perc-inte        AT 121 
+       WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-custNacInt.
+       
+       
+    /* Reforma Tribut ria - Novos Tributos (DBACKRTDTS-798) */   
+    /* f-custNacIntCbsIbs */
+    FORM 
+        "Valor Mercadoria(VMCV) :"                        AT 006
+        tt-valores-decla-import.vmcv-moeda                AT 032
+        tt-valores-decla-import.vmcv-valor-me             AT 054
+        tt-valores-decla-import.vmcv-valor-mn             AT 080
+        tt-valores-decla-import.vmcv-perc-naci            AT 107
+        tt-valores-decla-import.vmcv-perc-inte            AT 121
+       SKIP                                              
+        "Frete :"                                         AT 023
+        tt-valores-decla-import.frete-moeda               AT 032
+        tt-valores-decla-import.frete-valor-me            AT 054
+        tt-valores-decla-import.frete-valor-mn            AT 080
+        tt-valores-decla-import.frete-perc-naci           AT 107
+        tt-valores-decla-import.frete-perc-inte           AT 121
+       SKIP                                              
+        "Seguro :"                                        AT 022
+        tt-valores-decla-import.seguro-moeda              AT 032
+        tt-valores-decla-import.seguro-valor-me           AT 054
+        tt-valores-decla-import.seguro-valor-mn           AT 080
+        tt-valores-decla-import.seguro-perc-naci          AT 107
+        tt-valores-decla-import.seguro-perc-inte          AT 121
+       SKIP                                              
+        "Acr‚scimos :"                                    AT 018
+        tt-valores-decla-import.acresc-moeda              AT 032
+        tt-valores-decla-import.acresc-valor-me           AT 054
+        tt-valores-decla-import.acresc-valor-mn           AT 080
+        tt-valores-decla-import.acresc-perc-naci          AT 107
+        tt-valores-decla-import.acresc-perc-inte          AT 121
+       SKIP                                              
+        "Valor Aduaneiro(VMLD) :"                         AT 007
+        tt-valores-decla-import.vmld-moeda                AT 032
+        tt-valores-decla-import.vmld-valor-me             AT 054
+        tt-valores-decla-import.vmld-valor-mn             AT 080
+        tt-valores-decla-import.vmld-perc-naci            AT 107
+        tt-valores-decla-import.vmld-perc-inte            AT 121
+       SKIP(1)                                           
+        "II :"                                            AT 026
+        tt-valores-decla-import.ii-moeda                  AT 032
+        tt-valores-decla-import.ii-valor-me               AT 056
+        tt-valores-decla-import.val-ii-db-cr              AT 082
+        tt-valores-decla-import.ii-perc-naci              AT 107
+        tt-valores-decla-import.ii-perc-inte              AT 121
+       SKIP                                              
+        "IPI :"                                           AT 025
+        tt-valores-decla-import.ipi-moeda                 AT 032
+        tt-valores-decla-import.ipi-valor-me              AT 056
+        tt-valores-decla-import.val-ipi-db-cr             AT 082
+        tt-valores-decla-import.ipi-perc-naci             AT 107
+        tt-valores-decla-import.ipi-perc-inte             AT 121
+       SKIP                                              
+        "PIS/PASEP :"                                     AT 019
+        tt-valores-decla-import.pis-moeda                 AT 032
+        tt-valores-decla-import.pis-valor-me              AT 056
+        tt-valores-decla-import.val-pis-db-cr             AT 082
+        tt-valores-decla-import.pis-perc-naci             AT 107
+        tt-valores-decla-import.pis-perc-inte             AT 121
+       SKIP                                              
+        "COFINS :"                                        AT 022
+        tt-valores-decla-import.cofins-moeda              AT 032
+        tt-valores-decla-import.cofins-valor-me           AT 056
+        tt-valores-decla-import.val-cofins-db-cr          AT 082
+        tt-valores-decla-import.cofins-perc-naci          AT 107
+        tt-valores-decla-import.cofins-perc-inte          AT 121
+       SKIP                                              
+        "ICMS :"                                          AT 024
+        tt-valores-decla-import.icms-moeda                AT 032
+        tt-valores-decla-import.icms-valor-me             AT 056
+        tt-valores-decla-import.val-icms-db-cr            AT 082
+        tt-valores-decla-import.icms-perc-naci            AT 107
+        tt-valores-decla-import.icms-perc-inte            AT 121
+       SKIP(1)
+       
+       "IBS UF :"                                         AT 022
+        tt-valores-decla-import.ibs-uf-moeda              AT 032
+        tt-valores-decla-import.ibs-uf-valor-me           AT 056
+        tt-valores-decla-import.val-ibs-uf-db-cr          AT 082
+        tt-valores-decla-import.ibs-uf-perc-naci          AT 107
+        tt-valores-decla-import.ibs-uf-perc-inte          AT 121
+       SKIP
+        "IBS Mun :"                                       AT 021
+        tt-valores-decla-import.ibs-mun-moeda             AT 032
+        tt-valores-decla-import.ibs-mun-valor-me          AT 056
+        tt-valores-decla-import.val-ibs-mun-db-cr         AT 082
+        tt-valores-decla-import.ibs-mun-perc-naci         AT 107
+        tt-valores-decla-import.ibs-mun-perc-inte         AT 121
+       SKIP
+        "CBS :"                                           AT 025
+        tt-valores-decla-import.cbs-moeda                 AT 032
+        tt-valores-decla-import.cbs-valor-me              AT 056
+        tt-valores-decla-import.val-cbs-db-cr             AT 082
+        tt-valores-decla-import.cbs-perc-naci             AT 107
+        tt-valores-decla-import.cbs-perc-inte             AT 121
+       
+       SKIP(1)
+        "TOTAL Impostos :"                                AT 014
+        tt-valores-decla-import.val-tot-imp-me            AT 056
+        tt-valores-decla-import.val-tot-imp-mn            AT 082
+        tt-valores-decla-import.val-tot-imp-naci          AT 107
+        tt-valores-decla-import.val-tot-imp-inte          AT 121
+       SKIP(1)
+        "VALOR NACIONALIZADO :"                           AT 009                      
+        tt-valores-decla-import.val-nac-moeda             AT 032 
+        tt-valores-decla-import.val-nac-valor-me          AT 054
+        tt-valores-decla-import.val-nac-valor-mn          AT 080
+        tt-valores-decla-import.val-nac-perc-naci         AT 107
+        tt-valores-decla-import.val-nac-perc-inte         AT 121
+       SKIP(1)
+        "Despesas Complementares :"                       AT 005                      
+        tt-valores-decla-import.desp-comp-moeda           AT 032 
+        tt-valores-decla-import.desp-comp-valor-me        AT 054
+        tt-valores-decla-import.desp-comp-valor-mn        AT 080
+        tt-valores-decla-import.desp-comp-perc-inte       AT 121 
+       SKIP                                             
+         "VALOR INTERNALIZADO :"                          AT 009
+         tt-valores-decla-import.val-int-moeda            AT 032
+         tt-valores-decla-import.val-int-valor-me         AT 054
+         tt-valores-decla-import.val-int-valor-mn         AT 080
+         tt-valores-decla-import.val-int-perc-inte        AT 121 
+       WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-custNacIntCbsIbs.
+    /* FIM -- Reforma Tribut ria - Novos Tributos (DBACKRTDTS-798) */
+END.
+
+/* f-param */
+FORM 
+    SKIP(3)
+    "Sele‡Æo"                                           AT 031
+    SKIP(1)                                            
+    "DI-EMS:"                                           AT 046
+    tt-param.c-diems-ini                                AT 054
+    "|< >|"                                             AT 071
+    tt-param.c-diems-fim                                AT 077
+    SKIP                                               
+    "DI-SISCOMEX:"                                      AT 041
+    tt-param.c-siscomex-ini                             AT 054
+    "|< >|"                                             AT 071
+    tt-param.c-siscomex-fim                             AT 077
+    SKIP                                               
+    "Data DI:"                                          AT 045
+    tt-param.d-datadi-ini                               AT 054
+    "|< >|"                                             AT 071
+    tt-param.d-datadi-fim                               AT 077
+    SKIP                                               
+    "Estabelecimento:"                                  AT 037
+    tt-param.c-estab-ini                                AT 054
+    "|< >|"                                             AT 071
+    tt-param.c-estab-fim                                AT 077
+    SKIP                                               
+    "Via Transporte:"                                   AT 038
+    tt-param.c-via-transp-ini                           AT 054
+    "|< >|"                                             AT 071
+    tt-param.c-via-transp-fim                           AT 077
+    SKIP(2)                                            
+    "CLASSIFICA€ÇO"                                     AT 031
+    SKIP(1)                                            
+    c-classificacao                                     AT 035
+    SKIP(1)
+    "PAR¶METROS"                                        AT 031
+    SKIP(1)
+    "Listar DI"                                         AT 035
+    SKIP(1)
+    "Observa‡äes:"                                      AT 062
+    tt-param.l-Obervacoes                               AT 075
+    "Transporte:"                                       AT 063
+    tt-param.l-transporte                               AT 075
+    "Itiner rio:"                                       AT 063
+    tt-param.l-Itinerario                               AT 075
+    "Despesas:"                                         AT 065
+    tt-param.l-Despesas                                 AT 075
+    "Custos de Nacionaliza‡Æo e Interna‡Æo:"            AT 036
+    tt-param.l-cus-nacio                                AT 075
+    SKIP(2)
+    "Listar Adi‡Æo:"                                    AT 035
+    SKIP(1)
+    "Adi‡Æo:"                                           AT 039
+    tt-param.l-listaradicoes                            AT 047
+    "Despesas:"                                         AT 037
+    tt-param.l-despesas-adicoes                         AT 047
+    "Itens:"                                            AT 040
+    tt-param.l-LItens                                   AT 047
+    "Cƒmbio:"                                           AT 039
+    tt-param.l-cambio                                   AT 047
+    SKIP(2)
+    "IMPRESSÇO"                                         AT 031
+    SKIP(1)
+    "Destino            :"                              AT 035
+    c-param-destino                                     AT 056
+    "Usu rio            :"                              AT 035
+    tt-param.usuario                                    AT 056
+   WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-param.
+
+/* f-cabecDigita */
+FORM HEADER
+    SKIP(2)
+    "DIGITA€ÇO"                                         AT 031
+    SKIP
+    "Nr.Di EMS"                                         AT 035 
+    "Seq Ret"                                           AT 045 
+    "Data DI"                                           AT 053 
+    SKIP
+    "---------"                                         AT 035 
+    "-------"                                           AT 045 
+    "----------"                                        AT 053 
+   WITH WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-cabecDigita.
+
+/* f-digita */
+FORM
+    tt-digita.num-di-ems                                AT 035
+    tt-digita.cod-di-siscomex                           AT 050
+    tt-digita.data-di                                   AT 053
+   WITH DOWN WIDTH 132 NO-LABEL NO-BOX STREAM-IO FRAME f-digita.
+
+
+
+/* Realiza a Traducao das forms/frames, caso necessario */
+
+IF NOT v_cod_dialet_corren = "pt":U THEN DO:
+    RUN utp/ut-trfrrp.p (INPUT FRAME f_cabec1:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecPrinDi:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-PrinDi:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecObsDi:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecBasiCota:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-BasiCota:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecProcVinc:HANDLE).
+    IF tt-param.l-transporte <> NO THEN DO:
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecTransDi:HANDLE).
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-transDi:HANDLE).
+    END.
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecCargaDi:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cargaDi:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecEmbalagem:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-embalagem:HANDLE).
+    IF tt-param.l-Itinerario <> NO THEN DO:
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecItinDi:HANDLE).
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-itinDi:HANDLE).
+    END.
+    IF tt-param.l-despesas <> NO THEN DO:
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecDespDi:HANDLE).
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-despDi:HANDLE).
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecDespEmbarq:HANDLE).
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-despEmbarq:HANDLE).
+    END.
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-totPtoContr:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecTotDesp:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-totDesp:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecValores:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-valores:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecImpostos:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-impostos:HANDLE).
+    IF tt-param.l-cus-nacio <> NO THEN DO:
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecCustNacInt:HANDLE).
+        RUN utp/ut-trfrrp.p (INPUT FRAME f-custNacInt:HANDLE).
+    END.
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-param:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-cabecDigita:HANDLE).
+    RUN utp/ut-trfrrp.p (INPUT FRAME f-digita:HANDLE).
+END.

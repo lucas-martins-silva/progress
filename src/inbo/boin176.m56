@@ -1,0 +1,48 @@
+
+PROCEDURE getContaEntFutFatAntecip :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    def input  param  pc-nro-docto           as char no-undo.
+    def input  param  pc-serie-docto         as char no-undo.
+    def input  param  pc-nat-operacao        as char no-undo.
+    def input  param  pi-cod-emitente        as int  no-undo.
+    def input  param  pl-fatura-ent-futura   as log  no-undo.
+    def input  param  pl-fatura-fat-antecip  as log  no-undo.    
+    def output param  pc-conta               as char no-undo.
+    def output param  pc-ct-codigo           as char no-undo.
+    def output param  pc-sc-codigo           as char no-undo.
+
+    def buffer bf-docum-est-fut for docum-est.
+    
+    for first bf-docum-est-fut fields (cod-estabel) 
+        where bf-docum-est-fut.nro-docto    = pc-nro-docto
+          and bf-docum-est-fut.serie-docto  = pc-serie-docto
+          and bf-docum-est-fut.nat-operacao = pc-nat-operacao
+          and bf-docum-est-fut.cod-emitente = pi-cod-emitente no-lock: end.
+
+    if  avail bf-docum-est-fut then   
+        FIND estab-mat WHERE estab-mat.cod-estabel = bf-docum-est-fut.cod-estabel NO-LOCK NO-ERROR.
+        
+    IF  AVAIL estab-mat THEN DO:
+        IF  pl-fatura-ent-futura THEN
+            ASSIGN pc-conta     = estab-mat.cod-cta-entreg-fut-unif + estab-mat.cod-ccusto-entreg-fut-unif
+                   pc-ct-codigo = estab-mat.cod-cta-entreg-fut-unif
+                   pc-sc-codigo = estab-mat.cod-ccusto-entreg-fut-unif.
+        ELSE IF  pl-fatura-fat-antecip THEN
+            ASSIGN pc-conta     = estab-mat.cod-cta-faturam-antec + estab-mat.cod-ccusto-faturam-antec
+                   pc-ct-codigo = estab-mat.cod-cta-faturam-antec
+                   pc-sc-codigo = estab-mat.cod-ccusto-faturam-antec.
+               
+    END.
+                                                
+    RETURN "OK":U.                                
+
+END PROCEDURE.
+
+
+
+
+

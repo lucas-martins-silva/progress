@@ -1,0 +1,91 @@
+/*****************************************************************************
+** Procedure Interna.....: DeterminarCalendGrpArea
+** Objetivo..............: Determinar o calend rio a ser
+                           utilizado pelo grupo de m quina.
+** Parƒmetros ...........: i p-funcao:  1.-  Area de Produ‡Æo
+                                        2.-  Grupo M quina
+                           i p-gm-codigo
+                           o p-cod-calend
+*****************************************************************************/
+PROCEDURE DeterminarCalendGrpArea: 
+
+    def input  param p-funcao        as int                   no-undo.
+    def input  param p-gm-area       as char  format "x(12)"  no-undo.
+    def output param p-cod-calend    as char  format "x(8)"   no-undo.
+    def var c-area as char no-undo init "".
+
+    assign p-cod-calend = "".
+    
+    if p-funcao = 2 then do:
+       /* Ativ. 164.087 */ /* Ativ 168.387 */
+       run DeterminarCalendCtrab(input-output c-area, /*Area de Produ‡Æo*/  
+                                 input-output  p-gm-area,  
+                                 input  ?, /*Centro de Trabalho*/ 
+                                 input  today,  
+                                 output p-cod-calend). 
+    end.
+
+    &IF DEFINED (bf_man_sfc_lc) &THEN
+    if  p-funcao = 1 and p-cod-calend = "" then do:
+       /* Ativ. 164.087 */
+       find area-produc no-lock  
+          where area-produc.cod-area-produc       = p-gm-area 
+            and area-produc-ctrab.dat-inic-valid <= today 
+            and area-produc-ctrab.dat-fim-valid   > today no-error.
+       if available area-produc then
+           assign p-cod-calend = area-produc.cd-calen.
+    end.
+    &ENDIF
+   
+    if not can-find (first calen-gener
+                     where calen-gener.cd-calen = p-cod-calend) 
+       then do:
+
+        find last param-crp no-lock no-error.
+
+        &IF DEFINED (bf_man_sfc_lc) &THEN
+            find first param-sfc no-lock no-error.
+            if  avail param-sfc then
+                assign p-cod-calend = param-sfc.cd-calen.
+            else if avail param-crp then
+                assign p-cod-calend = param-crp.cod-calend-crp.
+        &ELSE
+            find last param-crp-ext no-lock no-error.
+            assign p-cod-calend = param-crp-ext.cod-calend-crp.
+        &ENDIF
+    end.
+END PROCEDURE.
+
+
+/*****************************************************************************
+** Procedure Interna.....: DeterminarModelTurnoGrpArea
+** Objetivo..............: Determinar o modelo de turno e calend rio a ser
+                           utilizado pelo grupo de m quina ou area de produ‡Æo.
+** Parƒmetros ...........: i p-gm-codigo /*** Area ou grupo de m quina ***/
+                           i p-dat-refer
+                           o p-dat-inicio
+                           o p-dat-fim                          
+                           o p-cod-model-turno
+                           
+*****************************************************************************/
+PROCEDURE DeterminarModelTurnoGrpArea:
+
+    def input  param p-gm-codigo       as char  format "x(12)"  no-undo.
+    def input  param p-dat-refer       as date                  no-undo.
+    def output param p-dat-inicio      as date                  no-undo.
+    def output param p-dat-fim         as date                  no-undo.
+    def output param p-cod-turno       as char  format "x(8)"   no-undo.
+
+    assign p-dat-inicio = date(1,1,1)
+           p-dat-fim    = date(12,31,9999).
+
+    /* Ativ. 164.087 */
+    run DeterminarModelTurnoCtrab(input   "",  
+                                  input   p-gm-codigo,
+                                  input   "",
+                                  input   p-dat-refer, 
+                                  output  p-dat-inicio,
+                                  output  p-dat-fim,   
+                                  output  p-cod-turno). 
+
+END PROCEDURE.

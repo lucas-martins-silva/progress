@@ -1,0 +1,2720 @@
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-modalidade-ap"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "modalidade-ap".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-log-contribt-subst-interm"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-contribt-subst-interm".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-itiner-exp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-itiner-exp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-idioma"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-idioma".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-aba"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-aba".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-repres"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-repres".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-incoterm-exp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-incoterm-exp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-itiner-imp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-itiner-imp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-incoterm-imp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-incoterm-imp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-log-desp-inclusas"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "log-desp-inclusas".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-nr-tab"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "nr-tab".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cod-pto-contr"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-pto-contr".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-des-layout-origin-comerc-invoi"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-comerc-invoi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-des-layout-origin-packing-list"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-packing-list".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-des-layout-origin-proform-invoi"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-proform-invoi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cdn-despa-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-despa-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cdn-despa-exter-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-despa-exter-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cdn-segurad-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-segurad-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cdn-corretor-cambio-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-corretor-cambio-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-cdn-corretor-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-corretor-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-marca-1"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-marca-2"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-marca-3"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-3".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-marca-4"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-4".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-marca-5"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-5".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-des-layout-origin-ped-cambio"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-ped-cambio".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-consignatario-aux"
+        tt-traduz-tt.campo-tt   = "consig-des-layout-origin-instruc-embarq"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-instruc-embarq".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-emitente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-emitente".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-emitente".
+
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nome-abrev"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nome-abrev".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cgc-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cgc".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-identific"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "identific".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-natureza"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "natureza".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nome-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nome-emit".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-endereco-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-bairro-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "bairro".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cidade-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cidade".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-estado-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "estado".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cep-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cep".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-caixa-postal-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "caixa-postal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-pais-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "pais".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ins-estadual-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-estadual".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-cond-pag-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-cond-pag".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-taxa-financ-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "taxa-financ".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-data-taxa-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "data-taxa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-transp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-transp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-gr-forn"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-gr-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-linha-produt"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "linha-produt".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-atividade"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "atividade".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-contato"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "contato".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-telefone-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone[1]".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-telefone2-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone[2]".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ramal-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal[1]".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ramal2-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal[2]".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-telefax-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefax".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ramal-fax-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-fax".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-telex-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telex".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-data-implant"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "data-implant".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-compr-period"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "compr-period".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-end-cobranca"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "end-cobranca".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-rep"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-rep".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-categoria"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "categoria".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-bonificacao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "bonificacao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-istr"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "istr".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-gr-cli"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-gr-cli".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-lim-credito"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "lim-credito".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-dt-lim-cred"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "dt-lim-cred".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-perc-fat-ped"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "perc-fat-ped".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-portador"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "portador".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-modalidade"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "modalidade".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-fat-par"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-fat-par".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-cre-cli"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-cre-cli".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-apr-cred"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-apr-cred".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nat-operacao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nat-operacao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-observacoes"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "observacoes".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-per-minfat"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "per-minfat".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-emissao-ped"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "emissao-ped".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nome-matriz"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nome-matriz".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-telef-modem-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-modem".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ramal-modem-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-modem".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-telef-fac-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-fac".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ramal-fac-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-fac".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-agencia"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "agencia".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-titulo"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-titulo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-dias"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-dias".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-per-max-canc"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "per-max-canc".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-dt-ult-venda"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "dt-ult-venda".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-emite-bloq"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "emite-bloq".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-emite-etiq"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "emite-etiq".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-tr-ar-valor"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "tr-ar-valor".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-gera-ad"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "gera-ad".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-port-prefer"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "port-prefer".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-mod-prefer"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "mod-prefer".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-bx-acatada"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "bx-acatada".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-conta-corren"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "conta-corren".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-copias-ped"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-copias-ped".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-suframa"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-suframa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-cacex"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-cacex".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-gera-difer"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "gera-difer".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-tabpre"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-tabpre".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-aval"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-aval".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-user-libcre"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "user-libcre".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ins-banc"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-banc".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ven-feriado"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ven-feriado".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ven-domingo"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ven-domingo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ven-sabado"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ven-sabado".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cgc-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cgc-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cep-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cep-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-estado-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "estado-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cidade-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cidade-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-bairro-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "bairro-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-endereco-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cx-post-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cx-post-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ins-est-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-est-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nome-mic-reg"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nome-mic-reg".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-tip-cob-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "tip-cob-desp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nome-tr-red"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nome-tr-red".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nat-ope-ext"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nat-ope-ext".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-banco"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-banco".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-prox-ad"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "prox-ad".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-lim-adicional"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "lim-adicional".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-dt-fim-cred"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "dt-fim-cred".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-obs-entrega"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "obs-entrega".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-tip-ent"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-tip-ent".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ins-municipal"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-municipal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-peratr"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-peratr".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-mesina"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-mesina".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-insc-subs-trib"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "insc-subs-trib".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-mensagem"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-mensagem".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-dias-taxa"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-dias-taxa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-tp-desp-padrao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "tp-desp-padrao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-tp-rec-padrao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "tp-rec-padrao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-inf-complementar"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "inf-complementar".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-zip-code"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "zip-code".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-tp-inspecao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "tp-inspecao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-forn-exp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "forn-exp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-tp-qt-prg"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "tp-qt-prg".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-atraso"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-atraso".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-div-atraso"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-div-atraso".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-dif-atrs-1"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-dif-atrs-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-dif-atrs-2"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-dif-atrs-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-esp-pd-venda"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "esp-pd-venda".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-lib-estoque"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-lib-estoque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-moeda-tit"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-moeda-tit".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-rendiment"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-rendiment".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-tp-pagto"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "tp-pagto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-vl-min-ad"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "vl-min-ad".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-zip-cob-code"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "zip-cob-code".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-hora-ini"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "hora-ini".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-hora-fim"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "hora-fim".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-pais-cob"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "pais-cob".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-resumo-mp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "resumo-mp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-cred-abat"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-cred-abat".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-contrib-icms"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "contrib-icms".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-e-mail"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "e-mail".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-home-page"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "home-page".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-licenciador"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-licenciador".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-endereco2"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-aval-embarque"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-aval-embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-abrange-aval"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-abrange-aval".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-tax"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-tax".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cn-codigo"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cn-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-entrega"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-entrega".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-isencao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-isencao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-dias-comp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "dias-comp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-estoque"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "estoque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-flag-pag"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "flag-pag".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-item-cli"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "item-cli".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-moeda-libcre"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "moeda-libcre".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-dias-atraso"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-dias-atraso".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-valor-minimo"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "valor-minimo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-parceiro-edi"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-parceiro-edi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-agente-retencao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "agente-retencao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-percepcao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "percepcao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-char-1"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "char-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-char-2"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "char-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-dec-1"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "dec-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-dec-2"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "dec-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-int-1"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "int-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-int-2"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "int-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-1"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-2"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-data-1"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "data-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-data-2"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "data-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-canal-venda"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-canal-venda".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-sit-emitente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-sit-emitente".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-ind-emit-retencao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ind-emit-retencao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-calcula-multa"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "calcula-multa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-prog-emit"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "prog-emit".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-tab-progr"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-tab-progr".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-recebe-inf-sci"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "recebe-inf-sci".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-classif-fornec"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-classif-fornec".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-classif-cliente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-classif-cliente".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-cheque-devol"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nr-cheque-devol".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-periodo-devol"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "periodo-devol".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-vl-max-devol"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "vl-max-devol".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-check-sum"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "check-sum".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-val-quota-media"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "val-quota-media".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-repres-imp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-repres-imp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-vencto-dia-nao-util"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "vencto-dia-nao-util".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-rend-tribut"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "rend-tribut".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-utiliza-verba"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "utiliza-verba".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-percent-verba"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "percent-verba".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-endereco_text"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco_text".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-endereco-cob-text"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco-cob-text".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-short-name"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "short-name".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-controla-val-max-inss"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-controla-val-max-inss".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-inscr-inss"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-inscr-inss".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-pulmao"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-pulmao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-idi-tributac-cofins"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "idi-tributac-cofins".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-idi-tributac-pis"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "idi-tributac-pis".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-calcula-pis-cofins-unid"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-calcula-pis-cofins-unid".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-optan-suspens-ipi"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-optan-suspens-ipi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-optan-cr-presmdo-subst"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-optan-cr-presmdo-subst".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-retem-pagto"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "retem-pagto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-portador-ap"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "portador-ap".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-modalidade-ap"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "modalidade-ap".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-contribt-subst-interm"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "log-contribt-subst-interm".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-itiner-exp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-itiner-exp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-idioma"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-idioma".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-aba"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-aba".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-repres"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-repres".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-incoterm-exp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-incoterm-exp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-itiner-imp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-itiner-imp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-incoterm-imp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-incoterm-imp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-log-desp-inclusas"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "log-desp-inclusas".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-nr-tab"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "nr-tab".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cod-pto-contr"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-pto-contr".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-des-layout-origin-comerc-invoi"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-comerc-invoi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-des-layout-origin-packing-list"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-packing-list".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-des-layout-origin-proform-invoi"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-proform-invoi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cdn-despa-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-despa-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cdn-despa-exter-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-despa-exter-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cdn-segurad-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-segurad-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cdn-corretor-cambio-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-corretor-cambio-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-cdn-corretor-import"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cdn-corretor-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-marca-1"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-marca-2"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-marca-3"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-3".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-marca-4"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-4".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-marca-5"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "marca-5".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-des-layout-origin-ped-cambio"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-ped-cambio".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "agentecarga-des-layout-origin-instruc-embarq"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "des-layout-origin-instruc-embarq".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "cod-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-emitente".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "nome-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "nome-emit".
+
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "endereco-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "bairro-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "bairro".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "cidade-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cidade".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "pais-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "pais".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "cep-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cep".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "cgc-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cgc".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "estado-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "estado".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "ins-estadual-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-estadual".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "ins-municipal-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-municipal".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "caixa-postal-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "caixa-postal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "e-mail-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "e-mail".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "cod-aba-agente"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-aba".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "telefone-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone[1]".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "telefone2-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone[2]".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "ramal-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal[1]".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "ramal2-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal[2]".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "home-page-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "home-page".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "telefax-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefax".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "ramal-fax-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefax".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "telef-fac-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-fac".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "ramal-fac-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-fac".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "telef-modem-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-modem".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-agente-carga-aux"
+        tt-traduz-tt.campo-tt   = "ramal-modem-agente"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-modem".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-docto"
+        tt-traduz-tt.campo-tt   = "docto-cod-docto"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "docto-import"
+        tt-traduz-tt.campo      = "cod-docto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-docto"
+        tt-traduz-tt.campo-tt   = "docto-des-docto"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "docto-import"
+        tt-traduz-tt.campo      = "des-docto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-docto"
+        tt-traduz-tt.campo-tt   = "docto-qti-docto-origin"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "docto-import"
+        tt-traduz-tt.campo      = "qti-docto-origin"
+        tt-traduz-tt.desc-label = "Quantidade Original".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-docto"
+        tt-traduz-tt.campo-tt   = "docto-qti-docto-cop-bco"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "docto-import"
+        tt-traduz-tt.campo      = "qti-docto-cop-bco".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-docto"
+        tt-traduz-tt.campo-tt   = "docto-qti-docto-cop-imptdor"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "docto-import"
+        tt-traduz-tt.campo      = "qti-docto-cop-imptdor".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-docto"
+        tt-traduz-tt.campo-tt   = "docto-cod-itens-docto"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Itens Docto".
+                                       
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-it-codigo"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "it-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-embarque"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-nr-proc-imp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "nr-proc-imp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-cod-estabel"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "cod-estabel".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-numero-ordem"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "numero-ordem".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-parcela"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "parcela".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-quantidade"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "quantidade".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-qt-do-forn"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "qt-do-forn"
+        tt-traduz-tt.desc-label = "Quantidade do Fornecedor".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-peso-liquido-uni"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "peso-liquido".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-peso-liquido-tot"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "peso-liquido".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-peso-liquido"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "peso-liquido".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-peso-bruto-uni"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "peso-bruto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-peso-bruto-tot"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "peso-bruto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-vl-cub-uni"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "val-cub-unit".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-vl-cub-tot"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "val-cub-tot".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-data-emissao"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "data-emissao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-narrativa"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "narrativa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-data-cotacao"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "data-cotacao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-preco-orig"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "preco-orig".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-preco-unit"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "preco-unit".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-pre-unit-for"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "pre-unit-for".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-preco-fornec"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "preco-fornec".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-mo-codigo"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "mo-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-aliquota-ipi"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "aliquota-ipi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-aliquota-icm"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "aliquota-icm".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-aliquota-iss"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "aliquota-iss".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-taxa-financ"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "taxa-financ".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-valor-taxa"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "valor-taxa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-perc-descto"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "perc-descto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-prazo-entreg"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "prazo-entreg".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-contato"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "contato".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-comentarios"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "comentarios".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-data-atualiz"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "data-atualiz".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-hora-atualiz"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "hora-atualiz".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-cod-refer"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "cod-refer".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-valor-descto"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "valor-descto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-nr-dias-taxa"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "nr-dias-taxa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-licenca-import"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "licenca-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-loc-entrega"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "loc-entrega".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-cod-emitente"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "cod-emitente".
+        
+ CREATE tt-traduz-tt.
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-vl-liq-uni"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "pre-unit-for"
+        tt-traduz-tt.desc-label = "Valor L°quido Unit†rio".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-vl-bruto-uni"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "pre-unit-for".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-vl-liq-tot"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "pre-unit-for"
+        tt-traduz-tt.desc-label = "Valor L°quido Total".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-vl-bruto-tot"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "pre-unit-for".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-cod-pto-contro-base"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ponto de Controle Base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-aliquota-ii"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "aliquota-ipi".
+
+CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-regime-import"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Regime Importaá∆o".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-cdn-pais-orig"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "cdn-pais-orig".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-cod-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-emitente".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-desc-pto-contro-base"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "pto-contr"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-desc-moeda"
+        tt-traduz-tt.banco      = "mguni"
+        tt-traduz-tt.tabela     = "moeda"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-sigla-moeda"
+        tt-traduz-tt.banco      = "mguni"
+        tt-traduz-tt.tabela     = "moeda"
+        tt-traduz-tt.campo      = "sigla".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-desc-item"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "desc-item".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-tr-it-codigo"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "it-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-tr-it-narrativa"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "traduc-item"
+        tt-traduz-tt.campo      = "tr-narrativa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-altura"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "altura".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-comprim"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "comprim".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-largura"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "largura".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-ge-codigo"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "ge-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-fm-codigo"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "fm-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-fm-cod-com"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "fm-cod-com".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-desc-grup-estoq"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "grup-estoque"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-desc-familia"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "familia"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-desc-fam-comerc"
+        tt-traduz-tt.banco      = "mgdis"
+        tt-traduz-tt.tabela     = "fam-comerc"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-item-fornec"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "item-do-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-cod-embal"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "cod-embal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-unid-for"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "unid-med-for".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-un"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "un".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-fator-conver"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "fator-conver".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-num-casa-dec"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "num-casa-dec".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-it-inst-emb"
+        tt-traduz-tt.campo-tt   = "itemb-dt-embarque"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "data-entrega".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-embarque"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "embarque-imp"
+        tt-traduz-tt.campo      = "embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-nr-proc-imp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "processo-imp"
+        tt-traduz-tt.campo      = "nr-proc-imp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-num-pedido"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "processo-imp"
+        tt-traduz-tt.campo      = "num-pedido".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-peso-liquido-tot"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "peso-liquido".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-peso-bruto-tot"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "ordens-embarque"
+        tt-traduz-tt.campo      = "peso-bruto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-valor-total-merc"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "pre-unit-for"
+        tt-traduz-tt.desc-label = "Valor Total da Mercadoria".
+
+CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-dt-atual"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Atual".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-pto-despacho"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ponto Controle Despacho".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-pto-embarque"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ponto Controle Embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-pto-nacionaliz"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ponto Controle Nacionalizaá∆o".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-pto-eadi"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ponto Controle EADI".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-pto-chegada"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ponto Controle Chegada".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-desc-pto-despacho"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Descriá∆o Pto Contr Despacho".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-desc-pto-embarque"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Descriá∆o Pto Contr Embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-desc-pto-nacionaliz"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Descriá∆o Pto Contr Nacionalizaá∆o".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-desc-pto-eadi"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Descriá∆o Pto Contr EADI".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-desc-pto-chegada"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Descriá∆o Pto Contr Chegada".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-prev-despacho"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Previs∆o Original Despacho".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-prev-embarque"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Previs∆o Original Embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-prev-nacionaliz"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Previs∆o Original Nacionalizaá∆o".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-prev-eadi"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Previs∆o Original EADI".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-prev-chegada"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Previs∆o Original Chegada".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-efet-despacho"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Efetiva Despacho".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-efet-embarque"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Efetiva Embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-efet-nacionaliz"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Efetiva Nacionalizaá∆o".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-efet-eadi"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Efetiva EADI".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-efet-chegada"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Efetiva Chegada".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-ult-prev-despacho"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ultima Previs∆o Despacho".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-ult-prev-embarque"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ultima Previs∆o Embarque".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-ult-prev-nacionaliz"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ultima Previs∆o Nacionalizaá∆o".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-ult-prev-eadi"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ultima Previs∆o EADI".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-data-ult-prev-chegada"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Ultima Previs∆o Chegada".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-dt-nacionaliz"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Efetiva Nacionalizaá∆o".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-dt-embarque"
+        tt-traduz-tt.banco      = ""
+        tt-traduz-tt.tabela     = ""
+        tt-traduz-tt.campo      = ""
+        tt-traduz-tt.desc-label = "Data Efetiva Embarque ".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-desc-banco"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "banco"
+        tt-traduz-tt.campo      = "nome-banco".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-ag-banco"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "banco"
+        tt-traduz-tt.campo      = "ag-padrao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-desc-agencia"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "agencia"
+        tt-traduz-tt.campo      = "nome".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-inst-emb"
+        tt-traduz-tt.campo-tt   = "instemb-loc-destino"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "pto-contr"
+        tt-traduz-tt.campo      = "descricao"
+        tt-traduz-tt.desc-label = "Local Destino".

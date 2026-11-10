@@ -1,0 +1,16 @@
+/*:T--------------------------------------------------------------------------    
+    Purpose    : Include que cont‚m defini‡Æo da temptable da
+                  tabela familia-clicbusinnes mas apenas com o campo cod-familia
+
+    Parameters :
+
+    Notes      :
+  ------------------------------------------------------------------------*/
+/*          This .W file was created with the Progress UIB.               */
+/*------------------------------------------------------------------------*/
+
+/* ***************************  Definitions  **************************** */
+DEFINE TEMP-TABLE {1} NO-UNDO
+	FIELD cod-familia  AS CHARACTER
+        FIELD desc-familia AS CHARACTER.    
+

@@ -1,0 +1,1025 @@
+/*******************************************************************************
+**  BOCX115.i1 - Itinerario
+** 
+*******************************************************************************/
+
+{cdp/cdcfgmat.i} /* definicao de pre-processador */
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.005
+&scoped-define FIRST-TABLE-IN-QUERY itinerario
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME itinerario
+
+
+def var c-desc-itiner-ini as char no-undo.
+def var c-desc-itiner-fim as char no-undo.
+def var c-cod-itiner-ini as integer no-undo.
+def var c-cod-itiner-fim as integer no-undo.
+{include/boini.i}
+
+{cxbo/bocx115.i RowObject}
+
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+def temp-table tt-pto-itiner      no-undo like pto-itiner.
+def temp-table tt-desp-itiner     no-undo like desp-itiner.
+def temp-table tt-decl-itiner     no-undo like decl-itiner.
+def temp-table tt-incoterm-itiner no-undo like incoterm-itiner.
+
+define temp-table tt-pto-controle no-undo
+    field pto_despacho 		as integer
+    field pto_embarque 		as integer
+    field pto_desembarque   as integer
+    field pto_chegada       as integer.
+
+def var i-cod-itiner as integer no-undo.
+
+procedure setConstraint1:
+
+end procedure.
+
+procedure setConstraint2:
+    def input parameter p-itiner as char no-undo.
+
+    assign i-cod-itiner = int(p-itiner).
+end procedure.
+
+/*procedure setConstraint3:
+ *     def input parameter r-chave as rowid no-undo.
+ *     find pto-itiner no-lock where rowid(pto-itiner) = r-chave no-error.
+ * end procedure. */
+
+procedure setConstraint4:
+def input parameter p-cod-itiner-ini as char no-undo.
+def input parameter p-cod-itiner-fim as char no-undo.
+
+assign c-cod-itiner-ini = integer(p-cod-itiner-ini)
+       c-cod-itiner-fim = integer(p-cod-itiner-fim). 
+end procedure.
+
+procedure setConstraint5:
+def input parameter p-desc-itiner-ini as char no-undo.
+def input parameter p-desc-itiner-fim as char no-undo.
+
+assign c-desc-itiner-ini = p-desc-itiner-ini
+       c-desc-itiner-fim = p-desc-itiner-fim. 
+end procedure.
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    case i-abertura:
+        when 1 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock.
+        when 2 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where itinerario.cod-itiner >= i-cod-itiner no-lock by itinerario.cod-itiner.
+        when 4 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where itinerario.cod-itiner >= c-cod-itiner-ini and
+                                                                  itinerario.cod-itiner <= c-cod-itiner-fim no-lock 
+                                                                      by itinerario.cod-itiner.
+        when 5 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} where itinerario.descricao >= c-desc-itiner-ini and
+                                                                  itinerario.descricao <= c-desc-itiner-fim no-lock
+                                                                      by itinerario.descricao 
+                                                                         by itinerario.cod-itiner.
+                                                                                                                                
+   end case.
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-mat-comex) &then    
+&else
+    {include/bocomver.i}
+    {include/bogetver.i}
+&endif
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+{include/boexeupt.i}
+{include/boexedel.i}
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+
+    run startMethod ("initializeValidade").
+
+    run endMethod   ("initializeValidade").
+end procedure.
+
+procedure findCodigo:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    def input  parameter i-cod-itiner as inte no-undo.
+    def output parameter c-return as char no-undo.
+ 
+    run startMethod ("findCodigo").
+
+
+    find itinerario where
+        itinerario.cod-itiner = i-cod-itiner
+        no-lock no-error.
+    
+    if not avail {&TABLE-NAME} then do:
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+        pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex itinerario 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+        run setCurrent.
+    end.
+    run endMethod ("findCodigo").
+
+end procedure.
+
+procedure findItinerario:
+    /*
+    **  retorna itinerario
+    */
+    def input  parameter i-cod-itiner as inte no-undo.
+	def output param table for tt-pto-controle. 
+ 
+    run startMethod ("findItinerario").
+
+	find first itinerario where
+		itinerario.cod-itiner = i-cod-itiner
+		no-lock no-error.
+	
+	if avail itinerario then do:
+		create tt-pto-controle.
+		assign tt-pto-controle.pto_despacho = itinerario.pto-despacho
+			   tt-pto-controle.pto_embarque = itinerario.pto-embarque
+			   tt-pto-controle.pto_desembarque = itinerario.pto-desembarque
+			   tt-pto-controle.pto_chegada = itinerario.pto-chegada.
+	end.
+	
+   run endMethod ("findItinerario").
+
+end procedure.
+
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+
+    def var c-return as char no-undo.
+    def var i-seqdespacho as integer no-undo.
+    def var i-seqembarque as integer no-undo.
+    def var i-seqdesembarque as integer no-undo.
+    def var i-seqchegada as integer no-undo.
+
+    run startMethod ("ValidadeFielsd").
+
+    if rowObject.descricao = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex itinerario descricao 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    /******************************
+    if rowObject.pto-despacho <> 0 then do:
+    
+       if not can-find(pto-itiner where pto-itiner.cod-itiner    = rowObject.cod-itiner and
+                                        pto-itiner.cod-pto-contr = rowObject.pto-despacho) then do:
+          assign i-seq-erro = i-seq-erro + 1.
+          /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+             pre-processador em chamada de includes */
+          {utp/ut-field.i mgcex itinerario pto-despacho 1}
+          /******************************************/
+          assign c-return = return-value.
+          {utp/ut-liter.i Pontos_do_Itinerario * 1}
+          run utp/ut-msgs.p (input "msg",
+                             input 15839,
+                             input c-return + "~~" + return-value ).
+          create tt-bo-erro.
+          assign tt-bo-erro.i-sequen = i-seq-erro
+                 tt-bo-erro.cd-erro  = 15839
+                 tt-bo-erro.mensagem = return-value.
+       end.
+    
+    end.
+
+    if rowObject.pto-embarque <> 0 then do:
+     
+       if not can-find(pto-itiner where pto-itiner.cod-itiner = rowObject.cod-itiner and
+                                        pto-itiner.cod-pto-contr = rowObject.pto-embarque) then do:
+          assign i-seq-erro = i-seq-erro + 1.
+          /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+             pre-processador em chamada de includes */
+          {utp/ut-field.i mgcex itinerario pto-embarque 1}
+          /******************************************/
+          assign c-return = return-value.
+          {utp/ut-liter.i Pontos_do_Itinerario * 1}
+          run utp/ut-msgs.p (input "msg",
+                             input 15839,
+                             input c-return + "~~" + return-value ).
+          create tt-bo-erro.
+          assign tt-bo-erro.i-sequen = i-seq-erro
+                 tt-bo-erro.cd-erro  = 15839
+                 tt-bo-erro.mensagem = return-value.
+       end.
+    
+    end.
+
+    if rowObject.pto-desembarque <> 0 then do:
+    
+       if not can-find(pto-itiner where pto-itiner.cod-itiner    = rowObject.cod-itiner and
+                                        pto-itiner.cod-pto-contr = rowObject.pto-desembarque) then do:
+          assign i-seq-erro = i-seq-erro + 1.
+          /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+             pre-processador em chamada de includes */
+          {utp/ut-field.i mgcex itinerario pto-embarque 1}
+          /******************************************/
+          assign c-return = return-value.
+          {utp/ut-liter.i Pontos_do_Itinerario * 1}
+          run utp/ut-msgs.p (input "msg",
+                             input 15839,
+                             input c-return + "~~" + return-value ).
+          create tt-bo-erro.
+          assign tt-bo-erro.i-sequen = i-seq-erro
+                 tt-bo-erro.cd-erro  = 15839
+                 tt-bo-erro.mensagem = return-value.
+       end.
+    
+    end.
+
+    if rowObject.pto-chegada <> 0 then do:
+     
+       if not can-find(pto-itiner where pto-itiner.cod-itiner    = rowObject.cod-itiner and
+                                        pto-itiner.cod-pto-contr = rowObject.pto-chegada) then do:
+          assign i-seq-erro = i-seq-erro + 1.
+          /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+             pre-processador em chamada de includes */
+          {utp/ut-field.i mgcex itinerario pto-embarque 1}
+          /******************************************/
+          assign c-return = return-value.
+          {utp/ut-liter.i Pontos_do_Itinerario * 1}          
+          run utp/ut-msgs.p (input "msg",
+                             input 15839,
+                             input c-return + "~~" + return-value ).
+          create tt-bo-erro.
+          assign tt-bo-erro.i-sequen = i-seq-erro
+                 tt-bo-erro.cd-erro  = 15839
+                 tt-bo-erro.mensagem = return-value.
+       end.
+   
+    end.
+    ******************************/
+
+    if not can-find(first tt-bo-erro) then do:
+       find pto-itiner where pto-itiner.cod-itiner    = rowObject.cod-itiner and
+                             pto-itiner.cod-pto-contr = rowObject.pto-despacho no-lock no-error.
+       if avail pto-itiner then
+         assign i-seqdespacho = pto-itiner.sequencia.
+       find pto-itiner where pto-itiner.cod-itiner   = rowObject.cod-itiner and
+                             pto-itiner.cod-pto-contr = rowObject.pto-embarque no-lock no-error.
+       if avail pto-itiner then
+         assign i-seqembarque  = pto-itiner.sequencia.
+       find pto-itiner where pto-itiner.cod-itiner    = rowObject.cod-itiner and
+                             pto-itiner.cod-pto-contr = rowObject.pto-desembarque no-lock no-error.
+       if avail pto-itiner then
+         assign i-seqdesembarque = pto-itiner.sequencia.
+       find pto-itiner where pto-itiner.cod-itiner    = rowObject.cod-itiner and
+                             pto-itiner.cod-pto-contr = rowObject.pto-chegada no-lock no-error.
+       if avail pto-itiner then
+         assign i-seqchegada = pto-itiner.sequencia.
+
+       if i-seqdespacho <> 0 then
+         if ((i-seqdespacho > i-seqembarque and i-seqembarque <> 0) or
+             (i-seqdespacho > i-seqdesembarque and i-seqdesembarque <> 0) or
+             (i-seqdespacho > i-seqchegada and i-seqchegada <> 0)) then do:
+           assign i-seq-erro = i-seq-erro + 1.
+           {utp/ut-liter.i Sequencia_ponto_despacho }
+           run utp/ut-msgs.p (input "msg",
+                              input 7975,
+                              input return-value ).
+           create tt-bo-erro.
+           assign tt-bo-erro.i-sequen = i-seq-erro
+                  tt-bo-erro.cd-erro  = 7975
+                  tt-bo-erro.mensagem = return-value.
+         end.
+
+       if i-seqembarque <> 0 then
+         if ((i-seqembarque < i-seqdespacho and i-seqdespacho <> 0) or
+             (i-seqembarque > i-seqdesembarque and i-seqdesembarque <> 0) or
+             (i-seqembarque > i-seqchegada and i-seqchegada <> 0)) then do:
+           assign i-seq-erro = i-seq-erro + 1.
+           {utp/ut-liter.i Sequencia_ponto_embarque }
+           run utp/ut-msgs.p (input "msg",
+                              input 7975,
+                              input return-value ).
+           create tt-bo-erro.
+           assign tt-bo-erro.i-sequen = i-seq-erro
+                  tt-bo-erro.cd-erro  = 7975
+                  tt-bo-erro.mensagem = return-value.
+         end.
+
+       if i-seqdesembarque <> 0 then
+         if ((i-seqdesembarque < i-seqdespacho and i-seqdespacho <> 0) or
+             (i-seqdesembarque < i-seqembarque and i-seqembarque <> 0) or
+             (i-seqdesembarque > i-seqchegada and i-seqchegada <> 0)) then do:
+           assign i-seq-erro = i-seq-erro + 1.
+           {utp/ut-liter.i Sequencia_ponto_deembarque }
+           run utp/ut-msgs.p (input "msg",
+                              input 7975,
+                              input return-value ).
+           create tt-bo-erro.
+           assign tt-bo-erro.i-sequen = i-seq-erro
+                  tt-bo-erro.cd-erro  = 7975
+                  tt-bo-erro.mensagem = return-value.
+         end.
+
+       if i-seqchegada <> 0 then
+         if ((i-seqchegada < i-seqdespacho and i-seqdespacho <> 0) or
+             (i-seqchegada < i-seqembarque and i-seqembarque <> 0) or
+             (i-seqchegada < i-seqdesembarque and i-seqdesembarque <> 0)) then do:
+           assign i-seq-erro = i-seq-erro + 1.
+           {utp/ut-liter.i Sequencia_ponto_chegada }
+           run utp/ut-msgs.p (input "msg",
+                              input 7975,
+                              input return-value ).
+           create tt-bo-erro.
+           assign tt-bo-erro.i-sequen = i-seq-erro
+                  tt-bo-erro.cd-erro  = 7975
+                  tt-bo-erro.mensagem = return-value.
+         end.
+    end.
+  
+    run endMethod ("validateFields").
+end procedure.
+
+procedure validateUpdate:
+    /*
+    **  Valida Update
+    */
+    
+    def input parameter table for RowObject.
+    def input parameter r-chave as rowid no-undo.
+    def output parameter table for tt-bo-erro.
+    find first rowObject
+        no-lock no-error.
+
+    run InitializeValidate.
+ 
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+    run validateFields.
+
+    find first tt-bo-erro
+        no-lock no-error.
+    if not avail tt-bo-erro then do:
+        find {&TABLE-NAME} exclusive-lock where
+            rowid({&TABLE-NAME}) = r-chave no-error no-wait.
+        if locked({&table-name}) then do:
+            assign i-seq-erro = i-seq-erro + 1.    
+            run utp/ut-msgs.p (input "msg",
+	                       input 16096,
+ 			       input "").
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+  	           tt-bo-erro.cd-erro  = 16096
+ 	           tt-bo-erro.mensagem = return-value.                
+        end.
+        else 
+	    if avail {&table-name} then
+                run executeUpdate.    
+    end.
+    
+end procedure.
+
+procedure validateDelete:
+    /*
+    **  Valida Delete
+    */
+    def input-output parameter r-chave as rowid.
+    def output parameter table for tt-bo-erro.
+        
+    def var r-pto-itiner as rowid no-undo.
+    def var h-bocx120 as handle no-undo.
+    def var c-tabela as char no-undo.
+
+    run startMethod ("ValidateDelete").
+
+    run InitializeValidate.
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+
+    find {&TABLE-NAME} exclusive-lock
+         where rowid({&TABLE-NAME}) = r-chave no-error no-wait.
+    if locked({&table-name}) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+	                    input 16096,
+	                    input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen  = i-seq-erro
+               tt-bo-erro.cd-erro   = 16096
+               tt-bo-erro.mensagem  = return-value.
+    end.
+
+    if avail {&table-name} then do:                
+        if can-find(first cotacao-item-cex where cotacao-item-cex.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.            
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex cotacao-item-cex 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first desp-item where desp-item.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.                        
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex desp-item 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first tb-pr-cex where tb-pr-cex.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.             
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex tb-pr-cex 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.            
+        if can-find(first processo-imp where processo-imp.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.                        
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex processo-imp 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first processo-exp where processo-exp.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.            
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex processo-exp 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first historico-proc-exp where historico-proc-exp.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.            
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex historico-proc-exp 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first historico-proc-imp where historico-proc-imp.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.            
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex historico-proc-imp 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first historico-embarque where historico-embarque.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.            
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex desp-item 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first incoterm-itiner where incoterm-itiner.cod-itiner = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = return-value.            
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex incoterm-itiner 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        if can-find(first emitente-cex where emitente-cex.cod-itiner-exp = {&table-name}.cod-itiner 
+                                          or emitente-cex.cod-itiner-imp = {&table-name}.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            assign c-tabela = trim(return-value).
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex emitente-cex 1}
+            /******************************************/
+            create tt-bo-erro.
+            assign tt-bo-erro.parametros = c-tabela + "~~" + trim(return-value).
+            run utp/ut-msgs.p (input "msg",
+                               input 5,
+                               input c-tabela + "~~" + return-value).
+            assign tt-bo-erro.i-sequen  = i-seq-erro
+                   tt-bo-erro.cd-erro   = 5
+                   tt-bo-erro.mensagem  = return-value.
+        end.
+        find first tt-bo-erro no-error.
+  	 if not avail tt-bo-erro then do:
+  	     run cxbo/bocx120.p persistent set h-bocx120.
+            for each pto-itiner exclusive-lock
+                where pto-itiner.cod-itiner = {&table-name}.cod-itiner:
+                assign r-pto-itiner = rowid(pto-itiner).
+                run validateDelete in h-bocx120 (input-output r-pto-itiner, output table tt-bo-erro).            
+            end.
+            delete procedure h-bocx120.
+        end.
+        
+        find first tt-bo-erro no-error.
+        if not avail tt-bo-erro then do:
+        	run executeDelete.
+          	find next {&TABLE-NAME} no-lock no-error.
+          	if not avail {&TABLE-NAME} then
+            	find prev {&TABLE-NAME} no-lock no-error.
+          	assign r-chave = rowid({&TABLE-NAME}).
+          	return "".
+        end.
+    end.
+
+  	run endMethod ("ValidateDelete").
+
+end procedure.
+
+procedure validateCreate:
+    /*
+    **  Valida criacao da tabela/duplicidade de registro.
+    */
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    def output parameter r-chave as rowid.
+    
+    def var i-auto-num as integer no-undo.
+
+    run initializeValidate.
+
+    run startMethod ("validateCreate").
+
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+
+    find first rowObject no-lock no-error.        
+    assign rowObject.nr-dias = 0. /* valor inicial da base esta 1 */
+
+    if rowObject.cod-itiner = 0 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex itinerario cod-itiner 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    run validateFields.
+
+    if not can-find(first tt-bo-erro) then do:    
+        find itinerario where
+             itinerario.cod-itiner = rowObject.cod-itiner
+             no-lock no-error.
+        if  avail itinerario then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 8,
+                               input return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 8
+                   tt-bo-erro.mensagem     = return-value.
+        end.
+    end.
+    
+    find first tt-bo-erro no-lock no-error.
+    if not avail tt-bo-erro then do:
+        run executeCreate.
+        assign r-chave = to-rowid(return-value).
+    end.
+
+    run endMethod ("validateCreate").
+end procedure.
+
+procedure validateCreate2:
+    /*
+    **  Valida criacao da tabela/duplicidade de registro.
+    */
+    def input parameter  c-param as char.
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    def output parameter r-chave as rowid.
+    def var i-auto-num as integer no-undo.
+
+    run initializeValidate.
+
+    run startMethod ("validateCreate").
+
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+
+    find first rowObject
+        no-lock no-error.
+
+    assign rowObject.nr-dias = 0. /* valor inicial da base esta 1 */       
+
+    if rowObject.cod-itiner = 0 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex itinerario cod-itiner 1}
+        /******************************************/
+        run utp/ut-msgs.p (input "msg",
+                           input 265,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    run validateFields.
+
+    if not can-find(first tt-bo-erro) then do:
+    
+        find itinerario where
+             itinerario.cod-itiner = rowObject.cod-itiner
+             no-lock no-error.
+        if  avail itinerario then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+               pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            run utp/ut-msgs.p (input "msg",
+                               input 8,
+                               input return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 8
+                   tt-bo-erro.mensagem     = return-value.
+        end.
+    end.
+
+    find first tt-bo-erro
+        no-lock no-error.
+
+    if not avail tt-bo-erro then do:
+       if c-param = "add" then
+          run executeCreate.
+       else run executeCreate1.
+       assign r-chave = to-rowid(return-value).
+    end.
+
+    run endMethod ("validateCreate").
+
+end procedure.
+
+procedure autoNumber:
+    
+    def output parameter i-auto-num as integer no-undo.
+    def var i-cont as integer init 1 no-undo. /** variavel de contador **/
+    def output parameter table for tt-bo-erro.
+
+    {include/boautonum.i "99999" "cod-itiner"}
+
+end procedure.
+
+procedure executeCreate:
+    /*
+    **  Cria registro na tabela.
+    */
+
+    create {&TABLE-NAME}.
+    buffer-copy RowObject except r-rowid pto-chegada pto-desembarque pto-despacho pto-embarque 
+        to {&TABLE-NAME}.
+
+    return string(rowid({&TABLE-NAME})).
+
+end procedure.
+
+procedure executeCreate1:
+    /*
+    **  Cria registro na tabela.
+    */
+
+    create {&TABLE-NAME}.
+    buffer-copy RowObject except r-rowid 
+        to {&TABLE-NAME}.
+    
+    return string(rowid({&TABLE-NAME})).
+
+end procedure.
+
+procedure executeCopy:
+    def input parameter r-chave as rowid no-undo.
+    def input parameter i-cod-itiner as integer no-undo.
+    
+    def buffer b-itinerario for itinerario.
+    
+    find {&table-name} 
+        where rowid({&table-name}) = r-chave no-lock no-error.    
+    if avail {&table-name} then do:
+        find b-itinerario
+            where b-itinerario.cod-itiner = i-cod-itiner exclusive-lock no-error.
+        if avail b-itinerario then
+            assign b-itinerario.nr-dias   = {&table-name}.nr-dias
+                   b-itinerario.distancia = {&table-name}.distancia.                                        
+        for each pto-itiner of {&table-name} no-lock:
+            create tt-pto-itiner.
+            assign tt-pto-itiner.cod-itiner = i-cod-itiner.
+            buffer-copy pto-itiner except pto-itiner.cod-itiner to tt-pto-itiner.
+        end.
+        for each tt-pto-itiner:
+            create pto-itiner.
+            buffer-copy tt-pto-itiner to pto-itiner.
+            for each desp-itiner no-lock
+                where desp-itiner.cod-itiner = {&table-name}.cod-itiner 
+                  and desp-itiner.cod-pto-contr = tt-pto-itiner.cod-pto-contr:
+                create tt-desp-itiner.
+                assign tt-desp-itiner.cod-itiner    = i-cod-itiner
+                       tt-desp-itiner.cod-pto-contr = tt-pto-itiner.cod-pto-contr
+                       tt-desp-itiner.cod-desp      = desp-itiner.cod-desp.
+                buffer-copy desp-itiner except desp-itiner.cod-desp desp-itiner.cod-pto-contr desp-itiner.cod-itiner to tt-desp-itiner.
+            end.
+            for each tt-desp-itiner:
+                create desp-itiner.
+                buffer-copy tt-desp-itiner to desp-itiner.
+                delete tt-desp-itiner.
+            end.
+            
+            for each decl-itiner no-lock
+                where decl-itiner.cod-itiner = {&table-name}.cod-itiner 
+                  and decl-itiner.cod-pto-contr = tt-pto-itiner.cod-pto-contr:
+                create tt-decl-itiner.
+                assign tt-decl-itiner.cod-itiner    = i-cod-itiner
+                       tt-decl-itiner.cod-pto-contr = tt-pto-itiner.cod-pto-contr
+                       tt-decl-itiner.de-codigo      = decl-itiner.de-codigo.
+                buffer-copy decl-itiner except decl-itiner.cod-pto-contr decl-itiner.cod-itiner decl-itiner.de-codigo to tt-decl-itiner.
+            end.
+            for each tt-decl-itiner:
+                create decl-itiner.
+                buffer-copy tt-decl-itiner to decl-itiner.
+                delete tt-decl-itiner.
+            end.
+            
+            for each incoterm-itiner no-lock
+               where incoterm-itiner.cod-itiner    = {&table-name}.cod-itiner
+                 and incoterm-itiner.cod-pto-contr = tt-pto-itiner.cod-pto-contr:
+                 create tt-incoterm-itiner.
+                 assign tt-incoterm-itiner.cod-itiner    = i-cod-itiner
+                        tt-incoterm-itiner.cod-pto-contr = tt-pto-itiner.cod-pto-contr
+                        tt-incoterm-itiner.cod-incoterm  = incoterm-itiner.cod-incoterm.
+                 buffer-copy incoterm-itiner except incoterm-itiner.cod-itiner incoterm-itiner.cod-pto-contr incoterm-itiner.cod-incoterm 
+                             to tt-incoterm-itiner.
+             end.
+             for each tt-incoterm-itiner:
+                 create incoterm-itiner.
+                 buffer-copy tt-incoterm-itiner to incoterm-itiner.
+                 delete tt-incoterm-itiner.
+             end.
+
+        end.                                               
+    end.
+    
+    for each tt-decl-itiner :
+        delete tt-decl-itiner.
+    end.
+    for each tt-pto-itiner :
+        delete tt-pto-itiner.
+    end.
+    for each tt-desp-itiner :
+        delete tt-desp-itiner.
+    end.
+    for each tt-incoterm-itiner:
+        delete tt-incoterm-itiner.
+    end.
+         
+end procedure.
+
+procedure atualizarDiasDistanciaitinerario:
+/*
+** Atualiza os campos dias/distancia do itinerario conforme modificacao dos pontos itinerario
+*/
+    def input parameter p-cod-itiner     as integer no-undo.
+    def input parameter p-cod-pto-contr  as integer no-undo.
+    def input parameter p-acao           as char no-undo. /* add - mod */ 
+    def input parameter p-mod-nr-dias    like pto-itiner.nr-dias no-undo. /* quando mod - nr-dias antigo */
+    def input parameter p-mod-distancia  like pto-itiner.distancia no-undo. /* quando mod - distancia antigo */    
+
+    find {&TABLE-NAME} where {&TABLE-NAME}.cod-itiner = p-cod-itiner exclusive-lock no-error no-wait.
+    if avail {&TABLE-NAME} then do:
+        find pto-itiner where pto-itiner.cod-itiner = {&TABLE-NAME}.cod-itiner and
+                              cod-pto-contr         = p-cod-pto-contr no-lock no-error.
+        if not avail pto-itiner then leave.
+        case p-acao:
+            when "add" then 
+                assign {&TABLE-NAME}.distancia = {&TABLE-NAME}.distancia + pto-itiner.distancia
+                       {&TABLE-NAME}.nr-dias   = {&TABLE-NAME}.nr-dias   + pto-itiner.nr-dias.
+            when "mod" then
+                assign {&TABLE-NAME}.distancia = {&TABLE-NAME}.distancia + 
+                                                 (pto-itiner.distancia - p-mod-distancia)
+                       {&TABLE-NAME}.nr-dias   = {&TABLE-NAME}.nr-dias + 
+                                                 (pto-itiner.nr-dias - p-mod-nr-dias).
+            when "del" then
+                assign {&TABLE-NAME}.distancia = {&TABLE-NAME}.distancia - pto-itiner.distancia
+                       {&TABLE-NAME}.nr-dias   = {&TABLE-NAME}.nr-dias   - pto-itiner.nr-dias.                                                                 
+        end case.
+    end.
+
+end procedure.
+
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+
+    case c-field:
+        when "char-1" then c-value = RowObject.char-1.
+        when "char-2" then c-value = RowObject.char-2.
+        when "check-sum" then c-value = RowObject.check-sum.
+        when "descricao" then c-value = RowObject.descricao.
+        when "narrativa" then c-value = RowObject.narrativa.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+
+    case c-field:
+        when "dec-1" then c-value = RowObject.dec-1.
+        when "dec-2" then c-value = RowObject.dec-2.
+        when "nr-dias" then c-value = RowObject.nr-dias.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+
+    case c-field:
+        when "cod-itiner" then c-value = RowObject.cod-itiner.
+        when "distancia" then c-value = RowObject.distancia.
+        when "int-1" then c-value = RowObject.int-1.
+        when "int-2" then c-value = RowObject.int-2.
+        when "pto-chegada" then c-value = RowObject.pto-chegada.
+        when "pto-desembarque" then c-value = RowObject.pto-desembarque.
+        when "pto-despacho" then c-value = RowObject.pto-despacho.
+        when "pto-embarque" then c-value = RowObject.pto-embarque.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+
+    case c-field:
+        when "data-1" then c-value = RowObject.data-1.
+        when "data-2" then c-value = RowObject.data-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+
+    case c-field:
+        when "log-1" then c-value = RowObject.log-1.
+        when "log-2" then c-value = RowObject.log-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+/* BOCX115 */

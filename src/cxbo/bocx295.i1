@@ -1,0 +1,47 @@
+/*
+**
+** Include C lculo Valor Faturas
+**  
+*/
+
+  {ccp/cc9019.i50}
+  
+  run calculaValorInvoice (input  p-cod-estabel,
+                           input  p-embarque,
+                           output de-total-ordens,
+                           output i-mo-codigo,
+                           output table tt-bo-erro).
+  if can-find(first tt-bo-erro) then 
+      RETURN "NOK":U.        
+  
+  for first ordens-embarque fields(numero-ordem nr-proc-imp)
+      where ordens-embarque.cod-estabel = p-cod-estabel
+        and ordens-embarque.embarque    = p-embarque no-lock:
+      for first cotacao-item fields(cod-emitente cod-cond-pag char-1)
+          where cotacao-item.numero-ordem = ordens-embarque.numero-ordem 
+            and cotacao-item.cot-aprovada no-lock:
+          assign i-cod-cond-pag = cotacao-item.cod-cond-pag
+                 i-cod-emitente = cotacao-item.cod-emitente.
+          &if defined(bf-mat-comex) &then
+              assign i-cod-pto-contr-i50 = int(substring(cotacao-item.char-1,11,5)).
+          &else
+              {cdp/cd4300.i4 "yes" cotacao-item.char-1}
+              {ccp/cc9019.i51 "yes"}
+          &endif
+      end.
+  end.
+  
+  for first historico-embarque fields(dt-efetiva dt-ult-previsao)
+      where historico-embarque.cod-estabel   = p-cod-estabel
+        and historico-embarque.embarque      = p-embarque
+        and historico-embarque.cod-pto-contr = i-cod-pto-contr-i50
+        no-lock:
+  end.
+  if avail historico-embarque then
+      if historico-embarque.dt-efetiva <> ? then
+          assign da-data-efetiva = historico-embarque.dt-efetiva.
+      else 
+          assign da-data-efetiva = historico-embarque.dt-ult-previsao.
+          
+/* BOCX295.I1 */
+          

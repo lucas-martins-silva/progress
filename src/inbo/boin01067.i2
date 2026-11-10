@@ -1,0 +1,11 @@
+    /* inbo/boin01067.i2 */
+    /*temp-tables Aduana Mexico*/
+  
+  
+    DEFINE TEMP-TABLE tt-aduana NO-UNDO
+        FIELD c-it-codigo           AS CHAR                 /*numero de identificaci¢n*/
+        FIELD c-num-ped-aduana      AS CHAR                 /*numero pedido aduana*/
+        FIELD c-dat-ped-aduana      AS CHAR                 /*fecha pedido aduana*/
+        FIELD c-nom-aduana          AS CHAR                 /*nombre aduana*/
+        FIELD i-secuecia            AS INT.
+

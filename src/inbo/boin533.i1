@@ -1,0 +1,1693 @@
+
+find first param-sfc no-lock no-error.
+{cdp/cdcfgman.i}
+{cpp/cpapi018.i}  /* Definiá∆o das temp-tables         */
+&GLOBAL-DEFINE excludeFrameDefinition YES
+{cdp/cd0666.i}    /*Definiá∆o da tt-erro*/
+{inbo/boin533.i1t}
+
+{include/i-epc200.i BOIN533}
+
+def var l-sfc-mudancas as log init no no-undo.
+{sfc/sf9999.i}
+assign l-sfc-mudancas = l-glob-novo-sfc.
+
+/***
+
+{include/boini.i}
+
+{inbo/boin533.i RowObject}
+
+***/
+
+def var l-existe-split as log         no-undo.
+
+/********************************************************************************
+** Eliminaá∆o da ordem de produá∆o para o ch∆o de f†brica ***
+** PROCEDURE EliminarOrdemSFC:
+** Par†metros: n£mero da ordem de produá∆o
+**             tt-erros  
+********************************************************************************/
+PROCEDURE EliminarOrdemSFC:
+
+    def input param p-nr-ord-produ as int no-undo.
+
+    def var c-label as char format "x(20)"  no-undo. 
+
+    /*** Valida n∆o existencia de reporte de operaá∆o para a ordem ***/
+
+    if  can-find (first rep-oper-ctrab
+                  where rep-oper-ctrab.nr-ord-produ = p-nr-ord-produ) then do:
+
+        {utp/ut-table.i mgind op-sfc 01}
+        assign c-label = trim(return-value).
+        {utp/ut-table.i mgind rep-oper-ctrab 01}
+
+        run utp/ut-msgs.p ("msg":U, 17, input c-label + '~~' + return-value).
+
+        create erro-trans-op.
+        assign i-seq-erro                   = i-seq-erro + 1
+               erro-trans-op.cod-modul      = "SFC":U
+               erro-trans-op.seq-erro       = i-seq-erro
+               erro-trans-op.cd-erro        = 17
+               erro-trans-op.dat-transacao  = today
+               erro-trans-op.hra-transacao  = string(time,"HH:MM:SS")
+               erro-trans-op.nr-ord-produ   = p-nr-ord-produ
+               erro-trans-op.des-erro-trans = return-value.
+
+        run utp/ut-msgs.p ("help":U, 17, input c-label + '~~' + return-value).
+        assign erro-trans-op.des-soluc-erro = return-value.
+        return string(erro-trans-op.seq-erro).
+
+    end.
+
+    for each erro-trans-op
+        where erro-trans-op.cod-modul    = "SFC"
+          and erro-trans-op.nr-ord-produ = p-nr-ord-produ exclusive-lock:
+        delete erro-trans-op.
+    end.
+
+    for each split-operac
+        where split-operac.nr-ord-produ = p-nr-ord-produ exclusive-lock:
+        delete split-operac.
+    end.
+
+END PROCEDURE.     
+
+/********************************************************************************
+** Geraá∆o de ordem de produá∆o para o ch∆o de f†brica ***
+** PROCEDURE gerarOrdemSFC:
+** Par†metros: buffer da ordem de produá∆o
+*********************************************************************************/
+PROCEDURE gerarOrdemSFC:
+
+    DEFINE PARAMETER BUFFER b-ord-prod FOR ord-prod.
+    
+    DEF BUFFER b-lin-prod FOR lin-prod.
+    
+    blk-oper-ord:
+    for each oper-ord
+        where oper-ord.nr-ord-produ = b-ord-prod.nr-ord-produ no-lock:
+
+        /*Caso a Ordem ja exista, sai do bloco.*/
+        if can-find(op-sfc where 
+                    op-sfc.nr-ord-produ     = b-ord-prod.nr-ord-produ) then 
+        leave blk-oper-ord.
+
+        find grup-maquina
+            where grup-maquina.gm-codigo = oper-ord.gm-codigo no-lock no-error.
+
+        if  not available grup-maquina 
+        or  oper-ord.gm-codigo = "" then 
+            next.  
+         
+        if not avail ord-prod or ord-prod.nr-ord-produ <> oper-ord.nr-ord-produ then
+            find first ord-prod where ord-prod.nr-ord-produ = oper-ord.nr-ord-produ no-lock no-error.
+
+        /*** Verifica se algum grupo de m†quina relacionado a ordem reporta
+             ou possui programaá∆o - A ordem ser† gerada uma £nica vez ***/
+        /*na 206b s¢ olha o grup-maquina.log-ctrab-progdo quando o reporte for por ordem (ord-prod.rep-prod = 1)*/
+        if (ord-prod.rep-prod <> 1 or grup-maquina.log-ctrab-progdo) or
+            grup-maquina.log-pto-control then do:
+        
+            create op-sfc.
+            assign op-sfc.nr-ord-produ     = b-ord-prod.nr-ord-produ
+                   op-sfc.it-codigo        = b-ord-prod.it-codigo
+                   op-sfc.cod-refer        = b-ord-prod.cod-refer
+                   op-sfc.nome-abrev       = b-ord-prod.nome-abrev
+                   op-sfc.nr-linha         = b-ord-prod.nr-linha
+                   op-sfc.cod-ped-op       = b-ord-prod.nr-pedido
+                   op-sfc.qtd-op           = b-ord-prod.qt-ordem
+                   op-sfc.val-priorid-ext  = b-ord-prod.prioridade
+                   op-sfc.dat-inic-op-cp   = b-ord-prod.dt-inicio 
+                   op-sfc.dat-fim-op-cp    = b-ord-prod.dt-termino
+                   op-sfc.dat-imc          = b-ord-prod.dt-inicio
+                   op-sfc.dat-fmt          = b-ord-prod.dt-termino
+                   op-sfc.dat-inic-op      = b-ord-prod.dt-inicio
+                   op-sfc.dat-fim-op       = b-ord-prod.dt-termino
+                   op-sfc.qtd-segs-inic-op = 0
+                   op-sfc.qtd-segs-fim-op  = 86399
+                   op-sfc.qtd-segs-imc     = 0
+                   op-sfc.qtd-segs-fmt     = 86399
+                   op-sfc.hra-inic-op      = "0000":U
+                   op-sfc.hra-fim-op       = "2359":U.
+                   
+            if not avail param-sfc then
+                find first param-sfc no-lock no-error.
+                                                                               
+            IF l-sfc-mudancas THEN DO:                                                                   
+                /*Se a funcao Mudancas SFC implantada*/                                                                                                                                
+                RUN alterarDatasOrdemSFC (BUFFER op-sfc,                                 
+                                          b-ord-prod.dt-inicio,               
+                                          0,                                        
+                                          b-ord-prod.dt-termino,               
+                                          86399).                                   
+                                                                                             
+                RUN alterarPriorOrdemSFC (BUFFER op-sfc,                                     
+                                          b-ord-prod.prioridade).                              
+            END.                                                                                                 
+                
+            /******** Chamada EPC Performance - Diogo Cezar Amaral - ksm35171 *********/
+            &IF INTEGER(ENTRY(1,PROVERSION,".")) >= 9 &THEN
+                if  c-nom-prog-upc-mg97  <> "" then do:                        
+                    FOR EACH tt-epc WHERE
+                             tt-epc.cod-event = "SumarizaAutomaticamente" :
+                        DELETE tt-epc.
+                    END.
+            
+                    /*** Criacao do registro para temp-table tt-epc ***/
+                    {include/i-epc200.i2 &CodEvent='"SumarizaAutomaticamente"'
+                                         &CodParameter='"b-ord-prod.nr-ord-produ"'
+                                         &ValueParameter="STRING(b-ord-prod.nr-ord-produ)"}
+            
+                    /*** Chamada do programa EPC ***/
+                    {include/i-epc201.i "SumarizaAutomaticamente"}
+            
+                    IF RETURN-VALUE = "nok":U THEN DO :
+                        VALIDATE op-sfc.
+                        LEAVE blk-oper-ord.
+                    END.
+                end.                                    
+            &ENDIF  
+   
+            if param-sfc.log-sumariz-autom = yes then do:
+                            
+                FIND b-lin-prod NO-LOCK
+                    WHERE b-lin-prod.cod-estabel = b-ord-prod.cod-estabel
+                      AND b-lin-prod.nr-linha    = b-ord-prod.nr-linha    NO-ERROR.
+                if avail b-lin-prod and b-lin-prod.sum-requis = 1 /*Processo*/ then
+                    run SumarizaAutomaticamente(buffer b-ord-prod).
+            end.
+                
+            validate op-sfc.
+            leave blk-oper-ord.
+        end.
+    end.    
+
+    find op-sfc where
+         op-sfc.nr-ord-produ = b-ord-prod.nr-ord-produ exclusive-lock no-error. 
+    /*** Criaá∆o de Operaá‰es Para Ordem de Produá∆o ***/
+    if  available op-sfc then do:
+        run GerarSplitOperac (buffer op-sfc).
+        if param-sfc.log-pcp-liber-op then
+            assign op-sfc.ind-estado-op = 1. /*N∆o Iniciada*/
+        else
+            run LiberarOrdemSFC (input op-sfc.nr-ord-produ).
+    end.
+
+END PROCEDURE.
+
+/********************************************************************************
+** Geraá∆o da Requisiá∆o Sum†ria na Abertura da Ordem
+** PROCEDURE SumarizaAutomaticamente
+** Par†metros: buffer da ord-prod
+********************************************************************************/
+PROCEDURE SumarizaAutomaticamente:
+   DEFINE PARAMETER BUFFER b-ord-prod FOR ord-prod.
+   
+   empty temp-table tt-ord-prod-2.
+   empty temp-table tt-req-sum.
+   empty temp-table tt-dados.
+
+   DEF VAR h-cpapi018-sfc AS HANDLE NO-UNDO.
+   
+   run cpp/cpapi018.p persistent set h-cpapi018-sfc (input        table tt-dados,
+                                                     input        table tt-ord-prod-2,
+                                                     input-output table tt-req-sum,
+                                                     input-output table tt-erro,
+                                                     input        yes).
+   create tt-ord-prod-2.
+   buffer-copy b-ord-prod to tt-ord-prod-2.
+   
+   for each tt-dados: delete tt-dados. end.
+   
+   create tt-dados.
+   assign tt-dados.requis-por-ordem      = YES
+          tt-dados.cod-versao-integracao = 001
+          tt-dados.estado                = 1 /* Inclus∆o */.
+   
+   run pi-processa-sumaris in h-cpapi018-sfc (input        table tt-dados,
+                                              input        table tt-ord-prod-2,
+                                              input-output table tt-req-sum,
+                                              input-output table tt-erro,
+                                              input        no).
+   
+   run pi-finalizar in h-cpapi018-sfc.
+END.
+
+/********************************************************************************
+** Geraá∆o de Operaá‰es Para Ch∆o de F†brica 
+** PROCEDURE GerarSplitOperac
+** Par†metros: n£mero da ordem de produá∆o
+               quantidade da ordem 
+********************************************************************************/
+PROCEDURE GerarSplitOperac:
+
+    def param buffer b-op-sfc for op-sfc.
+    define buffer b-ord-prod for ord-prod label "b-ord-prod em GerarSplitOperac":U.
+    /* 1307839 */
+    DEFINE BUFFER bf2-split-operac FOR split-operac label "bf2-split-operac em GerarSplitOperac":U.
+    def buffer b-ctrab-operac-aloc for ctrab-operac-aloc.
+    
+    def var de-fator       as decimal     no-undo.
+    def var v-log-libera   as logical     no-undo.
+    def var v-old-nr-lotes as decimal     no-undo.
+    def var v-new-nr-lotes as decimal     no-undo.    
+    DEF VAR h-sfapi016     AS HANDLE      NO-UNDO.
+    def var l-novo-split   as log         no-undo.
+    def var l-usa-area-pre as log         no-undo.
+    def var c-cod-ctrab    as char        no-undo.
+    
+    for each erro-trans-op
+       where erro-trans-op.cod-modul = "SFC":U
+         and erro-trans-op.nr-ord-produ = b-op-sfc.nr-ord-produ exclusive-lock:
+      delete erro-trans-op.
+    end.
+
+    
+    find first param-sfc no-lock no-error.
+    
+   /*********************************************************
+    Foi retirado este ponto pois j† s∆o chamadas estas validaá‰es na procedure liberarOrdem. Desta forma, quando o parametro PCP libera OP
+    estava desmarcado, as validaá‰es eram executadas 2 vezes.
+    if not param-sfc.log-pcp-liber-op then DO:
+        run VerificarOrdemSFC (b-op-sfc.nr-ord-produ).
+            
+        RUN sfc/sfapi016.p PERSISTENT SET h-sfapi016.
+        RUN pi-val-gm-ult-oper IN h-sfapi016 (INPUT rowid(b-op-sfc)).
+
+        IF VALID-HANDLE(h-sfapi016) THEN DO:
+            DELETE PROCEDURE h-sfapi016.
+            ASSIGN h-sfapi016 = ?.
+        END.
+
+    END.
+    ****************************************************/    
+    for first  b-ord-prod fields (rep-prod estado dt-inicio) where
+               b-ord-prod.nr-ord-produ = b-op-sfc.nr-ord-produ no-lock:
+    end.
+    
+    if b-op-sfc.ind-estado-op = 2 then do:
+       if not param-sfc.log-pcp-liber-op and 
+          not can-find (first erro-trans-op where
+                              erro-trans-op.cod-modul    = "SFC":U and
+                              erro-trans-op.nr-ord-produ = b-op-sfc.nr-ord-produ) then do trans on error undo:
+          assign v-log-libera = yes. 
+       end.
+    end.   
+   
+    /*Quando for trocado o tipo da operaá∆o de interno para externo 
+    ele dever† eliminar o split do sfc
+    */
+    if can-find(first split-operac
+                where split-operac.nr-ord-produ = b-op-sfc.nr-ord-produ) then 
+       assign l-existe-split = yes.
+    else
+       assign l-existe-split = no.
+       
+    blk-oper-ext:
+    for each oper-ord
+        where oper-ord.nr-ord-produ = b-op-sfc.nr-ord-produ exclusive-lock:
+        
+        if l-existe-split = yes then do:
+           if (oper-ord.tipo-oper    = 2) or
+              (oper-ord.pto-controle = 0 and b-ord-prod.rep-prod = 3) then do:
+              for each split-operac exclusive-lock
+                  where split-operac.nr-ord-produ   = oper-ord.nr-ord-produ
+                    and split-operac.num-operac-sfc = oper-ord.num-operac-sfc:
+                  delete split-operac.
+              end.
+           end.
+           /***************************
+           Comentado por Sandro / MoisÇs - situaá∆o reportada pelo Barnack.
+           N∆o ir† mais fazer a reabertura automatica dos splits.
+           Isso estava impactando no dispatch list, pois as operaá‰es aparecem como se estivessem em andamento, 
+           e impacta tbm no caso de o cliente utilizar o inicio de reporte (informa a data e hora e inicio, 
+           mas a fim, que ser† informada posteriormente), neste caso como o split que estava finalizado 
+           passou para iniciado, a hora inicio fica a mesma do reporte anterior.         
+           
+           if oper-ord.estado = 2 and 
+              not can-find(first split-operac
+                           where split-operac.nr-ord-produ      = oper-ord.nr-ord-produ
+                             and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+                             and split-operac.ind-estado-split < 5) then do:
+              /*Atualiza o estado dos splits tambÇm para iniciado*/
+              for each split-operac exclusive-lock
+                  where split-operac.nr-ord-produ     = oper-ord.nr-ord-produ   
+                    and split-operac.num-operac-sfc   = oper-ord.num-operac-sfc
+                    and split-operac.ind-estado-split = 5:
+                    if can-find(first rep-oper-ctrab 
+                       where rep-oper-ctrab.nr-ord-produ     = split-operac.nr-ord-produ
+                         and rep-oper-ctrab.num-operac-sfc   = split-operac.num-operac-sfc
+                         and rep-oper-ctrab.num-split-operac = split-operac.num-split-operac) then
+                         assign split-operac.ind-estado-split = 4.
+                    else
+                         assign split-operac.ind-estado-split = 3.
+              end.      
+           end.
+           ****************************/
+        end.
+        
+        if oper-ord.tipo-oper <> 1 then next.
+                
+        if oper-ord.estado > 1 then next. /*Somente operaá‰es n∆o iniciadas*/
+        
+        /* se a ordem for de reporte por ponto de controle 
+           s¢ cria os splits para operac∆o que tem ponto de controle */
+        if b-ord-prod.rep-prod = 3 and
+           oper-ord.pto-controle = 0 then next.
+        
+        case oper-ord.un-med-tempo:
+            when 1 then
+                assign de-fator = 3600.
+            when 2 then
+                assign de-fator = 60.
+            when 3 then
+                assign de-fator = 1.
+            when 4 then
+                assign de-fator = 86400.
+        end case.
+        
+        if can-find(first area-produc-prefer
+                    where area-produc-prefer.num-id-operacao = oper-ord.num-id-operacao) then 
+           assign l-usa-area-pre = yes.
+        else 
+           assign l-usa-area-pre = no.
+        
+
+        assign l-novo-split = no.
+        
+        find first split-operac where
+             split-operac.nr-ord-produ       = oper-ord.nr-ord-produ   and
+             split-operac.num-operac-sfc     = oper-ord.num-operac-sfc exclusive-lock no-error.
+             
+        if not avail split-operac then do:
+            create split-operac.
+            assign split-operac.nr-ord-produ       = oper-ord.nr-ord-produ
+                   split-operac.num-operac-sfc     = oper-ord.num-operac-sfc
+                   split-operac.num-split-operac   = 1
+                   c-cod-ctrab = ""
+                   l-novo-split = yes.
+        end.  
+        else do:
+            if  avail oper-ord then do:
+                assign c-cod-ctrab     = oper-ord.cod-recurso.
+            end.        
+        end.                   
+
+        /*Somente carregar as informaÁıes do split com base na operaÁ„o se for um novo split.
+	Se for decorrente de uma alteraÁ„o, n„o È necess·rio recriar os tempos*/
+        if l-novo-split = yes then do:
+                for first ctrab-operac-aloc FIELDS (it-codigo op-codigo cod-roteiro cod-ctrab)
+                    where (     ctrab-operac-aloc.it-codigo   = oper-ord.it-codigo
+                           and  ctrab-operac-aloc.op-codigo   = oper-ord.op-codigo)
+                       or (     ctrab-operac-aloc.cod-roteiro = oper-ord.cod-roteiro
+                           and  ctrab-operac-aloc.op-codigo   = oper-ord.op-codigo
+                           and  ctrab-operac-aloc.it-codigo   = "") no-lock:
+                end.           
+                if avail ctrab-operac-aloc
+                then do:
+                    FOR FIRST b-ctrab-operac-aloc FIELDS (it-codigo op-codigo cod-roteiro cod-ctrab)
+                        WHERE (   (     b-ctrab-operac-aloc.it-codigo   = oper-ord.it-codigo
+                                    and b-ctrab-operac-aloc.op-codigo   = oper-ord.op-codigo)
+                              OR (     b-ctrab-operac-aloc.cod-roteiro  = oper-ord.cod-roteiro
+                                  and  b-ctrab-operac-aloc.op-codigo    = oper-ord.op-codigo
+                                  AND  b-ctrab-operac-aloc.it-codigo    = ""))
+                          AND b-ctrab-operac-aloc.cod-ctrab            <> ctrab-operac-aloc.cod-ctrab 
+                        no-lock.
+                    end.
+                    if avail b-ctrab-operac-aloc
+                    then do:
+                        assign split-operac.dat-imc            = b-op-sfc.dat-imc      
+                               split-operac.dat-fmt            = b-op-sfc.dat-fmt      
+                               split-operac.qtd-segs-imc       = b-op-sfc.qtd-segs-imc 
+                               split-operac.qtd-segs-fmt       = b-op-sfc.qtd-segs-fmt
+                               split-operac.val-perc-operac    = 100
+                               split-operac.qtd-pallet-produt  = oper-ord.qtd-pallet-produt
+                               split-operac.qtd-previs-operac  = oper-ord.qtd-previs-operac
+                               split-operac.cod-item-op        = b-op-sfc.it-codigo
+                               split-operac.cod-roteiro        = oper-ord.cod-roteiro
+                               split-operac.it-codigo          = oper-ord.it-codigo
+                               split-operac.op-codigo          = oper-ord.op-codigo
+                               split-operac.cod-grp-setup      = oper-ord.cod-grp-setup
+                               split-operac.log-split-critic   = yes
+                               split-operac.gm-codigo          = oper-ord.gm-codigo
+                               split-operac.cod-ctrab          = c-cod-ctrab
+                               split-operac.val-perc-refugo = oper-ord.val-perc-refugo
+                               split-operac.val-perc-retrab = oper-ord.val-perc-retrab.
+                    end.
+                    else do:
+                        for first ctrab fields(cod-ctrab gm-codigo)
+                             where ctrab.cod-ctrab = ctrab-operac-aloc.cod-ctrab no-lock:
+                        end.
+                        
+                        if avail ctrab then 
+                            assign c-cod-ctrab = ctrab.cod-ctrab.
+                              
+                        if avail ctrab and ctrab.gm-codigo <> oper-ord.gm-codigo THEN DO:
+                            if can-find(first grup-maq-altern
+                                where grup-maq-altern.gm-codigo = oper-ord.gm-codigo
+                                and grup-maq-altern.gm-altern = ctrab.gm-codigo) THEN DO:
+										  
+                                assign oper-ord.gm-codigo = ctrab.gm-codigo.
+                            end.                                
+                            else do:                            
+                                {utp/ut-liter.i Grupo_de_m†quina_selecionado_n∆o_Ç_alternativo_do_anterior *}                               
+                                
+                                run utp/ut-msgs.p (INPUT "msg":U,
+                                                   INPUT 17006,
+                                                   INPUT RETURN-VALUE).
+                                    
+                                create erro-trans-op.
+                                assign i-seq-erro                    = i-seq-erro + 1
+                                        erro-trans-op.cod-modul      = "SFC":U
+                                        erro-trans-op.seq-erro       = i-seq-erro
+                                        erro-trans-op.cd-erro        = 17006
+                                        erro-trans-op.dat-transacao  = today
+                                        erro-trans-op.hra-transacao  = string(time,"HH:MM:SS")
+                                        erro-trans-op.nr-ord-produ   = b-ord-prod.nr-ord-produ
+                                        erro-trans-op.qtd-op         = 0
+                                        erro-trans-op.des-erro-trans = RETURN-VALUE
+                                        erro-trans-op.des-soluc-erro = "". 
+                                        
+                               delete split-operac.         
+                               return.         
+                            end.
+                        end.
+                              
+                              
+                        assign split-operac.dat-imc            = b-op-sfc.dat-imc      
+                               split-operac.dat-fmt            = b-op-sfc.dat-fmt      
+                               split-operac.qtd-segs-imc       = b-op-sfc.qtd-segs-imc 
+                               split-operac.qtd-segs-fmt       = b-op-sfc.qtd-segs-fmt
+                               split-operac.val-perc-operac    = 100
+                               split-operac.qtd-pallet-produt  = oper-ord.qtd-pallet-produt
+                               split-operac.qtd-previs-operac  = oper-ord.qtd-previs-operac
+                               split-operac.cod-item-op        = b-op-sfc.it-codigo
+                               split-operac.cod-roteiro        = oper-ord.cod-roteiro
+                               split-operac.it-codigo          = oper-ord.it-codigo
+                               split-operac.op-codigo          = oper-ord.op-codigo
+                               split-operac.cod-grp-setup      = oper-ord.cod-grp-setup
+                               split-operac.log-split-critic   = yes
+                               split-operac.cod-ctrab          = c-cod-ctrab
+                               split-operac.gm-codigo          = oper-ord.gm-codigo
+                               split-operac.val-perc-refugo = oper-ord.val-perc-refugo
+                               split-operac.val-perc-retrab = oper-ord.val-perc-retrab.
+                    end.
+                end.
+                ELSE DO:
+                    assign split-operac.dat-imc            = b-op-sfc.dat-imc      
+                           split-operac.dat-fmt            = b-op-sfc.dat-fmt      
+                           split-operac.qtd-segs-imc       = b-op-sfc.qtd-segs-imc 
+                           split-operac.qtd-segs-fmt       = b-op-sfc.qtd-segs-fmt
+                           split-operac.qtd-pallet-produt  = oper-ord.qtd-pallet-produt
+                           split-operac.cod-item-op        = b-op-sfc.it-codigo
+                           split-operac.cod-roteiro        = oper-ord.cod-roteiro
+                           split-operac.it-codigo          = oper-ord.it-codigo
+                           split-operac.op-codigo          = oper-ord.op-codigo
+                           split-operac.cod-grp-setup      = oper-ord.cod-grp-setup
+                           split-operac.log-split-critic   = yes
+                           split-operac.gm-codigo          = oper-ord.gm-codigo
+                           split-operac.cod-ctrab          = c-cod-ctrab
+                           split-operac.val-perc-operac    = 100
+                           split-operac.qtd-previs-operac  = oper-ord.qtd-previs-operac
+                           split-operac.val-perc-refugo    = oper-ord.val-perc-refugo
+                           split-operac.val-perc-retrab    = oper-ord.val-perc-retrab.
+                END.
+                
+                if avail split-operac then do:
+                
+                    find first ferr-prod where ferr-prod.cod-ferr-prod = oper-ord.ferramenta no-lock no-error.
+                    if avail ferr-prod then
+                        assign split-operac.cod-ferr-prod = oper-ord.ferramenta.
+                end.
+        end.    
+
+
+        /*Atualizaá∆o de Tempos*/
+        for each split-operac exclusive-lock
+            where split-operac.nr-ord-produ   = oper-ord.nr-ord-produ   
+              and split-operac.num-operac-sfc = oper-ord.num-operac-sfc:
+              
+             if not avail grup-maquina or grup-maquina.gm-codigo <> split-operac.gm-codigo then 
+                find grup-maquina 
+                     where grup-maquina.gm-codigo = split-operac.gm-codigo no-lock no-error.
+              
+
+            assign split-operac.cod-grp-setup = oper-ord.cod-grp-setup.
+            
+                
+            /* Ativ. 159.849 */
+            if b-ord-prod.estado = 6 and split-operac.ind-estado-split < 3 then
+                assign split-operac.ind-estado-split = 3.    
+            
+            run CalcularTempoPadraoO (buffer oper-ord,
+                          input  split-operac.cod-ctrab,
+                          input  split-operac.cod-ferr-prod,
+                          input  split-operac.qtd-previs-operac,
+                          output split-operac.tempo-pad-maq,
+                          output split-operac.tempo-pad-mod,
+                          output split-operac.qtd-capac-operac). 
+                          
+            assign /* Tempos padr‰es */
+                   split-operac.tempo-pad-pos-operac = oper-ord.qtd-tempo-pos-proces * de-fator
+                   split-operac.tempo-pad-setup      = oper-ord.tempo-prepar         * de-fator
+                   split-operac.tempo-pad-carga      = split-operac.tempo-pad-maq + 
+                                                       split-operac.tempo-pad-setup
+                   split-operac.tempo-pad-operac     = if grup-maquina.ind-tip-ctrab = 4 then
+                                                           split-operac.tempo-pad-mod else 
+                                                           split-operac.tempo-pad-maq
+                   split-operac.qtd-carga-batch      = oper-ord.qtd-carga-batch
+                   split-operac.dat-imc              = b-ord-prod.dt-inicio  /* Ativ. 164586 */ 
+                   split-operac.dat-fmt              = b-ord-prod.dt-termino.
+            
+            if split-operac.cod-ctrab <> "":U then do:
+               find first area-produc-ctrab 
+                    where area-produc-ctrab.cod-ctrab      =  split-operac.cod-ctrab
+                      and area-produc-ctrab.dat-inic-valid <= today
+                      and area-produc-ctrab.dat-fim-valid  >  today no-lock no-error.
+               if avail area-produc-ctrab then
+                  assign split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.
+            end.
+            Else do:
+                if l-sfc-mudancas = no then do:
+                   for first area-produc-ctrab fields (cod-area-produc) where 
+                             area-produc-ctrab.gm-codigo       = split-operac.gm-codigo and 
+                             area-produc-ctrab.dat-inic-valid <= today and 
+                             area-produc-ctrab.dat-fim-valid  >  today no-lock:
+                       assign split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.
+                   end.
+                end.        
+                else do:
+                     if l-usa-area-pre = yes then do:
+                         FIND FIRST area-produc-prefer NO-LOCK
+                              WHERE area-produc-prefer.num-id-operacao    = oper-ord.num-id-operacao
+                                AND area-produc-prefer.it-codigo          = oper-ord.it-codigo 
+                                AND area-produc-prefer.op-codigo          = oper-ord.op-codigo
+                                AND area-produc-prefer.cod-roteiro        = oper-ord.cod-roteiro
+                                AND area-produc-prefer.num-operac-alterna = oper-ord.op-altern 
+                                AND area-produc-prefer.cod-estabel        = b-ord-prod.cod-estabel 
+                                AND area-produc-prefer.nr-linha           = b-ord-prod.nr-linha    NO-ERROR.
+                         FIND first area-produc NO-LOCK
+                              WHERE area-produc.cod-area-produc = area-produc-prefer.cod-area-produc NO-ERROR.
+                         If avail area-produc-prefer and avail area-produc and
+                          can-find (first area-produc-ctrab no-lock
+                                    where area-produc-ctrab.gm-codigo       = split-operac.gm-codigo 
+                                      and area-produc-ctrab.cod-area-produc = area-produc-prefer.cod-area-produc
+                                      and area-produc-ctrab.dat-inic-valid  <= today 
+                                      and area-produc-ctrab.dat-fim-valid   > today ) then
+                               assign split-operac.cod-area-produc = area-produc-prefer.cod-area-produc.
+                         Else do:
+                             b-area:
+                             for each area-produc-ctrab fields (cod-area-produc gm-codigo dat-inic-valid dat-fim-valid) where 
+                                       area-produc-ctrab.gm-codigo       = split-operac.gm-codigo and 
+                                       area-produc-ctrab.dat-inic-valid <= today and 
+                                       area-produc-ctrab.dat-fim-valid  >  today no-lock:
+                                 if not can-find(first area-produc no-lock
+                                             where area-produc.cod-area-produc = area-produc-ctrab.cod-area-produc
+                                               and area-produc.cod-estabel     = b-ord-prod.cod-estabel) then next.
+                                 assign split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.
+                                 leave b-area.
+                             end.
+                         End.
+                     end.
+                     else do: /*Nao usa area-produc-prefer*/
+                          b-area:
+                          for each area-produc-ctrab fields (cod-area-produc gm-codigo dat-inic-valid dat-fim-valid) where 
+                                    area-produc-ctrab.gm-codigo       = split-operac.gm-codigo and 
+                                    area-produc-ctrab.dat-inic-valid <= today and 
+                                    area-produc-ctrab.dat-fim-valid  >  today no-lock:
+                             if not can-find(first area-produc no-lock
+                                         where area-produc.cod-area-produc = area-produc-ctrab.cod-area-produc
+                                           and area-produc.cod-estabel     = b-ord-prod.cod-estabel) then next.
+                             assign split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.
+                             leave b-area.
+                          end.
+                     end.           
+                End.
+            end.
+            
+            /*** Liberaá∆o de operaá∆o ***/
+            if v-log-libera then do:
+               if oper-ord.log-operac-inic then
+                   assign oper-ord.dat-liber-operac      = today
+                          oper-ord.qtd-segs-liber-operac = time
+                          oper-ord.log-restric-pert      = no.
+               else 
+                   assign oper-ord.log-restric-pert = yes.
+        
+               run LiberarSplit (buffer split-operac, 
+                                 b-op-sfc.dat-imc, 
+                                 b-op-sfc.dat-fmt).
+        
+               /*** Se tempo da operaá∆o Ç dependente de batch recalcula o tempo quando a capacidade 
+                    do centro de trabalho difere da capacidade padr∆o do grupo de m†quina ***/
+        
+               if grup-maquina.ind-tempo-operac = 3 and
+                  split-operac.cod-ctrab <> ""      and
+                  split-operac.qtd-carga-batch <> oper-ord.qtd-carga-batch then do:
+        
+                     assign v-old-nr-lotes  = oper-ord.qtd-capac-operac / oper-ord.qtd-carga-batch
+                            v-old-nr-lotes  = if  round(v-old-nr-lotes,0) < (v-old-nr-lotes * 0.995) then  
+                                                  round(v-old-nr-lotes,0) + 1 else round(v-old-nr-lotes,0)
+                            v-new-nr-lotes  = split-operac.qtd-capac-operac / split-operac.qtd-carga-batch
+                            v-new-nr-lotes  = if  round(v-new-nr-lotes,0) < (v-new-nr-lotes * 0.995) then  
+                                                  round(v-new-nr-lotes,0) + 1 else round(v-new-nr-lotes,0).
+        
+                     if v-new-nr-lotes <> ? and  v-new-nr-lotes <> 0 then
+                           assign split-operac.tempo-pad-setup      = split-operac.tempo-pad-setup  * v-new-nr-lotes / v-old-nr-lotes
+                                  split-operac.tempo-pad-operac     = split-operac.tempo-pad-operac * v-new-nr-lotes / v-old-nr-lotes
+                                  split-operac.tempo-pad-maq        = split-operac.tempo-pad-maq    * v-new-nr-lotes / v-old-nr-lotes
+                                  split-operac.tempo-pad-mod        = split-operac.tempo-pad-mod    * v-new-nr-lotes / v-old-nr-lotes
+                                  split-operac.tempo-pad-carga      = split-operac.tempo-pad-maq + split-operac.tempo-pad-setup.
+               end.
+            end.
+            if not avail param-sfc then
+               find first param-sfc no-lock no-error.
+            /** Gerar splits para mais de um centro de trabalho **/
+            
+               if param-sfc.log-reporta-varios-ctrab = yes and
+                  can-find(funcao where funcao.cd-funcao = "spp-sfc-varios-splits":U 
+                                    and funcao.ativo    )
+                   then do:
+                    for each ttSplitOperac:
+                        delete ttSplitOperac.
+                    end.
+                    /** Cria Temp-table **/
+                    create ttSplitOperac.
+                    buffer-copy split-operac to ttSplitOperac
+                    assign      ttSplitOperac.r-rowid = rowid(split-operac).
+                    /** GeraªCo de splits para vˇrios Ctrabs **/
+                    run GerarSplitsCtrabs (buffer split-operac).
+            end.  
+        end.
+    end.
+END PROCEDURE.
+
+
+/********************************************************************************
+** Liberaá∆o do Split da operaá∆o
+** PROCEDURE LiberarSplit
+** Par†metros: buffer do split operac
+********************************************************************************/
+
+PROCEDURE LiberarSplit:
+
+    def param buffer b-split-operac for split-operac.
+    def input parameter p-dat-imc  as date no-undo.
+    def input parameter p-dat-fmt  as date no-undo.
+
+    def var de-tempo-aux like split-operac.tempo-pad-setup no-undo.
+
+    def var c-cod-area   as char no-undo.
+    def var c-gm-codigo  as char no-undo.
+    def var c-cod-calend as char no-undo.
+
+    run AlocarSplit(buffer b-split-operac, 
+                    input today).
+
+    IF l-sfc-mudancas = NO THEN 
+        /*** Atualiza limites para operaá∆o imc e fmt ***/
+        assign b-split-operac.dat-imc-setup      = max(today, p-dat-imc)
+               b-split-operac.qtd-segs-imc-setup = if  b-split-operac.dat-imc-setup = today
+                                                   then time 
+                                                   else 0
+               b-split-operac.dat-fmt            = p-dat-fmt
+               b-split-operac.qtd-segs-fmt       = 86399.
+                   
+    /*** Atualiza pontos intermedios para o split para grupos de m†quina programados ***/
+    if not available grup-maquina or
+        grup-maquina.gm-codigo <> b-split-operac.gm-codigo then
+        find grup-maquina 
+            where grup-maquina.gm-codigo = b-split-operac.gm-codigo no-lock no-error.
+
+    if  grup-maquina.log-ctrab-progdo then do:
+
+        /*** Atualiza data de in°cio mais cedo da operaá∆o ***/
+        if  b-split-operac.tempo-pad-setup = 0 then
+            assign b-split-operac.dat-imc      = b-split-operac.dat-imc-setup
+                   b-split-operac.qtd-segs-imc = b-split-operac.qtd-segs-imc-setup.
+        else do:
+            assign b-split-operac.dat-imc = ?
+                   de-tempo-aux           = b-split-operac.tempo-pad-setup / 3600
+                   c-cod-area             = b-split-operac.cod-area-produc
+                   c-gm-codigo            = b-split-operac.gm-codigo
+                   c-cod-calend           = ?.
+
+
+
+            run inbo/boin469d.p (input-output c-cod-area,
+                                 input-output c-gm-codigo,
+                                 input        b-split-operac.cod-ctrab,
+                                 input-output c-cod-calend,
+                                 Input-output b-split-operac.dat-imc,
+                                 Input-output b-split-operac.qtd-segs-imc,
+                                 Input-output b-split-operac.dat-imc-setup,
+                                 Input-output b-split-operac.qtd-segs-imc-setup,
+                                 Input-output de-tempo-aux).
+        end.
+
+        /*** Atualiza data de fim mais cedo da operaá∆o ***/
+        if  b-split-operac.tempo-pad-maq = 0 then
+            assign b-split-operac.dat-fmc      = b-split-operac.dat-imc
+                   b-split-operac.qtd-segs-fmc = b-split-operac.qtd-segs-imc.
+        else do:
+            assign b-split-operac.dat-fmc = ?
+                   de-tempo-aux           = b-split-operac.tempo-pad-maq / 3600
+                   c-cod-area             = b-split-operac.cod-area-produc
+                   c-gm-codigo            = b-split-operac.gm-codigo
+                   c-cod-calend           = ?.
+
+            run inbo/boin469d.p (input-output c-cod-area,
+                                 input-output c-gm-codigo,
+                                 input        b-split-operac.cod-ctrab,
+                                 input-output c-cod-calend,
+                                 Input-output b-split-operac.dat-fmc,
+                                 Input-output b-split-operac.qtd-segs-fmc,
+                                 Input-output b-split-operac.dat-imc,
+                                 Input-output b-split-operac.qtd-segs-imc,
+                                 Input-output de-tempo-aux).
+
+        end.
+
+        /*** Atualiza data de in°cio mais tarde da operaá∆o ***/
+        if  b-split-operac.tempo-pad-maq = 0 then
+            assign b-split-operac.dat-imt      = b-split-operac.dat-fmt
+                   b-split-operac.qtd-segs-imt = b-split-operac.qtd-segs-fmt.
+        else do:
+            assign b-split-operac.dat-imt = ?
+                   de-tempo-aux           = b-split-operac.tempo-pad-maq / 3600
+                   c-cod-area             = b-split-operac.cod-area-produc
+                   c-gm-codigo            = b-split-operac.gm-codigo
+                   c-cod-calend           = ?.
+
+            run inbo/boin469d.p (input-output c-cod-area,
+                                 input-output c-gm-codigo,
+                                 input        b-split-operac.cod-ctrab,
+                                 input-output c-cod-calend,
+                                 Input-output b-split-operac.dat-fmt,
+                                 Input-output b-split-operac.qtd-segs-fmt,
+                                 Input-output b-split-operac.dat-imt,
+                                 Input-output b-split-operac.qtd-segs-imt,
+                                 Input-output de-tempo-aux).
+        end.
+
+        /*** Atualiza data de in°cio mais tarde da preparaá∆o ***/
+        if  b-split-operac.tempo-pad-setup = 0 then
+            assign b-split-operac.dat-imt-setup      = b-split-operac.dat-imt
+                   b-split-operac.qtd-segs-imt-setup = b-split-operac.qtd-segs-imt.
+        else do:
+            assign b-split-operac.dat-imt-setup = ?
+                   de-tempo-aux                 = b-split-operac.tempo-pad-setup / 3600
+                   c-cod-area                   = b-split-operac.cod-area-produc
+                   c-gm-codigo                  = b-split-operac.gm-codigo
+                   c-cod-calend                 = ?.
+            
+            run inbo/boin469d.p (input-output c-cod-area,
+                                 input-output c-gm-codigo,
+                                 input        b-split-operac.cod-ctrab,
+                                 input-output c-cod-calend,
+                                 Input-output b-split-operac.dat-fmt,
+                                 Input-output b-split-operac.qtd-segs-fmt,
+                                 Input-output b-split-operac.dat-imt-setup,
+                                 Input-output b-split-operac.qtd-segs-imt-setup,
+                                 Input-output de-tempo-aux).                  
+        end.
+
+        assign b-split-operac.tempo-folga = (b-split-operac.dat-fmt  - 
+                                             b-split-operac.dat-fmc) * 24 +
+                                            (b-split-operac.qtd-segs-fmt  -
+                                             b-split-operac.qtd-segs-fmc) / 3600.
+   end.        
+   /*** Se operaá∆o Ç para centro de trabalho n∆o programado passa estado para liberado ***/
+   else do:
+       if b-split-operac.ind-estado-split < 4 then do:
+           assign b-split-operac.ind-estado-split = 3.
+         
+           
+       end.
+   end.    
+   
+   if b-split-operac.cod-ctrab <> "":U then do:
+        find first area-produc-ctrab 
+             where area-produc-ctrab.cod-ctrab      =  b-split-operac.cod-ctrab
+               and area-produc-ctrab.dat-inic-valid <= today
+               and area-produc-ctrab.dat-fim-valid  >  today no-lock no-error.
+         if avail area-produc-ctrab then
+              assign b-split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.
+   end.
+
+END PROCEDURE.
+
+
+/********************************************************************************
+** Geraá∆o de operaá‰es para o SFC 
+** PROCEDURE LiberarOrdemSFC
+** Par†metros: n£mero da ordem de produá∆o
+********************************************************************************/
+PROCEDURE LiberarOrdemSFC:
+
+    def input param p-nr-ord-produ as int no-undo.
+    def var c-desc                 as char no-undo.
+    define variable iOper as integer no-undo.
+
+    run VerificarOrdemSFC(p-nr-ord-produ).
+
+    /******** Ponto UPC - Chamado TG3251 *********/
+    if  c-nom-prog-upc-mg97  <> "" then do:
+        FOR EACH tt-epc 
+           WHERE tt-epc.cod-event = "ValidaLiberacaoOP":
+        DELETE tt-epc.
+        END.   
+
+        create tt-epc.
+        assign tt-epc.cod-event     = "ValidaLiberacaoOP"
+               tt-epc.cod-parameter = "nr-ord-produ"
+               tt-epc.val-parameter = STRING(p-nr-ord-produ).      
+                   
+        {include/i-epc201.i "ValidaLiberacaoOP"}
+
+        find first tt-epc
+           where tt-epc.cod-event = "ValidaLiberacaoOP"
+           and tt-epc.cod-parameter = "Erro" no-error.
+ 
+        if avail tt-epc then do:       
+                  
+           create erro-trans-op.
+           assign erro-trans-op.cod-modul      = "SFC":U
+                  erro-trans-op.seq-erro       = 99
+                  erro-trans-op.cd-erro        = 17006
+                  erro-trans-op.dat-transacao  = today
+                  erro-trans-op.hra-transacao  = string(time,"HH:MM:SS")
+                  erro-trans-op.nr-ord-produ   = p-nr-ord-produ
+                  erro-trans-op.des-erro-trans = tt-epc.val-parameter.
+        end. 
+    END.      
+        
+    if can-find (first erro-trans-op
+                 where erro-trans-op.cod-modul    = "SFC":U
+                   and erro-trans-op.nr-ord-produ = p-nr-ord-produ) then
+        return. 
+
+    find first op-sfc
+        where op-sfc.nr-ord-produ = p-nr-ord-produ exclusive-lock no-error.
+
+    if avail op-sfc then     
+        assign op-sfc.ind-estado-op = 2.
+    else do:
+        find first ord-prod where ord-prod.nr-ord-produ = p-nr-ord-produ no-lock no-error.
+        if avail ord-prod then
+                run gerarOrdemSFC(buffer ord-prod).
+
+        find op-sfc
+                where op-sfc.nr-ord-produ = p-nr-ord-produ exclusive-lock no-error.
+
+        if avail op-sfc then     
+            assign op-sfc.ind-estado-op = 2.
+    end.
+        
+    /*Se a ord-prod estiver com estado Nao Iniciado, passa para Liberado*/
+    find first ord-prod where ord-prod.nr-ord-produ = op-sfc.nr-ord-produ no-lock no-error.
+    if avail ord-prod and ord-prod.estado = 1 then do:
+        
+        find current ord-prod exclusive-lock no-error.
+        assign ord-prod.estado = 2. /*Liberada*/   
+        find current ord-prod no-lock no-error.
+    end.
+    /*** Gravar na Ordem SFC a Èltima data de liberaá∆o  ***/   
+    if avail op-sfc and  op-sfc.ind-estado-op = 2 then     
+        assign op-sfc.dat-liber-op = today. 
+        
+    if avail op-sfc then
+        find current op-sfc no-lock no-error.        
+
+    for each oper-ord where
+             oper-ord.nr-ord-produ = p-nr-ord-produ exclusive-lock:
+        if oper-ord.log-operac-inic then
+            assign oper-ord.dat-liber-operac      = today
+                   oper-ord.qtd-segs-liber-operac = time
+                   oper-ord.log-restric-pert      = no.
+        else
+           assign  oper-ord.log-restric-pert      = yes.
+
+        for each  split-operac 
+            where split-operac.nr-ord-produ   = p-nr-ord-produ 
+            and   split-operac.num-operac-sfc = oper-ord.num-operac-sfc exclusive-lock:
+
+             if  split-operac.ind-estado-split >= 3 then
+                 next.
+
+             run LiberarSplit (buffer split-operac, 
+                               op-sfc.dat-imc, 
+                               op-sfc.dat-fmt).
+
+             assign iOper = split-operac.num-operac-sfc.
+                        
+        end.
+    end.     
+    
+    if not avail ord-prod then
+        find first ord-prod where ord-prod.nr-ord-produ = p-nr-ord-produ no-lock no-error.
+    for first param-cp fields(param-cp.log-integr-ppi-mes) no-lock :
+        if param-cp.log-integr-ppi-mes then do:
+            if not valid-handle(h-cpapi301b) then
+               run cpp/cpapi301b.p persistent set h-cpapi301b ( input rowid(ord-prod),
+                                                                input ord-prod.nr-ord-produ,
+                                                                input 2). /*alteracao*/
+                                                                
+            run pi-execute in h-cpapi301b (input rowid(ord-prod),
+                                           input ord-prod.nr-ord-produ,
+                                           input 2). /*alteracao*/ 
+                                           
+                                           
+            if return-value = "NOK":U then do :
+                    {utp/ut-liter.i N∆o_Foi_possivel_Integrar_Ordem_de_produá∆o *}
+                    c-desc = return-value.
+                    
+                    RUN utp/ut-msgs.p (INPUT "help":U,
+                        INPUT 54436,
+                        INPUT "Ordem de produá∆o").
+                        
+                    create erro-trans-op.
+                    assign i-seq-erro                   = i-seq-erro + 1
+                            erro-trans-op.cod-modul      = "SFC":U
+                            erro-trans-op.seq-erro       = i-seq-erro
+                            erro-trans-op.cd-erro        = 54436
+                            erro-trans-op.dat-transacao  = today
+                            erro-trans-op.hra-transacao  = string(time,"HH:MM:SS")
+                            erro-trans-op.nr-ord-produ   = ord-prod.nr-ord-produ
+                            erro-trans-op.qtd-op         = 0
+                            erro-trans-op.des-erro-trans = c-desc
+                            erro-trans-op.des-soluc-erro = return-value.
+            end.
+            
+        end.
+    end.
+END PROCEDURE.
+
+
+/********************************************************************************
+** Verifica se operaá‰es possuim centro de trabalho no SFC e a rede pert 
+** da ordem Ç consistente 
+** PROCEDURE VerificarOPSFC
+** ParÉmetros: n£mero da ordem de produá∆o
+               tt-erros 
+********************************************************************************/
+
+PROCEDURE VerificarOrdemSFC:
+
+    def input param p-nr-ord-produ as int no-undo.
+
+    def var c-label   as char NO-UNDO.
+    def var c-label-1 as char NO-UNDO.
+
+    /*** Elimina os erros da ordem, no ch∆o de f†brica ***/    
+    for each erro-trans-op
+        where erro-trans-op.cod-modul = "SFC":U
+          and erro-trans-op.nr-ord-produ = p-nr-ord-produ exclusive-lock:
+        delete erro-trans-op.
+    end.
+
+    for each oper-ord
+        where oper-ord.nr-ord-produ = p-nr-ord-produ  
+          and oper-ord.tipo-oper    = 1 no-lock:
+
+        find first split-operac no-lock
+             where split-operac.nr-ord-produ   = oper-ord.nr-ord-produ
+               AND split-operac.num-operac-sfc = oper-ord.num-operac-sfc no-error.
+
+        /*** Operaá∆o sem condiá‰es de ser alocada ***/
+        if  (avail split-operac and
+            not can-find (first ctrab where
+                                ctrab.gm-codigo = split-operac.gm-codigo)) then do:
+
+            /*** N∆o existe centro de trabalho para o grupo de m†quina da operaá∆o ***/
+            run extraiMsg(input 25907, 
+			  input oper-ord.gm-codigo + "~~" + string(oper-ord.op-codigo)).				  
+		       								  
+            create erro-trans-op.
+            assign i-seq-erro                   = i-seq-erro + 1
+                   erro-trans-op.cod-modul      = "SFC":U
+                   erro-trans-op.seq-erro       = i-seq-erro
+                   erro-trans-op.cd-erro        = 25907
+                   erro-trans-op.dat-transacao  = today
+                   erro-trans-op.hra-transacao  = string(time,"HH:MM:SS")
+                   erro-trans-op.nr-ord-produ   = oper-ord.nr-ord-produ
+                   erro-trans-op.qtd-op         = oper-ord.nr-unidades
+                   erro-trans-op.des-erro-trans = tt-traducoes.c-msg                         
+                   erro-trans-op.des-soluc-erro = tt-traducoes.c-help.
+            next.
+        end.                       
+
+        /*** Centro de trabalho existe mais n∆o pertence a nenhuma area ***/ 
+        if  (avail split-operac and
+            not can-find (first area-produc-ctrab where
+                                area-produc-ctrab.gm-codigo       = split-operac.gm-codigo and
+                                area-produc-ctrab.dat-inic-valid <= today                  and
+                                area-produc-ctrab.dat-fim-valid   > today)) then do:
+
+            run extraiMsg(input 17562,input "":U).                                       
+
+            create erro-trans-op.
+            assign i-seq-erro                   = i-seq-erro + 1
+                   erro-trans-op.cod-modul      = "SFC":U
+                   erro-trans-op.seq-erro       = i-seq-erro
+                   erro-trans-op.cd-erro        = 17562
+                   erro-trans-op.dat-transacao  = today
+                   erro-trans-op.hra-transacao  = string(time,"HH:MM:SS")
+                   erro-trans-op.nr-ord-produ   = oper-ord.nr-ord-produ
+                   erro-trans-op.qtd-op         = oper-ord.nr-unidades
+                   erro-trans-op.des-erro-trans = tt-traducoes.c-msg   
+                   erro-trans-op.des-soluc-erro = tt-traducoes.c-help. 
+        end.                                        
+    end.
+
+    /*** Se n∆o existe operaá∆o final £nica a rede pert est† inconsistente ***/
+    find oper-ord
+        where oper-ord.nr-ord-produ     = p-nr-ord-produ
+          and oper-ord.log-operac-final = yes no-lock no-error.
+          
+    if  not available oper-ord then do:
+  
+        run extraiMsg(input 361,input "":U).                    
+
+        create erro-trans-op.
+        assign i-seq-erro                   = i-seq-erro + 1
+               erro-trans-op.cod-modul      = "SFC":U
+               erro-trans-op.seq-erro       = i-seq-erro
+               erro-trans-op.cd-erro        = 361
+               erro-trans-op.dat-transacao  = today
+               erro-trans-op.hra-transacao  = string(time,"HH:MM:SS")
+               erro-trans-op.nr-ord-produ   = p-nr-ord-produ
+               erro-trans-op.des-erro-trans = tt-traducoes.c-msg   
+               erro-trans-op.des-soluc-erro = tt-traducoes.c-help. 
+    end.
+
+    IF NOT AVAIL op-sfc THEN
+        FIND op-sfc WHERE op-sfc.nr-ord-produ = p-nr-ord-produ NO-LOCK NO-ERROR.
+        
+    /*Alterada a chamada persistente da api (.p) pela include por motivo de 
+      Performance na abertura da Ordem de Produá∆o*/
+    {sfc/sfapi016.i1}
+
+END PROCEDURE.    
+
+/********************************************************************************
+** Alocaá∆o de Split de Operaá∆o 
+** PROCEDURE alocarSplit
+** Par†metros: buffer split
+********************************************************************************/
+PROCEDURE alocarSplit:
+
+    def parameter buffer b-split-operac for split-operac.
+    def input parameter  p-dat-liber as date no-undo.
+
+    /*** Aqui estar† a futura l¢gica de alocaá∆o do EMS 5.00 ***/
+    def buffer b-ord-prod for ord-prod. 
+    def buffer b-oper-ord for oper-ord.
+
+    find ctrab where 
+         ctrab.gm-codigo = b-split-operac.gm-codigo no-lock no-error.
+         
+    find b-ord-prod no-lock
+         where b-ord-prod.nr-ord-produ = b-split-operac.nr-ord-produ no-error.
+
+    if available ctrab then do:
+        assign b-split-operac.cod-ctrab       = ctrab.cod-ctrab
+               b-split-operac.qtd-carga-batch = ctrab.qtd-carga-batch.
+
+        find first area-produc-ctrab
+             where area-produc-ctrab.cod-ctrab       = ctrab.cod-ctrab
+               and area-produc-ctrab.dat-inic-valid <= p-dat-liber
+               and area-produc-ctrab.dat-fim-valid  >  p-dat-liber no-lock no-error.
+        if available area-produc-ctrab then 
+            assign b-split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.            
+    end.     
+    else do:   
+    
+        if l-sfc-mudancas = no then do:
+           for first area-produc-ctrab fields (cod-area-produc) where 
+                     area-produc-ctrab.gm-codigo       = b-split-operac.gm-codigo and 
+                     area-produc-ctrab.dat-inic-valid <= p-dat-liber and 
+                     area-produc-ctrab.dat-fim-valid  >  p-dat-liber no-lock:
+               assign b-split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.
+           end.
+        end.        
+        else do:
+          
+          find first b-oper-ord no-lock
+               where b-oper-ord.nr-ord-produ   = b-split-operac.nr-ord-produ
+                 and b-oper-ord.num-operac-sfc = b-split-operac.num-operac-sfc no-error.
+
+          FIND FIRST area-produc-prefer NO-LOCK
+               WHERE area-produc-prefer.num-id-operacao    = b-oper-ord.num-id-operacao
+                 AND area-produc-prefer.it-codigo          = b-oper-ord.it-codigo 
+                 AND area-produc-prefer.op-codigo          = b-oper-ord.op-codigo
+                 AND area-produc-prefer.cod-roteiro        = b-oper-ord.cod-roteiro
+                 AND area-produc-prefer.num-operac-alterna = b-oper-ord.op-altern 
+                 AND area-produc-prefer.cod-estabel        = b-ord-prod.cod-estabel 
+                 AND area-produc-prefer.nr-linha           = b-ord-prod.nr-linha    NO-ERROR.
+
+          FIND area-produc NO-LOCK
+               WHERE area-produc.cod-area-produc = area-produc-prefer.cod-area-produc
+                 NO-ERROR.
+        
+          If avail area-produc-prefer and avail area-produc and 
+           can-find (first area-produc-ctrab 
+                     where area-produc-ctrab.gm-codigo       = b-split-operac.gm-codigo 
+                       and area-produc-ctrab.dat-inic-valid <= p-dat-liber 
+                       and area-produc-ctrab.dat-fim-valid   > p-dat-liber 
+                       and area-produc-ctrab.cod-area-produc = area-produc-prefer.cod-area-produc) then
+                  assign b-split-operac.cod-area-produc = area-produc-prefer.cod-area-produc.
+           Else do:
+                  b-area:
+                  for each area-produc-ctrab fields (cod-area-produc gm-codigo dat-inic-valid dat-fim-valid) where 
+                          area-produc-ctrab.gm-codigo       = b-split-operac.gm-codigo and 
+                          area-produc-ctrab.dat-inic-valid <= p-dat-liber and 
+                          area-produc-ctrab.dat-fim-valid  >  p-dat-liber no-lock:
+                     if not can-find(first area-produc no-lock
+                                 where area-produc.cod-area-produc = area-produc-ctrab.cod-area-produc
+                                   and area-produc.cod-estabel     = b-ord-prod.cod-estabel) then next.
+                     assign b-split-operac.cod-area-produc = area-produc-ctrab.cod-area-produc.
+                     leave b-area.
+                end.
+           End.             
+        End.
+    end.
+
+END PROCEDURE.
+
+
+/********************************************************************************
+**
+** Alterar Quantidade Prevista dos Splits a partir da operaá∆o da ordem 
+** PROCEDURE AlterarQtdSplits
+** Par†metros: buffer oper-ord,  p-qtd-old, p-qtd-new
+**
+********************************************************************************/
+PROCEDURE AlterarQtdSplits:
+
+    def param buffer b-oper-ord for oper-ord.
+    def input parameter p-qtd-old like split-operac.qtd-operac-aprov no-undo.
+    def input parameter p-qtd-new like split-operac.qtd-operac-aprov no-undo.
+
+    def var v-old-nr-lotes as decimal no-undo.
+    def var v-new-nr-lotes as decimal no-undo.
+
+
+
+    /*** Exportaá∆o para a operaá∆o do ch∆o de f†brica ***/
+    for each split-operac fields (gm-codigo         tempo-pad-maq     tempo-pad-mod    
+                                  tempo-pad-carga   tempo-pad-operac   
+                                  tempo-pad-setup   qtd-previs-operac qtd-capac-operac 
+                                  qtd-carga-batch) where
+             split-operac.nr-ord-produ   = b-oper-ord.nr-ord-produ and 
+             split-operac.num-operac-sfc = b-oper-ord.num-operac-sfc exclusive-lock:
+             
+        for first  grup-maquina fields (gm-codigo ind-tempo-operac ind-tip-ctrab) where
+                   grup-maquina.gm-codigo = b-oper-ord.gm-codigo no-lock:
+
+                        
+                assign split-operac.qtd-previs-operac  = split-operac.qtd-previs-operac * p-qtd-new / p-qtd-old
+                       split-operac.qtd-capac-operac   = split-operac.qtd-capac-operac  * p-qtd-new / p-qtd-old.
+                
+                case grup-maquina.ind-tempo-operac:
+                    when 1 or 
+                    when 4 then do:
+                    
+                        assign split-operac.tempo-pad-maq    = split-operac.tempo-pad-maq    * p-qtd-new / p-qtd-old
+                               split-operac.tempo-pad-mod    = split-operac.tempo-pad-mod    * p-qtd-new / p-qtd-old
+                               split-operac.tempo-pad-carga  = split-operac.tempo-pad-maq    + split-operac.tempo-pad-setup
+                               split-operac.tempo-pad-operac = split-operac.tempo-pad-operac * p-qtd-new / p-qtd-old.
+                    end.
+                    when 3 then do:
+                        assign v-old-nr-lotes  = (p-qtd-old / p-qtd-new) * split-operac.qtd-capac-operac / split-operac.qtd-carga-batch
+                               v-old-nr-lotes  = if  round(v-old-nr-lotes,0) < (v-old-nr-lotes * 0.995) then  
+                                                     round(v-old-nr-lotes,0) + 1 else round(v-old-nr-lotes,0)
+                               v-new-nr-lotes  = split-operac.qtd-capac-operac / split-operac.qtd-carga-batch
+                               v-new-nr-lotes  = if  round(v-new-nr-lotes,0) < (v-new-nr-lotes * 0.995) then  
+                                                     round(v-new-nr-lotes,0) + 1 else round(v-new-nr-lotes,0).
+
+                        if v-new-nr-lotes <> ? and  v-new-nr-lotes <> 0 then
+                            assign split-operac.tempo-pad-setup      = split-operac.tempo-pad-setup  * v-new-nr-lotes / v-old-nr-lotes
+                                   split-operac.tempo-pad-operac     = split-operac.tempo-pad-operac * v-new-nr-lotes / v-old-nr-lotes
+                                   split-operac.tempo-pad-maq        = split-operac.tempo-pad-maq    * v-new-nr-lotes / v-old-nr-lotes
+                                   split-operac.tempo-pad-mod        = split-operac.tempo-pad-mod    * v-new-nr-lotes / v-old-nr-lotes
+                                   split-operac.tempo-pad-carga      = split-operac.tempo-pad-maq + split-operac.tempo-pad-setup.
+                    end.  
+
+                end case.    
+        end.        
+    end.
+
+END PROCEDURE.
+
+/********************************************************************************
+** Bloquear Ordem Produá∆o 
+** PROCEDURE Bloquear OPSFC
+** Par†metros: buffer split
+********************************************************************************/
+PROCEDURE BloquearOrdemSFC:
+
+    def input param p-nr-ord-produ as int no-undo.
+
+    find op-sfc 
+        where op-sfc.nr-ord-produ = p-nr-ord-produ exclusive-lock no-error.
+
+    /*** N∆o bloqueia ordens ja iniciadas ***/
+    if  op-sfc.ind-estado-op > 2 then return.
+
+    assign op-sfc.ind-estado-op = 1.
+       
+    /*Se a ord-prod estiver com estado Liberada, passa para N∆o Iniciada*/
+    find first ord-prod where ord-prod.nr-ord-produ = op-sfc.nr-ord-produ no-lock no-error.
+    if ord-prod.estado = 2 then do:
+        
+        find current ord-prod exclusive-lock no-error.
+        assign ord-prod.estado = 1. /*Nao Iniciada*/        
+        find current ord-prod no-lock no-error.
+        
+    end.
+
+    for each oper-ord where
+             oper-ord.nr-ord-produ  = p-nr-ord-produ exclusive-lock:
+
+        assign oper-ord.dat-liber-operac      = ?
+               oper-ord.qtd-segs-liber-operac = 0.
+
+        for each split-operac where
+                 split-operac.nr-ord-produ   = p-nr-ord-produ and
+                 split-operac.num-operac-sfc = oper-ord.num-operac-sfc exclusive-lock:
+            /* Foi retirado, pois estas datas podem ter vindo do DBR e n∆o
+               podemos simplesmente altera-las para ?, pois o IMC pode ser
+               por motivos de materiais tambÇm, n∆o somente disponibilidade
+               de maquina     
+            assign split-operac.dat-imc-setup      = ?
+                   split-operac.qtd-segs-imc-setup = 0
+                   split-operac.dat-imc            = ?
+                   split-operac.qtd-segs-imc       = 0
+                   split-operac.dat-fmc            = ?
+                   split-operac.qtd-segs-fmc       = 0.
+            */       
+            assign split-operac.ind-estado-split   = 1.
+        end.          
+    end.                
+
+END PROCEDURE.
+
+PROCEDURE PersistenciaEmLoteBOIN536:
+
+      CREATE tt-param-split.
+      ASSIGN tt-param-split.cod-param = "l-msg-finaliza-operac-BO"
+             tt-param-split.log-1     = YES.
+    
+      CREATE tt-param-split.
+      ASSIGN tt-param-split.cod-param = "i-regra-finaliza-quando-quant-BO"
+             tt-param-split.int-1     = 3. // foráa 3 para encerrar independente da quantidade. i-regra-finaliza-quando-quant.
+    
+      
+      ASSIGN l-execucao-lote = yes.
+      
+      IF NOT VALID-HANDLE(h-boin536) THEN
+           run inbo/boin536.p persistent set h-boin536.
+           
+      RUN SetaParametros IN h-boin536 (INPUT-OUTPUT TABLE tt-param-split).
+
+END PROCEDURE.
+
+PROCEDURE PersistenciaEmLoteBOIN536DeleteHandle:
+
+     if VALID-HANDLE(h-boin536) THEN DO:
+        delete procedure h-boin536 no-error.
+     END.
+END PROCEDURE.
+
+/********************************************************************************
+** Alteraá∆o da ordem de produá∆o para o ch∆o de f†brica ***
+** PROCEDURE AlterarOrdemSFC:
+** Par†metros: buffer da ordem de produá∆o
+               tt-erros 
+********************************************************************************/
+PROCEDURE AlterarOrdemSFC:
+
+    DEFINE PARAMETER BUFFER b-ord-prod FOR ord-prod.
+
+    def var de-qtd-nova      like split-operac.qtd-operac-aprov no-undo.
+    def var de-qtd-atu       like split-operac.qtd-operac-aprov no-undo.
+    def var de-nro-lotes     as dec no-undo.
+    def var de-nro-lotes-atu as dec no-undo.
+    def var de-qtd-old-split like split-operac.qtd-operac-aprov no-undo.
+
+    
+do trans on error undo, leave:
+    find op-sfc 
+        where op-sfc.nr-ord-produ = b-ord-prod.nr-ord-produ exclusive-lock no-error.
+
+    if  avail op-sfc then do:
+
+        assign op-sfc.dat-inic-op    = b-ord-prod.dt-inicio
+               op-sfc.dat-fim-op     = b-ord-prod.dt-termino
+               op-sfc.dat-inic-op-cp = b-ord-prod.dt-inicio
+               op-sfc.dat-fim-op-cp  = b-ord-prod.dt-termino
+               op-sfc.dat-imc        = b-ord-prod.dt-inicio
+               op-sfc.dat-fmt        = b-ord-prod.dt-termino
+               op-sfc.it-codigo      = b-ord-prod.it-codigo
+               op-sfc.cod-refer      = b-ord-prod.cod-refer
+               op-sfc.qtd-segs-inic-op = 0
+               op-sfc.qtd-segs-fim-op  = 86399
+               op-sfc.qtd-segs-imc     = 0
+               op-sfc.qtd-segs-fmt     = 86399
+               op-sfc.hra-inic-op      = "0000":U
+               op-sfc.hra-fim-op       = "2359":U.
+
+        /* Atualizaá∆o do split */
+        run GerarSplitOperac (buffer op-sfc).   
+
+        for each split-operac where 
+                 split-operac.nr-ord-produ = op-sfc.nr-ord-produ exclusive-lock:
+                 
+            if split-operac.ind-estado-split > 3 then next.                     
+
+            find first ord-prod where ord-prod.nr-ord-produ = split-operac.nr-ord-produ no-lock no-error.
+            if ord-prod.estado = 1 then next.  
+
+            run LiberarSplit (buffer split-operac, 
+                              op-sfc.dat-imc, 
+                              op-sfc.dat-fmt).
+                              
+        end. /*for each split-operac*/
+        
+        find current op-sfc no-lock no-error.
+        
+        if l-existe-split and b-ord-prod.qt-ordem <> op-sfc.qtd-op then do:
+
+            assign de-qtd-nova = b-ord-prod.qt-ordem
+                   de-qtd-atu  = op-sfc.qtd-op.
+
+            for each oper-ord
+                where oper-ord.nr-ord-produ = op-sfc.nr-ord-produ exclusive-lock:
+
+                if b-ord-prod.tipo <> 9 then
+                    assign oper-ord.nr-unidades       = oper-ord.nr-unidades       * de-qtd-nova / de-qtd-atu
+                           oper-ord.qtd-previs-operac = oper-ord.qtd-previs-operac * de-qtd-nova / de-qtd-atu
+                           oper-ord.qtd-capac-operac  = oper-ord.qtd-capac-operac  * de-qtd-nova / de-qtd-atu.
+
+                case oper-ord.ind-tempo-operac:
+                    when 1 or 
+                    when 4 then do:
+                       assign oper-ord.tempo-homem  = oper-ord.tempo-homem  * de-qtd-nova / de-qtd-atu
+                              oper-ord.tempo-maquin = oper-ord.tempo-maquin * de-qtd-nova / de-qtd-atu.
+                    end.
+                    when 3 then do:
+                        assign de-nro-lotes     = oper-ord.qtd-capac-operac / oper-ord.qtd-carga-batch
+                               de-nro-lotes-atu = de-nro-lotes * de-qtd-atu / de-qtd-nova.
+
+                        if  round(de-nro-lotes,0) < (de-nro-lotes * 0.995) then
+                            assign de-nro-lotes = round(de-nro-lotes,0) + 1.
+                        else  
+                           assign de-nro-lotes = round(de-nro-lotes,0).
+
+                        if  round(de-nro-lotes-atu,0) < (de-nro-lotes-atu * 0.995) then
+                            assign de-nro-lotes-atu = round(de-nro-lotes-atu,0) + 1.
+                        else    
+                            assign de-nro-lotes-atu = round(de-nro-lotes-atu,0).
+
+                        assign oper-ord.tempo-maquin = oper-ord.tempo-maquin * de-nro-lotes / de-nro-lotes-atu
+                               oper-ord.tempo-homem  = oper-ord.tempo-homem  * de-nro-lotes / de-nro-lotes-atu.
+                    end.
+                end case. /*case oper-ord.ind-tempo-operac*/
+                                                            
+
+                for each split-operac
+                    where split-operac.nr-ord-produ   = oper-ord.nr-ord-produ
+                      and split-operac.num-operac-sfc = oper-ord.num-operac-sfc exclusive-lock:
+                    
+                    assign de-qtd-old-split = split-operac.qtd-previs-operac.
+
+                    if b-ord-prod.tipo <> 9 then
+                            assign split-operac.qtd-capac-operac  = split-operac.qtd-capac-operac * de-qtd-nova / de-qtd-atu
+                                   split-operac.qtd-previs-operac = split-operac.qtd-previs-operac * de-qtd-nova / de-qtd-atu.
+
+                    case oper-ord.ind-tempo-operac:
+                        when 1 or 
+                        when 4 then do:
+                           assign split-operac.tempo-pad-mod = split-operac.tempo-pad-mod * 
+                                                               split-operac.qtd-previs-operac / de-qtd-old-split
+                                  split-operac.tempo-pad-maq = split-operac.tempo-pad-maq *
+                                                               split-operac.qtd-previs-operac / de-qtd-old-split.
+                        end.
+                        when 3 then do:
+                            assign de-nro-lotes     = split-operac.qtd-capac-operac / split-operac.qtd-carga-batch
+                                   de-nro-lotes-atu = de-nro-lotes * 
+                                                      split-operac.qtd-previs-operac / de-qtd-old-split.
+
+                            if  round(de-nro-lotes,0) < (de-nro-lotes * 0.995) then
+                                assign de-nro-lotes = round(de-nro-lotes,0) + 1.
+                            else  
+                               assign de-nro-lotes = round(de-nro-lotes,0).
+
+                            if  round(de-nro-lotes-atu,0) < (de-nro-lotes-atu * 0.995) then
+                                assign de-nro-lotes-atu = round(de-nro-lotes-atu,0) + 1.
+                            else    
+                                assign de-nro-lotes-atu = round(de-nro-lotes-atu,0).
+
+                            assign split-operac.tempo-pad-maq = split-operac.tempo-pad-maq * de-nro-lotes / de-nro-lotes-atu
+                                   split-operac.tempo-pad-mod = split-operac.tempo-pad-mod * de-nro-lotes / de-nro-lotes-atu.
+                        end. 
+                    end case. /*case oper-ord.ind-tempo-operac*/
+
+                    assign split-operac.tempo-pad-carga = split-operac.tempo-pad-maq + split-operac.tempo-pad-setup.
+                                    
+                    if avail grup-maquina then
+                       assign split-operac.tempo-pad-operac = if grup-maquina.ind-tip-ctrab = 4 then
+                                                                 split-operac.tempo-pad-mod
+                                                                else
+                                                                 split-operac.tempo-pad-maq.      
+                end. /*for each split-operac*/
+
+            end. /*for each oper-ord*/
+            find current op-sfc exclusive-lock no-error.
+            assign op-sfc.qtd-op = op-sfc.qtd-op * de-qtd-nova / de-qtd-atu.
+            find current op-sfc no-lock no-error.
+        end. /*if  b-ord-prod.qt-ordem <> op-sfc.qtd-op*/
+        else do:
+            find current op-sfc exclusive-lock no-error.
+            assign op-sfc.qtd-op = op-sfc.qtd-op * b-ord-prod.qt-ordem / op-sfc.qtd-op.
+            find current op-sfc no-lock no-error.
+        end.
+
+        find current op-sfc exclusive-lock no-error.
+        /* Se a OP estiver iniciada, altera o estado da ordem do SFC p/ iniciada */
+        if  b-ord-prod.estado = 6 and (op-sfc.ind-estado-op <> 4) then
+            assign op-sfc.ind-estado-op = 3.
+
+        /* Se a OP estiver finalizada ou terminada, altera a estado da ordem do SFC p/ finalizada */
+        
+        {cdp/cdcfgman.i}
+
+        if  b-ord-prod.estado >= 7 
+          /*and op-sfc.ind-estado-op <> 5*/  then do : /* n∆o estava fechando splits de ordem finalizada quando se termina ordens no cs0305 */
+              assign op-sfc.ind-estado-op = 5.
+            
+              /* finalizar a operaá∆o e os split */
+              IF NOT VALID-HANDLE(h-boin536) THEN DO:
+                  run inbo/boin536.p persistent set h-boin536.
+            
+                  CREATE tt-param-split.
+                  ASSIGN tt-param-split.cod-param = "l-msg-finaliza-operac-BO"
+                         tt-param-split.log-1     = YES.
+                
+                  CREATE tt-param-split.
+                  ASSIGN tt-param-split.cod-param = "i-regra-finaliza-quando-quant-BO"
+                         tt-param-split.int-1     = 3. // foráa 3 para encerrar independente da quantidade. i-regra-finaliza-quando-quant.
+                       
+                  RUN SetaParametros IN h-boin536 (INPUT-OUTPUT TABLE tt-param-split).
+              END.
+            
+              for each oper-ord where 
+                       oper-ord.nr-ord-produ = b-ord-prod.nr-ord-produ 
+                       exclusive-lock:
+                  RUN FecharOperacao in h-boin536 (buffer oper-ord).     
+              end.         
+              
+              IF NOT l-execucao-lote AND 
+                VALID-HANDLE(h-boin536) THEN DO:
+                delete procedure h-boin536 no-error. 
+              END.
+              
+        end. /*if  b-ord-prod.estado >= 7*/    
+        if  b-ord-prod.estado < 6 and 
+            op-sfc.ind-estado-op >= 3 then
+            assign op-sfc.ind-estado-op = 1.
+            
+    end. /*if  avail op-sfc*/
+    
+    if avail op-sfc then
+        find current op-sfc no-lock.
+end. /* trans */    
+
+END PROCEDURE.     
+
+
+/********************************************************************************
+** Alterar Datas Ordem SFC 
+** PROCEDURE AlterarDatasOrdemSFC
+** Par†metros: buffer op-sfc
+               p-dat-imc novo inicio mais cedo
+               p-segs-imc     hora imc em segundos 
+               p-dat-fmt novo fim mais tarde
+               p-segs-fmt     hora fmt em segundos
+********************************************************************************/
+PROCEDURE AlterarDatasOrdemSFC:
+
+    DEFINE PARAMETER BUFFER b-op-sfc FOR op-sfc.
+
+    define input parameter p-dat-imc      as date    no-undo.
+    define input parameter p-qtd-segs-imc as integer no-undo.
+    define input parameter p-dat-fmt      as date    no-undo.
+    define input parameter p-qtd-segs-fmt as integer no-undo.
+
+    for each split-operac where 
+             split-operac.nr-ord-produ =  b-op-sfc.nr-ord-produ exclusive-lock:
+
+            if  b-op-sfc.dat-imc      <> p-dat-imc
+            or  b-op-sfc.qtd-segs-imc <> p-qtd-segs-imc then do:
+                assign b-op-sfc.dat-imc      = p-dat-imc
+                       b-op-sfc.qtd-segs-imc = p-qtd-segs-imc.
+            end.
+
+            if  b-op-sfc.dat-fmt      <> p-dat-fmt
+            or  b-op-sfc.qtd-segs-fmt <> p-qtd-segs-fmt then do:
+                assign b-op-sfc.dat-fmt      = p-dat-fmt
+                       b-op-sfc.qtd-segs-fmt = p-qtd-segs-fmt.   
+            end.   
+            ASSIGN split-operac.dat-imc      = p-dat-imc
+                   split-operac.qtd-segs-imc = p-qtd-segs-imc 
+                   split-operac.dat-fmt      = p-dat-fmt
+                   split-operac.qtd-segs-fmt = p-qtd-segs-fmt.
+    end.
+END.
+
+
+/********************************************************************************
+** Alterar Prioridade Ordem SFC 
+** PROCEDURE AlterarPriorOrdemSFC
+** Par†metros: buffer op-sfc
+               p-val-prior 
+********************************************************************************/
+PROCEDURE AlterarPriorOrdemSFC:
+
+    DEFINE PARAMETER BUFFER b-op-sfc FOR op-sfc.
+    define input parameter p-val-prior  as decimal    no-undo.
+
+    assign b-op-sfc.val-priorid-ext = p-val-prior.
+
+END PROCEDURE.
+
+/********************************************************************************
+** Geraá∆o dos Splits da operaá∆o para v†rios centros de trabalho 
+** PROCEDURE GerarSplitsCtrabs
+** Par†metros: buffer do split da operaá∆o, para ser repassado aos outros splits
+********************************************************************************/
+
+PROCEDURE GerarSplitsCtrabs:
+
+define parameter buffer bSplitOperac for split-operac.
+
+define variable iSplit   as integer no-undo.
+
+/** Buffer para percorrer outros registros **/
+define buffer bSplitOperac2 for split-operac.
+define buffer bSplitOperac3 for split-operac.
+define buffer b-ord-prod    for ord-prod.
+
+assign iSplit             = bSplitOperac.num-split-operac
+       bSplitOperac.log-1 = yes.  /** Indica que split foi gerado com parÉmetro de geraá∆o para v†rios Ctrabs **/
+       
+find b-ord-prod no-lock
+     where b-ord-prod.nr-ord-produ = bSplitOperac.nr-ord-produ no-error.
+     
+for first ttSplitOperac:
+        /** Percorre todas os centros de trabalho da µrea de produá∆o 
+            escolhida do grupo de m†quina da operaá∆o **/
+        for each  area-produc-ctrab 
+            where area-produc-ctrab.gm-codigo        = ttSplitOperac.gm-codigo
+            and   area-produc-ctrab.cod-area-produc  = ttSplitOperac.cod-area-produc 
+            and   area-produc-ctrab.dat-inic-valid  <= today
+            and   area-produc-ctrab.dat-fim-valid    > today  no-lock
+            by    area-produc-ctrab.cod-ctrab:
+            
+            if l-sfc-mudancas then do:
+               find area-produc no-lock
+                    where area-produc.cod-area-produc = area-produc-ctrab.cod-area-produc no-error.
+               if area-produc.cod-estabel <> b-ord-prod.cod-estabel then next.
+            end.
+    
+            /** Atualiza Centro de Trabalho para primeiro split **/
+            if bSplitOperac.cod-ctrab = "" then do:
+                assign bSplitOperac.cod-ctrab = area-produc-ctrab.cod-ctrab.
+            end.
+            /** Busca outros splits ou cria **/
+            else do:
+                /** Procura splits e atualiza **/
+                if can-find(first bSplitOperac2
+                            where bSplitOperac2.nr-ord-produ     = ttSplitOperac.nr-ord-produ    
+                            and   bSplitOperac2.num-operac-sfc   = ttSplitOperac.num-operac-sfc  
+                            and   bSplitOperac2.num-split-operac > iSplit no-lock) then do:
+                    for each  bSplitOperac2
+                        where bSplitOperac2.nr-ord-produ     = ttSplitOperac.nr-ord-produ    
+                        and   bSplitOperac2.num-operac-sfc   = ttSplitOperac.num-operac-sfc  
+                        and   bSplitOperac2.num-split-operac > iSplit exclusive-lock
+                        break by bSplitOperac2.num-operac-sfc:
+                        /** Atualiza Centro de trabalho **/
+                        if bSplitOperac2.cod-ctrab = "" then do:
+                            assign bSplitOperac2.cod-ctrab = area-produc-ctrab.cod-ctrab
+                                   bSplitOperac2.log-1     = yes     /** Indica que split foi gerado com parÉmetro de geraá∆o para v†rios Ctrabs **/
+                                   iSplit                  = bSplitOperac2.num-split-operac.
+                            leave.
+                        end.
+                        else do:
+                            /** Split j† criado com Ctrab **/
+                            if bSplitOperac2.cod-ctrab = area-produc-ctrab.cod-ctrab then do:
+                                assign iSplit = bSplitOperac2.num-split-operac.
+                                leave.
+                            end.
+                            else
+                                /** Verifica se est† no £ltimo Split **/
+                                if last-of(bSplitOperac2.num-operac-sfc) then
+                                    /** Verifica se n∆o est† cadastrado o Split **/
+                                    if not can-find(first bSplitOperac3 
+                                                    where bSplitOperac3.nr-ord-produ     = ttSplitOperac.nr-ord-produ    
+                                                    and   bSplitOperac3.num-operac-sfc   = ttSplitOperac.num-operac-sfc
+                                                    and   bSplitOperac3.cod-ctrab        = area-produc-ctrab.cod-ctrab no-lock) then do:
+                                        /** Cria splits para outros centros de trabalho **/
+                                        create bSplitOperac3.
+                                        buffer-copy ttSplitOperac to bSplitOperac3
+                                        assign      bSplitOperac3.cod-ctrab        = area-produc-ctrab.cod-ctrab
+                                                    bSplitOperac3.num-split-operac = bSplitOperac2.num-split-operac + 1
+                                                    bSplitOperac3.log-1            = yes.     /** Indica que split foi gerado com parÉmetro de geraá∆o para v†rios Ctrabs **/
+                                    end.
+                        end.
+                    end.
+                end.
+                /** Cria splits para outros centros de trabalho **/
+                else
+                    /** Verifica se n∆o est† cadastrado o Split **/
+                    if not can-find(first bSplitOperac3 
+                                    where bSplitOperac3.nr-ord-produ     = ttSplitOperac.nr-ord-produ    
+                                    and   bSplitOperac3.num-operac-sfc   = ttSplitOperac.num-operac-sfc
+                                    and   bSplitOperac3.cod-ctrab        = area-produc-ctrab.cod-ctrab no-lock) then do:
+                        create bSplitOperac2.
+                        buffer-copy ttSplitOperac to bSplitOperac2 
+                        assign      bSplitOperac2.cod-ctrab        = area-produc-ctrab.cod-ctrab
+                                    bSplitOperac2.num-split-operac = iSplit + 1
+                                    bSplitOperac2.log-1            = yes     /** Indica que split foi gerado com parÉmetro de geraá∆o para v†rios Ctrabs **/
+                                    iSplit                         = bSplitOperac2.num-split-operac.
+                    end.
+            end.
+        end.
+end.
+END PROCEDURE.
+
+
+

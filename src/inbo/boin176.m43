@@ -1,0 +1,543 @@
+PROCEDURE validateQuantidade :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Validacoes da quantidade.
+------------------------------------------------------------------------------*/
+
+    def input parameter pType  as char                       no-undo.
+    
+
+    def var de-tot-qtd         like item-doc-est.quantidade  no-undo.
+    def var de-total-ordens    like item-doc-est.quantidade  no-undo.
+    def var de-qtd-max         like item-doc-est.quantidade  no-undo.
+    def var de-qtd-max-aux     like item-doc-est.quantidade  no-undo.
+    def var de-limite          as decimal                    no-undo.
+    def var de-percentual      as decimal                    no-undo.
+    def var de-var-max-perc    as decimal                    no-undo.
+    def var de-var-max-lim     as decimal                    no-undo.
+    def var l-erro-co as logical no-undo.
+    def var l-ok               as logical                    no-undo.
+    def var l-erro             as logical                    no-undo.
+    def var de-qtde-req-tot    as decimal                    no-undo. /** Quantidade requisitada somada total para uma mesma parcela **/
+    def buffer bf-item-doc-est for item-doc-est.
+    def buffer bf-ordem-compra-fut for ordem-compra.    
+    def buffer bf-natur-oper-fut   for natur-oper.
+    def buffer bf-docum-est        for docum-est.
+    def buffer bf-prazo-comp-fut   for prazo-compra.
+    def buffer b-rat-ordem-fut     for rat-ordem.
+    
+    def var de-tot-recbda-fut  as decimal                    no-undo.
+    def var lRecebeSemPedido   as logical                    no-undo.
+
+    if  avail item
+    and item.fraciona = no 
+    and integer(RowObject.quantidade) <> RowObject.quantidade then do:
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="6381" /*Quantidade nÊo pode ser fracionada*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR" }
+    end.
+    
+    run getIndice ( input RowObject.cod-emitente,
+                    output de-indice ).	
+	
+    if  avail item
+    and item.fraciona = no 
+	and de-indice = 1 
+	and RowObject.qt-do-forn <> 0 
+	and RowObject.quantidade = 0
+	and (RowObject.numero-ordem <> 0 OR /*ordem informada no item*/
+         CAN-FIND (FIRST rat-ordem WHERE  /* ordem informada atraves funcao fifo*/
+                         rat-ordem.serie-docto   = RowObject.serie-docto  AND
+                         rat-ordem.nro-docto     = RowObject.nro-docto    AND
+                         rat-ordem.cod-emitente  = RowObject.cod-emitente AND
+                         rat-ordem.nat-operacao  = RowObject.nat-operacao AND
+                         rat-ordem.sequencia     = RowObject.sequencia)) then do:
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="6381" /*Quantidade nÊo pode ser fracionada*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR" }
+    end.
+                 
+
+    if  avail natur-oper 
+    and natur-oper.terceiros 
+    and natur-oper.tp-oper-terc <> 6 
+    and natur-oper.tipo-compra <> 9 //Nota Credito/Debito
+    and RowObject.quantidade = 0 then do:
+        /* Inicio -- Projeto Internacional */
+        DEFINE VARIABLE c-lbl-liter-quantidade AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Quantidade" *}
+        ASSIGN c-lbl-liter-quantidade = TRIM(RETURN-VALUE).
+        DEFINE VARIABLE c-lbl-liter-seq AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Sequˆncia" *}
+        ASSIGN c-lbl-liter-seq = TRIM(RETURN-VALUE).
+        DEFINE VARIABLE c-lbl-liter-item AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Item" *}
+        ASSIGN c-lbl-liter-item = TRIM(RETURN-VALUE).
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="1491" /*Quantidade deve ser diferente de zero*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR"
+                            &ErrorParameters="c-lbl-liter-quantidade + '~~~~' +
+                                              '. ' + c-lbl-liter-seq + ': ' + '~~~~' +
+                                              string(RowObject.sequencia) + '~~~~' +
+                                              c-lbl-liter-item + ': ' + '~~~~' +
+                                              trim(RowObject.it-codigo) " }
+    end.
+ 
+
+    if  RowObject.quantidade = 0
+    and RowObject.preco-total[1] = 0 
+    and natur-oper.tipo-compra <> 9 //Nota Credito/Debito
+    and natur-oper.tipo-compra <> 7 then do:
+        /* Inicio -- Projeto Internacional */
+        DEFINE VARIABLE c-lbl-liter-quantidade-ou-preco AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Quantidade_ou_Pre‡o" *}
+        ASSIGN c-lbl-liter-quantidade-ou-preco = TRIM(RETURN-VALUE).
+        DEFINE VARIABLE c-lbl-liter-seq-2 AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Sequˆncia" *}
+        ASSIGN c-lbl-liter-seq-2 = TRIM(RETURN-VALUE).
+        DEFINE VARIABLE c-lbl-liter-item-2 AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Item" *}
+        ASSIGN c-lbl-liter-item-2 = TRIM(RETURN-VALUE).
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="1491" /*Quantidade ou Pre¯o deve ser diferente de zero*/
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR"
+                            &ErrorParameters="c-lbl-liter-quantidade-ou-preco + '~~~~' +
+                                              '. ' + c-lbl-liter-seq-2 + ': ' + '~~~~' +
+                                              string(RowObject.sequencia) + '~~~~' +
+                                              c-lbl-liter-item-2 + ': ' + '~~~~' + 
+                                              trim(RowObject.it-codigo) " }
+    end.
+
+        
+
+    /* Varia‡Æo de Quantidade */
+
+    if  l-pede-qtd 
+    and RowObject.numero-ordem <> 0
+    and not RowObject.log-1 then do:
+        
+
+        run findPrazoCompra ( RowObject.numero-ordem,
+                              RowObject.parcela ).
+               
+
+        IF  return-value = "NOK":U then
+            return "NOK":U.
+       
+
+        /* Isso ‚ necessÿrio devido a WEB atualizar o de-qt-ori somente no folder de valores */
+        if  de-qt-ori = 0 then
+            assign de-qt-ori = RowObject.quantidade.
+
+        if  pType = "CREATE":U then 
+            assign de-qtd-aux = 0.
+        else 
+            assign de-qtd-aux = de-qt-ori.
+
+        if  not l-contrato then do:
+            if pType = "CREATE":U then do:
+                assign de-qtd-max = prazo-compra.quant-saldo - prazo-compra.dec-1.
+                
+                if de-qtd-max < 0 then
+                    assign de-qtd-max = 0.
+            end.            
+            if  pType = "UPDATE":U then do:
+                if can-find (first bf-item-doc-est
+                             where bf-item-doc-est.serie-docto   = RowObject.serie-docto 
+                               and bf-item-doc-est.nro-docto     = RowObject.nro-docto   
+                               and bf-item-doc-est.cod-emitente  = RowObject.cod-emitente
+                               and bf-item-doc-est.nat-operacao  = RowObject.nat-operacao
+                               and bf-item-doc-est.parcela       = RowObject.parcela
+                               and bf-item-doc-est.num-pedido    = RowObject.num-pedido
+                               and bf-item-doc-est.numero-ordem  = RowObject.numero-ordem
+                               and bf-item-doc-est.sequencia    <> RowObject.sequencia no-lock) then do:
+                    for each  bf-item-doc-est
+                        where bf-item-doc-est.serie-docto   = RowObject.serie-docto 
+                          and bf-item-doc-est.nro-docto     = RowObject.nro-docto   
+                          and bf-item-doc-est.cod-emitente  = RowObject.cod-emitente
+                          and bf-item-doc-est.nat-operacao  = RowObject.nat-operacao
+                          and bf-item-doc-est.parcela       = RowObject.parcela
+                          and bf-item-doc-est.num-pedido    = RowObject.num-pedido
+                          and bf-item-doc-est.numero-ordem  = RowObject.numero-ordem
+                          and bf-item-doc-est.sequencia    <> RowObject.sequencia no-lock:
+                          
+                          assign de-qtde-req-tot = de-qtde-req-tot + bf-item-doc-est.quantidade.
+                    end.
+                   
+                   assign de-qtd-max = prazo-compra.quant-saldo - de-qtde-req-tot.
+                   if de-qtd-max < 0 then
+                      assign de-qtd-max = 0.
+                end.
+                else
+                   assign de-qtd-max = prazo-compra.quant-saldo.
+            end.            
+        end.
+
+        /* Buscar saldo do contrato */
+        if  avail ordem-compra and ordem-compra.nr-contrato <> 0
+        and param-global.modulo-cn then do:
+
+            run cnp/cn9174.p ( ordem-compra.numero-ordem,
+                               2,
+                               RowObject.int-1,
+                               0,
+                               docum-est.dt-emissao,
+                               output de-qtd-max-aux,
+                               output l-erro-co,
+                               output l-contrato,
+                               output i-total,
+                               input-output table tt-erro).
+            if  l-erro-co then do:
+                for each tt-erro:                
+                    RUN _insertErrorManual IN THIS-PROCEDURE (INPUT tt-erro.cd-erro,
+                                                              INPUT "EMS":U,
+                                                              INPUT "ERROR":U,
+                                                              INPUT tt-erro.mensagem,
+                                                              INPUT tt-erro.mensagem,
+                                                              INPUT "":U).
+                end.                                          
+            end.
+
+
+            if  l-contrato then do:
+                assign de-qtd-max = de-qtd-max-aux.
+                run getIndice (input RowObject.cod-emitente,
+                               output de-indice).
+
+                de-qtd-max = if item.fraciona 
+                                then (de-qtd-max / de-indice)
+                                else truncate((de-qtd-max / de-indice),0).
+            end. 
+        end.
+
+        /* Desaloca ordem de compra */
+        if  pType = "Update":U then 
+            run DesalocaOC.
+
+        /****************************************************************************
+        *                     VARIA°€O DE QUANTIDADE 
+        *
+        * de-qtd-max         -> quantidade de acordo com a ordem de compra
+        * de-var-max-perc    -> quantidade mÿximo permitido conforme percentual
+        * de-var-max-lim     -> quantidade mÿximo permitido conforme limite
+        * de-percentual      -> percentual de varia‡Æo
+        * de-limite          -> limite de varia‡Æo           
+        *
+        *****************************************************************************/
+
+        run calculateVariationQuantity ( input  de-qtd-max,
+                                         output de-var-max-perc,
+                                         output de-var-max-lim,
+                                         output de-percentual, 
+                                         output de-limite ).
+                        
+
+        /*Contrato por Total Contratado nao controla quantidade*/
+        if  l-contrato 
+        and (   i-total = 1 
+             or i-total = 3 ) then do: 
+        
+
+        end.
+        else do:
+        
+
+            assign l-erro = no.
+            
+
+            if  de-percentual = 0
+            and de-limite = 0 then do:
+                if  RowObject.quantidade > de-var-max-perc
+                or  RowObject.quantidade > de-var-max-lim then
+                    assign l-erro = yes.    
+            end.        
+            else 
+                if  RowObject.quantidade <=  de-var-max-perc 
+                or  de-percentual = 0 then 
+                    if  RowObject.quantidade > de-var-max-lim  
+                    and de-limite <> 0 then  
+                        assign l-erro = yes. 
+                    else  
+                        assign l-erro = no. 
+                else 
+                    assign l-erro = yes. 
+                    
+
+            if  l-erro then do:
+                if  param-re.aceita-var = no then do:                               
+                    /* Inicio -- Projeto Internacional */
+                    DEFINE VARIABLE c-lbl-liter-quantidade-2 AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "quantidade" *}
+                    ASSIGN c-lbl-liter-quantidade-2 = TRIM(RETURN-VALUE).
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="28643" /*mensagem: Variacao de quantidade nao permitida.*/
+                                        &ErrorType="EMS"
+                                        &ErrorSubType="ERROR"
+                                        &ErrorParameters="c-lbl-liter-quantidade-2"}
+                end.
+                else do:        
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="18799" /*mensagem: Quantidade fora da variacao permitida.*/
+                                        &ErrorType="EMS"
+                                        &ErrorSubType="WARNING" }
+                end.    
+            end.
+        
+            run beforeValidateBoin060 (input 1). /* Instancia */
+                
+            run updateConsistNota in h-boin060 ( RowObject.cod-emitente,
+                                                 RowObject.serie-docto,
+                                                 RowObject.nro-docto,
+                                                 RowObject.nat-operacao,
+                                                 RowObject.sequencia,
+                                                 not (l-erro),
+                                                 ( if de-var-max-perc < de-var-max-lim  
+                                                   then de-var-max-perc 
+                                                   else de-var-max-lim),
+                                                 RowObject.quantidade,
+                                                 5698,
+                                                 1).
+                                                         
+            run beforeValidateBoin060 (input 2). /* Elimina */
+
+        end. 
+    end.
+    
+
+    /* Essa valida‡Æo serÿ na atualiza‡Æo da nota */
+    
+
+    /***** Valida Quatidade do rat-lote 
+    if  pType = "Update":U then do:
+        assign de-tot-qtd = 0.
+        
+
+        for each b-rat-lote 
+           where b-rat-lote.serie-docto  = RowObject.serie-docto 
+             and b-rat-lote.nro-docto    = RowObject.nro-docto 
+             and b-rat-lote.cod-emitente = RowObject.cod-emitente 
+             and b-rat-lote.nat-operacao = RowObject.nat-operacao
+             and b-rat-lote.sequencia    = RowObject.sequencia no-lock:
+             
+
+            assign de-tot-qtd = de-tot-qtd + b-rat-lote.quantidade.
+            
+
+        end. 
+        
+
+        assign l-ok = if (de-tot-qtd = RowObject.quantidade) 
+                      or (( (item.politica = 5          /*Composto*/
+                             or item.politica = 6)      /*Configurado*/
+                             and RowObject.baixa-ce) 
+                          and docum-est.esp-docto = 20) /*NFD*/
+                      or not RowObject.baixa-ce 
+                      then yes
+                      else no.
+     
+
+        if  not l-ok then do:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="15224"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR" }
+        end.
+    end.
+    *****/
+
+    /** A fun‡Æo "spp-ValidaArteb" foi liberada APENAS para o cliente ARTEB e 
+        nÆo dever  ser liberada para outros clientes. **/
+    if  pType = "Update":U
+    and RowObject.log-1   /* Fifo */
+    and can-find(first funcao
+                 where funcao.cd-funcao = "spp-ValidaArteb":U
+                   and funcao.ativo) then do:
+        
+        assign de-total-ordens = 0.
+    
+        for each b-rat-ordem fields(quantidade nro-docto serie-docto nat-operacao cod-emitente sequencia   )
+           where b-rat-ordem.nro-docto    = item-doc-est.nro-docto 
+             and b-rat-ordem.serie-docto  = item-doc-est.serie-docto 
+             and b-rat-ordem.nat-operacao = item-doc-est.nat-operacao 
+             and b-rat-ordem.cod-emitente = item-doc-est.cod-emitente 
+             and b-rat-ordem.sequencia    = item-doc-est.sequencia no-lock:
+          
+            assign de-total-ordens = de-total-ordens +  b-rat-ordem.quantidade.
+        end.
+        
+        run executarEngineRecSemPedido (output lRecebeSemPedido).
+        
+        if  lRecebeSemPedido = no
+        and RowObject.quantidade > de-total-ordens then do:       
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="15455" /*Total das ordens de compra difere da quantidade do item*/
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR" }
+
+        end.
+        if  de-total-ordens > RowObject.quantidade then do:
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="18816"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR" 
+                                &ErrorParameter="STRING(de-total-ordens)" }
+        end.                                
+    end.
+    
+    /*--- quando a nota eh fatura entrega futura, a quantidade recebida nao pode ser maior do que
+          a quantidade da ordem de compra. Essa validacao eh necessaria porque na atualizacao da 
+          nota de fatura a ordem de compra nao eh baixada, fazendo com que as validacoes padroes 
+          em relacao ao saldo da ordem de compra nao sejam feitas ---*/
+ 
+    FOR FIRST bf-natur-oper-fut FIELDS(nat-operacao ind-entfut ind-est-qtd char-1)
+        where bf-natur-oper-fut.nat-operacao = rowObject.nat-operacao no-lock: END.
+         
+    /*--- verifica se docum-est eh de nota de fatura faturamento ou fatura entrega futura ---*/
+    {cdp/cd9700.i1 bf-natur-oper-fut}
+
+    IF  NOT l-remessa-ent-futura
+    AND NOT l-remessa-fat-antecip
+    AND (l-fatura-fat-antecip OR  
+         l-fatura-ent-futura) THEN DO:
+
+        assign de-total-ordens   = 0  /*---> armazena a quantidade da ordem ---*/
+               de-tot-recbda-fut = 0. /*---> armazena a quantidade ja recebida em notas atualizadas ou apenas digitadas ---*/
+    
+        /*--- acumula a quantidade da ordem e a quantidade ja recebida ---*/
+        if  rowObject.log-1 /* fifo */ then do:
+        
+            for each  b-rat-ordem fields(quantidade  numero-ordem
+                                         num-pedido  parcela nro-docto
+                                         nro-docto   serie-docto 
+                                         nat-operacao cod-emitente sequencia   )
+                where b-rat-ordem.nro-docto    = rowObject.nro-docto 
+                  and b-rat-ordem.serie-docto  = rowObject.serie-docto 
+                  and b-rat-ordem.nat-operacao = rowObject.nat-operacao 
+                  and b-rat-ordem.cod-emitente = rowObject.cod-emitente 
+                  and b-rat-ordem.sequencia    = rowObject.sequencia no-lock:
+                  
+                FOR FIRST bf-prazo-comp-fut FIELDS(quantidade qtd-recbda-fut)
+                    WHERE bf-prazo-comp-fut.numero-ordem = b-rat-ordem.numero-ordem
+                      AND bf-prazo-comp-fut.parcela      = b-rat-ordem.parcela NO-LOCK:
+                    ASSIGN de-tot-recbda-fut = de-tot-recbda-fut + bf-prazo-comp-fut.qtd-recbda-fut
+                           de-total-ordens   = de-total-ordens   + bf-prazo-comp-fut.quantidade.
+                END.       
+                 
+                /*--- acumula a quantidade recebida em oc em outras NFEs quando as mesmas ainda nao 
+                      foram atualizadas ---*/
+                for each bf-item-doc-est fields(nro-docto serie-docto nat-operacao cod-emitente
+                                                numero-ordem num-pedido parcela quantidade)
+                    where bf-item-doc-est.numero-ordem = b-rat-ordem.numero-ordem
+                      and bf-item-doc-est.num-pedido   = b-rat-ordem.num-pedido
+                      and bf-item-doc-est.parcela      = b-rat-ordem.parcela no-lock,
+                      first bf-docum-est fields(ce-atual) of bf-item-doc-est
+                      where bf-docum-est.ce-atual = no no-lock:
+                                
+                    assign de-tot-recbda-fut = de-tot-recbda-fut + bf-item-doc-est.quantidade.
+                                                
+                end.
+                
+                /*--- acumula a quantidade recebida em fifo de NFEs nao atualizadas ---*/
+                for each  b-rat-ordem-fut fields(num-pedido numero-ordem parcela quantidade
+                                                 cod-emitente nro-docto nat-operacao serie-docto)
+                    where b-rat-ordem-fut.num-pedido    = b-rat-ordem.num-pedido  
+                      and b-rat-ordem-fut.numero-ordem  = b-rat-ordem.numero-ordem
+                      and b-rat-ordem-fut.parcela       = b-rat-ordem.parcela no-lock,
+                    first bf-docum-est fields(ce-atual) {cdp/cd8900.i bf-docum-est b-rat-ordem-fut}
+                      and bf-docum-est.ce-atual = no no-lock:
+                      
+                      if  b-rat-ordem-fut.nro-docto    = b-rat-ordem.nro-docto   
+                      and b-rat-ordem-fut.serie-docto  = b-rat-ordem.serie-docto 
+                      and b-rat-ordem-fut.nat-operacao = b-rat-ordem.nat-operacao 
+                      and b-rat-ordem-fut.cod-emitente = b-rat-ordem.cod-emitente then
+                          next.
+        
+                      assign de-tot-recbda-fut = de-tot-recbda-fut + b-rat-ordem-fut.quantidade.
+                end.
+        
+            end.
+            
+            /*--- acumula a quantidade recebida em fifo de NFEs nao atualizadas ---*/
+            for each  b-rat-ordem fields(num-pedido numero-ordem parcela quantidade
+                                         cod-emitente nro-docto nat-operacao serie-docto)
+                where b-rat-ordem.num-pedido    = rowObject.num-pedido 
+                  and b-rat-ordem.numero-ordem  = rowObject.numero-ordem 
+                  and b-rat-ordem.parcela       = rowObject.parcela no-lock,
+                first bf-docum-est fields(ce-atual) {cdp/cd8900.i bf-docum-est b-rat-ordem}
+                  and bf-docum-est.ce-atual = no no-lock:
+                  
+                  if  b-rat-ordem.nro-docto    = rowObject.nro-docto 
+                  and b-rat-ordem.serie-docto  = rowObject.serie-docto 
+                  and b-rat-ordem.nat-operacao = rowObject.nat-operacao 
+                  and b-rat-ordem.cod-emitente = rowObject.cod-emitente then
+                      next.
+        
+                  assign de-tot-recbda-fut = de-tot-recbda-fut + b-rat-ordem.quantidade.
+            end.
+        
+        end.
+        else if rowObject.numero-ordem > 0 then do:
+        
+            FOR FIRST bf-prazo-comp-fut FIELDS(quantidade qtd-recbda-fut)
+                WHERE bf-prazo-comp-fut.numero-ordem = rowObject.numero-ordem
+                  AND bf-prazo-comp-fut.parcela      = rowObject.parcela NO-LOCK:
+                ASSIGN de-tot-recbda-fut = de-tot-recbda-fut + bf-prazo-comp-fut.qtd-recbda-fut
+                       de-total-ordens   = de-total-ordens   + bf-prazo-comp-fut.quantidade.
+            END.            
+        
+            /*--- acumula a quantidade recebida em oc em outras NFEs quando as mesmas ainda nao 
+                  foram atualizadas ---*/
+            for each bf-item-doc-est fields(nro-docto serie-docto nat-operacao cod-emitente
+                                            numero-ordem num-pedido parcela quantidade)
+                where bf-item-doc-est.numero-ordem = RowObject.numero-ordem
+                  and bf-item-doc-est.num-pedido   = RowObject.num-pedido
+                  and bf-item-doc-est.parcela      = RowObject.parcela no-lock,
+                  first bf-docum-est fields(ce-atual) of bf-item-doc-est
+                  where bf-docum-est.ce-atual = no no-lock:
+        
+                if  pType = "Update":U 
+                and rowid(bf-item-doc-est) = RowObject.r-rowid then
+                    next. 
+        
+                assign de-tot-recbda-fut = de-tot-recbda-fut + bf-item-doc-est.quantidade.
+                
+            end.
+            
+            /*--- acumula a quantidade recebida em fifo de NFEs nao atualizadas ---*/
+            for each  b-rat-ordem fields(num-pedido numero-ordem parcela quantidade
+                                         cod-emitente nro-docto nat-operacao serie-docto)
+                where b-rat-ordem.num-pedido    = rowObject.num-pedido 
+                  and b-rat-ordem.numero-ordem  = rowObject.numero-ordem 
+                  and b-rat-ordem.parcela       = rowObject.parcela no-lock,
+                first bf-docum-est fields(ce-atual) {cdp/cd8900.i bf-docum-est b-rat-ordem}
+                  and bf-docum-est.ce-atual = no no-lock:
+                  assign de-tot-recbda-fut = de-tot-recbda-fut + b-rat-ordem.quantidade.
+            end.
+            
+        end.
+
+        /*--- se a qtde q esta sendo recebida + qtde jah recebida for maior
+              que q qtde da ordem, entao emite msg de erro ---*/
+
+        if  de-total-ordens > 0  
+        and rowObject.quantidade > (de-total-ordens + de-limite -  de-tot-recbda-fut) then do:
+          
+            {method/svc/errors/inserr.i
+                    &ErrorNumber="52243"
+                    &ErrorType="EMS"
+                    &ErrorSubType="ERROR"}
+        end.
+    end.
+
+    return "OK":U.
+
+END PROCEDURE.
+
+
+
+

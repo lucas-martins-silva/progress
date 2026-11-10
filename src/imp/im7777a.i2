@@ -1,0 +1,39 @@
+/* 
+**
+** IM7777A.I2 - Defini‡Æo Temp-tables 
+**
+*/
+    
+def temp-table tt-desp no-undo
+    field cod-desp       like desp-imp.cod-desp
+    field maior-ordem    like ordem-compra.numero-ordem
+    field maior-parcela  like prazo-compra.parcela
+    field val-tot-emb    like cotacao-item-cex.val-desp
+    field val-tot-desp   like cotacao-item-cex.val-desp
+    field quant-total    like prazo-compra.quantidade
+    field peso-total     like item.peso-bruto
+    field val-tot-cot    like cotacao-item.preco-unit
+    field val-tot-rateio like cotacao-item-cex.val-desp    
+    field l-cotada       as   logical initial no
+    index codigo is unique primary
+        cod-desp.
+    
+def temp-table tt-cot-desp no-undo
+    field cod-desp     like desp-imp.cod-desp
+    field numero-ordem like ordem-compra.numero-ordem
+    field parcela      like prazo-compra.parcela
+    field val-desp     like cotacao-item-cex.val-desp    
+    field quantidade   like prazo-compra.quantidade
+    field peso-item    like item.peso-bruto
+    field val-cot      like cotacao-item.preco-unit
+    field val-rateio   like cotacao-item-cex.val-desp
+    index codigo is unique primary
+        cod-desp 
+        numero-ordem
+        parcela.
+        
+&if defined(bf_mat_importacao_mrp) &then
+    def buffer bfprazo-compra225 for prazo-compra.
+&endif
+    
+/* IM7777A.I2 */

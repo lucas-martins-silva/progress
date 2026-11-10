@@ -1,0 +1,60 @@
+/*
+**  BOIN245
+**
+**  Procedures goToKey e FindNatureza : estas procedures foram
+**  transformadas em include pois este codigo e comum aos produtos EMS e
+**  Magnus.
+**
+*/
+
+
+PROCEDURE findNatureza :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def input  parameter c-nat-operacao as char no-undo.
+    def output parameter c-return       as char no-undo.
+ 
+    find natur-oper where
+         natur-oper.nat-operacao = c-nat-operacao no-lock no-error.
+    if  not avail natur-oper then do:
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "Natureza_de_Opera‡Æo" *}
+        run utp/ut-msgs.p (input "msg",
+                           input 2,
+                           input RETURN-VALUE).
+        assign c-return = return-value.
+    end.
+    else do:
+        run _copyBuffer2TT.
+    end.
+
+END PROCEDURE.
+
+PROCEDURE goToKey :
+/*------------------------------------------------------------------------------
+  Purpose:     Reposiciona registro com base no ¡ndice natureza
+  Parameters:  
+               recebe valor do campo nat-operacao
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pnat-operacao LIKE natur-oper.nat-operacao NO-UNDO.
+
+    FIND FIRST bfnatur-oper WHERE 
+        bfnatur-oper.nat-operacao = pnat-operacao NO-LOCK NO-ERROR.
+
+    /*--- Verifica se registro foi encontrado, em caso de erro ser  retornada flag "NOK":U ---*/
+    IF NOT AVAILABLE bfnatur-oper THEN 
+        RETURN "NOK":U.
+
+    /*--- Reposiciona query atrav‚s de rowid e verifica a ocorrˆncia de erros, caso
+          existam erros ser  retornada flag "NOK":U ---*/
+    RUN repositionRecord IN THIS-PROCEDURE (INPUT ROWID(bfnatur-oper)).
+    IF RETURN-VALUE = "NOK":U THEN
+        RETURN "NOK":U.
+
+    RETURN "OK":U.
+END PROCEDURE.

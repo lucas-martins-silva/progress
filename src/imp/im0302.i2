@@ -1,0 +1,67 @@
+/*******************************************************************************
+*
+*     IM0302.I2 - Inicializa‡Æo Literais.
+*
+*******************************************************************************/
+
+{utp/ut-liter.i Usu rio * l}
+assign tt-param.usuario:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Destino * l}
+assign c-destino:label in frame f-param = trim(return-value).
+assign c-sel = trim(return-value).
+{utp/ut-liter.i IMPRESSÇO * r}  
+assign c-imp = return-value.
+{utp/ut-liter.i Item * r}
+assign tt-param.c-item-i:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Estabelecimento * r}
+assign tt-param.c-estab-i:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Comprador * r}
+assign tt-param.c-compr-i:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Ordem * r}
+assign tt-param.i-ordem-i:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Data_Ordem * r}
+assign tt-param.d-data-i:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Fam¡lia * r}
+assign tt-param.c-fami-i:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Fornecedor * r}
+assign tt-param.i-forn-i:label in frame f-param = trim(return-value).
+{utp/ut-liter.i Nr_Ordem * r}
+assign c-ordem = trim(return-value).
+{utp/ut-liter.i Item_Fornec * r}
+assign c-item-forn = trim(return-value).
+{utp/ut-liter.i Quantidade * r}
+assign c-quant = trim(return-value).
+{utp/ut-liter.i Pre‡o * r}
+assign c-preco = trim(return-value).
+{utp/ut-liter.i Incoterm * r}
+assign c-incoterm = trim(return-value).
+{utp/ut-liter.i Cond_Pgto * r}
+assign c-cond = trim(return-value).
+{utp/ut-liter.i Descri‡Æo * r}
+assign c-desc = trim(return-value).
+{utp/ut-liter.i Quantidade * r}
+assign c-qtde = trim(return-value).
+{utp/ut-liter.i Para * r}
+assign c-para = trim(return-value).
+{utp/ut-liter.i Telefone * r}
+assign c-tel = trim(return-value).
+{utp/ut-liter.i Fax * r}
+assign c-fax = trim(return-value).
+{utp/ut-liter.i De * r}
+assign c-de = trim(return-value).
+{utp/ut-liter.i Telefone * r}
+assign c-tel-c = trim(return-value).
+{utp/ut-liter.i Fax * r}
+assign c-fax-c = trim(return-value).
+{utp/ut-liter.i Moeda * r}
+assign c-moeda = trim(return-value).
+{utp/ut-liter.i Requisitante * r}
+assign c-requis    = trim(return-value).
+{utp/ut-liter.i Nome * r}
+assign c-nome      = trim(return-value).
+{utp/ut-liter.i Item * r}
+assign c-item      = trim(return-value).
+{utp/ut-liter.i UN * r}
+assign c-un      = trim(return-value).
+
+/* imp/im0302.i2 */

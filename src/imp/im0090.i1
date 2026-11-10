@@ -1,0 +1,185 @@
+/*
+**
+** IM0090.P - Programa de c lculo do imposto de importa‡Æo
+**
+*/
+{cdp/cdcfgmat.i} /* include pr‚-processadores Magnus */
+
+{include/boerrtab.i} /* include defini‡Æo temp-table de erros */
+
+def var i-seq-erro     as integer                     no-undo.
+def var c-return-value as char                        no-undo.
+def var de-base-ii     like cotacao-item-cex.val-desp no-undo.
+def var de-base-ii-aux like cotacao-item-cex.val-desp no-undo.
+def var de-preco-unit  like cotacao-item.preco-unit   no-undo.
+def var deIndice       as dec                         no-undo.
+DEF VAR h-boin082ca    AS HANDLE                      NO-UNDO.
+
+{cdp/cd4300.i3}    /* include tratamento atributo livre */
+{inbo/boin082.i tt-cotacao-item-aux}
+
+def input parameter p-cod-desp     like desp-imp.cod-desp             no-undo.
+def input parameter p-cotacao-item as rowid                           no-undo.
+def input parameter p-mapa-cotacao like cotacao-item-cex.mapa-cotacao no-undo.
+def output parameter p-val-ii      like cotacao-item-cex.val-desp     no-undo.
+def output parameter table for tt-bo-erro.
+
+find desp-imp
+    where desp-imp.cod-desp = p-cod-desp no-lock no-error.
+if not avail desp-imp then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    {utp/ut-table.i mgcex desp-imp 1}
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = trim(return-value).
+    run utp/ut-msgs.p (input "msg":U,
+                       input 2,
+                       input return-value).
+    assign tt-bo-erro.i-sequen   = i-seq-erro
+           tt-bo-erro.cd-erro    = 2
+           tt-bo-erro.parametros = return-value.
+    undo, leave.           
+end.
+
+find cotacao-item
+    where rowid(cotacao-item) = p-cotacao-item no-lock no-error.
+
+find ordem-compra 
+    where ordem-compra.numero-ordem = cotacao-item.numero-ordem no-lock no-error.
+
+find param-imp
+    where param-imp.cod-estabel = ordem-compra.cod-estabel no-lock no-error.
+if not avail param-imp 
+    then undo, leave.
+
+/*--- Determina o indice que sera utilizado para atualizar o 
+   preco-unit com base no pre-unit-for ---*/   
+for each tt-cotacao-item-aux:
+    delete tt-cotacao-item-aux.
+end.
+create tt-cotacao-item-aux.
+buffer-copy cotacao-item to tt-cotacao-item-aux.
+if  not valid-handle (h-boin082ca) then
+    run inbo/boin082ca.p persistent set h-boin082ca.
+run calcIndiceCotacaoItem in h-boin082ca (input  table tt-cotacao-item-aux,
+                                          input  cotacao-item.it-codigo,
+                                          output deIndice).
+if  valid-handle (h-boin082ca) then do:
+    delete procedure h-boin082ca.
+                     h-boin082ca = ?.
+end.
+
+{cxbo/bocx250.i50} /* include tratamento atributo livre param-imp.char-1 */
+{cdp/cd4300.i4 "yes" param-imp.char-1}
+{cxbo/bocx250.i51 "yes"}
+
+if p-cod-desp <> i-desp-ii-i50 then do:
+    assign i-seq-erro = i-seq-erro.
+    {utp/ut-table.i mgcex desp-imp 1}
+    assign c-return-value = trim(return-value).
+    {utp/ut-liter.i Imposto_de_Importa‡Æo * L}
+    create tt-bo-erro.
+    assign tt-bo-erro.parametros = c-return-value + " " + string(p-cod-desp) + "~~" + trim(return-value). 
+    run utp/ut-msgs.p (input "msg":U,
+                       input 17195,
+                       input tt-bo-erro.parametros).
+    assign tt-bo-erro.i-sequen = i-seq-erro
+           tt-bo-erro.cd-erro  = 17195
+           tt-bo-erro.mensagem = return-value.
+    undo, leave.           
+end.
+
+&if "{&bf_mat_versao_ems}":U >= "2.062":U &then
+    /*--- Item isento de II ---*/
+    FIND FIRST ITEM
+    WHERE ITEM.it-codigo = cotacao-item.it-codigo NO-LOCK NO-ERROR.
+        IF AVAIL ITEM AND INT(SUBSTR(item.char-2,20,2)) = 2 then
+            RETURN.    
+&endif
+
+&if "{&bf_mat_versao_ems}":U >= "2.06":U &then
+    /*--- Item suspenso de II ---*/
+    IF  CAN-FIND(FIRST item-mat
+                 WHERE item-mat.it-codigo = cotacao-item.it-codigo
+                   AND item-mat.log-suspens-impto-import)
+        THEN RETURN.
+&else
+    /*--- Item suspenso de II ---*/
+    IF  CAN-FIND(FIRST item 
+                 WHERE ITEM.it-codigo = cotacao-item.it-codigo
+                   AND SUBSTR(item.char-1,229,1) = "1")
+        THEN RETURN.
+&endif
+
+if p-mapa-cotacao <> ? then
+    &if "{&bf_mat_versao_ems}":U >= "2.062":U &then
+        assign de-base-ii = 0.
+    &endif
+    for each cotacao-item-cex
+        where cotacao-item-cex.numero-ordem = cotacao-item.numero-ordem
+          and cotacao-item-cex.cod-emitente = cotacao-item.cod-emitente
+          and cotacao-item-cex.it-codigo    = cotacao-item.it-codigo
+        &if defined(bf-mat-comex) &then
+        &else
+          and cotacao-item-cex.seq-cotac    = cotacao-item.seq-cotac
+        &endif
+          and cotacao-item-cex.data-cotacao = cotacao-item.data-cotacao
+          and cotacao-item-cex.mapa-cotacao = p-mapa-cotacao no-lock:
+
+        if cotacao-item-cex.cod-desp = p-cod-desp then next.
+
+        find desp-imp
+            where desp-imp.cod-desp = cotacao-item-cex.cod-desp no-lock no-error.
+        if not avail desp-imp then next.
+
+        if  desp-imp.log-2 then do: /* incide base imposto de importa‡Æo */
+
+            &if "{&bf_mat_versao_ems}":U < "2.062":U &then
+                assign de-base-ii = cotacao-item-cex.val-desp.
+            &endif
+            
+            if  cotacao-item-cex.mo-codigo <> 0 then
+                run cdp/cd0812.p (input cotacao-item-cex.mo-codigo,
+                                  input 0,
+                                  input cotacao-item-cex.val-desp,
+                                  input today,
+                                  output de-base-ii-aux).
+            else
+                assign de-base-ii-aux = cotacao-item-cex.val-desp.
+
+            &if "{&bf_mat_versao_ems}":U >= "2.062":U &then                                  
+                if desp-imp.inc-val-embal <> no
+                or desp-imp.inc-val-frete <> no
+                or desp-imp.inc-val-outras-desp <> no
+                or desp-imp.inc-val-seguro <> no then
+                    assign de-base-ii = de-base-ii + de-base-ii-aux.
+            &else
+                    assign de-base-ii = de-base-ii + de-base-ii-aux.
+            &endif 
+        end.
+    end.
+
+assign de-preco-unit = (cotacao-item.pre-unit-for * deIndice).
+
+if cotacao-item.mo-codigo <> 0 then 
+    run cdp/cd0812.p (input cotacao-item.mo-codigo,
+                      input 0,
+                      input (cotacao-item.pre-unit-for * deIndice),
+                      input today,
+                      output de-preco-unit).
+
+assign de-preco-unit = (de-preco-unit * 100) / (100 + cotacao-item.aliquota-ipi).
+
+assign de-base-ii    = de-base-ii + de-preco-unit.
+
+{ccp/cc9019.i50} /* include tratamento atributo livre cotacao-item.char-1 */
+
+&if defined(bf-mat-comex) &then
+  assign de-aliq-ii-i50 = decimal(substring(cotacao-item.char-1,17,6)).
+&else
+  {cdp/cd4300.i4 "yes" cotacao-item.char-1}
+  {ccp/cc9019.i51 "yes"}
+&endif
+
+assign p-val-ii = de-base-ii * (de-aliq-ii-i50 / 100).
+
+/* IM0090 */

@@ -1,0 +1,14 @@
+DEFINE TEMP-TABLE ttSiscomexAuthInfo NO-UNDO
+    FIELD siteCode          AS CHARACTER /*cod-estabel*/
+    FIELD cnpjCpf           AS CHARACTER /*cod-cnpj-cpf*/
+    FIELD envType           AS INTEGER   /*idi-tip-ambiente*/
+    FIELD urlTestEnv        AS CHARACTER /*cod-url-homol*/
+    FIELD urlProdEnv        AS CHARACTER /*cod-url-produc*/
+    FIELD certifType        AS INTEGER   /*idi-tipo-certif-digital*/ 
+    FIELD certifFormat      AS INTEGER   /*idi-format-certif-digital*/
+    FIELD certifFile        AS CHARACTER /*cod-arq-certif*/
+    FIELD certifKeyFile     AS CHARACTER /*cod-chave-certif*/
+    FIELD certifPassword    AS CHARACTER /*cod-senha-certif*/
+    FIELD saveXmlFiles      AS LOGICAL   /*log-histor-envio*/
+    FIELD dirXmlFiles       AS CHARACTER /*cod-dir-histor-xml*/
+    FIELD userIntegrProfile AS INTEGER.   /*idi-usuar-integr*/                            

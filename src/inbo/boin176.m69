@@ -1,0 +1,136 @@
+PROCEDURE recalculateImpostoICMS:
+/*-----------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Recalcula os valores do imposto de ICMS da nota, essa procedure ≤ executada 
+          atrav≤s do botío Recalcular do re1001b2a.
+------------------------------------------------------------------------------*/
+    
+    def input param piTribICMS     like item-doc-est.cd-trib-icm       no-undo.
+    def input param piAliquotaICMS like item-doc-est.aliquota-icm      no-undo.
+    def input param piPercRedICMS  like item-doc-est.val-perc-red-icms no-undo.
+    def input param piICMSRetido   like item-doc-est.log-2             no-undo.
+    def input param piQuantidade   like item-doc-est.quantidade        no-undo.
+    def input param piQtDoForn     like item-doc-est.qt-do-forn        no-undo.
+    def input param piPrecoTotal   like item-doc-est.preco-total[1]    no-undo.
+    def input param piDesconto     like item-doc-est.desconto[1]       no-undo.
+    def input param piTribIPI      like item-doc-est.cd-trib-ipi       no-undo.
+    def input param piAliquotaIPI  like item-doc-est.aliquota-ipi      no-undo.
+    def input param piPercRedIPI   like item-doc-est.val-perc-rep-ipi  no-undo.
+    def input param piBaseIPI      like item-doc-est.base-ipi[1]       no-undo.
+    def input param piIPIntrib     like item-doc-est.ipi-ntrib[1]      no-undo.
+    def input param piIPIOutras    like item-doc-est.ipi-outras[1]     no-undo.
+    def input param piValorIPI     like item-doc-est.valor-ipi[1]      no-undo.
+    def input param piTribISS      like item-doc-est.cd-trib-iss       no-undo.
+    def input param piAliquotaISS  like item-doc-est.aliquota-iss      no-undo.
+    
+    DEF BUFFER b-natur-oper-fiscal FOR natur-oper. 
+    def var l-procedimento-ok as logical no-undo.
+    def var de-despesas       as decimal no-undo.
+    def var de-valor-desc-icms as dec    no-undo.
+    
+    assign RowObject.aliquota-icm      = piAliquotaIcms
+           RowObject.cd-trib-icm       = piTribIcms
+           RowObject.val-perc-red-icms = piPercRedICMS
+           RowObject.log-2             = piICMSRetido
+           RowObject.quantidade        = piQuantidade
+           RowObject.qt-do-forn        = piQtDoForn  
+           RowObject.preco-total[1]    = piPrecoTotal 
+           RowObject.desconto[1]       = piDesconto   
+           RowObject.cd-trib-ipi       = piTribIPI
+           RowObject.aliquota-ipi      = piAliquotaIPI
+           RowObject.val-perc-rep-ipi  = piPercRedIPI 
+           RowObject.base-ipi[1]       = piBaseIPI    
+           RowObject.ipi-ntrib[1]      = piIPIntrib   
+           RowObject.ipi-outras[1]     = piIPIOutras  
+           RowObject.valor-ipi[1]      = piValorIPI
+           RowObject.cd-trib-iss       = piTribISS    
+           RowObject.aliquota-iss      = piAliquotaISS.
+
+    run findDocumento ( RowObject.Cod-Emitente,
+                        RowObject.Serie-Docto,
+                        RowObject.Nro-Docto,
+                        RowObject.Nat-Operacao ).
+
+    if  return-value <> "OK":U OR 
+        not avail docum-est then
+        return "NOK":U.
+        
+    run createTbWtDocto.
+
+    /* Se usa múltiplas naturezas no recebimento */
+    IF  l-mult-natur-receb THEN 
+        FIND FIRST b-natur-oper-fiscal WHERE b-natur-oper-fiscal.nat-operacao = RowObject.nat-of NO-LOCK NO-ERROR.
+    
+    /* Se nío usa multiplas naturezas ou usa mas a nota ≤ antiga (digit. antes de marcar o par≥m.) */
+    IF  NOT l-mult-natur-receb OR NOT AVAIL b-natur-oper-fiscal THEN
+        FIND FIRST b-natur-oper-fiscal WHERE b-natur-oper-fiscal.nat-operacao = RowObject.nat-operacao NO-LOCK NO-ERROR.
+        
+    /***ICMS Desonerado***/
+    if l-apl-desc-icm-recalc and de-val-desc-icm-recalc > 0 then
+        ASSIGN de-valor-desc-icms = de-val-desc-icm-recalc. /*valor desconto icms*/
+    /********************/    
+        
+    assign de-despesas = RowObject.despesas[1] - dec(SUBSTR(RowObject.char-2,819,13)).
+        
+    run createTbWtItDocto ( input RowObject.sequencia,
+                            input RowObject.it-codigo,
+                            input RowObject.quantidade,
+                            input RowObject.qt-do-forn,
+                            input RowObject.preco-total[1],
+                            input (RowObject.desconto[1] + de-valor-desc-icms),
+                            input if b-natur-oper-fiscal.log-icms-presmdo then 0 else de-despesas,
+                            input if b-natur-oper-fiscal.log-icms-presmdo then 0 else RowObject.pr-total-cmi ). /*frete*/
+
+    run createTbWtItImposto ( input RowObject.sequencia,
+                              input RowObject.aliquota-ipi,
+                              input RowObject.aliquota-icm,
+                              input RowObject.aliquota-iss,
+                              input RowObject.cd-trib-ipi,
+                              input RowObject.cd-trib-icm,
+                              input RowObject.cd-trib-iss,
+                              input RowObject.log-2,
+                              input RowObject.val-perc-rep-ipi,
+                              input RowObject.val-perc-red-icms ).
+    
+    run calculate_ICMS_SubsTrib_ICMSComp.
+    
+    IF de-aliq-simplesnac <> 0 AND
+       docum-est.cod-observa <> 3 THEN DO: /*devoluá∆o de cliente*/
+    
+        RUN sugere_simples_nacional.
+    END.    
+    
+    /*Envio dos dados do Simples Nacional para o configurador de tributos para geraá∆o de codigo de ajuste*/
+    for first tb-wt-it-imposto exclusive-lock
+        where tb-wt-it-imposto.seq-wt-docto    = 1
+          and tb-wt-it-imposto.seq-wt-it-docto = RowObject.sequencia:
+          
+        for first ext-item-doc-est no-lock
+            where ext-item-doc-est.serie-docto  = RowObject.serie-docto
+              and ext-item-doc-est.nro-docto    = RowObject.nro-docto
+              and ext-item-doc-est.cod-emitente = RowObject.cod-emitente
+              and ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+              and ext-item-doc-est.sequencia    = RowObject.sequencia
+              and ext-item-doc-est.cod-param    = "simplesnacional":
+              
+           assign overlay(tb-wt-it-imposto.char-1,150,20) = string(ext-item-doc-est.val-livre-2)  /*base simples nac*/
+                  overlay(tb-wt-it-imposto.char-1,170,20) = string(ext-item-doc-est.val-livre-3)  /*valor simples nac*/
+                  overlay(tb-wt-it-imposto.char-1,356,5)  = string(ext-item-doc-est.val-livre-1). /*aliq simples nac*/
+        end.         
+    end.
+    
+    run createTempTableImpostosCBSIBS.
+
+    {inbo/boin176.m99} /* chamada configurador de tributos */
+    
+    if  not l-recalcula then do:
+        {inbo/boin176.m97 "RowObject"} /* retorno configurador de tributos */
+    end.
+    
+    /* Sugest∆o de CST no Recebimento*/
+    RUN sugereCST (INPUT "RECALC":U).
+    
+    RETURN "OK":U.
+
+END PROCEDURE.

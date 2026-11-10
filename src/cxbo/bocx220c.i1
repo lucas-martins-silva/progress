@@ -1,0 +1,1062 @@
+/*******************************************************************************
+**
+**  BOCX220C.P - Desembarque
+**
+**  embarque-imp - Embarque 
+**
+*******************************************************************************/
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.000
+&scoped-define FIRST-TABLE-IN-QUERY tt-item-doc-est
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME tt-item-doc-est
+
+{cdp/cdcfgmat.i} /* Integraá∆o Importacao */
+{cdp/cdcfgdis.i} /* Integraá∆o Importacao */
+
+{include/boini.i}
+{cxbo/bocx220c.i RowObject}
+{cxbo/bocx220c.i tt-item-doc-est}
+{cxbo/bocx220c.i tt-item-doc-est-aux}
+
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+DEFINE BUFFER b-tt-item-doc-est for tt-item-doc-est.
+    
+DEFINE TEMP-TABLE tt-erro no-undo
+    field i-sequen as int             
+    field cd-erro  as int
+    field mensagem as char format "x(255)".
+        
+def var l-acomp        as logical initial no no-undo.
+{imp/im7777.i1}
+def var c-embarque     as char    no-undo.
+def var c-cod-estabel  as char    no-undo.
+def var i-cod-emitente as integer no-undo.
+def var c-estab-fisc   as char    no-undo.
+def var i-cont         as integer no-undo.
+def var c-return1      as char    no-undo.
+def var de-qtde        as decimal no-undo.
+def var c_executado_programa_web as char no-undo.
+def var c-rowid as char format "x(20)" no-undo.
+def var i-seq as int no-undo.    
+def var d-quantidade-total as dec no-undo.
+def var c-liter        as char format "x(100)" no-undo.
+
+procedure setConstraint1:
+def input parameter r-nr-embarque as rowid no-undo.
+
+end procedure. 
+
+procedure setConstraint2:
+    def input parameter p-cod-emitente   as integer no-undo.
+    def input parameter p-cod-estabel    as char    no-undo.
+    def input parameter p-estab-fisc     as char    no-undo.
+    
+   
+end procedure.
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    case i-abertura:
+        when 1 then 
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock.    
+        when 2 then 
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock.
+    end case.
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+ 
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-mat-comex) &then
+&else
+{include/bocomver.i}
+{include/bogetver.i}
+{utp/ut-glob.i}
+&endif
+/*{include/bonav.i} */
+/*{include/bofind.i}*/
+/*{include/bosetcur.i}*/
+{include/bogetcur.i}
+/*{include/bosersen.i}*/
+{include/boprebro.i}
+
+procedure setCurrent:
+    /*
+    **  Seta registro corrente para a temp-table que sera devolvida.
+    */
+    for each RowObject:
+        delete RowObject.
+    end.
+    if avail {&TABLE-NAME} then do:
+        create RowObject.
+        buffer-copy {&TABLE-NAME} to RowObject.
+        assign rowObject.r-rowid = {&TABLE-NAME}.r-rowid. /*frank*/
+    end.
+end procedure.
+
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+     
+    run startMethod ("initializeValidade").
+ 
+    run endMethod   ("initializeValidade").
+end procedure.
+
+
+PROCEDURE serverSendRows :
+
+    /*
+    **  Disponivel no smart data object da V9, e foi reimplementado dentro
+    **  da versao 8. Faz consultas utilizando a querie dentro da smartquery,
+    **  possibilitando que clientes WebSpeed acessem esta mesma smart-query
+    **  e facilitara a migracao destes programas para os Smart Data Objects.
+    */
+    DEFine input  parameter piStartRow     as  integer   no-undo.
+    DEFine input  parameter pcRowIdent     as  character no-undo.
+    DEFine input  parameter plNext         as  logical   no-undo.
+    DEFine input  parameter piRowsToReturn as  integer   no-undo.
+    DEFine output parameter piRowsReturned as  integer   no-undo.
+    DEFine output parameter table          for RowObject.
+    DEFine variable hQuery        as handle    no-undo.
+    DEFine variable hBuffer       as handle    no-undo.
+    DEFine variable hRowObject    as handle    no-undo.
+    DEFine variable hDataQuery    as handle    no-undo.
+    DEFine variable cRowIdent     as character no-undo.
+    DEFine variable rRowIDs       as rowid     extent 10 no-undo.
+    DEFine variable lOK           as logical   no-undo.
+    DEFine variable iRow          as integer   no-undo.
+    for each rowObject:
+        delete rowObject.
+    end.
+    IF true THEN DO:
+        IF pcRowIdent NE ? AND pcRowIdent NE "":U THEN DO:
+            rRowIDs = ?.
+            reposition {&query-name} to rowid to-rowid(pcRowIdent) no-error.
+            get next {&query-name}.
+        END.
+        ELSE IF piStartRow NE ? AND piStartRow NE 0 THEN DO:
+            REPOSITION  {&query-name} TO ROW piStartRow no-error.
+            GET next {&query-name}.
+        END.
+        IF plNext THEN
+            GET next {&query-name}.
+        DO WHILE true:
+            if available({&first-table-in-query})  and piRowsReturned < piRowsToReturn then do:
+                create rowObject.
+                buffer-copy {&table-name} to rowObject.
+                if c_executado_programa_web = "sim" then
+                    assign rowobject.r-rowid = ({&table-name}.r-rowid). 
+                else 
+                    assign rowobject.r-rowid = rowid({&table-name}).    
+                
+                GET NEXT {&query-name}.
+                piRowsReturned = piRowsReturned + 1.
+            end.
+            else
+                leave.
+        END.
+        IF piRowsReturned > 0 THEN DO:
+            {&open-query}
+            IF piStartRow = ? OR piStartRow = 0 THEN DO:
+                get first {&query-name}.
+                get prev {&query-name}.
+            END.
+            ELSE
+                REPOSITION  {&query-name} TO ROW (piStartRow) no-error.
+        END.
+    END.
+    RETURN.
+
+END PROCEDURE.  
+
+/*************** frank *************/
+procedure findFirst:
+    if l-query then
+        get first {&QUERY-NAME}
+            no-lock no-wait.
+    else
+        find first {&TABLE-NAME}
+            no-lock no-error.
+    run setCurrent.
+end procedure.
+
+procedure findPrev:
+    def output parameter c-return as char.
+    if l-query then
+        get prev {&QUERY-NAME}
+            no-lock no-wait.
+    else
+        find prev {&TABLE-NAME}
+            no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        run utp/ut-msgs.p (input "msg":U,
+                           input 7998,
+                           input "").
+        assign c-return = return-value.
+    end.
+    else run setCurrent.
+end procedure.
+
+procedure findNext:
+    def output parameter c-return as char.
+    if l-query then
+        get next {&QUERY-NAME}
+            no-lock no-wait.
+    else
+        find next {&TABLE-NAME}
+            no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+        run utp/ut-msgs.p (input "msg":U,
+                           input 7999,
+                           input "").
+        assign c-return = return-value.
+    end.
+    else run setCurrent.
+end procedure.
+
+procedure findLast:
+    if l-query then
+        get last {&QUERY-NAME}
+            no-lock no-wait.
+    else
+        find last {&TABLE-NAME}
+            no-lock no-error.
+    run setCurrent.
+end procedure.
+
+procedure getRowid:
+    def output parameter r-chave as rowid no-undo.
+    if avail {&TABLE-NAME} then do:
+       /*if c_executado_programa_web = "sim" then*/
+           assign r-chave = ({&TABLE-NAME}.r-rowid).
+       /*else assign r-chave = rowid({&TABLE-NAME}). */
+    end.
+    else do:
+       assign r-chave = ?.
+    end.
+end procedure.
+
+procedure findRowid:
+    /*
+    **  Localiza registro pelo rowid e nao retorna o registro.
+    */
+    def input parameter r-chave as rowid no-undo.
+    define buffer b-localiza for {&TABLE-NAME}. 
+    find {&TABLE-NAME} where {&TABLE-NAME}.r-rowid = r-chave no-lock no-error.
+    if l-query then do:
+        reposition {&QUERY-NAME}
+            to rowid rowid ({&TABLE-NAME}) no-error.
+            get next {&QUERY-NAME}
+                no-lock no-wait.
+    end.
+    else do:
+       /*if c_executado_programa_web = "sim" then*/
+           find {&TABLE-NAME} where
+                {&TABLE-NAME}.r-rowid = r-chave no-lock no-error.
+       /*else
+           find {&TABLE-NAME} where 
+                rowid({&TABLE-NAME}) = r-chave no-lock no-error.
+       */  
+    end.
+    if avail {&TABLE-NAME} then 
+       RUN setCurrent.
+end procedure.
+
+
+procedure atualizaQtdeDoForn:
+    define input  parameter de-qtd-interna as decimal   format ">>>>,>>>,>>9.9999":U no-undo.
+    define input  parameter i-numero-ordem as integer   format "zzzzz9,99":U         no-undo.
+    define input  parameter c-it-codigo    as character format "x(16)":U             no-undo.
+    define output parameter de-qtd-do-forn as decimal   format ">>>>,>>>,>>9.9999":U no-undo.
+
+    find ordem-compra 
+        where ordem-compra.numero-ordem = i-numero-ordem no-lock no-error.
+    if  avail ordem-compra then 
+        find item-fornec 
+            where item-fornec.it-codigo    = c-it-codigo 
+            and   item-fornec.cod-emitente = ordem-compra.cod-emitente no-lock no-error.
+        if  avail item-fornec then
+            assign de-qtd-do-forn = de-qtd-interna * ( item-fornec.fator-conver / (if   item-fornec.num-casa-dec = 0 then 1
+                                                                                   else exp(10, item-fornec.num-casa-dec)) ).
+        else 
+            assign de-qtd-do-forn = de-qtd-interna.
+
+end procedure.
+
+
+/*****************************************************/
+procedure AtualizaDadosTTItemDocEst:
+/*   Procedure criada para atualizar as informaá‰es digitas na tela,
+**   se a quantidade for menor que a original, cria um novo registro
+**   com o saldo da quantidade.
+*/
+    def input-output parameter table for tt-item-doc-est.
+    def input parameter r-tt-item-doc-est as rowid no-undo.
+    def input-output parameter i-seq      as int   no-undo.
+    def input parameter p-lote-serie      as char  no-undo.
+    def input parameter p-data-lote       as char  no-undo.
+    def input parameter p-referencia      as char  no-undo.
+    def input parameter p-quantidade      as char  no-undo.
+    def input parameter d-quantidade-total as dec no-undo.
+    
+    def var l-cria as logical no-undo.
+    def var l-cria-outro-branco as logical no-undo.
+        
+        find first tt-item-doc-est WHERE
+                   tt-item-doc-est.r-rowid = r-tt-item-doc-est no-error.
+                   
+        if avail tt-item-doc-est then do:
+            
+            if tt-item-doc-est.lote <> "" then do:
+                assign l-cria = no.
+            end.
+            else do:
+                assign l-cria = yes.
+            end.
+            
+            if tt-item-doc-est.quantidade = dec(p-quantidade) then
+                assign l-cria = no.
+                
+            if tt-item-doc-est.quantidade > dec(p-quantidade) then
+                assign l-cria = yes.
+            
+            if l-cria = no then do:
+                if tt-item-doc-est.quantidade > dec(p-quantidade) then
+                    assign l-cria-outro-branco = yes.
+                
+                assign tt-item-doc-est.lote           = p-lote-serie
+                       tt-item-doc-est.cod-refer      = p-referencia
+                       tt-item-doc-est.dt-vali-lote   = date(p-data-lote)
+                       tt-item-doc-est.situacao       = yes
+                       tt-item-doc-est.preco-total    = (tt-item-doc-est.preco-total
+                                                        / d-quantidade-total)
+                                                        * dec(p-quantidade)
+                       tt-item-doc-est.preco-total-mo = (tt-item-doc-est.preco-total-mo
+                                                        / d-quantidade-total)
+                                                        * dec(p-quantidade)
+                       tt-item-doc-est.quantidade   = dec(p-quantidade)
+                       tt-item-doc-est.quant-total  = tt-item-doc-est.quant-total - dec(tt-item-doc-est.quantidade).
+                       
+                find first b-tt-item-doc-est where
+                           b-tt-item-doc-est.numero-ordem = tt-item-doc-est.numero-ordem and
+                           b-tt-item-doc-est.it-codigo    = tt-item-doc-est.it-codigo    and
+                           b-tt-item-doc-est.parcela      = tt-item-doc-est.parcela      and
+                           b-tt-item-doc-est.lote         = ""  no-lock no-error.
+                           
+                if avail b-tt-item-doc-est then do:
+                     assign b-tt-item-doc-est.quantidade  = tt-item-doc-est.quant-total
+                            b-tt-item-doc-est.quant-total = tt-item-doc-est.quant-total.
+                end.  
+                else do:
+                
+                    assign i-seq  = i-seq + 1
+                           i-cont  = i-cont + 1
+                           c-rowid = "0x0" + string(i-seq,"9999999").
+                                      /*quant-total*/
+                                      
+                    if l-cria-outro-branco = yes then do:
+                    
+                           create tt-item-doc-est-aux.
+                           assign tt-item-doc-est-aux.num-pedido     = tt-item-doc-est.num-pedido
+                                  tt-item-doc-est-aux.nr-proc-imp    = tt-item-doc-est.nr-proc-imp
+                                  tt-item-doc-est-aux.it-codigo      = tt-item-doc-est.it-codigo
+                                  tt-item-doc-est-aux.numero-ordem   = tt-item-doc-est.numero-ordem
+                                  tt-item-doc-est-aux.parcela        = tt-item-doc-est.parcela
+                                  tt-item-doc-est-aux.tipo-con-est   = tt-item-doc-est.tipo-con-est
+                                  tt-item-doc-est-aux.lote           = ""
+                                  tt-item-doc-est-aux.dt-vali-lote   = ?
+                                  tt-item-doc-est-aux.cod-refer      = ""
+                                  tt-item-doc-est-aux.sequencial     = i-seq
+                                  tt-item-doc-est-aux.r-rowid        = tt-item-doc-est.r-rowid
+                                  tt-item-doc-est-aux.situacao       = yes
+                                  tt-item-doc-est-aux.class-fiscal       = tt-item-doc-est.class-fiscal
+                                  tt-item-doc-est-aux.nr-ato-concessorio = tt-item-doc-est.nr-ato-concessorio
+                                  tt-item-doc-est-aux.preco-total        = (tt-item-doc-est.preco-total
+                                                                           / d-quantidade-total)
+                                                                           * dec(p-quantidade)
+                                  tt-item-doc-est-aux.preco-total-mo     = (tt-item-doc-est.preco-total-mo
+                                                                           / d-quantidade-total)
+                                                                           * dec(p-quantidade)
+                                  tt-item-doc-est-aux.tp-despesa         = tt-item-doc-est.tp-despesa
+                                  tt-item-doc-est-aux.cod-depos          = tt-item-doc-est.cod-depos
+                                  tt-item-doc-est-aux.l-regime           = tt-item-doc-est.l-regime
+                                  tt-item-doc-est-aux.aliquota-ipi       = tt-item-doc-est.aliquota-ipi
+                                  tt-item-doc-est-aux.quantidade     = dec(p-quantidade)
+                                  tt-item-doc-est-aux.quant-total    = tt-item-doc-est.quant-total.
+                                  
+                           assign tt-item-doc-est.quantidade         = tt-item-doc-est.quant-total - dec(p-quantidade)
+                                  tt-item-doc-est.quant-total        = tt-item-doc-est.quantidade.
+            
+                           create tt-item-doc-est.
+                           buffer-copy tt-item-doc-est-aux to tt-item-doc-est.
+                    end.
+                end.
+            end.
+            else do:
+            
+                    assign i-seq  = i-seq + 1
+                           i-cont  = i-cont + 1
+                           c-rowid = "0x0" + string(i-seq,"9999999").
+                           
+                    create tt-item-doc-est-aux.
+                    assign tt-item-doc-est-aux.nr-proc-imp    = tt-item-doc-est.nr-proc-imp
+                           tt-item-doc-est-aux.it-codigo      = tt-item-doc-est.it-codigo
+                           tt-item-doc-est-aux.numero-ordem   = tt-item-doc-est.numero-ordem
+                           tt-item-doc-est-aux.parcela        = tt-item-doc-est.parcela
+                           tt-item-doc-est-aux.quant-total    = tt-item-doc-est.quantidade
+                           tt-item-doc-est-aux.tipo-con-est   = tt-item-doc-est.tipo-con-est
+                           tt-item-doc-est-aux.lote           = p-lote-serie
+                           tt-item-doc-est-aux.dt-vali-lote   = date(p-data-lote)
+                           tt-item-doc-est-aux.cod-refer      = p-referencia
+                           tt-item-doc-est-aux.sequencial     = i-seq
+                           tt-item-doc-est-aux.r-rowid        = tt-item-doc-est.r-rowid
+                           tt-item-doc-est-aux.situacao       = yes
+                           tt-item-doc-est-aux.class-fiscal       = tt-item-doc-est.class-fiscal
+                           tt-item-doc-est-aux.nr-ato-concessorio = tt-item-doc-est.nr-ato-concessorio.
+                           
+                   assign  tt-item-doc-est-aux.preco-total        = (tt-item-doc-est.preco-total
+                                                                    / d-quantidade-total)
+                                                                    * dec(p-quantidade)
+                           tt-item-doc-est-aux.preco-total-mo     = (tt-item-doc-est.preco-total-mo
+                                                                    / d-quantidade-total)
+                                                                    * dec(p-quantidade)
+                           
+                           tt-item-doc-est-aux.tp-despesa         = tt-item-doc-est.tp-despesa
+                           tt-item-doc-est-aux.cod-depos          = tt-item-doc-est.cod-depos
+                           tt-item-doc-est-aux.l-regime           = tt-item-doc-est.l-regime
+                           tt-item-doc-est-aux.aliquota-ipi       = tt-item-doc-est.aliquota-ipi
+                           tt-item-doc-est-aux.quantidade         = dec(p-quantidade).
+                           
+                    assign tt-item-doc-est.quantidade         = tt-item-doc-est.quantidade - dec(p-quantidade)
+                           tt-item-doc-est.quant-total        = tt-item-doc-est.quantidade.
+                           
+                    create tt-item-doc-est.
+                    buffer-copy tt-item-doc-est-aux to tt-item-doc-est.
+                    
+            end.            
+        end.
+end procedure.
+
+procedure LocalizaOrdemParcelaSequencial:
+/** Criado para encontrar o numero, a parcela e a sequencial, apartir do 
+*** rowid selecionada na tela
+**/
+   
+   def input  parameter table for tt-item-doc-est.
+   def input  parameter r-rowid-tt as rowid no-undo.
+   def output parameter p-sequencial        as int   no-undo.
+   def output parameter p-ordem             as int   no-undo.
+   def output parameter p-parcela           as int   no-undo.
+   
+   find first tt-item-doc-est where
+              tt-item-doc-est.r-rowid = r-rowid no-lock no-error.
+   if avail tt-item-doc-est then do:
+       assign p-sequencial = tt-item-doc-est.sequencial
+              p-ordem      = tt-item-doc-est.numero-ordem
+              p-parcela    = tt-item-doc-est.parcela.
+   end.
+
+end procedure.
+
+procedure PassaTempTableparaBo11:
+/*
+**  Procedure criada somente para trazer a tt-item-doc-est para a BO.
+**  c_executado_programa_web - Variavel para diferenciar de client para o web, utilizado 
+**  no SERSENDROWS
+*/   
+   def input-output parameter table for tt-item-doc-est.
+   
+end procedure.
+
+procedure PassaTempTableparaBo:
+/*
+**  Procedure criada somente para trazer a tt-item-doc-est para a BO.
+**  c_executado_programa_web - Variavel para diferenciar de client para o web, utilizado 
+**  no SERSENDROWS
+*/   
+    
+   def input-output parameter table for tt-item-doc-est.
+   def input-output parameter i-seq as int no-undo.
+   def output       parameter d-quantidade-total as int no-undo.
+   def var c-arquivo as char format "x(25)" no-undo.
+   
+   find last tt-item-doc-est no-error.
+   if avail tt-item-doc-est then
+      assign i-seq = tt-item-doc-est.sequencial
+             d-quantidade-total = tt-item-doc-est.quantidade.
+      
+   assign i-cont  = i-cont + 1
+          /*i-seq   = i-seq + 1*/
+          c-rowid = "0x0" + string(i-cont,"9999999").   
+          
+end procedure.
+
+procedure validaTableAdicionais:
+
+def input  parameter table for tt-item-doc-est.
+def output parameter table for tt-bo-erro.
+
+for each tt-bo-erro:
+   delete tt-bo-erro.
+end.
+
+for each tt-item-doc-est no-lock:
+    
+    if  tt-item-doc-est.tipo-con-est >1 and tt-item-doc-est.lote = "" then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            run utp/ut-msgs.p (input "msg",
+                               input 19480,
+                               input tt-item-doc-est.it-codigo).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 19480
+                   tt-bo-erro.mensagem = return-value.    
+    end.
+
+    if  tt-item-doc-est.tipo-con-est > 2 and tt-item-doc-est.dt-vali-lote = ? then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            run utp/ut-msgs.p (input "msg",
+                               input 19481,
+                               input tt-item-doc-est.it-codigo).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 19481
+                   tt-bo-erro.mensagem = return-value.   
+    end.
+
+    if  tt-item-doc-est.tipo-con-est = 4 and tt-item-doc-est.cod-refer = "" then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            run utp/ut-msgs.p (input "msg",
+                               input 19482,
+                               input tt-item-doc-est.it-codigo).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 19482
+                   tt-bo-erro.mensagem = return-value.        
+    end.
+end.
+
+for each tt-item-doc-est no-lock break by tt-item-doc-est.numero-ordem by tt-item-doc-est.parcela:
+   assign de-qtde = de-qtde + tt-item-doc-est.quantidade.
+   if last-of(tt-item-doc-est.numero-ordem) and last-of(tt-item-doc-est.parcela) then do:
+      if de-qtde < tt-item-doc-est.quant-total then do:
+            if de-qtde < tt-item-doc-est.quant-total then do:
+               /* Inicio -- Projeto Internacional */
+               {utp/ut-liter.i "Lote" *}
+               run utp/ut-msgs.p (input "msg",
+                                  input 15535,
+                                  input RETURN-VALUE).
+               create tt-bo-erro.
+               assign tt-bo-erro.i-sequen = i-seq-erro
+                      tt-bo-erro.cd-erro  = 15535
+                      tt-bo-erro.mensagem = return-value.   
+            end.
+      end.
+      assign de-qtde = 0.
+   end.  
+end.
+    
+end procedure.
+
+procedure validaAdicionais:
+def input  parameter c-cod-depos like tt-item-doc-est.cod-depos.
+def input  parameter l-dep-ext as log no-undo.
+def input  parameter c-lote like tt-item-doc-est.lote.
+def input  parameter d-dt-vali-lote like tt-item-doc-est.dt-vali-lote.
+def input  parameter c-cod-refer like tt-item-doc-est.cod-refer.
+def input  parameter d-quant-est like tt-item-doc-est.quantidade.
+def input  parameter d-quantidade like tt-item-doc-est.quantidade.
+def input  parameter table for tt-item-doc-est.
+def input  parameter l-alt as log no-undo.
+def input  parameter i-seq like tt-item-doc-est.sequencial.
+def input  parameter i-num-ordem like tt-item-doc-est.numero-ordem.
+def input  parameter i-parc like tt-item-doc-est.parcela.
+def output parameter table for tt-bo-erro.
+    
+def var i-tipo-con-est like tt-item-doc-est.tipo-con-est.
+def var c-lote-anterior like tt-item-doc-est.lote.
+def var c-item like tt-item-doc-est.it-codigo.
+
+find first param-estoq no-lock no-error.
+
+    for each tt-bo-erro:
+       delete tt-bo-erro.
+    end.
+    
+    find tt-item-doc-est where tt-item-doc-est.numero-ordem = i-num-ordem and tt-item-doc-est.parcela = i-parc and tt-item-doc-est.sequencial = i-seq and tt-item-doc-est.parcela = i-parc no-lock no-error.
+    if avail tt-item-doc-est then do:
+        assign i-tipo-con-est  = tt-item-doc-est.tipo-con-est
+               c-item          = tt-item-doc-est.it-codigo
+               c-lote-anterior = tt-item-doc-est.lote.
+    end.
+    
+
+    if i-pais-impto-usuario <> 1 /* Brasil */ then do:
+        if not can-find(deposito where deposito.cod-depos = c-cod-depos) then do: 
+           assign i-seq-erro = i-seq-erro + 1.
+           {utp/ut-liter.i "Dep¢sito" *}
+           run utp/ut-msgs.p (input "msg",
+                              input 2,
+                              input return-value).
+           create tt-bo-erro.
+           assign tt-bo-erro.i-sequen = i-seq-erro
+                  tt-bo-erro.cd-erro  = 2
+                  tt-bo-erro.mensagem = return-value. 
+        end.
+        else do:        
+                if l-dep-ext then do: /* Dep¢sito Externo */        
+                   if not can-find(first deposito 
+                                   where deposito.cod-depos    = c-cod-depos
+                                     and deposito.ind-tipo-dep = 2) then do: 
+                      assign i-seq-erro = i-seq-erro + 1.
+                      {utp/ut-liter.i "Dep¢sito" *}
+                      assign c-liter = trim(return-value).
+                      {utp/ut-liter.i "Externo" *}
+                      assign c-liter = c-liter + "~~" + trim(return-value).
+                      run utp/ut-msgs.p (input "msg",
+                                         input 18440,
+                                         input c-liter).
+                      create tt-bo-erro.
+                      assign tt-bo-erro.i-sequen = i-seq-erro
+                             tt-bo-erro.cd-erro  = 18440
+                             tt-bo-erro.mensagem = return-value. 
+                   end.                
+                end.  
+        end.              
+    end.
+           
+    find item where item.it-codigo = c-item no-lock no-error.
+    if  i-tipo-con-est > 2 and c-lote = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 19480,
+                           input c-item).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen = i-seq-erro
+               tt-bo-erro.cd-erro  = 19480
+               tt-bo-erro.mensagem = return-value.    
+    end.
+    if  i-tipo-con-est = 2 and c-lote = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 19480,
+                           input c-item).
+        create tt-bo-erro.
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "SÇrie" *}
+        assign tt-bo-erro.i-sequen = i-seq-erro
+               tt-bo-erro.cd-erro  = 19480
+               tt-bo-erro.mensagem = RETURN-VALUE.    
+    end.
+    if i-tipo-con-est = 2 and c-lote <> "" then do:
+        For each tt-item-doc-est no-lock:
+            if tt-item-doc-est.lote = c-lote and tt-item-doc-est.tipo-con-est = 2 and tt-item-doc-est.sequencial <> i-seq then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "N£mero_de_SÇrie" *}
+                run utp/ut-msgs.p (input "msg",
+                                   input 8,
+                                   input RETURN-VALUE).
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen = i-seq-erro
+                       tt-bo-erro.cd-erro  = 8
+                       tt-bo-erro.mensagem = return-value.   
+            end.           
+        end.
+        find first tt-bo-erro no-lock no-error.
+        if not avail tt-bo-erro then do:
+            find first saldo-estoq where saldo-estoq.it-codigo = item.it-codigo
+                and saldo-estoq.lote        = c-lote
+                and saldo-estoq.qtidade-atu > 0 no-lock no-error.
+                if  avail saldo-estoq then do:
+                    /* Item Controlado por Nr. Serie ja Existe em Saldo Estoque */
+                    run utp/ut-msgs.p (input "msg",
+                                       input 1252,
+                                       input " " ).
+            end.    
+         end.
+    end.
+
+    if  i-tipo-con-est > 2 then do:
+        if d-dt-vali-lote = ? then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            run utp/ut-msgs.p (input "msg",
+                               input 19481,
+                               input c-item).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 19481
+                   tt-bo-erro.mensagem = return-value.   
+        end.
+        if d-dt-vali-lote <> ? then do:
+            /*Retirado pois nos bancos unificados nao existe 
+              a tabela "mgiuni"*/ 
+            /*assign session:time-source = "mguni".*/
+            if  d-dt-vali-lote < today then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                run utp/ut-msgs.p (input "msg",
+                                   input 19506,
+                                   input c-item).
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen = i-seq-erro
+                       tt-bo-erro.cd-erro  = 19481
+                       tt-bo-erro.mensagem = return-value.   
+            end.        
+        end. 
+        /*for each tt-item-doc-est no-lock:
+            if tt-item-doc-est.lote = c-lote and tt-item-doc-est.tipo-con-est > 2 and tt-item-doc-est.sequencial = i-seq and c-lote <> "" /*and c-lote-anterior <> c-lote and c-lote-anterior <> ""*/ then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                run utp/ut-msgs.p (input "msg",
+                                   input 8,
+                                   input "Lote").
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen = i-seq-erro
+                       tt-bo-erro.cd-erro  = 8
+                       tt-bo-erro.mensagem = return-value.   
+            end.           
+        end.*/
+        if d-quant-est = 0 then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "Lote" *}
+            run utp/ut-msgs.p (input "msg",
+                               input 19535,
+                               input RETURN-VALUE).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 19535
+                   tt-bo-erro.mensagem = return-value.   
+        end.
+        
+        if d-quantidade < 0 then do:
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "Lote" *}
+            run utp/ut-msgs.p (input "msg",
+                               input 15535,
+                               input RETURN-VALUE).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 15535
+                   tt-bo-erro.mensagem = return-value.   
+        end.
+              
+        
+    end.
+    if  i-tipo-con-est = 4 and c-cod-refer = "" then do:   
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p (input "msg",
+                           input 19482,
+                           input c-item).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen = i-seq-erro
+               tt-bo-erro.cd-erro  = 19482
+               tt-bo-erro.mensagem = return-value.        
+    end.    
+
+    IF i-tipo-con-est = 4 and c-cod-refer <> "" then do:
+        if not can-find(referencia where referencia.cod-refer = c-cod-refer) then do:
+              assign i-seq-erro = i-seq-erro + 1.
+              {utp/ut-table.i mgind referencia 1}
+              run utp/ut-msgs.p (input "msg",
+                                 input 2,
+                                 input return-value).
+              create tt-bo-erro.
+              assign tt-bo-erro.i-sequen = i-seq-erro
+                     tt-bo-erro.cd-erro  = 2
+                     tt-bo-erro.mensagem = return-value. 
+        end.    
+        
+        &if defined (bf_dis_versao_ems)  &then
+           &if {&bf_dis_versao_ems} >= 2.04 &then
+                if  substring(param-estoq.char-2,1,1) <> "#" then do:
+                    find first saldo-estoq where 
+                               saldo-estoq.it-codigo = item.it-codigo and 
+                               saldo-estoq.lote = c-lote no-lock no-error.
+                    if  avail saldo-estoq and 
+                               saldo-estoq.cod-refer <> c-cod-refer then do:
+                           /* Mensagem: "Referencia informada nao confere com a referencia do lote." */
+                           run utp/ut-msgs.p(input "msg",
+                                             input 1785,
+                                             input "").
+                           create tt-bo-erro.
+                           assign tt-bo-erro.i-sequen = i-seq-erro
+                                  tt-bo-erro.cd-erro  = 1785
+                                  tt-bo-erro.mensagem = return-value. 
+                    end.
+                end.  
+           &else
+                find first saldo-estoq where 
+                           saldo-estoq.it-codigo = item.it-codigo and 
+                           saldo-estoq.lote = c-lote no-lock no-error.
+                 if  avail saldo-estoq and 
+                           saldo-estoq.cod-refer <> c-cod-refer then do:
+                        /* Mensagem: "Referencia informada nao confere com a referencia do lote." */
+                        run utp/ut-msgs.p(input "msg",
+                                          input 1785,
+                                          input "").
+                        create tt-bo-erro.
+                        assign tt-bo-erro.i-sequen = i-seq-erro
+                               tt-bo-erro.cd-erro  = 1785
+                               tt-bo-erro.mensagem = return-value. 
+                 end.
+           &endif
+       &else
+           find first saldo-estoq where 
+                      saldo-estoq.it-codigo = item.it-codigo and 
+                      saldo-estoq.lote = c-lote no-lock no-error.
+           if  avail saldo-estoq and 
+                     saldo-estoq.cod-refer <> c-cod-refer then do:
+                     /* Mensagem: "Referencia informada nao confere com a referencia do lote." */
+                     run utp/ut-msgs.p(input "msg",
+                                       input 1785,
+                                       input "").
+                     create tt-bo-erro.
+                     assign tt-bo-erro.i-sequen = i-seq-erro
+                            tt-bo-erro.cd-erro  = 1785
+                            tt-bo-erro.mensagem = return-value. 
+           end.
+       &endif
+    end.
+end procedure.
+
+procedure executeDelete:
+  def input parameter i-num-ordem like tt-item-doc-est.numero-ordem.
+  def input parameter seq         like tt-item-doc-est.sequencial.
+  def input parameter i-parc      like tt-item-doc-est.parcela.
+  
+  find tt-item-doc-est where 
+       tt-item-doc-est.numero-ordem = i-num-ordem and 
+       tt-item-doc-est.parcela = i-parc and 
+       tt-item-doc-est.sequencial = seq no-lock no-error.
+  if avail tt-item-doc-est then 
+       delete tt-item-doc-est.
+end.
+  
+procedure DeleteLinhaBrowse:
+  def input-output parameter table for tt-item-doc-est.
+  def input parameter r-tt-item-doc-est as rowid no-undo.
+  def input parameter d-quantidade-total as dec  no-undo.
+  def input-output parameter i-seq as int no-undo.
+  
+  def var i-cont as int no-undo.  
+  def var d-quantidade as dec no-undo.
+
+  find tt-item-doc-est where 
+       tt-item-doc-est.r-rowid = r-tt-item-doc-est no-error.
+  if avail tt-item-doc-est then do:
+      assign d-quantidade = tt-item-doc-est.quantidade.
+      
+      for each b-tt-item-doc-est where
+               b-tt-item-doc-est.numero-ordem = tt-item-doc-est.numero-ordem and
+               b-tt-item-doc-est.parcela      = tt-item-doc-est.parcela no-lock:
+               assign i-cont = i-cont + 1.
+      end.      
+      
+      if i-cont > 1 then do:
+              find first b-tt-item-doc-est where
+                         b-tt-item-doc-est.numero-ordem = tt-item-doc-est.numero-ordem and
+                         b-tt-item-doc-est.it-codigo    = tt-item-doc-est.it-codigo    and
+                         b-tt-item-doc-est.parcela      = tt-item-doc-est.parcela      and
+                         b-tt-item-doc-est.lote         = ""  exclusive-lock no-error.
+              if avail b-tt-item-doc-est then do:
+                   
+                    assign b-tt-item-doc-est.quantidade  = b-tt-item-doc-est.quantidade + d-quantidade
+                           b-tt-item-doc-est.quant-total = b-tt-item-doc-est.quantidade + d-quantidade.
+                    
+                    /** elimina registro do lote **/
+                    delete tt-item-doc-est.
+              end.
+              else do:
+                    assign i-seq  = i-seq + 1
+                           c-rowid = "0x0" + string(i-seq,"9999999").
+                    
+                    create tt-item-doc-est-aux.
+                    assign tt-item-doc-est-aux.nr-proc-imp    = tt-item-doc-est.nr-proc-imp
+                           tt-item-doc-est-aux.it-codigo      = tt-item-doc-est.it-codigo
+                           tt-item-doc-est-aux.numero-ordem   = tt-item-doc-est.numero-ordem
+                           tt-item-doc-est-aux.parcela        = tt-item-doc-est.parcela
+                           tt-item-doc-est-aux.quant-total    = tt-item-doc-est.quantidade
+                           tt-item-doc-est-aux.tipo-con-est   = tt-item-doc-est.tipo-con-est
+                           tt-item-doc-est-aux.lote           = ""
+                           tt-item-doc-est-aux.dt-vali-lote   = ?
+                           tt-item-doc-est-aux.cod-refer      = ""
+                           tt-item-doc-est-aux.sequencial     = i-seq
+                           tt-item-doc-est-aux.r-rowid        = /*tt-item-doc-est.r-rowid*/ to-rowid(c-rowid)
+                           tt-item-doc-est-aux.situacao       = yes
+                           tt-item-doc-est-aux.class-fiscal       = tt-item-doc-est.class-fiscal
+                           tt-item-doc-est-aux.nr-ato-concessorio = tt-item-doc-est.nr-ato-concessorio
+                           
+                           tt-item-doc-est-aux.preco-total        = (tt-item-doc-est.preco-total
+                                                                    * d-quantidade-total)
+                                                                    / dec(d-quantidade)
+                                                                    
+                           tt-item-doc-est-aux.preco-total-mo     = (tt-item-doc-est.preco-total-mo
+                                                                    * d-quantidade-total)
+                                                                    / dec(d-quantidade)
+                                                                    
+                           tt-item-doc-est-aux.tp-despesa         = tt-item-doc-est.tp-despesa
+                           tt-item-doc-est-aux.cod-depos          = tt-item-doc-est.cod-depos
+                           tt-item-doc-est-aux.l-regime           = tt-item-doc-est.l-regime
+                           tt-item-doc-est-aux.aliquota-ipi       = tt-item-doc-est.aliquota-ipi
+                           tt-item-doc-est-aux.quantidade         = d-quantidade.
+
+                    /** elimina registro do lote **/
+                    delete tt-item-doc-est.
+                           
+                    create tt-item-doc-est.
+                    buffer-copy tt-item-doc-est-aux to tt-item-doc-est.
+                    
+              end.
+      end.
+      else do:
+          /** Lote nao pode ser eliminado, ultimo registro para a mesma ordem e parcela **/
+          assign i-seq-erro = i-seq-erro + 1.
+          /************
+          run utp/ut-msgs.p (input "show":U,
+                             input 25289,
+                             input string(lote) + "~~" + string(i-num-ordem)). 
+          ********/
+          
+          /* Inicio -- Projeto Internacional */
+          {utp/ut-liter.i "Lote_n∆o_pode_ser_Eliminado,_ultimo_registro_para_a_Ordem" *}
+          run utp/ut-msgs.p (input "msg",
+                             input 0,
+                             input RETURN-VALUE).
+          create tt-bo-erro.
+          assign tt-bo-erro.i-sequen = i-seq-erro
+                 tt-bo-erro.cd-erro  = 8
+                 tt-bo-erro.mensagem = return-value.   
+      end.
+  end.
+  
+end.
+
+
+procedure carregaTable:
+
+  def input parameter table for RowObject.
+  def output parameter i-conta as integer.
+  /*def var cont as integer initial 1.*/
+  def var c-rowid as char no-undo.
+
+  for each RowObject:
+        assign i-conta = i-conta + 1.
+        assign c-rowid = "0x0" + string(i-conta,"9999999").
+        create tt-item-doc-est.
+        assign tt-item-doc-est.nr-proc-imp    = RowObject.nr-proc-imp 
+               tt-item-doc-est.it-codigo      = RowObject.it-codigo  
+               tt-item-doc-est.numero-ordem   = RowObject.numero-ordem   
+               tt-item-doc-est.parcela        = RowObject.parcela       
+               tt-item-doc-est.quantidade     = RowObject.quantidade     
+               tt-item-doc-est.quant-total    = RowObject.quantidade     
+               tt-item-doc-est.tipo-con-est   = RowObject.tipo-con-est   
+               tt-item-doc-est.lote           = RowObject.lote
+               tt-item-doc-est.dt-vali-lote   = RowObject.dt-vali-lote   
+               tt-item-doc-est.cod-refer      = RowObject.cod-refer           
+               tt-item-doc-est.sequencial     = RowObject.sequencial                   
+               tt-item-doc-est.r-rowid        = to-rowid(c-rowid).
+               if tt-item-doc-est.tipo-con-est = 1 then
+                  assign tt-item-doc-est.situacao = yes.
+               else 
+                  assign tt-item-doc-est.situacao = no.
+  end.      
+end procedure.
+
+  
+procedure retornaTabela:
+end.
+
+procedure limpaTabela:
+   for each tt-item-doc-est:
+       delete tt-item-doc-est.
+   end.
+end.
+
+procedure validaTabela:
+def input  parameter table for tt-item-doc-est.
+def output parameter table for tt-bo-erro.
+
+find first tt-item-doc-est where tt-item-doc-est.lote = "" and tt-item-doc-est.tipo-con-est <> 1 no-lock no-error.
+if avail tt-item-doc-est then do:
+     find first tt-bo-erro no-lock no-error.
+     if not avail tt-bo-erro then do:
+        run utp/ut-msgs.p (input "msg",
+                                  input 19522,
+                                  input return-value).
+
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen = i-seq-erro
+               tt-bo-erro.cd-erro  = 19522
+               tt-bo-erro.mensagem = return-value.    
+     end.
+end.
+
+end.
+
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+ 
+    case c-field:
+        when "it-codigo"       then c-value = RowObject.it-codigo.
+        when "cod-refer"       then c-value = RowObject.cod-refer.
+        when "lote"       then c-value = RowObject.lote.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+ 
+    case c-field:
+        when "numero-ordem" then c-value = RowObject.numero-ordem.
+        when "parcela" then c-value = RowObject.parcela.
+        when "sequencial" then c-value = RowObject.sequencial.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+ 
+    case c-field:
+        when "quantidade" then c-value = RowObject.quantidade.
+        when "quant-total" then c-value = RowObject.quant-total.
+        
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+ 
+    case c-field:
+        when "dt-vali-lote" then c-value = RowObject.dt-vali-lote.
+        
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure deleteTabela:
+
+  for each tt-item-doc-est no-lock:
+     delete tt-item-doc-est.
+  end.
+end.
+
+PROCEDURE pi-envia-tt-item-doc-est:
+    DEF OUTPUT PARAMETER TABLE FOR tt-item-doc-est.
+END PROCEDURE. /* PROCEDURE pi-envia-tt-item-doc-est */
+PROCEDURE pi-recebe-tt-item-doc-est:
+    DEF INPUT PARAMETER TABLE FOR tt-item-doc-est.
+END PROCEDURE. /* PROCEDURE pi-recebe-tt-item-doc-est */

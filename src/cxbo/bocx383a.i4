@@ -1,0 +1,589 @@
+
+DEF VAR i-num-di-ems LIKE decla-import.num-di-ems NO-UNDO. 
+
+DEF VAR d-val-liquido     LIKE decla-import.val-vmcv NO-UNDO.
+DEF VAR d-val-bruto       LIKE decla-import.val-vmcv NO-UNDO.
+DEF VAR d-val-bruto-aux   LIKE decla-import.val-vmcv NO-UNDO.
+DEF VAR d-val-bruto-cotac LIKE decla-import.val-vmcv NO-UNDO.
+
+DEF VAR d-val-base-ii                  LIKE decla-import-adic.val-base-ii                 NO-UNDO.
+DEF VAR d-val-base-ipi                 LIKE decla-import-adic.val-base-ipi                NO-UNDO.
+DEF VAR d-val-base-pis                 LIKE decla-import-adic.val-base-pis                NO-UNDO.
+DEF VAR d-val-base-cofins              LIKE decla-import-adic.val-base-cofins             NO-UNDO.
+DEF VAR d-val-base-icms                LIKE decla-import-adic.val-base-icms               NO-UNDO.
+DEF VAR d-val-embal                    LIKE decla-import-adic.val-base-icms               NO-UNDO.
+                                                                                         
+DEF VAR d-tot-val-base-ii              LIKE decla-import-adic-itens.val-base-ii           NO-UNDO.
+DEF VAR d-tot-val-base-ipi             LIKE decla-import-adic-itens.val-base-ipi          NO-UNDO.
+DEF VAR d-tot-val-base-pis             LIKE decla-import-adic-itens.val-base-pis          NO-UNDO.
+DEF VAR d-tot-val-base-cofins          LIKE decla-import-adic-itens.val-base-cofins       NO-UNDO.
+DEF VAR d-tot-val-base-icms            LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+                                                                                         
+DEF VAR d-tot-di-val-base-ii           LIKE decla-import-adic-itens.val-base-ii           NO-UNDO.
+DEF VAR d-tot-di-val-base-ipi          LIKE decla-import-adic-itens.val-base-ipi          NO-UNDO.
+DEF VAR d-tot-di-val-base-pis          LIKE decla-import-adic-itens.val-base-pis          NO-UNDO.
+DEF VAR d-tot-di-val-base-cofins       LIKE decla-import-adic-itens.val-base-cofins       NO-UNDO.
+DEF VAR d-tot-di-val-base-icms         LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+
+DEF VAR d-tot-di-base-cbs-tribut       LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-cbs-tribut      LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-cbs-outros      LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-base-ibsuf-tribut     LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-ibsuf-tribut    LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-ibsuf-outros    LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-base-ibsmun-tribut    LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-ibsmun-tribut   LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-ibsmun-outros   LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-base-is-tribut        LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-is-tribut       LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+DEF VAR d-tot-di-valor-is-outros       LIKE decla-import-adic-itens.val-base-icms         NO-UNDO.
+
+DEF VAR d-val-ii                       LIKE decla-import-adic-itens.val-ii-db-cr          NO-UNDO.
+DEF VAR d-val-desp-unit                LIKE desp-imp.val-desp                             NO-UNDO.
+                                                                                         
+DEF VAR d-tot-val-ii-db-cr             LIKE decla-import-adic-itens.val-ii-db-cr          NO-UNDO.
+DEF VAR d-tot-val-ii-nao-tribut        LIKE decla-import-adic-itens.val-ii-nao-tribut     NO-UNDO.
+DEF VAR d-tot-val-ii-outras            LIKE decla-import-adic-itens.val-ii-outras         NO-UNDO.
+                                                                                         
+DEF VAR d-tot-di-val-ii-db-cr          LIKE decla-import-adic-itens.val-ii-db-cr          NO-UNDO.
+DEF VAR d-tot-di-val-ii-nao-tribut     LIKE decla-import-adic-itens.val-ii-nao-tribut     NO-UNDO.
+DEF VAR d-tot-di-val-ii-outras         LIKE decla-import-adic-itens.val-ii-outras         NO-UNDO.
+
+DEF VAR d-tot-di-val-ipi-db-cr          LIKE decla-import-adic-itens.val-ipi-db-cr        NO-UNDO.
+DEF VAR d-tot-di-val-ipi-nao-tribut     LIKE decla-import-adic-itens.val-ipi-nao-tribut   NO-UNDO.
+DEF VAR d-tot-di-val-ipi-outras         LIKE decla-import-adic-itens.val-ipi-outras       NO-UNDO.
+
+DEF VAR d-tot-di-val-pis-db-cr         LIKE decla-import-adic-itens.val-pis-db-cr         NO-UNDO.
+DEF VAR d-tot-di-val-pis-nao-tribut    LIKE decla-import-adic-itens.val-pis-nao-tribut    NO-UNDO.
+DEF VAR d-tot-di-val-pis-outras        LIKE decla-import-adic-itens.val-pis-outras        NO-UNDO.
+
+DEF VAR d-tot-di-val-cofins-db-cr      LIKE decla-import-adic-itens.val-cofins-db-cr      NO-UNDO.
+DEF VAR d-tot-di-val-cofins-nao-tribut LIKE decla-import-adic-itens.val-cofins-nao-tribut NO-UNDO.
+DEF VAR d-tot-di-val-cofins-outras     LIKE decla-import-adic-itens.val-cofins-outras     NO-UNDO.
+
+DEF VAR d-tot-di-val-icms-db-cr        LIKE decla-import-adic-itens.val-icms-db-cr        NO-UNDO.
+DEF VAR d-tot-di-val-icms-nao-tribut   LIKE decla-import-adic-itens.val-icms-nao-tribut   NO-UNDO.
+DEF VAR d-tot-di-val-icms-outras       LIKE decla-import-adic-itens.val-icms-outras       NO-UNDO.
+
+DEF VAR l-base-ii-manual        AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-valor-ii-manual       AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-base-ipi-manual       AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-valor-ipi-manual      AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-base-pis-manual       AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-valor-pis-manual      AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-base-cofins-manual    AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-valor-cofins-manual   AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-base-icms-manual      AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-valor-icms-manual     AS LOGICAL INITIAL NO NO-UNDO.
+
+/* fim - vari veis do c lculo dos impostos */
+
+DEFINE VARIABLE i-cdn-despes-siscomex AS INTEGER                 NO-UNDO.
+DEFINE VARIABLE i-cdn-emit-siscomex   AS INTEGER                 NO-UNDO.
+DEFINE VARIABLE i-tipo-rateio         AS INTEGER     NO-UNDO.
+DEFINE VARIABLE l-taxa-siscomex       AS LOGICAL NO-UNDO.
+{inbo/boin366.i tt-rat-docum}         /* Defini‡Æo TT-RAT-DOCUM       */
+DEF VAR i-cod-desp-ii                 LIKE desp-imp.cod-desp     NO-UNDO.
+DEF VAR i-cod-emitente-ii             LIKE emitente.cod-emitente NO-UNDO.
+
+DEF VAR c-return                      AS CHARACTER               NO-UNDO.
+DEF VAR l-icm-integra-icm             AS LOGICAL                 NO-UNDO.
+DEF VAR l-imp                         AS LOGICAL                 NO-UNDO. 
+DEF VAR de-aliq-icm-imp               AS DECIMAL                 NO-UNDO.
+DEF VAR de-vl-bicms-it-aux            AS DECIMAL                 NO-UNDO.
+
+&IF "{&bf_mat_versao_ems}" >= "2.062" &THEN
+DEF VAR i-cod-emitente-desp-ant LIKE emitente.cod-emitente NO-UNDO.
+DEF VAR da-dt-vencto-ant        AS   DATE                  NO-UNDO INIT ?.
+&ENDIF
+
+def var iRowsReturned as integer no-undo.
+
+DEF TEMP-TABLE tt-verifica-impostos NO-UNDO
+    FIELD val-base-ii-sist        LIKE decla-import-adic.val-base-ii
+    FIELD val-base-ii-inf         LIKE decla-import-adic.val-base-ii
+    FIELD val-base-ipi-sist       LIKE decla-import-adic.val-base-ipi   
+    FIELD val-base-ipi-inf        LIKE decla-import-adic.val-base-ipi   
+    FIELD val-base-pis-sist       LIKE decla-import-adic.val-base-pis   
+    FIELD val-base-pis-inf        LIKE decla-import-adic.val-base-pis   
+    FIELD val-base-cofins-sist    LIKE decla-import-adic.val-base-cofins
+    FIELD val-base-cofins-inf     LIKE decla-import-adic.val-base-cofins
+    FIELD val-base-icms-sist      LIKE decla-import-adic.val-base-icms  
+    FIELD val-base-icms-inf       LIKE decla-import-adic.val-base-icms  
+
+    FIELD val-valor-ii-sist       LIKE decla-import-adic.val-ii-db-cr
+    FIELD val-valor-ii-inf        LIKE decla-import-adic.val-ii-db-cr
+    FIELD val-valor-ipi-sist      LIKE decla-import-adic.val-ipi-db-cr
+    FIELD val-valor-ipi-inf       LIKE decla-import-adic.val-ipi-db-cr
+    FIELD val-valor-pis-sist      LIKE decla-import-adic.val-pis-db-cr
+    FIELD val-valor-pis-inf       LIKE decla-import-adic.val-pis-db-cr
+    FIELD val-valor-cofins-sist   LIKE decla-import-adic.val-cofins-db-cr
+    FIELD val-valor-cofins-inf    LIKE decla-import-adic.val-cofins-db-cr
+    FIELD val-valor-icms-sist     LIKE decla-import-adic.val-icms-db-cr
+    FIELD val-valor-icms-inf      LIKE decla-import-adic.val-icms-db-cr.
+
+
+
+/*------ VARIµVEIS RATEIO (EMBARQUE, ADI€ÇO E ITENS DA ADI€ÇO) -----------*/
+{cdp/cd4300.i3}  /* include tratamento atributo livre */
+{imp/im0400.i}
+DEFINE VARIABLE de-aliquota-ii AS DECIMAL FORMAT ">>9.9999" NO-UNDO.
+DEFINE VARIABLE h-boin356      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bodi425      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx390      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx389      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx407      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx406      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx250      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-boin090      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-boin092      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx090      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx100      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-boin176      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx225      AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-bocx225e     AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-boin0813     AS HANDLE                    NO-UNDO.
+DEFINE VARIABLE h-boin0814     AS HANDLE                    NO-UNDO.
+&if "{&bf_mat_versao_ems}":U >= "2.062":U &then
+    DEFINE VARIABLE d-qtd-embal AS DEC                      NO-UNDO.
+&endif                         
+DEFINE VARIABLE h-acomp AS HANDLE         NO-UNDO.
+DEF VAR de-peso-total   AS DEC            NO-UNDO.
+DEF VAR de-volume-total AS DEC            NO-UNDO.
+DEF VAR l-cod-desp-ii   AS LOG INITIAL NO NO-UNDO.
+
+def var de-val-desp               like despes-decla-import.val-despes no-undo.
+def var i-trib-ii-nat             as   integer                        no-undo.
+
+DEF VAR l-existe-incoterm         AS LOG                      NO-UNDO.
+DEF VAR l-existe-incoterm-item    AS LOG                      NO-UNDO.
+def var de-valor-despesa          like despes-decla-import.val-despes   no-undo.
+def var de-valor-despesa-pis      like despes-decla-import.val-despes   no-undo.
+def var de-valor-despesa-cofins   like despes-decla-import.val-despes   no-undo.
+def var de-valor-merc-adic        like decla-import.val-vmcv            no-undo.
+def var de-valor-merc-item        like decla-import.val-vmcv            no-undo.
+def var de-valor-merc-di          like decla-import.val-vmcv            no-undo.
+def var i-mo-codigo               like cotacao-item.mo-codigo           no-undo.    
+DEFINE VARIABLE l-frete-incid-incoterm AS LOGICAL  INITIAL NO     NO-UNDO.
+DEF BUFFER bf-despes-decla-import FOR despes-decla-import.
+
+{cxbo/bocx390.i tt-despes-adic}
+{cxbo/bocx390.i tt-despes-adic-aux}
+{cxbo/bocx389.i tt-despes-adic-itens}
+{cxbo/bocx389.i tt-despes-adic-itens-aux}
+{cxbo/bocx310.i tt-desp-embarque}
+{cxbo/bocx310.i tt-desp-embarque-aux}
+{cxbo/bocx225.i tt-ordens-embarque}
+{cxbo/bocx395.i tt-decla-import-cotac}
+{imp/im7777.i1} /* Definicao das temp-tables de entrada */
+{include/boerrtab.i} /* tt-bo-erro */
+{cxbo/bocx383a.i} /* tt-docum-est */
+
+{inbo/boin092.i tt-dupli-apagar}
+{inbo/boin092.i tt-dupli-apagar-aux}
+{inbo/boin567.i tt-dupli-imp}
+
+{cdp/cd4305.i1}
+
+{inbo/boin0813.i tt-docto-estoq-nfe-imp}
+{inbo/boin0814.i tt-item-docto-estoq-nfe-imp}
+def temp-table tt-it-docto-aux   no-undo like tt-it-docto.
+def temp-table tt-it-imposto-aux no-undo like tt-it-imposto.
+def temp-table tt-dupli   no-undo
+    field dt-vencim    as date
+    field tp-despesa   as integer
+    field vl-apagar    as decimal
+    field vl-apagar-mo as decimal
+    /*frank - 09/05/05*/
+    &if '{&bf_dis_versao_ems}' >= '2.04' &then
+    FIELD mo-codigo    AS INT
+    &endif
+    /*fim frank 09/05/05*/
+    index data
+        /*frank - 09/05/05*/
+        &if '{&bf_dis_versao_ems}' >= '2.04' &then
+           mo-codigo
+        &endif
+        /*fim frank 09/05/05*/
+        dt-vencim.
+
+{cxbo/bocx250.i50} /* Atributo livre parametros de importacao */
+
+def temp-table tt-dupli-apagar-cex no-undo
+    field cod-emitente      like dupli-apagar-cex.cod-emitente
+    field nat-operacao      like dupli-apagar-cex.nat-operacao
+    field serie-docto       like dupli-apagar-cex.serie-docto
+    field nro-docto         like dupli-apagar-cex.nro-docto
+    field cod-emitente-desp like dupli-apagar-cex.cod-emitente-desp
+    field cod-desp          like docum-est-cex.cod-desp /* nao existe cod-desp no dupli-apagar-cex no EMS 2.03 */
+    field mo-codigo         like dupli-apagar-cex.mo-codigo
+    field dt-vencim         like dupli-apagar-cex.dt-vencim
+    field tp-despesa        like dupli-apagar-cex.tp-despesa
+    field vl-a-pagar        like dupli-apagar-cex.vl-a-pagar
+    field vl-a-pagar-mo     like dupli-apagar-cex.vl-a-pagar-mo
+    FIELD cod-esp           LIKE dupli-apagar-cex.cod-esp
+    index codigo
+        serie-docto
+        nro-docto
+        cod-emitente
+        nat-operacao
+        cod-desp
+        cod-emitente-desp
+    index data
+        cod-emitente-desp
+        dt-vencim.
+
+def temp-table tt-desp-totais no-undo
+    field cod-desp          like desp-imp.cod-desp
+    field quantidade        like prazo-compra.quantidade
+    field preco-total       like cotacao-item.preco-unit
+    field peso-total        like item.peso-bruto
+    &if '{&bf_mat_versao_ems}' >= '2.05' &then
+        field cubagem-total as dec format ">>>>>,>>>,>>9.999999"
+    &endif
+    field val-desp          like cotacao-item-cex.val-desp
+    field val-desp-mo       like cotacao-item-cex.val-desp
+    field val-desp-cot      like cotacao-item-cex.val-desp
+    field val-desp-cot-mo   like cotacao-item-cex.val-desp
+    field cod-emitente-desp like emitente.cod-emitente
+    field cod-cond-pag      like cond-pagto.cod-cond-pag
+    field mo-codigo         like moeda.mo-codigo
+    field cotacao           like docum-est-cex.cotacao
+    field cod-pto-contr     like pto-contr.cod-pto-contr
+    field qtd-do-forn       like prazo-compra.qtd-do-forn
+    &if '{&bf_mat_versao_ems}':U >= '2.062':U &then
+    field tp-despesa        like desp-imp.tp-despesa
+    &endif
+    field num-adic            as int
+    index codigo is unique primary
+        cod-desp
+        num-adic.
+
+DEF TEMP-TABLE tt-docum-est-nova no-undo
+    field registro              as   int
+    field serie-docto           like docum-est.serie-docto 
+    field nro-docto             like docum-est.nro-docto 
+    field cod-emitente          like docum-est.cod-emitente 
+    field nat-operacao          like docum-est.nat-operacao 
+    field cod-observa           like docum-est.cod-observa 
+    field cod-estabel           like docum-est.cod-estabel 
+    field estab-fisc            like docum-est.estab-fisc
+    field conta-transit         like docum-est.conta-transit 
+    field dt-emissao            like docum-est.dt-emissao 
+    field dt-trans              like docum-est.dt-trans 
+    &IF '{&BF_MAT_VERSAO_EMS}' >= '2.062' &THEN
+    FIELD cod-rma               LIKE docum-est.cod-rma
+    &ENDIF
+    field usuario               like docum-est.usuario 
+    field uf                    like docum-est.uf 
+    field via-transp            like docum-est.via-transp
+    field mod-frete             like docum-est.mod-frete 
+    field nff                   like docum-est.nff 
+    FIELD mo-codigo             LIKE docum-est.mo-codigo
+    field tot-peso              like docum-est.tot-peso 
+    field tot-desconto          like docum-est.tot-desconto 
+    field valor-frete           like docum-est.valor-frete 
+    field valor-seguro          like docum-est.valor-seguro 
+    field valor-embal           like docum-est.valor-embal 
+    field valor-outras          like docum-est.valor-outras 
+    field valor-mercad          like docum-est.valor-mercad 
+    field dt-venc-ipi           like docum-est.dt-venc-ipi 
+    field dt-venc-icm           like docum-est.dt-venc-icm 
+    field tot-valor             like docum-est.tot-valor
+    field efetua-calculo        as   int  format "9"
+    field observacao            like docum-est.observacao
+    field cotacao-dia           like docum-est.cotacao-dia     /* Campo Integracao Modulo Importacao */
+    FIELD despesa-nota-me       LIKE docum-est.despesa-nota-me
+    FIELD valor-frete-me        LIKE docum-est.valor-frete-me 
+    FIELD valor-seguro-me       LIKE docum-est.valor-seguro-me
+    FIELD valor-embal-me        LIKE docum-est.valor-embal-me 
+    FIELD valor-outras-me       LIKE docum-est.valor-outras-me
+    field valor-mercad-me       like docum-est.valor-mercad-me
+    field tipo-docto            like docum-est.tipo-docto
+    field embarque              as character format "x(12)"    /* Campo Integracao Modulo Importacao */
+    field sequencia             as   int  format "999999"
+    field esp-docto             like docum-est.esp-docto   
+    field rec-fisico            like docum-est.rec-fisico   /* atribui»’o direta = no       */
+    field origem                like docum-est.origem       /* atribui»’o direta = "I"      */
+    field pais-origem           like docum-est.pais-origem  /* atribui»’o direta = "RE1001" */
+    field ct-transit            like conta-contab.ct-codigo /* pegar conta-contab.ct-codigo */    
+    field sc-transit            like conta-contab.sc-codigo /* pegar conta-contab.sc-codigo */  
+    field gera-unid-neg         as   int format "9"  /* 0-N’o; 1-Gera */
+    FIELD nome-transp           AS CHAR FORMAT "x(12)"
+    FIELD cod-placa-1           AS CHAR FORMAT "x(07)"
+    FIELD cod-placa-2           AS CHAR FORMAT "x(07)"
+    FIELD cod-placa-3           AS CHAR FORMAT "x(07)"
+    FIELD cod-uf-placa-1        AS CHAR FORMAT "x(02)"
+    FIELD cod-uf-placa-2        AS CHAR FORMAT "x(02)"
+    FIELD cod-uf-placa-3        AS CHAR FORMAT "x(02)"
+    field char-1                like docum-est.char-1
+    &if "{&bf_mat_versao_ems}" >= "2.07" &then
+     FIELD cod-chave-aces-nf-eletro LIKE docum-est.cod-chave-aces-nf-eletro
+     FIELD cdn-sit-nfe              LIKE docum-est.cdn-sit-nfe
+    &endif
+    FIELD cod-tipo-ente-gov     LIKE docum-est.cod-tipo-ente-gov
+    FIELD cod-tipo-oper-gov     LIKE docum-est.cod-tipo-oper-gov
+    index documento is primary
+          serie-docto
+          nro-docto
+          cod-emitente
+          nat-operacao
+
+    index seq is unique
+          sequencia.
+
+def new shared temp-table tt-item-doc-est-nova no-undo
+    field registro              as   int
+    field it-codigo             like item-doc-est.it-codigo 
+    field cod-refer             like item-doc-est.cod-refer 
+    field numero-ordem          like item-doc-est.numero-ordem 
+    field parcela               like item-doc-est.parcela
+    field encerra-pa            like item-doc-est.encerra-pa 
+    field nr-ord-prod           like item-doc-est.nr-ord-prod 
+    field cod-roteiro           like item-doc-est.cod-roteiro 
+    field op-codigo             like item-doc-est.op-codigo 
+    field item-pai              like item-doc-est.item-pai 
+    /*field conta-contabil        like item-doc-est.conta-contabil */
+    field ct-codigo             like item-doc-est.ct-codigo
+    field sc-codigo             like item-doc-est.sc-codigo
+    field baixa-ce              like item-doc-est.baixa-ce 
+    field etiquetas             like item-doc-est.etiquetas 
+    field qt-do-forn            like item-doc-est.qt-do-forn 
+    field quantidade            like item-doc-est.quantidade
+    field preco-total           like item-doc-est.preco-total extent 0
+    field desconto              like item-doc-est.desconto extent 0
+    FIELD preco-total-me        LIKE item-doc-est.preco-total-me   
+    FIELD desconto-me           LIKE item-doc-est.desconto-me 
+    field vl-frete-cons         like item-doc-est.pr-total-cmi
+    field despesas              like item-doc-est.despesas extent 0
+    field peso-liquido          like item-doc-est.peso-liquido 
+    field cod-depos             like rat-lote.cod-depos             /* rat lote */
+    field cod-localiz           like rat-lote.cod-localiz
+    field lote                  like rat-lote.lote
+    field dt-vali-lote          like rat-lote.dt-vali-lote
+    field class-fiscal          like item-doc-est.class-fiscal 
+    field aliquota-ipi          like item-doc-est.aliquota-ipi 
+    field cd-trib-ipi           like item-doc-est.cd-trib-ipi 
+    field base-ipi              like item-doc-est.base-ipi extent 0
+    field valor-ipi             like item-doc-est.valor-ipi extent 0
+    field aliquota-iss          like item-doc-est.aliquota-iss 
+    field cd-trib-iss           like item-doc-est.cd-trib-iss 
+    field base-iss              like item-doc-est.base-iss extent 0
+    field valor-iss             like item-doc-est.valor-iss extent 0
+    field base-pis              like item-doc-est.base-pis
+    field valor-pis             like item-doc-est.valor-pis
+    field cd-trib-pis           like item-doc-est.idi-tributac-pis
+    field aliquota-pis          like item-doc-est.val-aliq-pis
+    field base-cofins           like item-doc-est.val-base-calc-cofins
+    field valor-cofins          like item-doc-est.val-cofins
+    field cd-trib-cofins        like item-doc-est.idi-tributac-cofins
+    field aliquota-cofins       like item-doc-est.val-aliq-cofins
+    field aliquota-icm          like item-doc-est.aliquota-icm 
+    field cd-trib-icm           like item-doc-est.cd-trib-icm 
+    field base-icm              like item-doc-est.base-icm extent 0
+    field valor-icm             like item-doc-est.valor-icm extent 0
+    field base-subs             like item-doc-est.base-subs extent 0
+    field valor-subs            like item-doc-est.vl-subs extent 0
+    field icm-complem           like item-doc-est.icm-complem extent 0
+    field ind-icm-ret           like item-doc-est.baixa-ce
+    field narrativa             like item-doc-est.narrativa
+    field serie-comp            like item-doc-est.serie-comp
+    field nro-comp              like item-doc-est.nro-comp
+    field nat-comp              like item-doc-est.nat-comp
+    field seq-comp              like item-doc-est.seq-comp
+    field data-comp             like item-doc-est.data-comp
+    FIELD int-1                 LIKE item-doc-est.int-1
+    field icm-outras            like item-doc-est.icm-outras extent 0
+    field ipi-outras            like item-doc-est.ipi-outras extent 0
+    field iss-outras            like item-doc-est.iss-outras extent 0
+    field icm-ntrib             like item-doc-est.icm-ntrib extent 0
+    field ipi-ntrib             like item-doc-est.ipi-ntrib extent 0
+    field iss-ntrib             like item-doc-est.iss-ntrib extent 0
+    field vl-taxa               like item-doc-est.vl-taxa
+    field vl-taxa-me            like item-doc-est.vl-taxa-me   
+    field num-pedido            like item-doc-est.num-pedido
+    field val-perc-red-ipi      as   dec  format ">>9.9999"
+    field val-perc-red-icm      as   dec  format ">>9.9999"
+    field nr-proc-imp           as character format "x(12)"         /* Campo Integracao Modulo Importacao */
+    field serie-docto           like item-doc-est.serie-docto       /* resgatado pelo item-doc-est */
+    field nro-docto             like item-doc-est.nro-docto         /* resgatado pelo item-doc-est */
+    field cod-emitente          like item-doc-est.cod-emitente      /* resgatado pelo item-doc-est */
+    field nat-operacao          like item-doc-est.nat-operacao      /* resgatado pelo item-doc-est */
+    field sequencia             like item-doc-est.sequencia         /* atribuido pelo i-seq */
+    field nr-ato-concessorio    as character format "x(20)"         /*este campo esta sendo utilizado para a funcionalidade DRAWBACK*/
+    &IF DEFINED (bf_man_per_ppm) &THEN
+    field per-ppm               LIKE rat-lote.per-ppm            /*utilizado para alimentar o campo per-ppm da tabela rat-lote */
+    &ENDIF
+    &IF '{&BF_MAT_VERSAO_EMS}' >= '2.062' &THEN
+        field cod-unid-negoc        like item-doc-est.cod-unid-negoc
+        &if '{&bf_lote_avancado_liberado}' = 'yes' &then /*Campos Projeto FDA*/
+            field cod-lote-fabrican             like item-doc-est.cod-lote-fabrican
+            field dat-fabricc-lote              like item-doc-est.dat-fabricc-lote
+            field dat-valid-lote-fabrican       like item-doc-est.dat-valid-lote-fabrican
+            field nom-fabrican                  like item-doc-est.nom-fabrican
+        &ENDIF
+    &ENDIF
+    field preco-unit-me         like item-doc-est.preco-unit-me
+    index documento is primary unique
+          serie-docto
+          nro-docto
+          cod-emitente
+          nat-operacao
+          sequencia.  
+
+def var i-msg          as int     no-undo.
+def var i-seq-erro       as   integer no-undo.
+def var c-msg          as char    no-undo.
+def new global shared var gl-de-desconto as dec no-undo.
+def temp-table tt-retorno no-undo like tt-bo-erro.
+
+DEF BUFFER b-emit-estab FOR emitente.
+DEF BUFFER b-tt-itens   FOR tt-itens.
+DEF BUFFER b-item       FOR item.
+DEF BUFFER b-tt-dupli-apagar FOR tt-dupli-apagar.
+  
+def var l-first-numero-ordem   as   logical                     no-undo.
+def var c-trib-icm             like item-doc-est.cd-trib-icm    no-undo.
+def var de-aliq-icm            like item-doc-est.aliquota-icm   no-undo.
+def var c-estado               like estabelec.estado            no-undo.
+def var c-trib-ipi             like item-doc-est.cd-trib-ipi    no-undo.
+def var de-aliq-ipi            like item-doc-est.aliquota-ipi   no-undo.
+def var de-tot-despesa-aux     like desp-embarque.val-desp      no-undo.
+def var de-tot-frete-aux       like desp-embarque.val-desp      no-undo.
+def var de-val-desp-inc        like desp-embarque.val-desp      no-undo.
+def var de-val-desp-fre        like desp-embarque.val-desp      no-undo.
+def var de-val-desp-rateio     like desp-embarque.val-desp      no-undo.
+def var de-val-desp-rateio-dif like desp-embarque.val-desp      no-undo.
+def var de-val-maior           like prazo-compra.quantidade     no-undo.
+def var i-numero-ordem         like prazo-compra.numero-ordem   no-undo.
+def var i-parcela              like prazo-compra.parcela        no-undo.
+def var i-seq                  as   int                         no-undo.
+def var i-cod-desp             like desp-embarque.cod-desp      no-undo.
+def var i-maior-sequencia      as   integer                     no-undo.
+def var de-val-despesas        like desp-embarque.val-desp      no-undo.
+def var de-tot-vl-docto        like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-tot-vl-docto-mo     like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-tot-vl-docto-aux    like dupli-apagar-cex.vl-a-pagar no-undo.
+def var de-tot-vl-docto-mo-aux like dupli-apagar-cex.vl-a-pagar no-undo.
+def var r-cotacao-item         as   rowid                       no-undo.
+def var de-total-dup           like dupli-apagar.vl-a-pagar     no-undo.
+def var de-total-dup-mo        like dupli-apagar.vl-a-pagar     no-undo.
+def var de-dup-tot             like dupli-apagar.vl-a-pagar     no-undo.
+def var de-dup-tot-mo          like dupli-apagar.vl-a-pagar     no-undo.    
+def var de-dup-tot-aux         like dupli-apagar.vl-a-pagar     no-undo.
+def var de-dup-tot-mo-aux      like dupli-apagar.vl-a-pagar     no-undo.    
+def var de-vl-docto            like dupli-apagar.vl-a-pagar     no-undo.
+def var de-vl-docto-mo         like dupli-apagar.vl-a-pagar     no-undo.    
+def var da-data                as   date                        no-undo extent 12.
+def var da-partida             as   date                        no-undo.    
+DEF VAR l-acomp                AS   LOGICAL                     NO-UNDO.
+DEF VAR l-fornec-fundap        AS   LOGICAL                     NO-UNDO.
+DEF VAR c-acomp                AS   CHARACTER                   NO-UNDO.
+DEF VAR h-reapi190b            AS   HANDLE                      NO-UNDO.
+DEF VAR c-docto-aux            AS   CHARACTER                   NO-UNDO.
+def var de-base-ipi            like docum-est.base-ipi          no-undo.
+def var de-base-icm            like docum-est.base-icm          no-undo.
+def var de-frete               like item-doc-est.pr-total-cmi   no-undo extent 0.
+def var de-seguro              like docum-est.valor-seguro      no-undo extent 0.
+def var de-embal               like docum-est.valor-embal       no-undo extent 0. 
+def var de-outras              like docum-est.valor-outras      no-undo extent 0.
+DEF VAR de-desp-II             LIKE docum-est.despesa-nota      no-undo.
+def var de-tot-seguro          like docum-est.valor-seguro      no-undo extent 0.
+def var de-tot-embal           like docum-est.valor-embal       no-undo extent 0.
+def var de-tot-outras          like docum-est.valor-outras      no-undo extent 0.
+DEF VAR de-tot-desp-adu        LIKE docum-est.despesa-nota      NO-UNDO.
+DEF VAR de-base-II             LIKE docum-est.despesa-nota      NO-UNDO.
+DEF VAR l-loc-unica            LIKE ITEM.loc-unica              NO-UNDO.
+DEF VAR c-cod-localiz          LIKE ITEM.cod-localiz            NO-UNDO.
+def var c-char                 as char                          no-undo.
+def var i-seq-aux              as int                           no-undo init 0.
+def var i-ind                  as int                           no-undo init 0.
+def var i-avanco               as int                           no-undo.
+def var i-seq-item-doc-est     as integer                       no-undo.
+def var i-moeda-material       as integer                       no-undo.
+def var de-tot-resto           like desp-embarque.val-desp      no-undo.
+def var de-tot-resto-frete     like desp-embarque.val-desp      no-undo.
+def var de-tot-II              like desp-embarque.val-desp      no-undo.
+def var de-tot-seguro-aux      like desp-embarque.val-desp      no-undo.
+def var de-tot-embal-aux       like desp-embarque.val-desp      no-undo.
+def var de-tot-outras-aux      like desp-embarque.val-desp      no-undo.
+def var de-tot-II-aux          as decimal                       no-undo.
+def var l-conecta-emsbas       as logical                       no-undo.
+def var l-conecta-emsuni       as logical                       no-undo.
+
+{btb/btb009za.i} /* Defini»’o tt_erros_conexao */
+
+DEF VAR de-val-dep LIKE despes-adic-itens.val-despes NO-UNDO.
+
+{cxbo/bocx090.i tt-docum-est-cex}      
+{cxbo/bocx100.i tt-item-doc-est-cex}
+
+DEF TEMP-TABLE tt-despesAdic-itens NO-UNDO LIKE despes-adic-itens.
+DEF VAR h-bocx395 AS HANDLE NO-UNDO.
+
+DEF BUFFER bf-tt-despesAdic-itens FOR tt-despesAdic-itens.
+DEF VAR i-conta-seq AS INTEGER NO-UNDO.
+
+{inbo/boin090.i tt-docum-est}    /* Defini‡Æo TT-DOCUM-EST    */
+{inbo/boin176.i tt-item-doc-est} /* Defini‡Æo TT-ITEM-DOC-EST */
+
+DEFINE VARIABLE i-seq-nacionaliz AS INTEGER     NO-UNDO.
+
+/*------ VARIµVEIS PARA O CµLCULO DO IPI -----------*/
+DEFINE VARIABLE h-bodi317im2bra AS HANDLE NO-UNDO.
+{dibo/bodi317im2bra.i1} /* Defini‡Æo de Temp-Table para c lculo dos impostos */
+/*------ FIM VARIµVEIS PARA O CµLCULO DO IPI -------*/
+{imp/im0410a.i}
+DEFINE NEW GLOBAL SHARED VARIABLE gc-peso-bruto-tot AS CHAR               NO-UNDO.
+
+DEF VAR d-val-tot-liq-DI  LIKE decla-import-adic-itens.val-peso-liq       NO-UNDO.
+DEF VAR d-val-tot-brut-DI LIKE decla-import-adic-itens.val-peso-brut-merc NO-UNDO.
+DEF VAR d-val-brut-DI     LIKE decla-import-adic-itens.val-peso-brut-merc NO-UNDO.
+DEF VAR d-val-liq-DI      LIKE decla-import-adic-itens.val-peso-liq       NO-UNDO.
+DEF VAR d-val-mercad      LIKE decla-import-adic.val-pis-db-cr /*docum-est.valor-mercad*/                     NO-UNDO.
+DEF VAR d-val-mercad-aux  LIKE decla-import-adic.val-pis-db-cr            NO-UNDO.
+
+DEF VAR d-resto-outras-e-ii          AS DECIMAL                                  NO-UNDO.
+DEF VAR d-val-pis-item               LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-val-cofins-item            LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-val-pis-adic               LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-val-cofins-adic            LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-diferenca-pis              LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-diferenca-cofins           LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-val-pis-sist               like decla-import-adic.val-pis-db-cr        NO-UNDO.
+DEF VAR d-val-cofins-sist            like decla-import-adic.val-cofins-db-cr     NO-UNDO.
+DEF VAR d-valor-ipi-adicao           like decla-import-adic.val-ipi-db-cr        NO-UNDO.
+DEF VAR d-valor-ipi-itens            like decla-import-adic.val-ipi-db-cr        NO-UNDO.
+DEF VAR d-valor-icms-itens           like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-valor-icms-itens-ct-trib   like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-icms-itens-ct-trib    LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-base-icms-itens            like decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-valor-icms-adicao          like decla-import-adic.val-ipi-db-cr        NO-UNDO.
+
+DEF VAR d-valor-cbs-itens-ct-trib       like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-cbs-itens-ct-trib        LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-outros-cbs-itens-ct-trib      LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-valor-ibs-itens-ct-trib       like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-ibs-itens-ct-trib        LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-outros-ibs-itens-ct-trib      LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-valor-cbsreg-itens-ct-trib    like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-cbsreg-itens-ct-trib     LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-valor-ibsreg-itens-ct-trib    like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-ibsreg-itens-ct-trib     LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-valor-ibsmun-itens-ct-trib    like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-ibsmun-itens-ct-trib     LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-outros-ibsmun-itens-ct-trib   LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-valor-ibsmunreg-itens-ct-trib like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-ibsmunreg-itens-ct-trib  LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-valor-is-itens-ct-trib        like decla-import-adic.val-icms-db-cr       NO-UNDO.
+DEF VAR d-base-is-itens-ct-trib         LIKE decla-import-adic.val-base-icms        NO-UNDO.
+DEF VAR d-outros-is-itens-ct-trib       LIKE decla-import-adic.val-base-icms        NO-UNDO.
+
+DEF VAR d-diferenca-ipi                 LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-diferenca-icms                LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-valor-ii-adicao               LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-valor-ii-itens                LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-diferenca-ii                  LIKE desp-imp.val-desp                      NO-UNDO.
+DEF VAR d-val-unit                      LIKE cotacao-item.preco-unit                NO-UNDO.
+DEF VAR d-val-unit-aux                  LIKE cotacao-item.preco-unit                NO-UNDO.
+DEF VAR c-nro-docto                     LIKE docum-est.nro-docto                    NO-UNDO.

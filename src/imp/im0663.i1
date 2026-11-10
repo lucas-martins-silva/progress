@@ -1,0 +1,51 @@
+/*******************************************************************
+***  
+***   IM0663.I1 - Defini‡Æo das Forms
+***
+*******************************************************************/
+
+form c-lb-embarque          at 62
+     c-lb-desembarque       skip
+     "--------"             at 62
+     "----------"             skip
+     c-lb-embarque1         at 01
+     c-lb-est               at 13
+     c-lb-item              at 19
+     c-lb-quantidade        at 36
+     c-lb-un                at 51
+     c-lb-fornecedor        at 55
+     c-lb-dt-prev-emb       at 67
+     c-lb-dt-prev-des       at 76
+     c-lb-veiculo           at 85
+     c-lb-local             at 105
+     c-lb-descricao         at 19
+     c-lb-dt-efet-emb       at 67
+     c-lb-dt-efet-des       at 76
+     "-----------"         at 01
+     "-----"                  at 13
+     "----------------"     at 19
+     "--------------"        at 36
+     "--- -----------"       at 51
+     "--------"             at 67
+     "--------"             at 76
+     "-------------------"  at 85
+     "--------------------------" at 105 
+     with down width 132 no-label no-box stream-io frame f-lab-cabecalho.
+
+form 
+     tt-embarque.embarque      at 01
+     tt-embarque.cod-estabel   at 13
+     tt-embarque.it-codigo     at 19
+     de-quant-total            at 36
+     tt-embarque.unidade       at 51
+     tt-embarque.nome-fornec   at 55 format "x(11)"
+     tt-embarque.dt-prev-emb   at 67
+     tt-embarque.dt-prev-des   at 76
+     tt-embarque.veiculo-tra   at 85
+     tt-embarque.local         at 105 format "x(28)"  skip
+     tt-embarque.desc-item     at 19
+     tt-embarque.dt-efet-emb   at 67
+     tt-embarque.dt-efet-des   at 76
+     with down width 132 no-box no-label stream-io frame f-detalhe.     
+
+

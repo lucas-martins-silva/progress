@@ -1,0 +1,398 @@
+/*****************************************************************
+Procedure gerarNotaEntrada na BOIN874 - Nota Fiscal de Servico 
+*****************************************************************/
+
+DEF INPUT  PARAM pr-nota AS ROWID NO-UNDO.
+DEF OUTPUT PARAM l-ok    AS LOG   NO-UNDO.
+
+DEFINE VARIABLE c-cod-un  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE h-boin356 AS HANDLE    NO-UNDO.
+DEFINE VARIABLE h-boin862 AS HANDLE    NO-UNDO.
+
+DEFINE VARIABLE l-altera-dt-trans AS LOGICAL INITIAL NO NO-UNDO.
+
+EMPTY TEMP-TABLE tt-docum-est.
+EMPTY TEMP-TABLE tt-item-doc-est.
+EMPTY TEMP-TABLE tt-dupli-apagar. 
+EMPTY TEMP-TABLE tt-erro.
+EMPTY TEMP-TABLE tt-rat-docum.
+
+ASSIGN l-ok = YES.
+IF NOT VALID-HANDLE(h-boin862) 
+OR h-boin862:TYPE      <> "PROCEDURE":U 
+OR h-boin862:FILE-NAME <> "inbo/boin862.p":U THEN
+    RUN inbo/boin862.p PERSISTENT SET h-boin862. /*BO param-convrsr-nfe*/
+
+RUN openQueryStatic IN h-boin862 (INPUT "Main":U) NO-ERROR.
+RUN getFirst IN h-boin862.
+IF  RETURN-VALUE = "NOK":U THEN
+    RETURN "NOK":U.
+ELSE DO:
+    RUN getLogField IN h-boin862 (INPUT "log-altera-dat-trans":U,         OUTPUT l-altera-dt-trans).
+END.   
+
+blocoNota:
+FOR FIRST bf{&TableName} EXCLUSIVE-LOCK
+    WHERE ROWID(bf{&TableName}) = pr-nota:
+    
+    ASSIGN i-cod-emitente = bf{&TableName}.cod-emitente           
+           c-serie-docto  = bf{&TableName}.serie-docto
+           c-nro-docto    = bf{&TableName}.nro-docto
+           d-dt-emissao   = bf{&TableName}.dt-emissao
+           c-cod-estabel  = TRIM(SUBSTRING(bf{&TableName}.cod-livre-2,1,5))
+           ch-acesso      = bf{&TableName}.cod-chave-aces-nfse.
+
+    /*Documento Original*/
+    FIND FIRST docto-orig-nfse NO-LOCK
+        WHERE docto-orig-nfse.cod-chave-aces-nfse = ch-acesso 
+          AND docto-orig-nfse.idi-orig-trad = 1 /*Original*/ NO-ERROR.
+
+
+    FOR EACH bfmsg-ret-nfe NO-LOCK
+       WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = ch-acesso
+         AND bfmsg-ret-nfe.idi-orig-trad      = 2 /*traduzido*/:
+
+        FOR FIRST msg-ret-nfe EXCLUSIVE-LOCK
+            WHERE msg-ret-nfe.seq-msg = bfmsg-ret-nfe.seq-msg:
+            ASSIGN msg-ret-nfe.log-ativo = NO.
+        END.
+        RELEASE msg-ret-nfe.
+    END.
+
+    IF  l-altera-dt-trans THEN DO: /*verifica parÉmetro RE0119*/
+        ASSIGN bf{&TableName}.dt-transacao  = TODAY.            
+    END.
+    
+    /*VALIDACOES DO DOCUMENTO*/
+    /*FORNECEDOR*/
+    FIND FIRST emitente NO-LOCK
+        WHERE emitente.cod-emitente = i-cod-emitente NO-ERROR.
+    IF NOT AVAIL(emitente) OR emitente.identific = 1 /*Cliente*/ THEN DO:
+        ASSIGN c-msg = "Fornecedor inv†lido.".
+        {inbo/boin874.m2 17567 c-msg NO}           
+    END.
+
+    
+    /*CNPJ do fornecedor deve ser igual ao CNPJ do prestador do serviáo que consta no arquivo XML.*/
+    IF emitente.cgc <> docto-orig-nfse.cod-cnpj-prestdor THEN DO:
+        ASSIGN c-msg = "CNPJ do fornecedor informado deve ser igual ao CNPJ do prestador do serviáo que consta no arquivo XML.".
+        {inbo/boin874.m2 17567 c-msg NO}                       
+    END.
+
+    /*ESTABELECIMENTO*/    
+    FIND FIRST estabelec NO-LOCK 
+        WHERE estabelec.cod-estabel = c-cod-estabel NO-ERROR.
+    
+    IF NOT AVAIL(estabelec) THEN DO:
+       ASSIGN c-msg = "Estabelecimento inv†lido.".
+       {inbo/boin874.m2 17567 c-msg NO}
+    END.
+    
+
+    IF estabelec.cgc <> docto-orig-nfse.cod-cnpj-tomador AND  
+       estabelec.cgc <> docto-orig-nfse.cod-cpf-tomador  THEN DO:
+         ASSIGN c-msg = "CNPJ do estabelecimento informado deve ser igual ao CNPJ ou CPF do prestador do serviáo que consta no arquivo XML.".
+        {inbo/boin874.m2 17567 c-msg NO}
+    END.
+
+    /*SêRIE*/        
+    IF  NOT CAN-FIND (FIRST serie WHERE serie.serie = c-serie-docto) THEN DO:
+        ASSIGN c-msg = "SÇrie n∆o cadastrada.".
+        {inbo/boin874.m2 17567 c-msg NO}
+    END.
+
+    /*NATUREZA DE OPERAÄ«O*/
+    FIND FIRST natur-oper NO-LOCK
+        WHERE  natur-oper.nat-operacao = bf{&TableName}.nat-operacao NO-ERROR.
+
+    IF NOT AVAIL(natur-oper) THEN DO:
+        ASSIGN c-msg = "Natureza de Operaá∆o inv†lido.".
+        {inbo/boin874.m2 17567 c-msg NO}
+    END.
+
+    IF natur-oper.tipo = 2 /*Sa°da*/ OR natur-oper.tipo = 3 /*Serviáo*/ THEN DO:
+        ASSIGN c-msg = "Tipo da natureza deve ser Entrada.".
+        {inbo/boin874.m2 15026 c-msg NO}
+    END.
+
+    IF natur-oper.terceiros = TRUE /*operaá∆o com terceiros*/ THEN DO:
+        ASSIGN c-msg = "Natureza de Operaáao n∆o pode ser de operaá∆o com Terceiros.".
+        {inbo/boin874.m2 52403 c-msg NO}
+    END.
+
+    /*Entrega Futura*/
+    {cdp/cd9700.i1 natur-oper}       
+    IF  l-fatura-fat-antecip  OR
+        l-remessa-fat-antecip OR
+        l-fatura-ent-futura   OR
+        l-remessa-ent-futura  THEN DO:
+        ASSIGN c-msg = "Natureza de Operaá∆o n∆o pode ser de Faturamento Antecipado, Remessa de Faturamento Antecipado, Faturamento com Entrega Futura ou Remessa de Entrega Futura.".
+        {inbo/boin874.m2 41667 c-msg NO}
+    END.
+
+    IF natur-oper.tipo-compra <> 1  THEN DO:     
+        /* 1 - Normal, 2 - Frete, 3 - Devoluá∆o Cliente, 4 - Material Agregado, 5 - Serviáos Comunicaá‰es e 6 - Energia ElÇtrica*/
+        ASSIGN c-msg = "Tipo de Compra da Natureza de Operaá∆o deve ser igual a 'Normal'.".
+        {inbo/boin874.m2 41667 c-msg NO}
+    END.
+    
+    /* ITEM DEVE ser DÇbito Direto */
+    IF NOT CAN-FIND(FIRST ITEM 
+                    WHERE ITEM.it-codigo = bf{&TableName}.cod-item-serv
+                      AND ITEM.tipo-contr = 4 /*Debito Direto*/) THEN DO:    
+        ASSIGN c-msg =  "Item de serviáo deve ter controle cont†bil igual a DÇbito Direto.".
+        {inbo/boin874.m2 15026 c-msg NO}
+    END.
+    
+
+    /*VALOR DO SERVIÄO*/
+    IF bf{&TableName}.val-servico = 0 THEN DO:
+        ASSIGN c-msg = "Valor do serviáo n∆o pode ser igual a zero.".
+        {inbo/boin874.m2 15026 c-msg NO}
+    END.
+
+    /*NARRATIVA DO SERVIÄO*/
+    IF bf{&TableName}.des-narrat = ""  THEN DO:
+        ASSIGN c-msg = "Narrativa do serviáo deve ser informada.".
+        {inbo/boin874.m2 15026 c-msg NO}
+    END.
+    
+    /* VALIDACAO ORDEM DE COMPRA */    
+    IF  bf{&TableName}.num-pedido <> 0
+    AND bf{&TableName}.numero-ordem = 0 THEN DO:
+        ASSIGN c-msg = "Ordem de Compra deve ser informada.".
+        {inbo/boin874.m2 17567 c-msg NO}
+    END.
+        
+    /*ATUALIZAÄ«O DA PARCELA A SER UTILIZADA*/
+    IF  bf{&TableName}.numero-ordem <> 0 THEN DO:
+
+        /*--- Define a parcela que sera utilizada ---*/ 
+        IF   bf{&TableName}.num-parcela = 0 THEN DO:
+             FOR FIRST prazo-compra
+                 FIELDS (numero-ordem parcela quant-saldo
+                         situacao     dec-1        )
+                 WHERE prazo-compra.numero-ordem = bf{&TableName}.numero-ordem 
+                   AND prazo-compra.situacao     = 2 
+                   AND (prazo-compra.quant-saldo - prazo-compra.dec-1) > 0 NO-LOCK: END.
+                   
+             IF  NOT AVAIL prazo-compra THEN 
+                 FOR FIRST prazo-compra FIELDS (numero-ordem parcela situacao)
+                     WHERE prazo-compra.numero-ordem = bf{&TableName}.numero-ordem 
+                       AND prazo-compra.situacao     = 2 NO-LOCK: END.
+             IF  AVAIL prazo-compra THEN
+                 ASSIGN bf{&TableName}.num-parcela = prazo-compra.parcela. 
+                 
+        END.
+    END.
+    
+    ASSIGN c-cod-un = bf{&TableName}.cod-un.
+    IF c-cod-un = "" OR c-cod-un = ? THEN DO:
+        FIND FIRST ITEM 
+                WHERE ITEM.it-codigo = bf{&TableName}.cod-item-serv NO-LOCK NO-ERROR.
+        IF AVAIL ITEM THEN
+           ASSIGN c-cod-un = item.un.
+    END.                      
+
+    /*--- GERAR TABELAS DA NOTA FISCAL ---*/
+    CREATE tt-docum-est.
+    ASSIGN tt-docum-est.nro-docto    = bf{&TableName}.nro-docto 
+           tt-docum-est.nat-operacao = bf{&TableName}.nat-operacao
+           tt-docum-est.serie-docto  = bf{&TableName}.serie-docto
+           tt-docum-est.cod-emitente = bf{&TableName}.cod-emitente
+           tt-docum-est.cod-estabel  = TRIM(SUBSTR(bf{&TableName}.cod-livre-2,1,5))
+           tt-docum-est.cod-observa  = 4 /* servico */
+           tt-docum-est.dt-emissao   = bf{&TableName}.dt-emissao
+           tt-docum-est.dt-trans     = bf{&TableName}.dt-transacao
+           tt-docum-est.valor-mercad = bf{&TableName}.val-servico - 
+                                       if  bf{&TableName}.val-deduc  = ? then 0 else bf{&TableName}.val-deduc
+           tt-docum-est.observacao   = bf{&TableName}.des-narrat
+           tt-docum-est.origem       = "XML"
+           OVERLAY(tt-docum-est.char-1,176,16) = bf{&TableName}.cod-item-serv.
+
+    //C¢pia da chave de acesso na NFS-e nacional para o fiscal
+    IF LENGTH(bf{&TableName}.cod-chave-aces-nfse) = 50 THEN
+        ASSIGN tt-docum-est.cod-chave-aces-nf-eletro = bf{&TableName}.cod-chave-aces-nfse
+               tt-docum-est.cdn-sit-nfe              = 1.
+    ELSE IF LENGTH(bf{&TableName}.cod-verific-nf-serv-eletro) = 50 THEN
+        ASSIGN tt-docum-est.cod-chave-aces-nf-eletro = bf{&TableName}.cod-verific-nf-serv-eletro
+               tt-docum-est.cdn-sit-nfe              = 1.
+
+    /*--- a narrativa do documento deve conter a descriá∆o do serviáo, bem como os detalhes 
+          de todos os serviáos prestados ---*/
+    IF CAN-FIND(FIRST item-docto-orig-nfse
+                WHERE item-docto-orig-nfse.cod-chave-aces-nfse = ch-acesso 
+                  AND item-docto-orig-nfse.idi-orig-trad = 2) THEN
+        ASSIGN tt-docum-est.observacao = CHR(13) + tt-docum-est.observacao + CHR(13) + CHR(13) +
+                                         "DISCRIMINACAO DOS SERVICOS"  + CHR(13).
+
+    /*--- acrescenta na narrativa, os detalhes dos serviáos prestados ---*/
+    FOR EACH  item-docto-orig-nfse
+        WHERE item-docto-orig-nfse.cod-chave-aces-nfse = ch-acesso 
+          AND item-docto-orig-nfse.idi-orig-trad = 2 /*traduzido*/:
+
+        ASSIGN tt-docum-est.observacao = tt-docum-est.observacao + CHR(13) +
+                                         "SERVICO: " + item-docto-orig-nfse.des-narrat + "  |  " + 
+                                         "VAL. UNIT.: " + STRING(item-docto-orig-nfse.val-unit-item,">>>,>>>,>>9.9999") + "  |  " +
+                                         "QTDE:       " + STRING(item-docto-orig-nfse.val-quant,">>>,>>>,>>9.9999").   
+    END.                               
+
+    /*--- acrescenta o valor da deducao na narrativa do item ---*/
+    IF  bf{&TableName}.val-deduc <> 0 
+    AND bf{&TableName}.val-deduc <> ? THEN
+        ASSIGN tt-docum-est.observacao = tt-docum-est.observacao + CHR(13) + CHR(13) +
+                                         "DEDUCAO: " + STRING(bf{&TableName}.val-deduc,">>>,>>>,>>9.9999").
+    /*--- gera o item da nota fiscal. Ser† gerado apenas um item DÇbito Direto,
+          com todos os dados que constam no monitor ---*/
+    CREATE tt-item-doc-est.
+    ASSIGN tt-item-doc-est.cod-emitente      = tt-docum-est.cod-emitente
+           tt-item-doc-est.nat-operacao      = tt-docum-est.nat-operacao
+           tt-item-doc-est.nro-docto         = tt-docum-est.nro-docto   
+           tt-item-doc-est.serie-docto       = tt-docum-est.serie-docto
+           tt-item-doc-est.sequencia         = 1
+           tt-item-doc-est.it-codigo         = bf{&TableName}.cod-item-serv
+           tt-item-doc-est.preco-total[1]    = tt-docum-est.valor-mercad
+           tt-item-doc-est.quantidade        = 1
+           tt-item-doc-est.un                = c-cod-un
+           tt-item-doc-est.desconto[1]       = if bf{&TableName}.val-desc-inc = ? then 0 else bf{&TableName}.val-desc-inc
+           tt-item-doc-est.narrativa         = tt-docum-est.observacao
+           tt-item-doc-est.aliquota-iss      = if bf{&TableName}.val-aliq-iss = ? then 0 else bf{&TableName}.val-aliq-iss
+           tt-item-doc-est.valor-iss[1]      = if bf{&TableName}.val-iss = ? then 0 else bf{&TableName}.val-iss
+           tt-item-doc-est.ct-codigo         = bf{&TableName}.ct-codigo
+           tt-item-doc-est.sc-codigo         = bf{&TableName}.sc-codigo
+           tt-item-doc-est.cod-unid-negoc    = bf{&TableName}.cod-unid-negoc
+           tt-item-doc-est.num-pedido        = bf{&TableName}.num-pedido
+           tt-item-doc-est.numero-ordem      = bf{&TableName}.numero-ordem
+           tt-item-doc-est.parcela           = bf{&TableName}.num-parcela
+           tt-item-doc-est.encerra-pa        = bf{&TableName}.log-encerra-pa
+           tt-item-doc-est.log-1             = NO /* nao usa FIFO ordem de compra */ . 
+           tt-item-doc-est.cd-trib-ipi       = 0 /* Atribui valor zero para a tributacao do IPI. Esse procedimento eh necessario 
+                                                    para a BO calcular a tributacao e valor do ISS */ . 
+                                                    
+    /**************************************************************************************************/
+
+    IF NOT AVAIL item 
+    OR (AVAIL item AND item.it-codigo <> tt-item-doc-est.it-codigo) THEN
+       FIND item WHERE item.it-codigo = tt-item-doc-est.it-codigo NO-LOCK NO-ERROR.
+       
+    IF AVAIL item THEN
+       ASSIGN tt-item-doc-est.class-fiscal = item.class-fiscal.
+
+    IF  tt-item-doc-est.numero-ordem <> 0 THEN DO:
+        /* Desaloca o saldo da Ordem */
+
+        IF  NOT VALID-HANDLE(h-boin356) THEN
+            RUN inbo/boin356.p PERSISTENT SET h-boin356.
+
+    	RUN pi-desaloca-ordem-cc IN h-boin356 (INPUT tt-item-doc-est.numero-ordem,
+    	                                       INPUT tt-item-doc-est.parcela,
+    	                                       INPUT tt-item-doc-est.quantidade).
+    END.
+    
+    /*--- GERAÄ«O DA NOTA FISCAL NO RECEBIMENTO ---*/
+
+    /* ABERTA TRANSACAO PARA PODER DESFAZER A CRIACAO DA TABELA **
+    ** CASO OCORRA ERRO DURANTE A GERACAO DO FIFO.              */
+    DO ON ERROR UNDO, LEAVE:
+    
+            RUN rep/reapi316b.p (INPUT  "ADD",
+                             INPUT  TABLE tt-docum-est,
+                             INPUT  TABLE tt-rat-docum,
+                             INPUT  TABLE tt-item-doc-est,
+                             INPUT  TABLE tt-dupli-apagar,
+                             INPUT  TABLE tt-dupli-imp,
+                             OUTPUT TABLE tt-erro).
+    END.
+
+    IF  ERROR-STATUS:ERROR = TRUE THEN DO:
+
+        IF  tt-item-doc-est.numero-ordem <> 0 THEN DO:
+            /* Se deu erro na exec. do reapi316b.p: aloca novamente o saldo da Ordem que havia sido desalocado */
+            IF  NOT VALID-HANDLE(h-boin356) THEN
+                RUN inbo/boin356.p PERSISTENT SET h-boin356.
+    
+        	RUN aloca-ordem-cc IN h-boin356 (INPUT tt-item-doc-est.numero-ordem,
+        	                                 INPUT tt-item-doc-est.parcela,
+        	                                 INPUT tt-item-doc-est.quantidade).
+        END.
+
+        FIND FIRST bfmsg-ret-nfe NO-LOCK
+             WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-chave-aces-nfse
+               AND bfmsg-ret-nfe.idi-orig-trad      = 2
+               AND bfmsg-ret-nfe.log-ativo          = YES
+               AND bfmsg-ret-nfe.cd-msg             = ERROR-STATUS:GET-NUMBER(1) NO-ERROR.
+
+        IF NOT AVAIL bfmsg-ret-nfe THEN DO:
+            {inbo/boin874.m2 ERROR-STATUS:GET-NUMBER(1)  ERROR-STATUS:GET-MESSAGE(1) NO}
+        END.
+    END.
+
+    FOR EACH bfmsg-ret-nfe NO-LOCK
+        WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-chave-aces-nfse
+          AND bfmsg-ret-nfe.idi-orig-trad      = 2:
+
+        FOR FIRST msg-ret-nfe EXCLUSIVE-LOCK
+            WHERE msg-ret-nfe.seq-msg = bfmsg-ret-nfe.seq-msg:
+            ASSIGN msg-ret-nfe.log-ativo = NO.
+        END.
+        RELEASE msg-ret-nfe.
+    END.
+
+    FOR EACH tt-erro:
+        FIND FIRST bfmsg-ret-nfe NO-LOCK
+             WHERE bfmsg-ret-nfe.ch-acesso-comp-nfe = bf{&TableName}.cod-chave-aces-nfse
+               AND bfmsg-ret-nfe.idi-orig-trad      = 2
+               AND bfmsg-ret-nfe.log-ativo          = YES
+               AND bfmsg-ret-nfe.cd-msg             = tt-erro.cd-erro NO-ERROR.
+
+        IF NOT AVAIL bfmsg-ret-nfe THEN DO:
+            {inbo/boin874.m2 tt-erro.cd-erro  tt-erro.desc-erro YES}
+            ASSIGN l-ok = NO.
+        END.
+    END. /* FOR EACH tt-erro */
+
+    IF NOT CAN-FIND(FIRST tt-erro) THEN DO:
+        /*--- Altera a tributacao do IPI para TRIBUTADO, evitando que ocorra erro 
+              Progress nas telas e relat¢rios.  ---*/
+        FOR EACH  item-doc-est
+            WHERE item-doc-est.cod-emitente = tt-item-doc-est.cod-emitente
+              AND item-doc-est.nat-operacao = tt-item-doc-est.nat-operacao
+              AND item-doc-est.nro-docto    = tt-item-doc-est.nro-docto   
+              AND item-doc-est.serie-docto  = tt-item-doc-est.serie-docto EXCLUSIVE-LOCK:
+            ASSIGN item-doc-est.cd-trib-ipi = 1. /* tributado */
+        END. 
+        RUN pi-gera-impostos-retidos.
+
+        ASSIGN bf{&TableName}.idi-situacao = 1 /* Digitada Recebimento */ .
+        RELEASE bf{&TableName}.
+    END.
+           
+
+    IF NOT l-ok THEN DO:
+        ASSIGN bf{&TableName}.idi-situacao = 2. /*Erro*/
+    END.
+
+    
+    
+END.
+
+RETURN "OK":U.
+
+
+FINALLY:
+
+    FOR FIRST bf{&TableName} NO-LOCK
+        WHERE ROWID(bf{&TableName}) = pr-nota: 
+        RUN setProcessamento (INPUT bf{&TableName}.cod-chave-aces-nfse, INPUT false).
+    END.
+     
+    IF VALID-HANDLE(h-boin356) THEN DO:
+       DELETE PROCEDURE h-boin356 NO-ERROR.
+       ASSIGN h-boin356 = ?.
+    END.
+    
+    IF VALID-HANDLE(h-boin862) THEN DO:
+       DELETE PROCEDURE  h-boin862 NO-ERROR.
+       ASSIGN h-boin862 = ?.
+    END.
+END.

@@ -1,0 +1,115 @@
+form                                                                  
+    c-titulo-s      AT 40                                 SKIP(01)
+    c-lbl-dados-imp AT 1                                  SKIP(01)
+        c-lbl-estabel TO 20 tt-param.cProcEstabIni        TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.cProcEstabFim                            AT 49
+                                                          SKIP                
+        c-lbl-proc-imp TO 20 tt-param.cProcImpIni         TO 39       
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.cProcImpFim                              AT 49
+                                                          SKIP         
+        c-lbl-emit-proc TO 20 tt-param.iEmitProcIni       TO 39       
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.iEmitProcFim                             AT 49  
+                                                          SKIP         
+        c-lbl-dt-emis TO 20 tt-param.dDataEmisIni         TO 39       
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.dDataEmisFim                             AT 49
+    SKIP(01)
+    c-lbl-dados-emb AT 1                                  SKIP(01)
+        c-lbl-estab-emb TO 20 tt-param.cEmbEstabIni       TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.cEmbEstabFim                             AT 49  
+                                                          SKIP
+        c-lbl-embarq TO 20 tt-param.cEmbarqueIni          TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.cEmbarqueFim                             AT 49 
+                                                          SKIP
+        c-lbl-di-sis TO 20 tt-param.cDISiscomexIni        TO 39       
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.cDISiscomexFim                           AT 49
+                                                          SKIP
+        c-lbl-di-ems TO 20 tt-param.iDIEMSIni             TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.iDIEMSFim                                AT 49  
+                                                          SKIP
+        c-lbl-dt-di TO 20 tt-param.dDataDIIni             TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.dDataDIFim                               AT 49
+    SKIP(01)
+    c-lbl-dados-ped AT 1                                  SKIP(01)
+        c-lbl-estab-ped TO 20 tt-param.cPedEstabIni       TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.cPedEstabFim                             AT 49  
+                                                          SKIP
+        c-lbl-pedido TO 20 tt-param.iPedidoIni            TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.iPedidoFim                               AT 49 
+                                                          SKIP
+        c-lbl-ordem TO 20 tt-param.iOrdemCompraIni        TO 39       
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.iOrdemCompraFim                          AT 49
+                                                          SKIP
+        c-lbl-emit-ped TO 20 tt-param.iEmitPedIni         TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.iEmitPedFim                              AT 49  
+                                                          SKIP
+        c-lbl-dt-ped TO 20 tt-param.dDataPedIni           TO 39        
+    "|<"                                                  AT 41               
+    ">|"                                                  AT 46               
+        tt-param.dDataPedFim                              AT 49  
+with stream-io overlay row 16 column 20 width 132 NO-LABEL frame f-selecao.
+
+/* f-paramentros */
+form  
+    skip(01)
+    c-titulo-p         AT 40                           SKIP(01)  
+    c-lbl-detalhar     AT 1                            SKIP(01)  
+    c-lbl-pedcomp      AT 10 tt-param.lPedidoCompra    AT 50 SKIP
+    c-lbl-procimp      AT 10 tt-param.lProcessoImp     AT 50 SKIP
+    c-lbl-fornec       AT 10 tt-param.lFornecedor      AT 50 SKIP
+    c-lbl-ordcomp      AT 10 tt-param.lOrdemCompra     AT 50 SKIP
+    c-lbl-parcela      AT 10 tt-param.lParcelas        AT 50 SKIP
+    c-lbl-item         AT 10 tt-param.lItem            AT 50 SKIP
+    c-lbl-declimp      AT 10 tt-param.lDeclaImport     AT 50 SKIP
+    c-lbl-adicdi       AT 10 tt-param.lAdicoesDI       AT 50 SKIP
+    c-lbl-acompdi      AT 10 tt-param.lAcompDI         AT 50 SKIP
+    c-lbl-embimp       AT 10 tt-param.lEmbarqueImp     AT 50 SKIP
+    c-lbl-acompemb     AT 10 tt-param.lAcompEmb        AT 50 SKIP
+    c-lbl-docto        AT 10 tt-param.lDocumentos      AT 50 SKIP
+    c-lbl-itdocto      AT 10 tt-param.lItensDoc        AT 50 SKIP
+    c-lbl-despitemdoc  AT 10 tt-param.lDespItemDoc     AT 50 SKIP
+    c-lbl-movestoq     AT 10 tt-param.lMovtoEstoq      AT 50 SKIP
+    c-lbl-duplic       at 10 tt-param.lDuplicatas      AT 50 SKIP
+    c-lbl-despimp      AT 10 tt-param.lDespImp         AT 50 SKIP
+    c-lbl-dupdesp      AT 10 tt-param.lDupDespesas     AT 50 SKIP
+    c-lbl-nfcompl      AT 10 tt-param.lNFCompl         AT 50 SKIP(02)
+    c-lbl-envia-doct   AT 10 tt-param.lEnviaDocto      AT 50 SKIP
+    c-lbl-destinatario AT 10 tt-param.cDestinatario  FORMAT "X(76)":U AT 50 SKIP
+    c-lbl-utiliza-lay  AT 10 tt-param.lUtilizaLayout   AT 50 SKIP
+    c-lbl-layout-p     AT 10 tt-param.cLayoutPadrao    AT 50 SKIP
+    c-lbl-sobrepor     AT 10 tt-param.lSobreporArq     AT 50 SKIP
+    c-lbl-destino-text AT 10 tt-param.cDestinoArq      AT 50  
+with stream-io width 132 overlay row 16 column 20 NO-LABEL frame f-parametros.
+
+/* f-impressao */
+form
+    skip(01)
+    c-titulo-imp       AT 40                                SKIP(01) 
+    c-lbl-usuario      TO 36 tt-param.usuario        AT 40  SKIP
+    c-lbl-destino-txt  TO 36 tt-param.arquivo        AT 40
+with stream-io width 132 overlay row 16 column 20 NO-LABEL frame f-impressao.

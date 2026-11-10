@@ -1,0 +1,133 @@
+procedure getTTEstrutura:
+    /*
+    ** Retorna temp-table tt-estrutura
+    */
+    def output parameter table for tt-estrutura.
+
+end procedure.
+
+procedure montaEstrutura:
+    /*
+    ** Monta a estrutura nivel-a-nivel de um produto acabado
+    ** ou semi-acabado informado atraves de parametro.
+    ** A temp-table gerada será utilizada na criação da Query.
+    */
+
+    for each tt-estrutura:
+        delete tt-estrutura.
+    end.
+       
+    assign i-seq   = 1
+           i-nivel = 1.
+           
+    for first item fields(it-codigo tipo-con-est)
+        where item.it-codigo = c-it-codigo no-lock:
+    end.
+           
+    for each estrutura fields (data-inicio data-termino es-codigo quant-usada
+                               proporcao   fator-perda  it-codigo sequencia
+                               fantasma dec-2) of item no-lock:
+                               
+        if (estrutura.data-inicio  <= da-data-corte and estrutura.data-termino > da-data-corte) or 
+            da-data-corte = ? then do:
+            
+            for first b-item fields (it-codigo tipo-con-est compr-fabric)
+                where b-item.it-codigo = estrutura.es-codigo no-lock:
+            end.
+            if not avail b-item 
+                then next.
+            
+            assign de-quant-usada = estrutura.quant-usada * de-quantidade 
+                                  * (estrutura.proporcao / 100)
+                   de-quant-liq   = (estrutura.quant-usada * de-quantidade * estrutura.proporcao / 100)
+                                  * (1 - (estrutura.fator-perda / 100)).
+                                  
+            assign d-qtd-baixa-drb = 0.                                  
+
+            if l-baixa-drb-internac 
+                and estrutura.dec-2 <> 0 then do:
+                
+                assign d-qtd-baixa-drb  = (de-quant-usada * (estrutura.dec-2 / 100))          /*calcula o percentual para aplica‡Æo*/ .
+                
+                if d-qtd-baixa-drb <> 0 then
+                    assign de-quant-usada = d-qtd-baixa-drb.
+
+            end.  
+
+            if b-item.tipo-con-est = 4 or
+                 item.tipo-con-est = 4 then do:
+                 
+                if not can-find(first ref-estrut
+                                    where ref-estrut.it-codigo  = estrutura.it-codigo
+                                      and ref-estrut.sequencia  = estrutura.sequencia
+                                      and ref-estrut.es-codigo  = estrutura.es-codigo) then
+                     assign c-refer-es       = ""
+                            l-refer-incluida = yes.
+                else do:
+                    find ref-estrut
+                        where ref-estrut.it-codigo  = estrutura.it-codigo
+                          and ref-estrut.sequencia  = estrutura.sequencia
+                          and ref-estrut.es-codigo  = estrutura.es-codigo
+                          and ref-estrut.cod-ref-it = c-refer no-lock no-error.
+                    if available ref-estrut then
+                        assign c-refer-es       = ref-estrut.cod-ref-es
+                               l-refer-incluida = yes.
+                    else
+                        assign l-refer-incluida = no.
+                end.
+                
+            end.
+            else
+                assign l-refer-incluida = yes
+                       c-refer-es       = "".
+    
+            if l-refer-incluida then do:
+            
+                create tt-estrutura.
+                assign c-rowid                    = "0x0" + string(i-seq,"9999999")
+                       tt-estrutura.seq           = i-seq
+                       tt-estrutura.r-rowid       = to-rowid(c-rowid)
+                       tt-estrutura.refer         = c-refer-es
+                       tt-estrutura.it-codigo     = estrutura.es-codigo
+                       tt-estrutura.proporcao     = estrutura.proporcao
+                       tt-estrutura.fator-perda   = estrutura.fator-perda
+                       tt-estrutura.quant-usada   = de-quant-usada
+                       tt-estrutura.quant-liquid  = de-quant-liq
+                       tt-estrutura.quantidade    = estrutura.quant-usada
+                       tt-estrutura.data-inicio   = estrutura.data-inicio
+                       tt-estrutura.data-termino  = estrutura.data-termino
+                       i-seq                      = i-seq + 1.
+
+                if estrutura.fantasma then
+                    assign tt-estrutura.aux = '#'.
+                else
+                    assign tt-estrutura.aux = ' '.
+                 
+                if b-item.compr-fabric = 1 then
+                    assign tt-estrutura.aux = tt-estrutura.aux +  c-comp.
+                else
+                    assign tt-estrutura.aux = tt-estrutura.aux +  c-fabr.
+                    
+                    
+                if can-find(first alternativo
+                                where alternativo.it-codigo = estrutura.it-codigo
+                                  and alternativo.sequencia = estrutura.sequencia
+                                  and alternativo.es-codigo = estrutura.es-codigo) then
+                    assign tt-estrutura.aux = tt-estrutura.aux +  c-alt.
+                else
+                    assign tt-estrutura.aux = tt-estrutura.aux +  ' '.
+
+                if today >= estrutura.data-termino or 
+                   today < estrutura.data-inicio then
+                    assign tt-estrutura.aux = tt-estrutura.aux +  '?'.
+                
+                assign tt-estrutura.nivel = string('1','x(12)') + tt-estrutura.aux.
+
+                if i-niveis > i-nivel then
+                    run geraEstruturaFilho(rowid(b-item), c-refer-es, de-quant-usada, de-quant-liq, i-nivel).
+
+            end.
+        end.
+    end.
+
+END PROCEDURE.

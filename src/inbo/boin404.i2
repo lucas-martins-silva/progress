@@ -1,0 +1,74 @@
+/*****************************************************************************
+**
+**       BOIN404.I2 - Determina Tipo Saldo em Poder Terceiros
+**
+**       Parametros: {1} - Tipo de Transacao  ( natur-oper.tipo )
+**                          1.Entrada
+**                          2.Saida
+**                   {2} - Tipo de Operacao Terceiros ( natur-oper.tp-oper-terc )
+**                          1. Remessa Beneficiamento
+**                          2. Retorno Beneficiamento
+**                          3. Remessa Consignacao
+**                          4. Faturamento Consignacao
+**                          5. Devolu»’o Consignacao
+**                          6. Reajuste de Preco
+**                          7. Drawback
+**                          8. Rem Dep Fechado
+**                          9. Ret Dep Fechado
+**                         10. Rem Armaz Geral
+**                         11. Ret Armaz Geral
+**                   {3} - Operacao Transferencia ( natur-oper.transf - logico )
+*****************************************************************************/
+
+/* Transferencia */
+if  {3} then 
+    assign i-tipo-sal-terc = 3.
+else 
+/*  Remessa Beneficiamento */
+if  {2} = 1 then 
+    assign i-tipo-sal-terc = if  {1} = 1 then 2
+                             else 1.       
+else 
+/*  Retorno Beneficiamento */
+if  {2} = 2 then 
+    assign i-tipo-sal-terc = if  {1} = 1 then 1
+                             else 2.
+else 
+/*  Remessa Consignacao */
+if  {2} = 3 then 
+    assign i-tipo-sal-terc = if  {1} = 1 then 5
+                             else 4.
+else 
+/*  Faturamento de Consignacao */
+if  {2} = 4 then 
+    assign i-tipo-sal-terc = if  {1} = 1 then 5
+                             else 4.
+else 
+/*  Devolucao de Consignacao */
+if  {2} = 5 then 
+    assign i-tipo-sal-terc = if  {1} = 1 then 4
+                             else 5.
+if  {2} = 6 then
+    assign i-tipo-sal-terc = if  {1} = 1 then 5
+                             else 4.
+                             
+/*  Rem Dep Fechado */
+if  {2} = 8 then
+    assign i-tipo-sal-terc = if  {1} = 1 then 8
+                             else 7.       
+/*  Ret Dep Fechado */
+if  {2} = 9 then
+    assign i-tipo-sal-terc = if  {1} = 1 then 7
+                             else 8.
+                             
+/*  Rem Armaz Geral */
+if  {2} = 10 then
+    assign i-tipo-sal-terc = if  {1} = 1 then 10
+                             else 9.       
+/*  Ret Armaz Geral */
+if  {2} = 11 then
+    assign i-tipo-sal-terc = if  {1} = 1 then 9
+                             else 10.
+
+
+/* fim do include */

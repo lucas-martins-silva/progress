@@ -1,0 +1,228 @@
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE copiaEnteOperGovNForig DBOProgram 
+PROCEDURE copiaEnteOperGovNForig:
+    DEF INPUT PARAM piCodEmitente LIKE item-doc-est.cod-emitente NO-UNDO.
+    DEF INPUT PARAM piSerieDocto  LIKE item-doc-est.serie-docto  NO-UNDO.
+    DEF INPUT PARAM piNroDocto    LIKE item-doc-est.nro-docto    NO-UNDO.
+    DEF INPUT PARAM piNatOperacao LIKE item-doc-est.nat-operacao NO-UNDO.
+    
+    DEF VAR c-estabel             AS CHARACTER                     NO-UNDO.
+    DEF VAR iTpEnteGov            LIKE docum-est.cod-tipo-ente-gov NO-UNDO.
+    DEF VAR iTpOperGov            LIKE docum-est.cod-tipo-oper-gov NO-UNDO.
+    DEF VAR cNatOperNfOrig        LIKE docum-est.nat-operacao      NO-UNDO.
+    DEF VAR iSeqItemNfOrig        LIKE item-doc-est.sequencia      NO-UNDO.
+    
+    DEFINE BUFFER b-natur-oper-fiscal  FOR natur-oper.
+    DEFINE BUFFER bf-docum-est         FOR docum-est.
+    DEFINE BUFFER bf2-docum-est        FOR docum-est.
+    DEFINE BUFFER bf-item-doc-est      FOR item-doc-est.
+    
+    
+    IF NOT l-spp-NT2024002 THEN
+        RETURN "OK":U.
+        
+    FIND FIRST bf-docum-est NO-LOCK
+         WHERE bf-docum-est.serie-docto  = piSerieDocto
+           AND bf-docum-est.nro-docto    = piNroDocto
+           AND bf-docum-est.cod-emitente = piCodEmitente
+           AND bf-docum-est.nat-operacao = piNatOperacao NO-ERROR.
+           
+    IF NOT AVAIL bf-docum-est THEN
+        RETURN "OK":U.
+    
+    ASSIGN iTpEnteGov = bf-docum-est.cod-tipo-ente-gov
+           iTpOperGov = bf-docum-est.cod-tipo-oper-gov
+           c-estabel  = bf-docum-est.cod-estabel.
+    
+    RUN isMultaJuros ( INPUT bf-docum-est.nat-operacao,
+                      OUTPUT l-multa-juros).  
+                      
+    run getFatAntecipEntFutura( INPUT bf-docum-est.nat-operacao,
+                               OUTPUT l-fatura-fat-antecip,
+                               OUTPUT l-remessa-fat-antecip,
+                               OUTPUT l-fatura-ent-futura,
+                               OUTPUT l-remessa-ent-futura).
+    
+    FOR FIRST bf-item-doc-est NO-LOCK
+        WHERE bf-item-doc-est.serie-docto  = piSerieDocto
+          AND bf-item-doc-est.nro-docto    = piNroDocto
+          AND bf-item-doc-est.cod-emitente = piCodEmitente
+          AND bf-item-doc-est.nat-operacao = piNatOperacao:
+          
+        FIND FIRST b-natur-oper-fiscal WHERE b-natur-oper-fiscal.nat-operacao = (if bf-item-doc-est.nat-of <> "" then bf-item-doc-est.nat-of else bf-item-doc-est.nat-operacao) NO-LOCK NO-ERROR.
+        
+        IF bf-item-doc-est.nro-comp <> "" THEN DO:
+        
+            IF b-natur-oper-fiscal.tp-oper-terc = 4 OR  /*faturamento consigna‡Æo*/
+               l-multa-juros                        OR 
+              (b-natur-oper-fiscal.tipo-compra <> 3 AND 
+              (l-remessa-ent-futura OR l-remessa-fat-antecip)) THEN DO:
+              
+                ASSIGN cNatOperNfOrig = bf-item-doc-est.nat-comp.
+                
+                IF l-remessa-ent-futura OR l-remessa-fat-antecip THEN DO:
+                    RUN buscaNatOperNfFatura(INPUT bf-item-doc-est.cod-emitente,
+                                             INPUT bf-item-doc-est.nat-operacao,
+                                             INPUT bf-item-doc-est.serie-comp,
+                                             INPUT bf-item-doc-est.nro-comp,
+                                             INPUT bf-item-doc-est.nat-comp, 
+                                             INPUT bf-item-doc-est.seq-comp,
+                                             OUTPUT cNatOperNfOrig,
+                                             INPUT-OUTPUT iSeqItemNfOrig).
+                END.
+                
+                FOR EACH bf2-docum-est NO-LOCK
+                   WHERE bf2-docum-est.serie-docto  = bf-item-doc-est.serie-comp
+                     AND bf2-docum-est.nro-docto    = bf-item-doc-est.nro-comp
+                     AND bf2-docum-est.cod-emitente = bf-item-doc-est.cod-emitente
+                     AND bf2-docum-est.nat-operacao = cNatOperNfOrig:
+                     
+                    ASSIGN iTpEnteGov = bf2-docum-est.cod-tipo-ente-gov 
+                           iTpOperGov = bf2-docum-est.cod-tipo-oper-gov.
+                END. 
+            END.
+            ELSE DO:
+                IF AVAIL b-natur-oper-fiscal AND b-natur-oper-fiscal.transf THEN  
+                    ASSIGN c-estabel = bf-docum-est.estab-de-or.
+                    
+                FOR FIRST nota-fisc-gener NO-LOCK
+                    WHERE nota-fisc-gener.cod-estabel   = c-estabel
+                      AND nota-fisc-gener.serie         = bf-item-doc-est.serie-comp
+                      AND nota-fisc-gener.nr-nota-fis   = bf-item-doc-est.nro-comp
+                      AND nota-fisc-gener.cod-param     = "tip-ente-gov"
+                      AND nota-fisc-gener.cod-valor[1] <> ?:
+                      
+                    ASSIGN iTpEnteGov = int(nota-fisc-gener.cod-valor[1]).
+
+                END.
+                
+                FOR FIRST nota-fisc-gener NO-LOCK
+                    WHERE nota-fisc-gener.cod-estabel   = c-estabel
+                      AND nota-fisc-gener.serie         = bf-item-doc-est.serie-comp
+                      AND nota-fisc-gener.nr-nota-fis   = bf-item-doc-est.nro-comp
+                      AND nota-fisc-gener.cod-param     = "tip-oper-ente-gov"
+                      AND nota-fisc-gener.cod-valor[1] <> ?:
+                      
+                    ASSIGN iTpOperGov = int(nota-fisc-gener.cod-valor[1]).
+
+                END.
+            END.
+        END.
+        ELSE DO:
+            IF iTpEnteGov = 0 THEN DO:
+                RUN setaEnteGov (INPUT c-estabel,
+                                 INPUT bf-docum-est.cod-emitente,
+                                 INPUT b-natur-oper-fiscal.nat-operacao,
+                                 INPUT TRUE,
+                                 INPUT-OUTPUT iTpEnteGov).
+            END.
+        END.
+    END.
+    
+    FOR FIRST bf-docum-est EXCLUSIVE-LOCK
+        WHERE bf-docum-est.serie-docto  = piSerieDocto
+          AND bf-docum-est.nro-docto    = piNroDocto
+          AND bf-docum-est.cod-emitente = piCodEmitente
+          AND bf-docum-est.nat-operacao = piNatOperacao:
+           
+        ASSIGN bf-docum-est.cod-tipo-ente-gov = iTpEnteGov
+               bf-docum-est.cod-tipo-oper-gov = iTpOperGov.
+    END.
+    RELEASE bf-docum-est.
+
+    RETURN "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME  
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setaEnteGov DBOProgram 
+PROCEDURE setaEnteGov:
+    DEF INPUT        PARAM piCodEstabel     LIKE docum-est.cod-estabel       NO-UNDO.
+    DEF INPUT        PARAM piCodEmitente    LIKE docum-est.cod-emitente      NO-UNDO.
+    DEF INPUT        PARAM piNatOperacao    LIKE item-doc-est.nat-operacao   NO-UNDO.
+    DEF INPUT        PARAM piAtualizDevRet  AS LOGICAL                       NO-UNDO.
+    DEF INPUT-OUTPUT PARAM piTpEnteGov      LIKE docum-est.cod-tipo-ente-gov NO-UNDO.
+    
+    DEFINE BUFFER b-natur-oper-fiscal  FOR natur-oper.
+
+    IF NOT l-spp-NT2024002 THEN
+        RETURN "OK":U.
+     
+    RUN findEstabelec (INPUT piCodEstabel).
+
+    RUN findEmitente (INPUT piCodEmitente).
+    
+    FIND FIRST b-natur-oper-fiscal WHERE b-natur-oper-fiscal.nat-operacao = piNatOperacao NO-LOCK NO-ERROR.
+
+    run getFatAntecipEntFutura( INPUT piNatOperacao,
+                               OUTPUT l-fatura-fat-antecip,
+                               OUTPUT l-remessa-fat-antecip,
+                               OUTPUT l-fatura-ent-futura,
+                               OUTPUT l-remessa-ent-futura).
+    
+    IF b-natur-oper-fiscal.tipo-compra  = 3  OR /*devolu‡Æo de cliente*/
+       b-natur-oper-fiscal.tipo-compra  = 8  OR /*devolu‡Æo de transferˆncia*/
+       b-natur-oper-fiscal.tp-oper-terc = 9  OR /*Retorno Dep Fechado*/
+       b-natur-oper-fiscal.tp-oper-terc = 5  OR /*Devolu‡Æo Consigna‡Æo*/
+       b-natur-oper-fiscal.tp-oper-terc = 11 OR /*Retorno Armaz‚m Geral*/ 
+      (b-natur-oper-fiscal.tp-oper-terc = 2 AND /*Retorno Beneficiamento*/
+      (NOT l-remessa-ent-futura AND NOT l-remessa-fat-antecip)) THEN DO:
+        
+        IF piAtualizDevRet THEN
+           ASSIGN piTpEnteGov = IF AVAIL emitente                         AND 
+                                   emitente.atividade = "OrgaoPublico":U  AND 
+                                   SUBSTRING(emitente.char-1,165,1) <> ?  AND 
+                                   SUBSTRING(emitente.char-1,165,1) <> "" THEN INT(SUBSTRING(emitente.char-1,165,1)) ELSE 0.
+
+    END.
+    ELSE DO:
+    
+        ASSIGN piTpEnteGov = IF AVAIL estabelec AND SUBSTRING(estabelec.char-1,400,1) <> ? AND SUBSTRING(estabelec.char-1,400,1) <> "" THEN INT(SUBSTRING(estabelec.char-1,400,1)) ELSE 0.
+    
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME  
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buscaNatOperNfFatura DBOProgram 
+PROCEDURE buscaNatOperNfFatura:
+    DEF INPUT        PARAM piCodEmitente       LIKE item-doc-est.cod-emitente NO-UNDO.
+    DEF INPUT        PARAM piNatOperacao       LIKE item-doc-est.nat-operacao NO-UNDO.
+    DEF INPUT        PARAM piSerieComp         LIKE item-doc-est.serie-comp   NO-UNDO.
+    DEF INPUT        PARAM piNroComp           LIKE item-doc-est.nro-comp     NO-UNDO.
+    DEF INPUT        PARAM piNatComp           LIKE item-doc-est.nat-comp     NO-UNDO.
+    DEF INPUT        PARAM piSeqComp           LIKE item-doc-est.seq-comp     NO-UNDO.
+    DEF OUTPUT       PARAM piNatOperNfOrig     LIKE docum-est.nat-operacao    NO-UNDO.
+    DEF INPUT-OUTPUT PARAM piSeqItemNfOrig     LIKE item-doc-est.sequencia    NO-UNDO.
+    
+    DEF BUFFER bf-item-doc-est  FOR item-doc-est.
+    
+    run getFatAntecipEntFutura( INPUT piNatOperacao,
+                               OUTPUT l-fatura-fat-antecip,
+                               OUTPUT l-remessa-fat-antecip,
+                               OUTPUT l-fatura-ent-futura,
+                               OUTPUT l-remessa-ent-futura).
+
+    IF l-remessa-ent-futura THEN DO:
+        FOR FIRST bf-item-doc-est NO-LOCK
+            WHERE item-doc-est.serie-docto   = piSerieComp
+              AND item-doc-est.nro-docto     = piNroComp
+              AND item-doc-est.cod-emitente  = piCodEmitente
+              AND item-doc-est.nat-comp      = piNatComp:
+            ASSIGN piNatOperNfOrig = item-doc-est.nat-operacao.
+        END.
+    END.
+    ELSE DO:
+        FOR FIRST sdo-fatur-antecip NO-LOCK
+            WHERE sdo-fatur-antecip.num-id-sdo = piSeqComp:
+            
+            ASSIGN piNatOperNfOrig = sdo-fatur-antecip.nat-operacao
+                   piSeqItemNfOrig = sdo-fatur-antecip.num-seq.
+        END.
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME  

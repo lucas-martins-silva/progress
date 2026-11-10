@@ -1,0 +1,183 @@
+/* Quando modifica a unidade de um item tem que atualizar o hist¢rico antigo */
+assign de-indice = if avail tt-item-fornec-umd then
+                        tt-item-fornec-umd.fator-conver / if  tt-item-fornec-umd.num-casa-dec = 0 then 1
+                                                       else exp(10, tt-item-fornec-umd.num-casa-dec)
+                   else 1.                           
+       l-preco-bruto = if avail param-compra then (param-compra.ipi-sobre-preco = 1) 
+                       else no.
+
+
+for each cotacao-item where
+       cotacao-item.cod-emitente = tt-item-fornec-umd.cod-emitente and
+       cotacao-item.it-codigo    = tt-item-fornec-umd.it-codigo    and
+       cotacao-item.un           = tt-item-fornec-umd.unid-med-for exclusive-lock:
+
+  for each ordem-compra where
+           ordem-compra.numero-ordem = cotacao-item.numero-ordem and
+           ordem-compra.cod-emitente = cotacao-item.cod-emitente and
+           ordem-compra.it-codigo    = cotacao-item.it-codigo exclusive-lock:
+
+      assign ordem-compra.pre-unit-for = ordem-compra.preco-unit / de-indice.
+      {ccp/cc0105.i1 "ordem-compra"}   /*Recalcula preco unitario bruto do item atraves do preco unitario calculado*/
+      for each prazo-compra where
+               prazo-compra.numero-ordem = ordem-compra.numero-ordem and
+               prazo-compra.it-codigo   = ordem-compra.it-codigo exclusive-lock:
+          assign prazo-compra.qtd-do-forn  = prazo-compra.quantidade   * de-indice
+                 prazo-compra.qtd-sal-forn = prazo-compra.quant-saldo  * de-indice
+                 prazo-compra.qtd-rej-forn = prazo-compra.quant-rejeit * de-indice
+                 prazo-compra.qtd-rec-forn = prazo-compra.quant-receb  * de-indice.
+      end.
+      for each evento-ped where
+               evento-ped.numero-ordem = ordem-compra.numero-ordem and
+               evento-ped.it-codigo    = ordem-compra.it-codigo exclusive-lock:
+          assign evento-ped.qtd-prevista  = evento-ped.qtd-prevista  * de-indice 
+                 evento-ped.qtd-realizada = evento-ped.qtd-realizada * de-indice
+                 evento-ped.val-antecip   = evento-ped.val-antecip   * de-indice
+                 evento-ped.val-pago      = evento-ped.val-pago      * de-indice
+                 evento-ped.val-previsto  = evento-ped.val-previsto  * de-indice
+                 evento-ped.val-realizado = evento-ped.val-realizado * de-indice.        
+      end.     
+      for each medicao-contrat where
+               medicao-contrat.numero-ordem = ordem-compra.numero-ordem and
+               medicao-contrat.it-codigo    = ordem-compra.it-codigo exclusive-lock:
+          assign medicao-contrat.qtd-medicao     = medicao-contrat.qtd-medicao     * de-indice
+                 medicao-contrat.qtd-prevista    = medicao-contrat.qtd-prevista    * de-indice
+                 medicao-contrat.sld-rec-medicao = medicao-contrat.sld-rec-medicao * de-indice
+                 medicao-contrat.sld-val-medicao = medicao-contrat.sld-val-medicao * de-indice
+                 medicao-contrat.val-previsto    = medicao-contrat.val-previsto    * de-indice 
+                 medicao-contrat.val-medicao     = medicao-contrat.val-medicao     * de-indice
+                 medicao-contrat.val-antecip     = medicao-contrat.val-antecip     * de-indice. 
+      end.
+  end.
+
+  assign cotacao-item.pre-unit-for = cotacao-item.preco-unit / de-indice.                
+  {ccp/cc0105.i1 "cotacao-item"}    /* Recalcula preco unitario bruto do item atraves do preco unitario calculado */
+  
+end.
+for each item-contrat where 
+       item-contrat.it-codigo    = tt-item-fornec-umd.it-codigo and
+       item-contrat.cod-emitente = tt-item-fornec-umd.cod-emitente and
+       item-contrat.un           = tt-item-fornec-umd.unid-med-for exclusive-lock:
+       
+ assign item-contrat.pre-unit-for      = item-contrat.preco-unit / de-indice
+        item-contrat.sld-val-receb = item-contrat.sld-val-receb * de-indice 
+        item-contrat.sld-val-liber = item-contrat.sld-val-liber * de-indice
+        item-contrat.sld-val       = item-contrat.sld-val * de-indice
+        item-contrat.sld-qtd-receb = item-contrat.sld-qtd-receb * de-indice
+        item-contrat.sld-qtd-liber = item-contrat.sld-qtd-liber * de-indice
+        item-contrat.sld-qtd       = item-contrat.sld-qtd * de-indice
+        item-contrat.val-taxa      = item-contrat.val-taxa * de-indice 
+        item-contrat.valor-descto  = item-contrat.valor-descto * de-indice 
+        item-contrat.val-frete     = item-contrat.val-frete * de-indice.
+
+  assign item-contrat.preco-fornec = item-contrat.pre-unit-for.
+  
+  if  l-preco-bruto = no then do:
+      if  item-contrat.taxa-financ then do:
+          if  not item-contrat.codigo-ipi then assign
+              item-contrat.preco-fornec = item-contrat.preco-fornec / (1 + (item-contrat.aliquota-ipi / 100)).
+      end.
+      else do:
+          if not item-contrat.codigo-ipi then assign
+             item-contrat.preco-fornec = item-contrat.preco-fornec / (1 + (item-contrat.aliquota-ipi / 100)).
+          if  item-contrat.val-taxa <> 0 then do:
+              find cond-pagto where
+                   cond-pagto.cod-cond-pag = item-contrat.cod-cond-pag no-lock no-error.
+              if avail cond-pagto and cond-pagto.prazos[1] <> 0 then do:
+                  de-prazo = 0.
+                  do i-x = 1 to cond-pagto.num-parcelas:
+                     de-prazo = de-prazo + (cond-pagto.prazos[i-x] * cond-pagto.per-pg-dup[i-x]).
+                  end.
+                  assign de-prazo    = de-prazo / 100
+                         de-taxa-per = exp(exp(1 + item-contrat.val-taxa / 100,1 / 30),de-prazo)
+                         item-contrat.preco-fornec = item-contrat.preco-fornec / de-taxa-per.
+              end.
+          end.
+      end.
+      if  item-contrat.perc-desconto > 0 then assign
+          item-contrat.preco-fornec = item-contrat.preco-fornec / (1 - (item-contrat.perc-desconto / 100)).
+  end.
+  else do:
+      if  item-contrat.perc-desconto  > 0 then assign
+          item-contrat.preco-fornec = item-contrat.preco-fornec / (1 - (item-contrat.perc-desconto / 100)).
+      if  item-contrat.codigo-ipi   =  no
+      and item-contrat.aliquota-ipi <> 0 then assign
+          item-contrat.preco-fornec = item-contrat.preco-fornec / (1 + (item-contrat.aliquota-ipi / 100)).
+      if  item-contrat.taxa-financ =  no
+      and item-contrat.val-taxa  <> 0 then do:
+          find cond-pagto where
+               cond-pagto.cod-cond-pag = item-contrat.cod-cond-pag no-lock no-error.
+          if avail cond-pagto and cond-pagto.prazos[1] <> 0 then do:
+              de-prazo = 0.
+              do  i-x = 1 to cond-pagto.num-parcelas:
+                  assign de-prazo = de-prazo + (cond-pagto.prazos[i-x] * cond-pagto.per-pg-dup[i-x]).
+              end.
+              assign de-prazo    = de-prazo / 100
+                     de-taxa-per = exp(exp(1 + item-contrat.val-taxa / 100,1 / 30),de-prazo)
+                     item-contrat.preco-fornec = item-contrat.preco-fornec / de-taxa-per.
+          end.
+      end.
+  end.
+end.
+
+for each componente where
+       componente.cod-emitente = tt-item-fornec-umd.cod-emitente and
+       componente.it-codigo    = tt-item-fornec-umd.it-codigo exclusive-lock:
+  for first item-doc-est fields (numero-ordem)
+      where item-doc-est.serie-docto  = componente.serie-docto 
+        and item-doc-est.nro-docto    = componente.nro-docto   
+        and item-doc-est.cod-emitente = componente.cod-emitente
+        and item-doc-est.nat-operacao = componente.nat-operacao
+        and item-doc-est.sequencia    = componente.sequencia no-lock:
+      if can-find(first cotacao-item
+                  where cotacao-item.numero-ordem = item-doc-est.numero-ordem
+                    and cotacao-item.cot-aprovada = yes 
+                    and cotacao-item.un = tt-item-fornec-umd.unid-med-for) then
+          assign componente.qt-do-forn = componente.quantidade * de-indice.
+  end.
+end.
+for each recebimento where
+       recebimento.cod-emitente = item-fornec.cod-emitente and
+       recebimento.it-codigo    = item-fornec.it-codigo exclusive-lock:
+  if can-find(first cotacao-item
+              where cotacao-item.numero-ordem = recebimento.numero-ordem
+                and cotacao-item.cot-aprovada = yes 
+                and cotacao-item.un = tt-item-fornec-umd.unid-med-for) then
+      assign recebimento.qtd-rec-forn = recebimento.quant-receb * de-indice
+             recebimento.qtd-rej-forn = recebimento.quant-rejeit * de-indice
+             recebimento.pre-unit-for = recebimento.preco-unit / de-indice.
+end.
+for each item-doc-est where
+       item-doc-est.cod-emitente = item-fornec.cod-emitente and
+       item-doc-est.it-codigo    = item-fornec.it-codigo exclusive-lock:
+  if can-find(first cotacao-item
+              where cotacao-item.numero-ordem = item-doc-est.numero-ordem
+                and cotacao-item.cot-aprovada = yes 
+                and cotacao-item.un = tt-item-fornec-umd.unid-med-for) then do:
+      assign item-doc-est.qt-do-forn = item-doc-est.quantidade * de-indice.
+      for each rat-ordem 
+         where rat-ordem.serie-docto = item-doc-est.serie-docto  
+         and   rat-ordem.nro-docto   = item-doc-est.nro-docto    
+         and   rat-ordem.cod-emitente = item-doc-est.cod-emitente 
+         and   rat-ordem.nat-operacao = item-doc-est.nat-operacao 
+         and   rat-ordem.sequencia   = item-doc-est.sequencia exclusive-lock:
+            assign rat-ordem.qtidade-forn = rat-ordem.quantidade * de-indice.
+      end.
+      for each pd-pd-it-nfe 
+         where pd-pd-it-nfe.serie-docto  = item-doc-est.serie-docto  
+         and   pd-pd-it-nfe.nro-docto    = item-doc-est.nro-docto    
+         and   pd-pd-it-nfe.cod-emitente = item-doc-est.cod-emitente 
+         and   pd-pd-it-nfe.nat-operacao = item-doc-est.nat-operacao 
+         and   pd-pd-it-nfe.sequencia    = item-doc-est.sequencia exclusive-lock:
+            assign pd-pd-it-nfe.qt-do-forn = pd-pd-it-nfe.quantidade * de-indice.
+      end.
+      for each pd-cc-it-nfe 
+         where pd-cc-it-nfe.serie-docto  = item-doc-est.serie-docto  
+         and   pd-cc-it-nfe.nro-docto    = item-doc-est.nro-docto    
+         and   pd-cc-it-nfe.cod-emitente = item-doc-est.cod-emitente 
+         and   pd-cc-it-nfe.nat-operacao = item-doc-est.nat-operacao 
+         and   pd-cc-it-nfe.sequencia    = item-doc-est.sequencia exclusive-lock:
+            assign pd-cc-it-nfe.qt-do-forn = pd-cc-it-nfe.quantidade * de-indice.
+      end.
+  end.
+end.

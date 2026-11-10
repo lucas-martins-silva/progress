@@ -1,0 +1,58 @@
+PROCEDURE DesalocaOC :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:  Desaloca ordem de compra na modifica‡Æo.
+------------------------------------------------------------------------------*/
+
+    def var i-parc as int no-undo.
+
+    for first b-item-doc-est
+        fields ( cod-emitente  serie-docto  nro-docto     
+                 nat-operacao  sequencia    dec-1
+                 quantidade )
+         where b-item-doc-est.cod-emitente = RowObject.cod-emitente
+           and b-item-doc-est.serie-docto  = RowObject.serie-docto
+           and b-item-doc-est.nro-docto    = RowObject.nro-docto
+           and b-item-doc-est.nat-operacao = RowObject.nat-operacao
+           and b-item-doc-est.sequencia    = RowObject.sequencia 
+           no-lock: end.
+
+    /* Desaloca»’o Ordem Compra */
+    if  RowObject.numero-ordem <> 0
+    and not docum-est.rec-fisico
+    and avail b-item-doc-est then do:
+
+        if  b-item-doc-est.parcela = RowObject.parcela then
+            assign i-parc  = RowObject.parcela.
+        else assign i-parc = b-item-doc-est.parcela.
+
+        for first prazo-compra
+            fields ( numero-ordem    parcela         quant-saldo
+                     situacao        data-entrega    dec-1
+                     quant-rejeit     qtd-sal-forn     quantidade
+                     quant-receb     cod-refer                   )
+            where prazo-compra.numero-ordem = RowObject.numero-ordem
+              and prazo-compra.parcela      = i-parc exclusive-lock:
+        end.
+      
+
+        if  avail prazo-compra 
+        and i-total <> 1             /* Contrato por Total Contratado */
+        and i-total <> 2             /* Contrato por Medicao */
+        and i-total <> 3  then       /* Contrato Limite de Custo */
+        
+
+            /*Desaloca*/
+            run pi-aloca-ordem-cc (input no,
+                                   input b-item-doc-est.quantidade,
+                                   input rowid(prazo-compra)).
+        if  avail prazo-compra then
+            release prazo-compra.
+    end.
+
+END PROCEDURE.
+
+
+
+

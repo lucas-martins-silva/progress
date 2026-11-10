@@ -1,0 +1,11 @@
+PROCEDURE eliminarFilhosIndice:
+
+    def param buffer b-ind-vis-man for ind-vis-man.
+
+    for each est-ind-man
+        where est-ind-man.cod-visao    = b-ind-vis-man.cod-visao
+          and est-ind-man.cod-ind-calc = b-ind-vis-man.cod-ind-int exclusive:
+       delete est-ind-man.
+    end.
+
+END PROCEDURE.

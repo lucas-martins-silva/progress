@@ -1,0 +1,301 @@
+DEFINE OUTPUT PARAM TABLE FOR tt-campo-layout.
+
+EMPTY TEMP-TABLE tt-campo-layout NO-ERROR. 
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Tipo_Resultado"}    
+    ASSIGN tt-campo-layout.cdn-campo-layout = 0
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 4                           /*Resultado*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 0.
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Estabelec"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 1            
+           tt-campo-layout.descricao        = RETURN-VALUE           
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/ 
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 2.    
+    
+CREATE tt-campo-layout.    
+    {utp/ut-liter.i "Nome_Estabel"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 2
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 2                             /*Descri‡Æo*/
+           tt-campo-layout.campo-descricao  = "estabelec.nome":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 3.
+ 
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Fornecedor/Produtor"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 3
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 4.
+           
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Nome_Fornec/Produtor"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 4
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 2                             /*Descri‡Æo*/  
+           tt-campo-layout.campo-descricao  = "emitente.nome-emit":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 5.
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Propriedade"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 5            
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/  
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 6.    
+    
+CREATE tt-campo-layout.    
+    {utp/ut-liter.i "Nome_Propriedade"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 6
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 2                             /*Descri‡Æo*/  
+           tt-campo-layout.campo-descricao  = "propried-rural.des-propried":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 7.
+ 
+CREATE tt-campo-layout.    
+    {utp/ut-liter.i "Rota"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 7
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 8.
+           
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Descri‡Æo_Rota"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 8
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 2                             /*Descri‡Æo*/
+           tt-campo-layout.campo-descricao  = "rota-coleta.des-rot":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 9.
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Ponto_Coleta"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 9
+           tt-campo-layout.descricao        = RETURN-VALUE    
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 10.
+    
+CREATE tt-campo-layout.    
+    {utp/ut-liter.i "Desc_Ponto_Coleta"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 10
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 2                             /*Descri‡Æo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 11.
+ 
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Data_Resultado"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 11
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 12.
+           
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Amostra_1"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 12
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 13.
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Amostra_2"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 13          
+           tt-campo-layout.descricao        = RETURN-VALUE    
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 14.
+    
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Amostra_3"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 14
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 15.
+ 
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Roteiro"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 15
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 16.
+           
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Dep¢sito"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 16
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 17.
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Referˆncia"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 17           
+           tt-campo-layout.descricao        = RETURN-VALUE    
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 18.    
+    
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Lote/S‚rie"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 18
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 19.
+ 
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Localiza‡Æo"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 19
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 20.
+         
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Documento"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 20
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 21.
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "S‚rie_Docto"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 21           
+           tt-campo-layout.descricao        = RETURN-VALUE     
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 22.
+    
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Nat_Opera‡Æo"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 22
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 23.
+ 
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Respons vel"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 23
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 24.
+          
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Data_Roteiro"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 24
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 25.
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Data_Inspe‡Æo"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 25            
+           tt-campo-layout.descricao        = RETURN-VALUE    
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 26.    
+    
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Data_An lise"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 26
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 27.
+ 
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Observa‡Æo_Roteiro"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 27
+           tt-campo-layout.descricao        = RETURN-VALUE
+           tt-campo-layout.tipo             = 3                             /*Atributo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 28.
+           
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "ID_Ext_Produtor"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 28
+           tt-campo-layout.descricao        = RETURN-VALUE                  /*num‚rico sequencial e £nico*/
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 1.
+           
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Cidade"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 29
+           tt-campo-layout.descricao        = RETURN-VALUE                  
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 29.           
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Estado"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 30
+           tt-campo-layout.descricao        = RETURN-VALUE                  
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 30.           
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "C¢digo_NRP"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 31
+           tt-campo-layout.descricao        = RETURN-VALUE                  
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 31.           
+
+CREATE tt-campo-layout.
+    {utp/ut-liter.i "Volume Mˆs"}
+    ASSIGN tt-campo-layout.cdn-campo-layout = 32
+           tt-campo-layout.descricao        = RETURN-VALUE                  
+           tt-campo-layout.tipo             = 1                             /*C¢digo*/
+           tt-campo-layout.campo-descricao  = "":U
+           tt-campo-layout.mostra           = yes
+           tt-campo-layout.ordem            = 32.           
+           

@@ -1,0 +1,133 @@
+/*--------------------------------------------------------------------------
+    File       : BOIN681.P
+    Autor      : Cristina - log9646
+    Utilizado  : wcc0392.p ( Consulta Variacao Preco )
+                 wcc0393.w ( Relatorio Evolucao Preco)
+  ----------------------------------------------------------------------- */
+
+     /* cotacao da moeda */
+    assign c-data = string(year(controle-preco.data-cotacao),"9999") + 
+                    string(month(controle-preco.data-cotacao),"99").
+                    
+    /* cotacao do respectivo dia */
+    assign i-dia  = day(controle-preco.data-cotacao). 
+    
+    if piTipoPreco = 1 then do: 
+       assign de-preco = controle-preco.preco-unit-vista.
+    end.   
+    else if piTipoPreco = 2 then do: 
+       assign de-preco = controle-preco.preco-unit-prazo.
+    end.   
+
+    /* busca o registro mais recente e o mais antigo entre a data inicial e o 
+        inicio do calculo de variacao */
+
+    if pdInicioCalculo = ? then do:
+        assign da-data-ant  = pdDataInicial - 365 
+               da-data-acum = pdDataInicial - 365.
+        
+        if da-data-ant = ? then
+            assign da-data-ant       = pdDataInicial
+                   da-inicio-calculo = pdDataInicial.           
+        else 
+            assign da-inicio-calculo = da-data-ant.
+        
+        if da-data-acum = ? then
+            assign da-data-acum      = pdDataInicial
+                   da-inicio-calculo = pdDataInicial.           
+        else
+            assign da-inicio-calculo = da-data-acum.
+        
+/*           assign da-inicio-calculo = ?.        */
+    end.        
+    else
+        assign da-data-ant       = pdInicioCalculo
+               da-data-acum      = pdInicioCalculo
+               da-inicio-calculo = pdInicioCalculo.
+    
+    assign de-preco-ant   = 0 
+           de-preco-acum  = 0 
+           de-preco-ant1  = 0
+           de-preco-acum1 = 0
+           de-preco-ant2  = 0
+           de-preco-acum2 = 0.
+    
+    find last b-controle-preco no-lock where         /* % anterior */
+         b-controle-preco.it-codigo     = controle-preco.it-codigo    and
+         b-controle-preco.cod-estabel   = controle-preco.cod-estabel  and
+         b-controle-preco.cod-emitente  = controle-preco.cod-emitente and
+         b-controle-preco.data-cotacao >= da-data-ant                    and
+         b-controle-preco.data-cotacao < pdDataInicial no-error. 
+         
+    if avail b-controle-preco then
+        assign da-data-ant  = b-controle-preco.data-cotacao.
+    else
+        assign da-data-ant  = pdDataInicial. 
+    
+    assign de-preco-ant = 0.    
+
+    if piTipoPreco          = 1 then  do:
+       assign de-preco-ant  = if avail b-controle-preco
+                              then b-controle-preco.preco-unit-vista
+                              else   controle-preco.preco-unit-vista.
+    end.
+    else if piTipoPreco     = 2 then do:
+       assign de-preco-ant  = if avail b-controle-preco
+                              then b-controle-preco.preco-unit-prazo
+                              else   controle-preco.preco-unit-prazo.
+    end.
+    
+    run Converte_cotacao_moeda (input  pdeMoeda1,       
+                                input  de-preco-ant,  
+                                input  c-data,
+                                input  i-dia,
+                                output de-cotacao-moeda1,
+                                output de-preco-ant1).
+
+    run Converte_cotacao_moeda (input  pdeMoeda1,
+                                input  de-preco-ant,  
+                                input  c-data,
+                                input  i-dia,
+                                output de-cotacao-moeda2,
+                                output de-preco-ant2).
+    
+    find first b-controle-preco no-lock where   /* % Acumulado */
+         b-controle-preco.it-codigo     = controle-preco.it-codigo    and
+         b-controle-preco.cod-estabel   = controle-preco.cod-estabel  and
+         b-controle-preco.cod-emitente  = controle-preco.cod-emitente and
+         b-controle-preco.data-cotacao >= da-data-acum                   and
+         b-controle-preco.data-cotacao < pdDataInicial no-error.  
+         
+    if avail b-controle-preco then
+        assign da-data-acum  = b-controle-preco.data-cotacao.
+    else
+        assign da-data-acum  = pdDataInicial.
+    
+    assign de-preco-acum = 0.    
+
+    if piTipoPreco           = 1 then  do:
+       assign de-preco-acum  = if avail b-controle-preco
+                              then b-controle-preco.preco-unit-vista
+                              else   controle-preco.preco-unit-vista.
+    end.
+    else if piTipoPreco      = 2 then do:
+       assign de-preco-acum  = if avail b-controle-preco
+                              then b-controle-preco.preco-unit-prazo
+                              else   controle-preco.preco-unit-prazo.
+    end.
+
+    run Converte_cotacao_moeda (input  pdeMoeda1,     
+                                input  de-preco-acum,  
+                                input  c-data,
+                                input  i-dia,
+                                output de-cotacao-moeda1,
+                                output de-preco-acum1).
+
+    run Converte_cotacao_moeda (input  pdeMoeda1,     
+                                input  de-preco-acum,  
+                                input  c-data,
+                                input  i-dia,
+                                output de-cotacao-moeda2,
+                                output de-preco-acum2).
+                              
+ /**** fim ****/

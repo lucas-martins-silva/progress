@@ -1,0 +1,9 @@
+DEF VAR l-fn-imp-adicao-un   AS   LOGICAL INIT NO                    NO-UNDO.
+
+&IF "{&bf_mat_versao_ems}" >= "2.04" &THEN
+     IF CAN-FIND(funcao
+                 WHERE funcao.cd-funcao = "spp-imp-adicao-un":U
+                   AND funcao.ativo) THEN
+                        ASSIGN l-fn-imp-adicao-un = YES.
+&ENDIF     
+         

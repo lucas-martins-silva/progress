@@ -1,0 +1,362 @@
+PROCEDURE beforeCopyBuffer2TT :
+/*------------------------------------------------------------------------------
+  Purpose:
+  Parameters:
+  Notes:       
+------------------------------------------------------------------------------*/
+   
+  IF lAgrupaPorItem THEN DO:
+     if i-cont < 1 then ASSIGN cLastItem = "?".
+     assign i-cont = i-cont + 1.
+
+     repeat while (item-doc-est.it-codigo = cLastItem):
+       get next qr{&TableName}.
+
+       if not avail item-doc-est then do:
+          get last qr{&TableName}.
+          leave.
+       end.
+     end.
+
+     ASSIGN cLastItem = item-doc-est.it-codigo.
+     if (i-cont = 1) then
+       ASSIGN cLastItem = "?".
+     /* o browser sempre encontra o 1õ registro (que ² branco) e depois traz os registros do browser */
+     /* coloquei esse if para que o primeiro item da quey seja ignorado */
+  END.
+
+  return "OK".
+END PROCEDURE.
+
+
+
+
+PROCEDURE beforeDestroy :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:  Elimina a BOs da mem½ria.      
+------------------------------------------------------------------------------*/
+
+    if  valid-handle (h-boin404re) then do:
+        delete procedure h-boin404re.
+        assign h-boin404re = ?.
+    end.
+
+    if  valid-handle (h-boin090) then do:
+        delete procedure h-boin090.
+        assign h-boin090 = ?.
+    end.
+    
+    if  valid-handle (h_bodi317im2bra) then do:
+        delete procedure h_bodi317im2bra.
+        assign h_bodi317im2bra = ?.
+    end.
+    
+    if  valid-handle (h-bodi613calc2) then do:
+        delete procedure h-bodi613calc2.
+        assign h-bodi613calc2 = ?.
+    end.
+    
+    if  valid-handle (h-cdcfgfiscal) then do:
+        delete procedure h-cdcfgfiscal.
+        assign h-cdcfgfiscal = ?.
+    end.
+
+    if  valid-handle (h-boin367) then do:
+        delete procedure h-boin367.
+        assign h-boin367 = ?.
+    end.
+
+    if  valid-handle (h-boin010) then do:
+        delete procedure h-boin010.
+        assign h-boin010 = ?.
+    end.
+
+    if  valid-handle (h-boin006) then do:
+        delete procedure h-boin006.
+        assign h-boin006 = ?.
+    end.
+
+    if  valid-handle (h-cd4337) then do:
+        delete procedure h-cd4337.
+        assign h-cd4337 = ?.
+    end.
+
+    if  valid-handle (h-cd4338) then do:
+        delete procedure h-cd4338.
+        assign h-cd4338 = ?.
+    end.
+
+    if  valid-handle (h-boiv029) then do:
+        delete procedure h-boiv029.
+        assign h-boiv029 = ?.
+    end.
+
+    if  valid-handle (h_api_ccusto) then do:
+        delete object h_api_ccusto.
+        assign h_api_ccusto = ?.
+    end.
+    if  valid-handle (h_api_cta_ctbl) then do:
+        delete object h_api_cta_ctbl.
+        assign h_api_cta_ctbl = ?.
+    end.   
+    
+    if  valid-handle (h-cdapi034) then do:
+        delete procedure h-cdapi034.
+        assign h-cdapi034 = ?.
+    end.  
+
+    return "OK":U.
+    
+    finally:
+        if  valid-handle (h-cdapi995) then do:
+            delete procedure h-cdapi995.
+            assign h-cdapi995 = ?.
+        end. 
+    end finally.
+
+END PROCEDURE.
+
+procedure destroyBoiv029:
+
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Elimina a BOIV029 da mem¢ria.      
+------------------------------------------------------------------------------*/
+
+	if  valid-handle (h-boiv029) then do:
+	    delete procedure h-boiv029.
+	    assign h-boiv029 = ?.
+	end.
+
+        return "OK":U.
+        
+        finally:
+            if  valid-handle (h-cdapi995) then do:
+                delete procedure h-cdapi995.
+                assign h-cdapi995 = ?.
+            end. 
+        end finally.
+
+end procedure.
+
+procedure eliminaHandlesFatur:
+
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Elimina handles de BOs do Faturamento da mem¢ria.
+------------------------------------------------------------------------------*/
+
+    if  valid-handle (h_bodi317im2bra) then do:
+        delete procedure h_bodi317im2bra.
+        assign h_bodi317im2bra = ?.
+    end.
+    
+    if  valid-handle (h-bodi613calc2) then do:
+        delete procedure h-bodi613calc2.
+        assign h-bodi613calc2 = ?.
+    end.
+    
+    if  valid-handle (h-cdcfgfiscal) then do:
+        delete procedure h-cdcfgfiscal.
+        assign h-cdcfgfiscal = ?.
+    end.
+
+end procedure.
+
+PROCEDURE beforeUpdateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Desaloca ordem de compra e saldo em poder de terceiros.      
+------------------------------------------------------------------------------*/
+    DEF VAR h-boin404      AS HANDLE     NO-UNDO.
+
+    for first b-item-doc-est
+        fields ( cod-emitente  serie-docto  nro-docto     
+                 nat-operacao  sequencia    dec-1
+                 quantidade )
+         where b-item-doc-est.cod-emitente = RowObject.cod-emitente
+           and b-item-doc-est.serie-docto  = RowObject.serie-docto
+           and b-item-doc-est.nro-docto    = RowObject.nro-docto
+           and b-item-doc-est.nat-operacao = RowObject.nat-operacao
+           and b-item-doc-est.sequencia    = RowObject.sequencia 
+           no-lock: end.
+
+    run getFatAntecipEntFutura (input  RowObject.nat-operacao,
+                                output l-fatura-fat-antecip,
+                                output l-remessa-fat-antecip,
+                                output l-fatura-ent-futura,
+                                output l-remessa-ent-futura).
+        
+    /* Se for remessa de faturamento antecipado:
+       Diminui a quantidade do documento a qtd-receb-fisic da sdo-fatur-antecip (bodi578) */
+    IF  l-remessa-fat-antecip THEN DO:
+        IF NOT VALID-HANDLE(h-bodi578) THEN
+            RUN dibo/bodi578.p PERSISTENT SET h-bodi578.
+        
+        RUN atualizaSaldoFisicoItem IN h-bodi578 (input b-item-doc-est.seq-comp,
+                                                  input "",
+                                                  input "",
+                                                  input "",
+                                                  input 0,
+                                                  input "",
+                                                  input "",
+                                                  input 0,
+                                                  input (b-item-doc-est.quantidade * -1)).       
+        DELETE PROCEDURE h-bodi578.          
+    END.    
+   
+
+    /* Desaloca»’o Saldo Terceiros */
+    if  natur-oper.tp-oper-terc = 2           /* Retorno Beneficiamento */
+    or  natur-oper.tp-oper-terc = 4           /* Faturamento Consignacao  */
+    or  natur-oper.tp-oper-terc = 5           /* Devolucao Consignacao  */
+    or  natur-oper.tp-oper-terc = 9           /* Retorno Dep Fechado */
+    or  natur-oper.tp-oper-terc = 11 then do: /* Retorno Armaz Geral */
+
+        find saldo-terc 
+            where saldo-terc.cod-emitente = RowObject.cod-emitente
+              and saldo-terc.nro-docto    = RowObject.nro-comp
+              and saldo-terc.serie-docto  = RowObject.serie-comp
+              and saldo-terc.nat-operacao = RowObject.nat-comp
+              and saldo-terc.it-codigo    = RowObject.it-codigo
+              and saldo-terc.cod-refer    = RowObject.cod-refer
+              and saldo-terc.sequencia    = RowObject.seq-comp
+            exclusive-lock no-error.
+
+        if  avail saldo-terc 
+        and avail item-doc-est then do:
+
+            /* Devolu‡Æo Simbolica Consigna‡Æo */
+            IF  {cdp/cd0066.i2 saldo-terc.cod-estabel}
+            AND natur-oper.tp-oper-terc = 4 THEN DO: /* Faturamento Consignacao  */
+                RUN inbo/boin404.p PERSISTENT SET h-boin404.
+                RUN updateFifoDevolucaoSimbolica
+                            IN h-boin404 (YES,
+                                          NO,
+                                          ROWID(saldo-terc),
+                                          item-doc-est.quantidade).
+                DELETE PROCEDURE h-boin404.
+            end.
+            else do:
+                /* Desaloca */
+                assign saldo-terc.dec-1   = saldo-terc.dec-1 - b-item-doc-est.quantidade
+                       saldo-terc.dec-1   = if  saldo-terc.dec-1 < 0 
+                                            then 0 
+                                            else saldo-terc.dec-1.
+                release saldo-terc. 
+            end.
+        end.   
+    end.
+    
+    /*Altera‡Æo dos registros dos codigos de ajuste - CD4035*/
+    run beforeUpdateNotaFiscAdc (INPUT RowObject.serie-docto, 
+                                 INPUT RowObject.nro-docto,   
+                                 INPUT RowObject.cod-emitente,
+                                 INPUT RowObject.nat-operacao,
+                                 INPUT RowObject.sequencia,
+                                 INPUT RowObject.nat-of).
+    
+    return "OK":U.
+
+END PROCEDURE.
+
+PROCEDURE beforeValidateBoin060 :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:  Instancia e elimina boin060 na memoria.      
+------------------------------------------------------------------------------*/
+    define input param i-boin060 as integer no-undo. 
+    
+    if i-boin060 = 1 then do:  /* 1 - Instancia */
+        if  not valid-handle(h-boin060)
+        or  h-boin060:type      <> "PROCEDURE":U
+        or  h-boin060:file-name <> "inbo/boin060.p":U then
+        run inbo/boin060.p persistent set h-boin060.
+    end.
+    else do: /* 2 - Elimina */
+        delete procedure h-boin060 no-error.
+        assign h-boin060 = ?.
+    end.
+        
+    return "OK":U.
+
+END PROCEDURE.
+
+PROCEDURE beforeUpdateNotaFiscAdc :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Altera‡Æo dos registros dos codigos de ajuste - CD4035 
+------------------------------------------------------------------------------*/
+
+    DEFINE INPUT PARAMETER pserie-docto  LIKE item-doc-est.serie-docto  NO-UNDO.
+    DEFINE INPUT PARAMETER pnro-docto    LIKE item-doc-est.nro-docto    NO-UNDO.
+    DEFINE INPUT PARAMETER pcod-emitente LIKE item-doc-est.cod-emitente NO-UNDO.
+    DEFINE INPUT PARAMETER pnat-operacao LIKE item-doc-est.nat-operacao NO-UNDO.
+    DEFINE INPUT PARAMETER psequencia    LIKE item-doc-est.sequencia    NO-UNDO. 
+    DEFINE INPUT PARAMETER pnat-of       LIKE item-doc-est.nat-of       NO-UNDO.
+
+    IF NOT AVAIL docum-est THEN
+       for first docum-est no-lock
+           where docum-est.serie-docto  = pserie-docto 
+             and docum-est.nro-docto    = pnro-docto   
+             and docum-est.cod-emitente = pcod-emitente
+             and docum-est.nat-operacao = pnat-operacao: end.    
+
+    for first b-item-doc-est no-lock
+        where b-item-doc-est.serie-docto  = pserie-docto 
+          and b-item-doc-est.nro-docto    = pnro-docto
+          and b-item-doc-est.cod-emitente = pcod-emitente
+          and b-item-doc-est.nat-operacao = pnat-operacao
+          and b-item-doc-est.sequencia    = psequencia: end.         
+    
+    IF AVAIL docum-est AND 
+       AVAIL b-item-doc-est AND 
+       CAN-FIND(FIRST nota-fisc-adc NO-LOCK
+                WHERE nota-fisc-adc.cod-estab         = docum-est.cod-estabel
+                  AND nota-fisc-adc.cod-serie         = b-item-doc-est.serie-docto 
+                  AND nota-fisc-adc.cod-nota-fisc     = b-item-doc-est.nro-docto   
+                  AND nota-fisc-adc.cdn-emitente      = b-item-doc-est.cod-emitente
+                  AND nota-fisc-adc.cod-natur-operac <> pnat-of
+                  AND nota-fisc-adc.idi-tip-dado      = 7
+                  AND nota-fisc-adc.cod-item          = b-item-doc-est.it-codigo
+                  AND nota-fisc-adc.num-livre-1       = b-item-doc-est.sequencia) THEN DO:
+        
+        IF NOT VALID-HANDLE(h-bodi515) THEN
+           RUN dibo/bodi515.p PERSISTENT SET h-bodi515.
+        RUN openQueryStatic IN h-bodi515 (INPUT "Main":U).
+        
+        FOR EACH nota-fisc-adc NO-LOCK
+           WHERE nota-fisc-adc.cod-estab         = docum-est.cod-estabel
+             AND nota-fisc-adc.cod-serie         = b-item-doc-est.serie-docto
+             AND nota-fisc-adc.cod-nota-fisc     = b-item-doc-est.nro-docto
+             AND nota-fisc-adc.cdn-emitente      = b-item-doc-est.cod-emitente
+             AND nota-fisc-adc.cod-natur-operac <> pnat-of
+             AND nota-fisc-adc.idi-tip-dado      = 7
+             AND nota-fisc-adc.cod-item          = b-item-doc-est.it-codigo
+             AND nota-fisc-adc.num-livre-1       = b-item-doc-est.sequencia:
+             
+            RUN goToKey IN h-bodi515 (INPUT nota-fisc-adc.cod-estab,
+                                      INPUT nota-fisc-adc.cod-serie,
+                                      INPUT nota-fisc-adc.cod-nota-fisc,
+                                      INPUT nota-fisc-adc.cdn-emitente,
+                                      INPUT nota-fisc-adc.cod-natur-operac,
+                                      INPUT 7, 
+                                      INPUT nota-fisc-adc.num-seq).
+            IF RETURN-VALUE = "OK":U THEN
+                RUN deleteRecord IN h-bodi515.
+        END.
+        
+        IF VALID-HANDLE(h-bodi515) THEN
+           DELETE PROCEDURE h-bodi515.
+    END.
+        
+    return "OK":U.
+
+END PROCEDURE.

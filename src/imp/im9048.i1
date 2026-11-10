@@ -1,0 +1,1233 @@
+{utp/ut-glob.i}  /* Variaveis Globais */
+{cdp/cdcfgmat.i} /* pre-processadores */
+{cdp/cdcfgdis.i} /* pre-processadores */
+{cdp/cd0666.i}   /* tt-erros */
+
+{cdp/cdapi020.i}
+ 
+{include/i-epc200.i im9048}  /* Temp-table tt-epc */
+
+define buffer bf-param-imp for param-imp.
+define variable c-cod-estabel like param-imp.cod-estabel no-undo.
+DEFINE VARIABLE de-indice-pis       AS DECIMAL NO-UNDO.
+DEFINE VARIABLE de-indice-cofins    AS DECIMAL NO-UNDO.
+
+PROCEDURE pi-tributa-aliquota-pis-importacao:
+
+    DEFINE PARAMETER BUFFER b-natur-oper FOR natur-oper.
+    DEFINE PARAMETER BUFFER b-item       FOR item.
+    DEFINE INPUT  PARAMETER pc-cod-estabel              LIKE estabelec.cod-estabel       NO-UNDO.
+    DEFINE INPUT  PARAMETER pda-emissao                 AS   DATE FORMAT "99/99/9999"    NO-UNDO.
+    DEFINE INPUT  PARAMETER l-considera-ordens-embarque AS   LOGICAL                     NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-embarque                 LIKE embarque-imp.embarque       NO-UNDO.
+    DEFINE INPUT  PARAMETER pi-numero-ordem             LIKE ordem-compra.numero-ordem   NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-parcela                  LIKE prazo-compra.parcela        NO-UNDO.
+    DEFINE OUTPUT PARAMETER pi-trib-pis                 AS   INTEGER                     NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-aliq-pis                AS   DECIMAL FORMAT "999.9999"   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-valor-un-pis            AS   DECIMAL FORMAT ">>>9.99999" NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-valor-vol-pis           AS   DECIMAL FORMAT ">>>9.99999" NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-red-pis                 AS   DECIMAL FORMAT ">>9.99"     NO-UNDO. /* Valor Reducao PIS */
+    
+    DEFINE VARIABLE d-aliquota-pis-acresc               AS   DECIMAL                     NO-UNDO.
+    DEFINE VARIABLE c-cod-cfop                          AS   CHARACTER                   NO-UNDO.
+    
+    DEFINE VARIABLE c-class-fiscal like classif-fisc.class-fiscal NO-UNDO.
+
+    &IF DEFINED(bf_dis_formato_CFOP) &THEN
+        ASSIGN c-cod-cfop = b-natur-oper.cod-cfop.
+    &ELSE
+        ASSIGN c-cod-cfop = TRIM(SUBSTRING(b-natur-oper.char-1,45,10)).
+    &ENDIF
+
+    DEF VAR i-trib-pis-nat  AS INTEGER NO-UNDO.
+    DEF VAR i-trib-pis-item AS INTEGER NO-UNDO.
+    DEF VAR l-gravado-ordens-embarque AS LOGICAL INITIAL NO NO-UNDO.
+    DEF VAR de-red-pis      AS DECIMAL FORMAT ">>9.99" NO-UNDO.
+    
+    {cxbo/bocx250.i2} /* variaveis char-1 param-imp */
+    {cxbo/bocx225e.i1} /* variaveis ordens-embarque */
+
+    find first item-mat 
+        where item-mat.it-codigo = b-item.it-codigo no-lock no-error.
+
+    FIND param-imp
+        WHERE param-imp.cod-estabel = pc-cod-estabel NO-LOCK NO-ERROR.
+
+    {cxbo/bocx250.i3 param-imp} /*busca valores do char-1 do param-imp */
+
+    IF pda-emissao < da-ini-pis-param-imp THEN DO:
+        ASSIGN pi-trib-pis  = 2  /* isento */
+               pde-aliq-pis = 0.
+    END.
+    ELSE DO:
+    
+         IF b-item.tipo-contr = 4 THEN DO:
+             FIND FIRST cotacao-item
+                  WHERE cotacao-item.numero-ordem  = pi-numero-ordem
+                    AND cotacao-item.cot-aprovada NO-LOCK NO-ERROR.
+             IF AVAIL cotacao-item THEN
+                 assign c-class-fiscal = substring(cotacao-item.char-1,81,20).
+             ELSE
+                 assign c-class-fiscal = b-item.class-fiscal.
+         END.
+         ELSE
+             assign c-class-fiscal = b-item.class-fiscal.
+
+         /* Inicio chamada UPC - evento ClassFiscalEsp */
+         for each tt-epc  
+            where tt-epc.cod-event = "ClassFiscalEsp":
+             delete tt-epc.
+         end.
+         
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "cod-estabel":U
+                tt-epc.val-parameter = pc-cod-estabel.
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "embarque":U
+                tt-epc.val-parameter = pc-embarque.
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "numero-ordem":U
+                tt-epc.val-parameter = string(pi-numero-ordem).
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "parcela":U
+                tt-epc.val-parameter = string(pc-parcela).
+         create tt-epc.
+         
+         {include/i-epc201.i "ClassFiscalEsp"} 
+         
+         FOR FIRST tt-epc 
+             where tt-epc.cod-event     = "ClassFiscalEsp":U
+             AND   tt-epc.cod-parameter = "class-fiscal-esp":U:
+         
+             ASSIGN c-class-fiscal = tt-epc.val-parameter.
+         END.
+         /* Fim chamada UPC - evento ClassFiscalEsp */
+
+        IF TRIM(c-cod-cfop) BEGINS '3' THEN DO:
+            IF DEC(SUBSTR(b-item.char-2,84,9)) <> 0 THEN
+                ASSIGN d-aliquota-pis-acresc = DEC(SUBSTR(b-item.char-2,84,9)). /* PIS Acres com 4 decimais */
+            ELSE
+                ASSIGN d-aliquota-pis-acresc = dec(substring(b-item.char-2,74,5)).
+            
+            IF d-aliquota-pis-acresc = 0 THEN DO:
+                FOR FIRST classif-fisc FIELDS(class-fiscal
+                                              &IF '{&bf_dis_versao_ems}' >= '2.09' &THEN
+                                              val-aliq-pis-acresc
+                                              &ELSE
+                                              char-1
+                                              &ENDIF) NO-LOCK
+                    WHERE classif-fisc.class-fiscal = c-class-fiscal:
+                    &IF '{&bf_dis_versao_ems}' >= '2.09' &THEN
+                        ASSIGN d-aliquota-pis-acresc = classif-fisc.val-aliq-pis-acresc.
+                    &ELSE
+                        ASSIGN d-aliquota-pis-acresc = dec(substring(classif-fisc.char-1,65,9)) no-error.
+                    &endif
+                END.
+            END.    
+            
+            FIND FIRST ordens-embarque
+                 WHERE ordens-embarque.cod-estabel  = pc-cod-estabel 
+                   AND ordens-embarque.embarque     = pc-embarque
+                   AND ordens-embarque.numero-ordem = pi-numero-ordem
+                   AND ordens-embarque.parcela      = pc-parcela NO-LOCK NO-ERROR.
+            
+            if d-aliquota-pis-acresc > 0 
+               and (not l-considera-ordens-embarque
+                OR (avail ordens-embarque AND not ordens-embarque.log-ja-gravad)) then /* so calcula majorada quando nao for informada aliquota no im0100d ou opcao recarrega */     
+                ASSIGN pde-aliq-pis = d-aliquota-pis-acresc.
+        END.    
+    
+        /* verifica se foi informado no im0100b */
+        IF l-considera-ordens-embarque THEN DO:
+            FIND ordens-embarque
+                WHERE ordens-embarque.cod-estabel  = pc-cod-estabel 
+                  AND ordens-embarque.embarque     = pc-embarque
+                  AND ordens-embarque.numero-ordem = pi-numero-ordem
+                  AND ordens-embarque.parcela      = pc-parcela NO-LOCK NO-ERROR.
+
+                             
+            IF AVAIL ordens-embarque THEN DO:  
+                         
+               {cxbo/bocx225e.i4 NO ordens-embarque}        
+               if l-ja-gravado or d-aliquota-pis-acresc = 0 then
+                   ASSIGN pi-trib-pis  = i-trib-pis-i1
+                          pde-aliq-pis = de-aliq-pis-i1
+                          l-gravado-ordens-embarque = l-ja-gravado.
+               else           
+                   ASSIGN pi-trib-pis  = i-trib-pis-i1
+                          l-gravado-ordens-embarque = l-ja-gravado.
+                          
+            END.
+        END.
+    
+        IF NOT l-gravado-ordens-embarque  THEN DO:
+        
+            /* tributacao */
+            IF i-trib-pis-param-imp = 2 /* Isento */ OR 
+               i-trib-pis-param-imp = 3 /* Outros */ THEN
+                ASSIGN pi-trib-pis = i-trib-pis-param-imp.
+            ELSE DO:
+                ASSIGN i-trib-pis-nat  = INTEGER(SUBSTRING(b-natur-oper.char-1,86,1)).
+
+                FIND item-mat WHERE item-mat.it-codigo = b-item.it-codigo NO-LOCK NO-ERROR.
+                IF  AVAIL  item-mat THEN
+                    ASSIGN i-trib-pis-item = item-mat.idi-tributac-pis.
+            
+                CASE i-trib-pis-nat:
+                    WHEN 1 THEN /* tributado ou reduzido*/
+                        ASSIGN pi-trib-pis = IF i-trib-pis-item > 0 THEN i-trib-pis-item ELSE i-trib-pis-nat.
+                    WHEN 2 THEN /* isento */
+                        ASSIGN pi-trib-pis = i-trib-pis-nat.
+                    WHEN 3 THEN /* outros */
+                        ASSIGN pi-trib-pis = i-trib-pis-nat.
+                    WHEN 4 THEN /* reduzido*/
+                        ASSIGN pi-trib-pis = IF i-trib-pis-item > 0 THEN i-trib-pis-item ELSE i-trib-pis-nat.
+                END CASE.
+        
+            END.
+
+            if d-aliquota-pis-acresc = 0 and de-aliq-pis-i1 = 0 then     
+                /* aliquota */
+                if integer(substring(b-item.char-2,52,1)) = 1 then do: /* origem item */ 
+                   if DEC(SUBSTR(item-mat.char-1,247,9)) <> 0 then
+                       assign pde-aliq-pis = DEC(SUBSTR(item-mat.char-1,247,9)). /* PIS com 4 decimais */
+                   else
+                       assign pde-aliq-pis = item-mat.val-aliq-ext-pis.
+                end.
+                else
+                    if DEC(SUBSTR(b-natur-oper.char-1,183,9)) <> 0 then
+                        assign pde-aliq-pis = DEC(SUBSTR(b-natur-oper.char-1,183,9)). /* PIS com 4 decimais */
+                    else
+                        assign pde-aliq-pis = b-natur-oper.perc-pis[2]. /* origem natureza */
+        END.
+    END.   
+    
+    if not avail item-mat then
+       find item-mat where item-mat.it-codigo = b-item.it-codigo no-lock no-error.
+    
+    IF AVAIL item-mat THEN DO:
+       ASSIGN pde-valor-un-pis  = item-mat.val-unit-pis
+              pde-valor-vol-pis = item-mat.val-unit-vol-pis.
+     
+       IF SUBSTRING(item-mat.char-1,40,1) = "S" THEN DO:                  
+          ASSIGN pde-aliq-pis  = 0.         
+          /*Converte valor unit rio para unidade do estoque*/
+          IF SUBSTRING(item-mat.char-1,243,2) <> "" AND  /*Unidade p/ Calculo*/
+             b-item.un <> SUBSTRING(item-mat.char-1,243,2) THEN DO:              
+             FOR FIRST tab-conv-un NO-LOCK
+                 WHERE tab-conv-un.un           = b-item.un
+                   AND tab-conv-un.unid-med-for = SUBSTRING(item-mat.char-1,243,2):          
+                 ASSIGN de-indice-pis = tab-conv-un.fator-conver / IF tab-conv-un.num-casa-dec = 0 THEN 1
+                                                                   ELSE EXP(10,tab-conv-un.num-casa-dec).                                                           
+                 ASSIGN pde-valor-un-pis = item-mat.val-unit-pis * de-indice-pis.                  
+             END.
+          END.
+       END.
+       
+    END.
+
+    /*
+    ** Verifica se item possui redu‡Æo
+    */
+    if not l-gravado-ordens-embarque then do:
+        ASSIGN de-red-pis = decimal(SUBSTRING(b-item.char-2,41,5)).
+
+        IF de-red-pis <> 0 THEN DO:
+            IF trim(substring(param-imp.char-1,245,1)) = "":U then /*Calcula al¡quota reduzida*/
+               ASSIGN pde-aliq-pis = pde-aliq-pis - (pde-aliq-pis * (de-red-pis / 100)) when d-aliquota-pis-acresc = 0.   
+        END.
+    end.   
+    
+    ASSIGN pde-red-pis = de-red-pis.
+    
+    /*
+    ** Se a tributacao for definida como isento, a aliquota sera zerada
+    */
+    if pi-trib-pis = 2 then /* isento */
+        assign pde-aliq-pis = 0.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+PROCEDURE pi-tributa-aliquota-cofins-importacao:
+
+    DEFINE PARAMETER BUFFER b-natur-oper FOR natur-oper.
+    DEFINE PARAMETER BUFFER b-item       FOR item.
+    DEFINE INPUT  PARAMETER pc-cod-estabel              LIKE estabelec.cod-estabel       NO-UNDO.
+    DEFINE INPUT  PARAMETER pda-emissao                 AS   DATE FORMAT "99/99/9999"    NO-UNDO.
+    DEFINE INPUT  PARAMETER l-considera-ordens-embarque AS   LOGICAL                     NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-embarque                 LIKE embarque-imp.embarque       NO-UNDO.
+    DEFINE INPUT  PARAMETER pi-numero-ordem             LIKE ordem-compra.numero-ordem   NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-parcela                  LIKE prazo-compra.parcela        NO-UNDO.
+    DEFINE OUTPUT PARAMETER pi-trib-cofins              AS   INTEGER                     NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-aliq-cofins             AS   DECIMAL FORMAT "999.9999"   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-valor-un-cofins         AS   DECIMAL FORMAT ">>>9.99999" NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-valor-vol-cofins        AS   DECIMAL FORMAT ">>>9.99999" NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-red-cofins              AS   DECIMAL FORMAT ">>9.99"     NO-UNDO.
+    
+    def var d-aliquota-cofins-acresc as dec  no-undo.
+    def var c-cod-cfop               as char no-undo.
+    def var c-class-fiscal like classif-fisc.class-fiscal no-undo.
+
+    &IF defined(bf_dis_formato_CFOP) &THEN
+        assign c-cod-cfop = b-natur-oper.cod-cfop.
+    &else
+        assign c-cod-cfop = trim(substr(b-natur-oper.char-1,45,10)).
+    &ENDIF
+    
+    DEF VAR i-trib-cofins-nat  AS INTEGER NO-UNDO.
+    DEF VAR i-trib-cofins-item AS INTEGER NO-UNDO.
+
+    DEF VAR l-gravado-ordens-embarque AS LOGICAL INITIAL NO NO-UNDO.
+    DEF VAR de-red-cofins             AS DECIMAL FORMAT ">>9.99" NO-UNDO.
+
+    {cxbo/bocx250.i2} /* variaveis char-1 param-imp */
+    {cxbo/bocx225e.i1} /* variaveis ordens-embarque */
+
+    FIND param-imp
+        WHERE param-imp.cod-estabel = pc-cod-estabel NO-LOCK NO-ERROR.
+
+    {cxbo/bocx250.i3 param-imp} /*busca valores do char-1 do param-imp */
+
+    IF pda-emissao < da-ini-cofins-param-imp THEN DO:
+        ASSIGN pi-trib-cofins  = 2  /* isento */
+               pde-aliq-cofins = 0.
+    END.
+    ELSE DO:
+    
+         IF b-item.tipo-contr = 4 THEN DO:
+             FIND FIRST cotacao-item
+                  WHERE cotacao-item.numero-ordem  = pi-numero-ordem
+                    AND cotacao-item.cot-aprovada NO-LOCK NO-ERROR.
+             IF AVAIL cotacao-item THEN
+                 assign c-class-fiscal = substring(cotacao-item.char-1,81,20).
+             ELSE
+                 assign c-class-fiscal = b-item.class-fiscal.
+         END.
+         ELSE
+             assign c-class-fiscal = b-item.class-fiscal.
+
+         /* Inicio chamada UPC - evento ClassFiscalEsp */
+         for each tt-epc  
+            where tt-epc.cod-event = "ClassFiscalEsp":
+             delete tt-epc.
+         end.
+         
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "cod-estabel":U
+                tt-epc.val-parameter = pc-cod-estabel.
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "embarque":U
+                tt-epc.val-parameter = pc-embarque.
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "numero-ordem":U
+                tt-epc.val-parameter = string(pi-numero-ordem).
+         create tt-epc.
+         assign tt-epc.cod-event     = "ClassFiscalEsp":U
+                tt-epc.cod-parameter = "parcela":U
+                tt-epc.val-parameter = string(pc-parcela).
+         create tt-epc.
+         
+         {include/i-epc201.i "ClassFiscalEsp"} 
+         
+         FOR FIRST tt-epc 
+             where tt-epc.cod-event     = "ClassFiscalEsp":U
+             AND   tt-epc.cod-parameter = "class-fiscal-esp":U:
+         
+             ASSIGN c-class-fiscal = tt-epc.val-parameter.
+         END.
+         /* Fim chamada UPC - evento ClassFiscalEsp */
+
+        /* ------------------------- */
+        /* MP563 - aliquota majorada */
+        /* ------------------------- */
+        if trim(c-cod-cfop) begins '3' then do:
+            IF DEC(SUBSTR(b-item.char-2,93,9)) <> 0 THEN
+                ASSIGN d-aliquota-cofins-acresc = DEC(SUBSTR(b-item.char-2,93,9)). /* COFINS Acres com 4 decimais */
+            ELSE
+                ASSIGN d-aliquota-cofins-acresc = dec(substring(b-item.char-2,79,5)).
+            
+            IF d-aliquota-cofins-acresc = 0 THEN DO:
+                for first classif-fisc fields(class-fiscal
+                                              &if '{&bf_dis_versao_ems}' >= '2.09' &then
+                                              aliquota-cofins-acresc
+                                              &else
+                                              char-1
+                                              &endif) no-lock
+                    where classif-fisc.class-fiscal = c-class-fiscal: 
+                    &if '{&bf_dis_versao_ems}' >= '2.09' &then
+                        assign d-aliquota-cofins-acresc = classif-fisc.aliquota-cofins-acresc.
+                    &else
+                        assign d-aliquota-cofins-acresc = dec(substring(classif-fisc.char-1,56,9)) no-error.
+                    &endif
+                end.    
+            END.
+                    
+            FIND FIRST ordens-embarque
+                 WHERE ordens-embarque.cod-estabel  = pc-cod-estabel 
+                   AND ordens-embarque.embarque     = pc-embarque
+                   AND ordens-embarque.numero-ordem = pi-numero-ordem
+                   AND ordens-embarque.parcela      = pc-parcela        NO-LOCK NO-ERROR.
+           
+            if  d-aliquota-cofins-acresc > 0
+                and (not l-considera-ordens-embarque
+                OR (avail ordens-embarque AND not ordens-embarque.log-ja-gravad)) then /* so calcula majorada quando nao for informada aliquota no im0100d ou opcao recarrega */
+                    assign pde-aliq-cofins = d-aliquota-cofins-acresc.            
+
+        end.
+        /* ------------------------- */
+        /* MP563 - aliquota majorada */
+        /* ------------------------- */
+
+        /* verifica se foi informado no im0100b */
+        IF l-considera-ordens-embarque THEN DO:
+            FIND ordens-embarque
+                WHERE ordens-embarque.cod-estabel  = pc-cod-estabel 
+                  AND ordens-embarque.embarque     = pc-embarque
+                  AND ordens-embarque.numero-ordem = pi-numero-ordem
+                  AND ordens-embarque.parcela      = pc-parcela NO-LOCK NO-ERROR.
+
+            IF AVAIL ordens-embarque THEN DO:
+                
+               {cxbo/bocx225e.i4 NO ordens-embarque}        
+               if l-ja-gravado or d-aliquota-cofins-acresc = 0 then
+                   ASSIGN pi-trib-cofins  = i-trib-cofins-i1
+                          pde-aliq-cofins = de-aliq-cofins-i1
+                          l-gravado-ordens-embarque = l-ja-gravado.
+               else
+                   ASSIGN pi-trib-cofins  = i-trib-cofins-i1
+                          l-gravado-ordens-embarque = l-ja-gravado.
+
+            END.
+        END.
+    
+        IF NOT l-gravado-ordens-embarque  THEN DO:        
+    
+            /* tributacao */
+            IF i-trib-cofins-param-imp = 2 /* Isento */ OR 
+               i-trib-cofins-param-imp = 3 /* Outros */ THEN
+                ASSIGN pi-trib-cofins = i-trib-cofins-param-imp.
+            ELSE DO:
+                ASSIGN i-trib-cofins-nat = INTEGER(SUBSTRING(b-natur-oper.char-1,87,1)).
+                
+                FIND item-mat WHERE item-mat.it-codigo = b-item.it-codigo NO-LOCK NO-ERROR.
+                IF  AVAIL item-mat THEN
+                    ASSIGN i-trib-cofins-item = item-mat.idi-tributac-cofins.
+            
+                CASE i-trib-cofins-nat:
+                    WHEN 1 THEN /* tributado ou reduzido*/
+                        ASSIGN pi-trib-cofins = IF i-trib-cofins-item > 0 THEN i-trib-cofins-item ELSE i-trib-cofins-nat.
+                    WHEN 2 THEN /* isento */
+                        ASSIGN pi-trib-cofins = i-trib-cofins-nat.
+                    WHEN 3 THEN /* outros */
+                        ASSIGN pi-trib-cofins = i-trib-cofins-nat.
+                    WHEN 4 THEN /* reduzido*/
+                        ASSIGN pi-trib-cofins = IF i-trib-cofins-item > 0 THEN i-trib-cofins-item ELSE i-trib-cofins-nat.
+                END CASE.
+
+            END.
+            
+            if d-aliquota-cofins-acresc = 0 and de-aliq-cofins-i1 = 0 then /* MP563 - aliquota majorada */
+              /* aliquota */
+              if integer(substring(b-item.char-2,53,1)) = 1 then      /* origem item */
+                  if DEC(SUBSTR(item-mat.char-1,256,9)) <> 0 then
+                       assign pde-aliq-cofins = DEC(SUBSTR(item-mat.char-1,256,9)). /* COFINS com 4 decimais */
+                  else
+                       assign pde-aliq-cofins = item-mat.val-aliq-ext-cofins.                 
+              else
+                  if DEC(SUBSTR(b-natur-oper.char-1,192,9)) <> 0 then
+                      assign pde-aliq-cofins = DEC(SUBSTR(b-natur-oper.char-1,192,9)). /* COFINS com 4 decimais */
+                  else
+                      ASSIGN pde-aliq-cofins = b-natur-oper.per-fin-soc[2]. /* origem natureza */
+        END.
+    END.
+    if not avail item-mat then
+       find item-mat where item-mat.it-codigo = b-item.it-codigo no-lock no-error.
+    
+       if avail item-mat then
+          assign pde-valor-un-cofins  = item-mat.val-unit-cofins
+                 pde-valor-vol-cofins = item-mat.val-unit-vol-cofins.
+                 
+       IF SUBSTRING(item-mat.char-1,41,1) = "S" THEN DO:                  
+          ASSIGN pde-aliq-cofins = 0.              
+          /*Converte valor unit rio para unidade do estoque*/
+          IF SUBSTRING(item-mat.char-1,245,2) <> "" AND  /*Unidade p/ Calculo*/
+             b-item.un <> SUBSTRING(item-mat.char-1,245,2) THEN DO:
+             FOR FIRST tab-conv-un NO-LOCK
+                 WHERE tab-conv-un.un           = b-item.un
+                   AND tab-conv-un.unid-med-for = SUBSTRING(item-mat.char-1,245,2):          
+                 ASSIGN de-indice-cofins = tab-conv-un.fator-conver / IF tab-conv-un.num-casa-dec = 0 THEN 1
+                                                                   ELSE EXP(10,tab-conv-un.num-casa-dec).
+                 ASSIGN pde-valor-un-cofins = item-mat.val-unit-cofins * de-indice-cofins.
+             END.
+          END.
+       END.
+
+    /*
+    ** Verifica se item possui redu‡Æo
+    */
+    if not l-gravado-ordens-embarque then do:
+       ASSIGN de-red-cofins = decimal(SUBSTRING(b-item.char-2,46,5)).
+
+       IF de-red-cofins <> 0 THEN DO:
+           IF  avail param-imp 
+           and trim(substring(param-imp.char-1,246,1)) = "":U then /*Calcula al¡quota reduzida*/
+               ASSIGN pde-aliq-cofins = pde-aliq-cofins - (pde-aliq-cofins * (de-red-cofins / 100)) when d-aliquota-cofins-acresc = 0. /* MP563 - aliquota majorada */
+       END.
+    end.
+        
+    ASSIGN pde-red-cofins = de-red-cofins.
+
+    /*
+    ** Se a tributacao for definida como isento, a aliquota sera zerada
+    */
+    if pi-trib-cofins = 2 then /* isento */
+        assign pde-aliq-cofins = 0.
+        
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-calcula-base-pis:
+    DEF INPUT PARAMETER pc-cod-estabel LIKE estabelec.cod-estabel NO-UNDO.
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF INPUT  PARAMETER de-a        AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq imposto de importacao */
+    DEF INPUT  PARAMETER de-b        AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq ipi */
+    DEF INPUT  PARAMETER de-c        AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq pis */
+    DEF INPUT  PARAMETER de-d        AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq cofins */
+    DEF INPUT  PARAMETER de-e        AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq icms */
+    DEF OUTPUT PARAMETER de-base-pis AS DECIMAL FORMAT ">>>>>>>>>9.99":U        NO-UNDO.
+    DEF OUTPUT PARAMETER pde-va-pis  AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* Valor Aduaneiro PIS     */
+    DEF OUTPUT PARAMETER pde-da-pis  AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* Despesas Aduaneiras PIS */
+    DEF OUTPUT PARAMETER TABLE FOR tt-erro.
+
+    DEF VAR de-VA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* valor aduaneiro */
+    DEF VAR de-DA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* despesas aduaneiras */
+    DEF VAR l-deleta-erros AS LOGICAL NO-UNDO.
+    {cxbo/bocx250.i2}
+
+    FOR EACH tt-formula NO-LOCK:
+        DELETE tt-formula.
+    END.
+
+    FOR EACH tt-var NO-LOCK:
+        DELETE tt-var.
+    END.
+    
+    assign c-cod-estabel = pc-cod-estabel.
+
+    RUN pi-calcula-VA-pis (BUFFER b-item-doc-est,
+                           OUTPUT de-VA).
+
+    RUN pi-calcula-DA-pis (BUFFER b-item-doc-est,
+                           OUTPUT de-DA).
+
+    ASSIGN pde-va-pis = de-VA
+           pde-da-pis = de-DA.
+    
+    FIND param-imp
+        WHERE param-imp.cod-estabel = pc-cod-estabel NO-LOCK NO-ERROR.
+    {cxbo/bocx250.i3 param-imp}
+
+    /* Busca a natureza de opera‡Æo p/ verificar os parƒmetros abaixo */
+    FIND natur-oper WHERE natur-oper.nat-operacao = b-item-doc-est.nat-operacao NO-LOCK NO-ERROR. 
+    /* As aliquotas dos impostos II, IPI e ICMS deverÆo ser zeradas quando a natureza de opera‡Æo esteja marcada p/ suspensÆo */
+    IF SUBSTR(natur-oper.char-1,154,1) = "1" THEN ASSIGN de-a = 0.00000. /*aliq-ii*/    
+    IF SUBSTR(natur-oper.char-1,155,1) = "1" THEN ASSIGN de-b = 0.00000. /*aliq-ipi-imp*/ 
+    IF SUBSTR(natur-oper.char-1,156,1) = "1" THEN ASSIGN de-e = 0.00000. /*aliq-icms-imp*/
+
+    /* Formula calculo base PIS */
+    CREATE tt-formula.
+    ASSIGN tt-formula.formula = c-formula-pis-param-imp
+           tt-formula.cod-versao-integracao = 001.
+
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "VA"
+           tt-var.valor     = de-VA
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "DA"
+           tt-var.valor     = de-DA
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "a"
+           tt-var.valor     = de-a / 100
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "b"
+           tt-var.valor     = de-b / 100
+           tt-var.tipo-res  = 1.
+
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "c"
+           tt-var.valor     = de-c / 100
+           tt-var.tipo-res  = 1.  
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "d"
+           tt-var.valor     = de-d / 100
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "e"
+           tt-var.valor     = de-e / 100
+           tt-var.tipo-res  = 1.               
+    
+    RUN cdp/cdapi020.p (INPUT-OUTPUT TABLE tt-formula,
+                        INPUT TABLE tt-var,
+                        INPUT-OUTPUT TABLE tt-erro,
+                        INPUT l-deleta-erros).
+                        
+    IF NOT CAN-FIND(FIRST tt-erro) THEN DO:
+        FIND FIRST tt-formula NO-LOCK NO-ERROR.        
+        IF AVAIL tt-formula THEN
+            ASSIGN de-base-pis = tt-formula.RESULT.
+    END.    
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-calcula-base-cofins:
+    DEF INPUT PARAMETER pc-cod-estabel LIKE estabelec.cod-estabel NO-UNDO.
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF INPUT  PARAMETER de-a           AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq imposto de importacao */
+    DEF INPUT  PARAMETER de-b           AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq ipi */
+    DEF INPUT  PARAMETER de-c           AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq pis */
+    DEF INPUT  PARAMETER de-d           AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq cofins */
+    DEF INPUT  PARAMETER de-e           AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* aliq icms */
+    DEF OUTPUT PARAMETER de-base-cofins AS DECIMAL FORMAT ">>>>>>>>>9.99":U        NO-UNDO.
+    DEF OUTPUT PARAMETER pde-va-cofins  AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* Valor Aduaneiro COFINS     */
+    DEF OUTPUT PARAMETER pde-da-cofins  AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* Despesas Aduaneiras COFINS */
+    DEF OUTPUT PARAMETER TABLE FOR tt-erro.
+
+    DEF VAR de-VA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* valor aduaneiro */
+    DEF VAR de-DA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO. /* despesas aduaneiras */
+    DEF VAR l-deleta-erros AS LOGICAL NO-UNDO.
+    {cxbo/bocx250.i2}
+
+    FOR EACH tt-formula NO-LOCK:
+        DELETE tt-formula.
+    END.
+
+    FOR EACH tt-var NO-LOCK:
+        DELETE tt-var.
+    END.
+    
+    assign c-cod-estabel = pc-cod-estabel.
+
+    RUN pi-calcula-VA-cofins (BUFFER b-item-doc-est,
+                              OUTPUT de-VA).
+
+    RUN pi-calcula-DA-cofins (BUFFER b-item-doc-est,
+                              OUTPUT de-DA).
+
+    ASSIGN pde-va-cofins = de-VA
+           pde-da-cofins = de-DA.
+    
+    FIND param-imp
+        WHERE param-imp.cod-estabel = pc-cod-estabel NO-LOCK NO-ERROR.
+    {cxbo/bocx250.i3 param-imp}
+
+    /* Busca a natureza de opera‡Æo p/ verificar os parƒmetros abaixo */
+    FIND natur-oper WHERE natur-oper.nat-operacao = b-item-doc-est.nat-operacao NO-LOCK NO-ERROR. 
+    /* As aliquotas dos impostos II, IPI e ICMS deverÆo ser zeradas quando a natureza de opera‡Æo esteja marcada p/ suspensÆo */
+    IF SUBSTR(natur-oper.char-1,154,1) = "1" THEN ASSIGN de-a = 0.00000. /*aliq-ii*/    
+    IF SUBSTR(natur-oper.char-1,155,1) = "1" THEN ASSIGN de-b = 0.00000. /*aliq-ipi-imp*/ 
+    IF SUBSTR(natur-oper.char-1,156,1) = "1" THEN ASSIGN de-e = 0.00000. /*aliq-icms-imp*/
+
+    /* Formula calculo base PIS */
+    CREATE tt-formula.
+    ASSIGN tt-formula.formula = c-formula-cofins-param-imp
+           tt-formula.cod-versao-integracao = 001.
+
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "VA"
+           tt-var.valor     = de-VA
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "DA"
+           tt-var.valor     = de-DA
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "a"
+           tt-var.valor     = de-a / 100
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "b"
+           tt-var.valor     = de-b / 100
+           tt-var.tipo-res  = 1.
+
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "c"
+           tt-var.valor     = de-c / 100
+           tt-var.tipo-res  = 1.  
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "d"
+           tt-var.valor     = de-d / 100
+           tt-var.tipo-res  = 1.
+    
+    CREATE tt-var.
+    ASSIGN tt-var.nome      = "e"
+           tt-var.valor     = de-e / 100
+           tt-var.tipo-res  = 1.
+    
+    RUN cdp/cdapi020.p (INPUT-OUTPUT TABLE tt-formula,
+                        INPUT TABLE tt-var,
+                        INPUT-OUTPUT TABLE tt-erro,
+                        INPUT l-deleta-erros).
+                        
+    IF NOT CAN-FIND(FIRST tt-erro) THEN DO:
+        FIND FIRST tt-formula NO-LOCK NO-ERROR.
+        IF AVAIL tt-formula THEN
+            ASSIGN de-base-cofins = tt-formula.RESULT.
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-calcula-VA-pis:
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF OUTPUT PARAMETER pde-VA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO.
+
+    DEF VAR de-red-pis                  AS DECIMAL FORMAT ">>9.99":U NO-UNDO.
+    def var l-calcula-base-reduzida-pis as logical                   no-undo.
+
+    ASSIGN pde-VA = b-item-doc-est.preco-total[1] - b-item-doc-est.desconto[1].
+    
+    assign l-calcula-base-reduzida-pis = no.
+    for first bf-param-imp fields (char-1)
+        where bf-param-imp.cod-estabel = c-cod-estabel no-lock:
+        assign l-calcula-base-reduzida-pis = if trim(substring(bf-param-imp.char-1,245,1)) = "1":U then yes else no.
+    end.
+    
+    FOR EACH item-doc-est-cex 
+        WHERE item-doc-est-cex.serie-docto  = b-item-doc-est.serie-docto
+          AND item-doc-est-cex.nro-docto    = b-item-doc-est.nro-docto        
+          AND item-doc-est-cex.cod-emitente = b-item-doc-est.cod-emitente
+          AND item-doc-est-cex.nat-operacao = b-item-doc-est.nat-operacao
+          AND item-doc-est-cex.sequencia    = b-item-doc-est.sequencia NO-LOCK:
+
+        FIND desp-imp
+            WHERE desp-imp.cod-desp = item-doc-est-cex.cod-desp no-lock no-error.
+
+        IF desp-imp.log-incid-base-pis-val THEN      /* incide base pis valor aduaneiro */           
+           ASSIGN pde-VA = pde-VA + item-doc-est-cex.val-desp.
+           
+        IF SUBSTR(desp-imp.char-1,32,1) = '1' THEN   /* Reduz base pis despesas aduaneiras */
+            ASSIGN pde-VA = pde-VA - item-doc-est-cex.val-desp.
+    END.
+
+    /*reduz a base do imposto conforme al¡quota de redu‡Æo*/
+    if l-calcula-base-reduzida-pis then do:
+       for first item fields (char-2)
+           where item.it-codigo = b-item-doc-est.it-codigo no-lock:
+            ASSIGN de-red-pis = decimal(SUBSTRING(item.char-2,41,5)).
+       end.
+    
+       IF de-red-pis <> 0 THEN
+          assign pde-VA = pde-VA - round(pde-VA * de-red-pis / 100,2).
+    end.
+       
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-calcula-DA-pis:
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF OUTPUT PARAMETER pde-DA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO.
+
+    FOR EACH item-doc-est-cex 
+        WHERE item-doc-est-cex.serie-docto  = b-item-doc-est.serie-docto
+          AND item-doc-est-cex.nro-docto    = b-item-doc-est.nro-docto        
+          AND item-doc-est-cex.cod-emitente = b-item-doc-est.cod-emitente
+          AND item-doc-est-cex.nat-operacao = b-item-doc-est.nat-operacao
+          AND item-doc-est-cex.sequencia    = b-item-doc-est.sequencia NO-LOCK:
+
+        FIND desp-imp
+            WHERE desp-imp.cod-desp = item-doc-est-cex.cod-desp no-lock no-error.
+
+        IF  desp-imp.log-incid-base-pis-despes THEN /* incide base pis despesas aduaneiras */      
+            ASSIGN pde-DA = pde-DA + item-doc-est-cex.val-desp.
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-calcula-VA-cofins:
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF OUTPUT PARAMETER pde-VA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO.
+    
+    DEF VAR de-red-cofins                  AS DECIMAL FORMAT ">>9.99":U NO-UNDO.
+    def var l-calcula-base-reduzida-cofins as logical                   no-undo.
+
+    ASSIGN pde-VA = b-item-doc-est.preco-total[1] - b-item-doc-est.desconto[1].
+    
+    assign l-calcula-base-reduzida-cofins = no.
+    for first bf-param-imp fields (char-1)
+        where bf-param-imp.cod-estabel = c-cod-estabel no-lock:
+        assign l-calcula-base-reduzida-cofins = if trim(substring(bf-param-imp.char-1,246,1)) = "1":U then yes else no.
+    end.
+    
+
+    FOR EACH item-doc-est-cex 
+        WHERE item-doc-est-cex.serie-docto  = b-item-doc-est.serie-docto
+          AND item-doc-est-cex.nro-docto    = b-item-doc-est.nro-docto        
+          AND item-doc-est-cex.cod-emitente = b-item-doc-est.cod-emitente
+          AND item-doc-est-cex.nat-operacao = b-item-doc-est.nat-operacao
+          AND item-doc-est-cex.sequencia    = b-item-doc-est.sequencia NO-LOCK:
+
+        FIND desp-imp
+            WHERE desp-imp.cod-desp = item-doc-est-cex.cod-desp no-lock no-error.
+
+        IF desp-imp.log-incid-base-cofins-val THEN   /* incide base cofins valor aduaneiro */
+           ASSIGN pde-VA = pde-VA + item-doc-est-cex.val-desp.
+
+        IF SUBSTR(desp-imp.char-1,33,1) = '1' THEN   /* Reduz base cofins despesas aduaneiras */
+            ASSIGN pde-VA = pde-VA - item-doc-est-cex.val-desp.
+
+    END.
+    
+    /*reduz a base do imposto conforme al¡quota de redu‡Æo*/
+    if l-calcula-base-reduzida-cofins then do:
+       for first item fields (char-2)
+           where item.it-codigo = b-item-doc-est.it-codigo no-lock:
+            ASSIGN de-red-cofins = decimal(SUBSTRING(item.char-2,46,5)).
+       end.
+
+       IF de-red-cofins <> 0 THEN
+          assign pde-VA = pde-VA - round(pde-VA * de-red-cofins / 100,2).
+    end.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-calcula-DA-cofins:
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF OUTPUT PARAMETER pde-DA AS DECIMAL FORMAT ">>>>,>>>,>>>,>>9.99999" NO-UNDO.
+
+    FOR EACH item-doc-est-cex 
+        WHERE item-doc-est-cex.serie-docto  = b-item-doc-est.serie-docto
+          AND item-doc-est-cex.nro-docto    = b-item-doc-est.nro-docto        
+          AND item-doc-est-cex.cod-emitente = b-item-doc-est.cod-emitente
+          AND item-doc-est-cex.nat-operacao = b-item-doc-est.nat-operacao
+          AND item-doc-est-cex.sequencia    = b-item-doc-est.sequencia NO-LOCK:
+
+        FIND desp-imp
+            WHERE desp-imp.cod-desp = item-doc-est-cex.cod-desp no-lock no-error.
+
+        IF  desp-imp.log-incid-base-cofins-despes THEN /* incide base pis despesas aduaneiras */
+            ASSIGN pde-DA = pde-DA + item-doc-est-cex.val-desp.
+
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-tributa-aliquota-II:
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF PARAMETER BUFFER b-natur-oper   FOR natur-oper.
+    DEF PARAMETER BUFFER b-item         FOR ITEM.
+    DEF INPUT PARAMETER pc-cod-estabel LIKE embarque-imp.cod-estabel NO-UNDO.
+    DEF INPUT PARAMETER pc-embarque LIKE embarque-imp.embarque NO-UNDO.
+    DEF OUTPUT PARAMETER pi-trib-ii AS INTEGER NO-UNDO.
+    DEF OUTPUT PARAMETER pde-aliq-ii AS DECIMAL FORMAT "999.9999" NO-UNDO.
+
+    DEF VAR l-ordens-embarque AS LOGICAL NO-UNDO.
+    DEF VAR i-trib-ii-nat AS INTEGER NO-UNDO.
+    DEF VAR i-trib-ii-item AS INTEGER NO-UNDO.
+
+    {cxbo/bocx225e.i1} /* variaveis campos livre ordens-embarque */
+
+    FIND ordens-embarque
+        WHERE ordens-embarque.cod-estabel  = pc-cod-estabel
+          AND ordens-embarque.embarque     = pc-embarque
+          AND ordens-embarque.numero-ordem = b-item-doc-est.numero-ordem 
+          AND ordens-embarque.parcela      = b-item-doc-est.parcela NO-LOCK NO-ERROR.
+    IF AVAIL ordens-embarque THEN DO:
+       {cxbo/bocx225e.i4 NO ordens-embarque}        
+       ASSIGN pi-trib-ii  = i-trib-ii-i1
+              pde-aliq-ii = de-aliq-ii-i1
+              l-ordens-embarque = l-ja-gravado.
+    END.
+
+    IF NOT l-ordens-embarque THEN DO:
+        ASSIGN i-trib-ii-item = INTEGER(TRIM(SUBSTRING(b-item.char-2,20,2))).
+        ASSIGN i-trib-ii-nat  = INTEGER(SUBSTRING(b-natur-oper.char-1,10,2)).
+        
+        RUN imp/im9041.p (INPUT i-trib-ii-item,
+                          INPUT i-trib-ii-nat,
+                          OUTPUT pi-trib-ii).
+        IF pi-trib-ii = 2 THEN /* isento */
+            ASSIGN pde-aliq-ii = 0.
+        ELSE
+            RUN imp/im9042.p (INPUT b-item-doc-est.numero-ordem,
+                              OUTPUT pde-aliq-ii).
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+PROCEDURE pi-retorna-icms-ordens-embarque:
+    DEF INPUT PARAMETER pc-cod-estabel LIKE embarque-imp.cod-estabel NO-UNDO.
+    DEF INPUT PARAMETER pc-embarque LIKE embarque-imp.embarque NO-UNDO.
+    DEF PARAMETER BUFFER b-item-doc-est FOR item-doc-est.
+    DEF OUTPUT PARAMETER pl-ordens-embarque AS LOGICAL NO-UNDO.
+    DEF OUTPUT PARAMETER pde-aliq-icms AS DECIMAL NO-UNDO.
+
+    {cxbo/bocx225e.i1} /* variaveis campos livre ordens-embarque */
+
+    FIND ordens-embarque
+        WHERE ordens-embarque.cod-estabel  = pc-cod-estabel
+          AND ordens-embarque.embarque     = pc-embarque
+          AND ordens-embarque.numero-ordem = b-item-doc-est.numero-ordem 
+          AND ordens-embarque.parcela      = b-item-doc-est.parcela NO-LOCK NO-ERROR.
+    IF AVAIL ordens-embarque THEN DO:
+                
+       {cxbo/bocx225e.i4 NO ordens-embarque}        
+       ASSIGN pde-aliq-icms = de-aliq-icms-i1
+              pl-ordens-embarque = l-ja-gravado.
+       
+    END.
+    
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE pi-busca-aliquota-IPI:
+
+    /******************************************************
+    * Engenharia IPI Suspensao Incorporar Base PIS COFINS *
+    * Retorna a aliquota do imposto de importacao do item *
+    * quando for uma operacao de importacao               *
+    ******************************************************/
+    DEFINE PARAMETER BUFFER b-item-doc-est   FOR item-doc-est.
+    DEFINE PARAMETER BUFFER b-natur-oper     FOR natur-oper.
+    DEFINE PARAMETER BUFFER b-item           FOR item.
+    DEFINE INPUT  PARAMETER pc-cod-estabel   LIKE embarque-imp.cod-estabel NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-embarque      LIKE embarque-imp.embarque    NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-aliquota-ipi AS   DECIMAL FORMAT "999.99"  NO-UNDO.
+
+    DEFINE VARIABLE l-gravado       AS LOGICAL INITIAL NO NO-UNDO.
+    DEFINE VARIABLE l-suspensao-IPI AS LOGICAL INITIAL NO NO-UNDO.
+
+    /******************************************************
+    * Variaveis Atributos Livres Tabela ordens-embarque   *
+    ******************************************************/
+    {cxbo/bocx225e.i1}
+
+    FIND FIRST ordens-embarque
+         WHERE ordens-embarque.cod-estabel  = pc-cod-estabel              AND
+               ordens-embarque.embarque     = pc-embarque                 AND
+               ordens-embarque.numero-ordem = b-item-doc-est.numero-ordem AND
+               ordens-embarque.parcela      = b-item-doc-est.parcela      NO-LOCK NO-ERROR.
+
+    IF  AVAIL ordens-embarque THEN DO:
+
+        /******************************************************
+        * Busca Valores Variaveis Atributos Livres            *
+        ******************************************************/
+        {cxbo/bocx225e.i2 NO ordens-embarque}
+
+        /******************************************************
+        * Verifica se ja foram informados valores para o Item *
+        * nas Ordens de Embarque                              *
+        ******************************************************/
+        
+        {cxbo/bocx225e.i4 NO ordens-embarque}        
+        ASSIGN l-gravado = l-ja-gravado.
+
+    END.
+
+    IF  l-gravado THEN DO:
+        ASSIGN l-suspensao-IPI = ordens-embarque.log-suspens-ipi-import.
+    END.
+    ELSE DO:
+        FIND FIRST natur-oper
+             WHERE natur-oper.nat-operacao = b-item-doc-est.nat-operacao NO-LOCK NO-ERROR.
+
+        IF  AVAIL natur-oper THEN DO:
+            ASSIGN l-suspensao-IPI = natur-oper.log-suspens-ipi-import.            
+        END.
+
+        IF  NOT l-suspensao-IPI THEN DO: 
+
+            FIND FIRST item 
+                 WHERE item.it-codigo = b-item-doc-est.it-codigo NO-LOCK NO-ERROR.
+
+            IF  AVAIL item THEN DO:
+                            
+                FIND FIRST item-mat
+                     WHERE item-mat.it-codigo = item.it-codigo NO-LOCK NO-ERROR.
+
+                IF  AVAIL item-mat                  AND
+                    item-mat.log-suspens-ipi-import THEN
+                    ASSIGN l-suspensao-IPI = YES.
+                
+            END.
+        END.
+    END.
+
+    /******************************************************
+    * Somente se o item possuir Suspensao IPI e' que a a- *
+    * liquota deste imposto devera ser buscada            *
+    ******************************************************/
+    IF  l-suspensao-IPI THEN DO:
+
+        IF  l-gravado THEN DO:
+            ASSIGN pde-aliquota-ipi = de-aliq-ipi-i1.
+        END.
+        ELSE DO:
+            FIND FIRST param-re
+                 WHERE param-re.usuario = v_cod_usuar_corren NO-LOCK NO-ERROR.
+                 
+            /******************************************************
+            * Determina Valor Aliquota IPI (conforme logica exis- *
+            * tente no programa IM7777.I11)                       *
+            ******************************************************/
+            FIND FIRST item 
+                 WHERE item.it-codigo = b-item-doc-est.it-codigo NO-LOCK NO-ERROR.
+    
+            IF  AVAIL item     AND
+                AVAIL param-re THEN DO:
+                IF  param-re.orig-aliq-ip = 1 THEN DO:
+                    FIND FIRST classif-fisc
+                         WHERE classif-fisc.class-fiscal = item.class-fiscal NO-LOCK NO-ERROR.
+
+                    IF  AVAIL classif-fisc THEN
+                        ASSIGN pde-aliquota-ipi = classif-fisc.aliquota-ipi.
+                END.
+                ELSE
+                    ASSIGN pde-aliquota-ipi = item.aliquota-ipi.
+            END.
+            /******************************************************
+            * Existe Regime de Importacao cadastrado?             *
+            ******************************************************/
+            FOR FIRST  cotacao-item
+                FIELDS (numero-ordem cot-aprovada char-2 aliquota-ipi)
+                 WHERE cotacao-item.numero-ordem = b-item-doc-est.numero-ordem AND
+                       cotacao-item.cot-aprovada = YES                         NO-LOCK:
+                   
+                IF  DECIMAL(SUBSTRING(cotacao-item.char-2,61,20)) <> 0 THEN
+                    ASSIGN pde-aliquota-ipi = cotacao-item.aliquota-ipi.
+            END.
+        END.
+    END. 
+      
+    RETURN "OK":U.
+END PROCEDURE.
+
+/* MP 563 */
+PROCEDURE pi-aliquota-cofins-importacao-credito:
+    DEFINE PARAMETER BUFFER b-natur-oper FOR natur-oper.
+    DEFINE PARAMETER BUFFER b-item FOR item.
+    DEFine INPUT  PARAMETER pc-cod-estabel              LIKE estabelec.cod-estabel     NO-UNDO.
+    DEFINE INPUT  PARAMETER pda-emissao                 AS   DATE FORMAT "99/99/9999"  NO-UNDO.
+    DEFINE INPUT  PARAMETER l-considera-ordens-embarque AS   LOGICAL                   NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-embarque                 LIKE embarque-imp.embarque     NO-UNDO.
+    DEFINE INPUT  PARAMETER pi-numero-ordem             LIKE ordem-compra.numero-ordem NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-parcela                  LIKE prazo-compra.parcela      NO-UNDO.
+    DEFINE OUTPUT PARAMETER pi-trib-cofins              AS   INTEGER                   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-aliq-cofins             AS   DECIMAL FORMAT "999.9999" NO-UNDO.
+    
+    DEF VAR i-trib-cofins-nat  AS INTEGER NO-UNDO.
+    DEF VAR i-trib-cofins-item AS INTEGER NO-UNDO.
+
+    DEF VAR l-gravado-ordens-embarque AS LOGICAL INITIAL NO NO-UNDO.
+    DEF VAR de-red-cofins AS DECIMAL FORMAT ">>9.99" NO-UNDO.
+
+    {cxbo/bocx250.i2} /* variaveis char-1 param-imp */
+    {cxbo/bocx225e.i1} /* variaveis ordens-embarque */
+
+    FIND param-imp
+        WHERE param-imp.cod-estabel = pc-cod-estabel NO-LOCK NO-ERROR.
+
+    {cxbo/bocx250.i3 param-imp} /*busca valores do char-1 do param-imp */
+
+    IF pda-emissao < da-ini-cofins-param-imp THEN DO:
+        ASSIGN pi-trib-cofins  = 2  /* isento */
+               pde-aliq-cofins = 0.
+    END.
+    ELSE DO:
+        /* tributacao */
+        IF i-trib-cofins-param-imp = 2 /* Isento */ OR 
+           i-trib-cofins-param-imp = 3 /* Outros */ THEN
+            ASSIGN pi-trib-cofins = i-trib-cofins-param-imp.
+        ELSE DO:
+            ASSIGN i-trib-cofins-nat = INTEGER(SUBSTRING(b-natur-oper.char-1,87,1)).
+
+            FIND item-mat WHERE item-mat.it-codigo = b-item.it-codigo NO-LOCK NO-ERROR.
+            IF  AVAIL item-mat THEN
+                ASSIGN i-trib-cofins-item = item-mat.idi-tributac-cofins.
+                 
+            CASE i-trib-cofins-nat:
+                WHEN 1 THEN /* tributado ou reduzido*/
+                    ASSIGN pi-trib-cofins = i-trib-cofins-item.
+                WHEN 2 THEN /* isento */
+                    ASSIGN pi-trib-cofins = i-trib-cofins-nat.
+                WHEN 3 THEN /* outros */
+                    ASSIGN pi-trib-cofins = i-trib-cofins-nat.
+                WHEN 4 THEN /* reduzido*/
+                    ASSIGN pi-trib-cofins = i-trib-cofins-item.
+            END CASE.
+
+        END.
+        
+        /* aliquota */
+        if integer(substring(b-item.char-2,53,1)) = 1 then      /* origem item */
+            if DEC(SUBSTR(item-mat.char-1,256,9)) <> 0 then
+                assign pde-aliq-cofins = DEC(SUBSTR(item-mat.char-1,256,9)). /* COFINS com 4 decimais */
+            else
+                assign pde-aliq-cofins = item-mat.val-aliq-ext-cofins.           
+        else
+            if DEC(SUBSTR(b-natur-oper.char-1,192,9)) <> 0 then
+                assign pde-aliq-cofins = DEC(SUBSTR(b-natur-oper.char-1,192,9)). /* COFINS com 4 decimais */
+            else
+                ASSIGN pde-aliq-cofins = b-natur-oper.per-fin-soc[2]. /* origem natureza */
+    END.
+    if not avail item-mat then
+       find item-mat where item-mat.it-codigo = b-item.it-codigo no-lock no-error.
+    
+
+    /*
+    ** Verifica se item possui redu‡Æo
+    */
+    ASSIGN de-red-cofins = decimal(SUBSTRING(b-item.char-2,46,5)).
+
+    IF de-red-cofins <> 0 THEN DO:
+        IF  avail param-imp 
+        and trim(substring(param-imp.char-1,246,1)) = "":U then /*Calcula al¡quota reduzida*/
+            ASSIGN pde-aliq-cofins = pde-aliq-cofins - (pde-aliq-cofins * (de-red-cofins / 100)). 
+    END.
+        
+    /*
+    ** Se a tributacao for definida como isento, a aliquota sera zerada
+    */
+    if pi-trib-cofins = 2 then /* isento */
+        assign pde-aliq-cofins = 0.
+        
+    RETURN "OK":U.
+END PROCEDURE.
+/* MP 563 */
+
+PROCEDURE pi-aliquota-pis-importacao-credito:
+    DEFINE PARAMETER BUFFER b-natur-oper FOR natur-oper.
+    DEFINE PARAMETER BUFFER b-item FOR item.
+    DEFINE INPUT  PARAMETER pc-cod-estabel              LIKE estabelec.cod-estabel     NO-UNDO.
+    DEFINE INPUT  PARAMETER pda-emissao                 AS   DATE FORMAT "99/99/9999"  NO-UNDO.
+    DEFINE INPUT  PARAMETER l-considera-ordens-embarque AS   LOGICAL                   NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-embarque                 LIKE embarque-imp.embarque     NO-UNDO.
+    DEFINE INPUT  PARAMETER pi-numero-ordem             LIKE ordem-compra.numero-ordem NO-UNDO.
+    DEFINE INPUT  PARAMETER pc-parcela                  LIKE prazo-compra.parcela      NO-UNDO.
+    DEFINE OUTPUT PARAMETER pi-trib-pis                 AS   INTEGER                   NO-UNDO.
+    DEFINE OUTPUT PARAMETER pde-aliq-pis                AS   DECIMAL FORMAT "999.9999" NO-UNDO.
+    
+    DEF VAR i-trib-pis-nat  AS INTEGER NO-UNDO.
+    DEF VAR i-trib-pis-item AS INTEGER NO-UNDO.
+    
+    DEF VAR l-gravado-ordens-embarque AS LOGICAL INITIAL NO NO-UNDO.
+    DEF VAR de-red-pis AS DECIMAL FORMAT ">>9.99" NO-UNDO.
+
+    {cxbo/bocx250.i2} /* variaveis char-1 param-imp */
+    {cxbo/bocx225e.i1} /* variaveis ordens-embarque */
+    
+    FIND param-imp
+        WHERE param-imp.cod-estabel = pc-cod-estabel NO-LOCK NO-ERROR.
+
+    {cxbo/bocx250.i3 param-imp} /*busca valores do char-1 do param-imp */
+
+    IF pda-emissao < da-ini-pis-param-imp THEN DO:
+        ASSIGN pi-trib-pis  = 2  /* isento */
+               pde-aliq-pis = 0.
+    END.
+    ELSE DO:
+
+        /* tributacao */
+       IF i-trib-pis-param-imp = 2 /* Isento */ OR 
+          i-trib-pis-param-imp = 3 /* Outros */ THEN
+           ASSIGN pi-trib-pis = i-trib-pis-param-imp.
+       ELSE DO:
+           ASSIGN i-trib-pis-nat = INTEGER(SUBSTRING(b-natur-oper.char-1,86,1)).
+    
+           FIND item-mat WHERE item-mat.it-codigo = b-item.it-codigo NO-LOCK NO-ERROR.
+           IF  AVAIL item-mat THEN
+               ASSIGN i-trib-pis-item = item-mat.idi-tributac-pis.
+       
+           CASE i-trib-pis-nat:
+               WHEN 1 THEN /* tributado ou reduzido*/
+                   ASSIGN pi-trib-pis = i-trib-pis-item.
+               WHEN 2 THEN /* isento */
+                   ASSIGN pi-trib-pis = i-trib-pis-nat.
+               WHEN 3 THEN /* outros */
+                   ASSIGN pi-trib-pis = i-trib-pis-nat.
+               WHEN 4 THEN /* reduzido*/
+                   ASSIGN pi-trib-pis = i-trib-pis-item.
+           END CASE.
+    
+       END.
+
+       /* aliquota */
+       if integer(substring(b-item.char-2,52,1)) = 1 then do: /* origem item */ 
+           if DEC(SUBSTR(item-mat.char-1,247,9)) <> 0 then
+               assign pde-aliq-pis = DEC(SUBSTR(item-mat.char-1,247,9)). /* PIS com 4 decimais */
+           else
+               assign pde-aliq-pis = item-mat.val-aliq-ext-pis.
+       end.
+       else
+           if DEC(SUBSTR(b-natur-oper.char-1,183,9)) <> 0 then
+               assign pde-aliq-pis = DEC(SUBSTR(b-natur-oper.char-1,183,9)). /* PIS com 4 decimais */
+           else
+               assign pde-aliq-pis = b-natur-oper.perc-pis[2]. /* origem natureza */
+    END.
+    
+    if not avail item-mat then
+       find item-mat where item-mat.it-codigo = b-item.it-codigo no-lock no-error.
+
+    /*
+    ** Verifica se item possui redu‡Æo
+    */
+    ASSIGN de-red-pis = decimal(SUBSTRING(b-item.char-2,41,5)).
+
+    IF de-red-pis <> 0 THEN DO:
+        IF trim(substring(param-imp.char-1,245,1)) = "":U then /*Calcula al¡quota reduzida*/
+           ASSIGN pde-aliq-pis = pde-aliq-pis - (pde-aliq-pis * (de-red-pis / 100)). 
+    END.
+        
+    /*
+    ** Se a tributacao for definida como isento, a aliquota sera zerada
+    */
+    if pi-trib-pis = 2 then /* isento */
+        assign pde-aliq-pis = 0.
+        
+    RETURN "OK":U.
+END PROCEDURE.
+
+PROCEDURE pi-retorna-indice-pis:
+    DEFINE OUTPUT PARAMETER pde-indice-pis    AS DECIMAL NO-UNDO.
+    ASSIGN pde-indice-pis = de-indice-pis.
+END.
+
+PROCEDURE pi-retorna-indice-cofins:
+    DEFINE OUTPUT PARAMETER pde-indice-cofins AS DECIMAL NO-UNDO.
+    ASSIGN pde-indice-cofins = de-indice-cofins.
+END.
+
+

@@ -1,0 +1,450 @@
+PROCEDURE validateUnidadeNegocio:
+/*------------------------------------------------------------------------------
+  Purpose:     Valida unidade de neg¢cio o item na nota fiscal
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    /*  1 Remessa Beneficiamento 
+     2 Retorno Beneficiamento 
+     3 Remessa Consignaá∆o    
+     4 Faturamento Consignaá∆o
+     5 Devoluá∆o Consignaá∆o  
+     6 Reajuste Preáo         
+     7 Drawback               
+     
+     l-ent-cons  --> TERCEIROS + 1 ou 3
+     l-retorno   --> TERCEIROS + 2 ou 5
+     l-ret-fat   --> TERCEIROS + 4
+     l-devolucao --> Devoluá∆o Clientes
+     l-transf    --> Transferància entre estabelecimentos */
+
+    def var de-val-erro as decimal   no-undo.     
+    def var l-erro-co   as logical   no-undo. 
+    def var l-contrato  as logical   no-undo. 
+    def var i-total     as int       no-undo. 
+    def var l-erro      as log       no-undo.    
+    def var l-valida-invest as log   init no  no-undo.
+    
+    /******** Inicio UPC Banrisul **********/
+    FOR EACH tt-epc 
+        WHERE tt-epc.cod-event = "nao-valida-unid-negoc":U:
+        DELETE tt-epc.
+    END.
+        
+    CREATE tt-epc.
+    ASSIGN tt-epc.cod-event     = "nao-valida-unid-negoc":U
+           tt-epc.cod-parameter = "h-boin176":U
+           tt-epc.val-parameter = STRING(THIS-PROCEDURE:HANDLE).
+    
+    {include/i-epc201.i "nao-valida-unid-negoc"}
+    
+    FIND FIRST tt-epc 
+         WHERE tt-epc.cod-event     = "nao-valida-unid-negoc"
+         AND   tt-epc.cod-parameter = "nao-valida"
+         AND   tt-epc.val-parameter = "YES" NO-ERROR.
+     IF AVAIL tt-epc THEN
+         RETURN "OK":U.
+    /******* Fim UPC Banrisul *******/
+        
+    run openQueryStatic in h-boiv029 (INPUT "Main":U).
+
+    if not valid-handle(h-cdapi024) 
+        or h-cdapi024:type <> "PROCEDURE"
+        or h-cdapi024:file-name <> "cdp/cdapi024.p" then do:
+        run cdp/cdapi024.p persistent set h-cdapi024.
+    end.
+
+    /***** Leitura da Naureza de Operaá∆o *****/
+     run findNaturOper ( RowObject.nat-operacao ).
+
+    /***** Leitura da Ordem de Produá∆o *****/
+    if  RowObject.nr-ord-produ <> 0 then 
+        run findOrdProd ( RowObject.nr-ord-produ ).
+
+        IF RETURN-VALUE = "NOK":U THEN
+            RETURN "NOK":U.
+
+    run cnp/cn9174.p (input RowObject.numero-ordem,
+                      input 1,
+                      input 0,
+                      input 0,
+                      input ?,
+                      output de-val-erro,
+                      output l-erro-co,
+                      output l-contrato,
+                      output i-total,
+                      input-output table tt-erro). 
+    
+    if RowObject.log-1 then do: 
+    
+        for each tt-rateio-aux:
+            delete tt-rateio-aux.
+        end.    
+
+        if RowObject.numero-ordem <> 0 and avail ordem-compra then do:
+           if not avail param-global then
+              find first param-global no-lock no-error.
+           if not avail estabelec or (avail estabelec and estabelec.cod-estabel <> ordem-compra.cod-estabel) then
+              find estabelec where estabelec.cod-estabel = ordem-compra.cod-estabel no-lock no-error.
+           &IF "{&mguni_version}" >= "2.071" &THEN
+           assign iempresa = if avail estabelec and estabelec.ep-codigo <> "" then estabelec.ep-codigo else param-global.empresa-prin.
+           &ELSE
+           assign iempresa = if avail estabelec and estabelec.ep-codigo <> 0 then estabelec.ep-codigo else param-global.empresa-prin.
+           &ENDIF
+        end.
+        
+        if valid-handle(h-boiv029) then
+           RUN recebeEmpresa IN h-boiv029 (INPUT iempresa).
+        
+        for each rat-ordem no-lock
+           where rat-ordem.nro-docto    = RowObject.nro-docto
+             and rat-ordem.serie-docto  = RowObject.serie-docto
+             and rat-ordem.cod-emitente = RowObject.cod-emitente
+             and rat-ordem.nat-operacao = RowObject.nat-operacao
+             and rat-ordem.sequencia    = RowObject.sequencia:
+            
+            find first ordem-compra no-lock
+                 where ordem-compra.numero-ordem = rat-ordem.numero-ordem no-error.
+            if avail ordem-compra then do:
+            
+                if RowObject.numero-ordem = 0 then do:
+                   if not avail param-global then
+                      find first param-global no-lock no-error.
+                   if not avail estabelec or (avail estabelec and estabelec.cod-estabel <> ordem-compra.cod-estabel) then
+                      find estabelec where estabelec.cod-estabel = ordem-compra.cod-estabel no-lock no-error.
+                   &IF "{&mguni_version}" >= "2.071" &THEN
+                   assign iempresa = if avail estabelec and estabelec.ep-codigo <> "" then estabelec.ep-codigo else param-global.empresa-prin.
+                   &ELSE
+                   assign iempresa = if avail estabelec and estabelec.ep-codigo <> 0 then estabelec.ep-codigo else param-global.empresa-prin.
+                   &ENDIF
+                end.
+                
+                if valid-handle(h-boiv029) then
+                   RUN recebeEmpresa IN h-boiv029 (INPUT iempresa).
+
+                if ordem-compra.num-ord-inv <> 0 and
+                   param-global.modulo-in        and
+                   not l-contrato                then do:
+
+                    assign l-valida-invest = yes.
+                        
+                    run RetornaMatrizUnidNegoc in h-boiv029 (input ordem-compra.num-ord-inv,
+                                                             output table tt-rateio, 
+                                                             output table tt-erro).
+                    
+                    for each tt-rateio no-lock:
+                    
+                        find first tt-rateio-aux no-lock
+                             where tt-rateio-aux.cod-unid-neg = tt-rateio.cod-unid-neg no-error.
+                        if not avail tt-rateio-aux then do:
+                            create tt-rateio-aux.
+                            assign tt-rateio-aux.cod-unid-neg = tt-rateio.cod-unid-neg.
+                        end.   
+                        assign tt-rateio-aux.perc-rateio = tt-rateio-aux.perc-rateio + (ordem-compra.preco-unit * rat-ordem.quantidade * tt-rateio.perc-rateio / 100).
+                    end.
+                end.                    
+                else if ordem-compra.num-ord-inv <> 0 and
+                        param-global.modulo-in        and
+                        l-contrato                    then do:
+                        assign l-valida-invest = yes.
+                           
+                    find first medicao-contrat no-lock
+                         where medicao-contrat.nr-contrato     = rat-ordem.nr-contrato
+                           and medicao-contrat.num-seq-item    = rat-ordem.num-seq-item
+                           and medicao-contrat.numero-ordem    = rat-ordem.numero-ordem
+                           and medicao-contrat.num-seq-event   = rat-ordem.num-seq-event
+                           and medicao-contrat.num-seq-medicao = rat-ordem.num-seq-medicao no-error.                    
+
+                    run RetornaMatrizUnidNegoc in h-boiv029 (input ordem-compra.num-ord-inv,
+                                                             output table tt-rateio, 
+                                                             output table tt-erro).
+
+                        
+                    for each tt-rateio no-lock:
+                    
+                        find first tt-rateio-aux no-lock
+                             where tt-rateio-aux.cod-unid-neg = tt-rateio.cod-unid-neg no-error.
+                        if not avail tt-rateio-aux then do:
+                            create tt-rateio-aux.
+                            assign tt-rateio-aux.cod-unid-neg = tt-rateio.cod-unid-neg.
+                        end.   
+                        assign tt-rateio-aux.perc-rateio = tt-rateio-aux.perc-rateio + (medicao-contrat.sld-val-medicao * tt-rateio.perc-rateio / 100).
+                    end.
+                end.
+            end.            
+        end.
+        
+        /* Comentado conforme a FO 1994.911.
+           Esta validaá∆o n∆o serve para nada para o usu†rio do recebimento, uma vez que ele n∆o tem nenhuma aá∆o sobre ela.
+           Esta validaá∆o nunca dever† ocorrer no recebimento, uma vez que o item da nota s¢ copia a matriz da ordem de compra.
+
+        if l-valida-invest then do:
+                assign l-erro = no.
+                for each unid-neg-nota no-lock
+                   where unid-neg-nota.nro-docto    = docum-est.nro-docto
+                     and unid-neg-nota.serie-docto  = docum-est.serie-docto
+                     and unid-neg-nota.cod-emitente = docum-est.cod-emitente
+                     and unid-neg-nota.nat-operacao = docum-est.nat-operacao
+                     and unid-neg-nota.sequencia    = RowObject.sequencia:
+                   
+                    if can-find (first tt-rateio-aux) then do:            
+                        for each tt-rateio-aux no-lock
+                           where tt-rateio-aux.cod-unid-neg = unid-neg-nota.cod_unid_neg:
+                            
+                            if tt-rateio-aux.perc-rateio - unid-neg-nota.perc-unid-neg >  0.01 or
+                               tt-rateio-aux.perc-rateio - unid-neg-nota.perc-unid-neg < -0.01 then
+                               assign l-erro = yes.                                           
+                        end.
+                    end.   
+                    else assign l-erro = yes.
+                end.
+
+                if l-erro then do:
+                    {method/svc/errors/inserr.i
+                                &ErrorNumber="17006"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"
+                                &ErrorParameters="'Rateio da nota diferente de investimentos'"}
+                end.
+        end.*/
+    end.
+
+    /*Para notas de retorno de beneficiamento ou consignaá∆o, se o material permanece no 
+      estoque ( op = 0 e conta = "" ), a Unidade de Neg¢cio n∆o pode ser informada ( qdo a funá∆o est† ativa ).
+      Para notas de remessa de beneficiamento ou consignaá∆o, Ç obrigat¢rio informar a unidade de neg¢cio, 
+      mesmo qdo op = 0 e conta = "" .*/
+    if l-unidade-negocio then
+        assign l-valida-un-terc = YES.
+    else do:
+        if not l-ent-cons and not l-retorno and not l-ret-fat /* Terceiros            */
+            and not l-devolucao                               /* Devoluá∆o de Cliente */
+            and not natur-oper.log-oper-triang                /* Operaá∆o Triangular  */ then 
+            assign l-valida-un-terc = yes.
+        else
+            assign l-valida-un-terc = no.
+    end.
+    
+    if  not l-unidade-negocio                /* Funá∆o EMS2-UNIDADE-NEGOCIO n∆o ativa */
+    and ((natur-oper.terceiros 
+        and natur-oper.tp-oper-terc = 1)     /* Entrada Beneficiamento */
+         or l-retorno                        /* Retorno Beneficiamento ou Devoluá∆o Consignaá∆o */
+         or natur-oper.log-oper-triang       /* Operaá∆o Triangular */
+         or l-transf ) then do:              /* Transferencia */ 
+         assign RowObject.cod-unid-negoc = "".
+         next.
+         
+    end.        
+            
+    /* Assume a unidade de neg¢cio da ordem de produá∆o */
+    run setUnidadeNegocioOrdemProducao.
+
+    if l-ent-cons  
+    or (l-devolucao and RowObject.nro-comp = "")
+    or natur-oper.log-oper-triang /*Operaá∆o TriÉngular*/
+    or l-ret-fat then do: /* Faturamento Consignaá∆o */
+
+        /*Unidade n∆o informada e funá∆o de unidade de neg¢cio cadastrada e ativa, gera erro.*/
+        if RowObject.cod-unid-negoc = "" and l-unidade-negocio then do:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-unidade-de-negocio AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Unidade_de_Neg¢cio" *}
+            ASSIGN c-lbl-liter-unidade-de-negocio = TRIM(RETURN-VALUE).
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="2"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"
+                                &ErrorParameters="c-lbl-liter-unidade-de-negocio"}
+        end.
+    end.
+    else do:
+    
+        /* N∆o encontrada unidade de neg¢cio relacionada a ordem de produá∆o */
+        FOR FIRST ord-prod no-lock
+            WHERE ord-prod.nr-ord-produ = RowObject.nr-ord-produ:
+        END.
+        if RowObject.nr-ord-produ <> 0 and RowObject.cod-unid-negoc = "" and l-valida-un-terc then do:
+                
+            if ord-prod.origem = "MV" then do:
+                
+                IF NOT VALID-HANDLE(hMMVUnidNegoc) THEN
+                    RUN frbo/bofr134.p PERSISTENT SET hMmvUnidNegoc.
+
+                RUN canFindMatrizMMV IN hMMVUnidNegoc (INPUT ord-prod.nr-ord-produ).
+
+                IF RETURN-VALUE = "NOK":U THEN DO:
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-unidade-de-negocio-2 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Unidade_de_Neg¢cio" *}
+                ASSIGN c-lbl-liter-unidade-de-negocio-2 = TRIM(RETURN-VALUE).
+                {method/svc/errors/inserr.i
+                    &ErrorNumber="2"
+                    &ErrorType="EMS"
+                    &ErrorSubType="ERROR"
+                    &ErrorParameters="c-lbl-liter-unidade-de-negocio-2"}
+                end.
+            end.
+            else do:
+                FIND FIRST unid-negoc-om 
+                     WHERE unid-negoc-om.num-ord-manut = RowObject.nr-ord-produ NO-LOCK NO-ERROR.
+                if avail unid-negoc-om and avail ord-prod and ord-prod.origem = "MI"  then do:
+                end.
+                else do:
+                    /* Inicio -- Projeto Internacional */
+                    DEFINE VARIABLE c-lbl-liter-unidade-de-negocio-3 AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "Unidade_de_Neg¢cio" *}
+                    ASSIGN c-lbl-liter-unidade-de-negocio-3 = TRIM(RETURN-VALUE).
+                    {method/svc/errors/inserr.i
+                    &ErrorNumber="2"
+                    &ErrorType="EMS"
+                    &ErrorSubType="ERROR"
+                    &ErrorParameters="c-lbl-liter-unidade-de-negocio-3"}
+                end.
+            end.
+        end.
+        else do:
+            /* Conta informada para o item da nota */
+            if RowObject.ct-codigo <> "" and l-valida-un-terc then do: 
+                /* Unidade de neg¢cio n∆o informada */
+                if  not l-fatura-fat-antecip //fatura de faturamento antecipado serah limpado o campo num-ord-inv, mas nao deve mostrar a msg abaixo
+                and (RowObject.num-ord-inv    = 0 or not
+                    param-global.modulo-in)       and
+                    RowObject.cod-unid-negoc = "" then do:
+
+                    /*Se a funá∆o EMS2-UNIDADE-NEGOCIO n∆o estiver cadastrada e ativa para os tipos de nota: 
+                     Faturamento Consignaá∆o, Retorno Beneficiamento, Devoluá∆o Consignaá∆o e Transferància entre estabelecimentos*/
+                    if  not l-unidade-negocio and (l-ret-fat or l-retorno or l-transf) then do:
+                        return "OK".
+                    end.    
+
+                    {method/svc/errors/inserr.i
+                                       &ErrorNumber="31391" /*Unidade de neg¢cio do item n∆o informada*/
+                                       &ErrorType="EMS"
+                                       &ErrorSubType="WARNING"}                                                               
+                end.
+            end.
+            else do:
+                /*Se n∆o possuir conta informada,
+                  se n∆o for nota de faturamento de consignaá∆o, 
+                  mas a unidade de neg¢cio for informada, ser† desconsiderada e assumida a UN
+                  do relacionamento ITEM X ESTABELECIMENTO X DEP‡SITO e se esta n∆o existir
+                  ser† assumida a do relacionamento ITEM X ESTABELECIMENTO
+                  rowObject.cod-unid-negoc = "" */
+                if  not l-devolucao 
+                and not l-dev-transf
+                and not l-ret-fat    
+                and RowObject.cod-unid-negoc <> "" 
+                and l-valida-un-terc then do:
+    
+                    {method/svc/errors/inserr.i
+                                       &ErrorNumber="31323" /*Atená∆o: ser† desprezada a Unidade de Neg¢cio Informada.*/
+                                       &ErrorType="EMS"
+                                       &ErrorSubType="WARNING"}
+                                       
+                    assign RowObject.cod-unid-negoc = "".
+                end.
+            end.
+        end.
+    end.
+    
+
+    /* Consistàncias */
+    if RowObject.cod-unid-negoc <> "" then do:
+        
+         /* Se tiver execucao orcamentaria, nao pode alterar a Unid Neg. Tudo deve ser feito direto na ordem de compra.
+            Tivemos que fazer isso, pois a rotina na estornava o empenho corretamente */
+
+        if l-execucao-orcamentaria then do:
+           find first b-item-doc-est
+                where b-item-doc-est.cod-emitente = RowObject.cod-emitente
+                  and b-item-doc-est.serie-docto  = RowObject.serie-docto
+                  and b-item-doc-est.nro-docto    = RowObject.nro-docto
+                  and b-item-doc-est.nat-operacao = RowObject.nat-operacao
+                  and b-item-doc-est.sequencia    = RowObject.sequencia no-lock no-error.
+           if avail b-item-doc-est then do:
+
+              if RowObject.cod-unid-negoc <> b-item-doc-est.cod-unid-negoc then do:
+                            
+                  IF (b-item-doc-est.numero-ordem <> 0) OR /*ordem informada no item*/
+                     (CAN-FIND (FIRST rat-ordem WHERE  /* ordem informada atraves funcao fifo*/
+                                      rat-ordem.serie-docto   = b-item-doc-est.serie-docto  AND
+                                      rat-ordem.nro-docto     = b-item-doc-est.nro-docto    AND
+                                      rat-ordem.cod-emitente  = b-item-doc-est.cod-emitente AND
+                                      rat-ordem.nat-operacao  = b-item-doc-est.nat-operacao AND
+                                      rat-ordem.sequencia     = b-item-doc-est.sequencia    AND
+                                      rat-ordem.numero-ordem  <> 0 )) THEN DO:
+
+                      IF b-item-doc-est.numero-ordem <> 0 THEN
+                          FIND FIRST ordem-compra NO-LOCK
+                               WHERE ordem-compra.numero-ordem = b-item-doc-est.numero-ordem NO-ERROR.
+                      ELSE DO:
+                          FIND FIRST rat-ordem NO-LOCK
+                               WHERE rat-ordem.serie-docto   = b-item-doc-est.serie-docto
+                                 AND rat-ordem.nro-docto     = b-item-doc-est.nro-docto    
+                                 AND rat-ordem.cod-emitente  = b-item-doc-est.cod-emitente 
+                                 AND rat-ordem.nat-operacao  = b-item-doc-est.nat-operacao 
+                                 AND rat-ordem.sequencia     = b-item-doc-est.sequencia NO-ERROR.
+                          IF AVAIL rat-ordem THEN
+                            FIND FIRST ordem-compra NO-LOCK
+                               WHERE ordem-compra.numero-ordem = rat-ordem.numero-ordem NO-ERROR.
+                      END.
+
+                      IF AVAIL ordem-compra AND ordem-compra.ct-codigo <> "" THEN DO:
+                          {method/svc/errors/inserr.i
+                                           &ErrorNumber="51354" /**/
+                                           &ErrorType="EMS"
+                                           &ErrorSubType="Error"}
+                      END.
+                  end.                    
+              end.
+           end.   
+        end.
+        /*Unidade de Neg¢cio*/
+        if not can-find (first unid-negoc
+                         where unid-negoc.cod-unid-negoc = RowObject.cod-unid-negoc) then do:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-unidade-de-negocio-4 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Unidade_de_Neg¢cio" *}
+            ASSIGN c-lbl-liter-unidade-de-negocio-4 = TRIM(RETURN-VALUE).
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="2"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR"
+                                &ErrorParameters="c-lbl-liter-unidade-de-negocio-4 + ' ' + rowObject.cod-unid-negoc" }
+        end.
+        
+        if valid-handle(h-cdapi024) then do:
+            
+            empty temp-table tt-erro.
+
+            /*Valida se a UN pode ser utilizada pelo Estabelecimento da Notal Fiscal*/
+            run ValidaUnidadeNegocioEstabel in h-cdapi024 (input docum-est.cod-estabel,
+                                                           input docum-est.dt-trans,
+                                                           input RowObject.cod-unid-negoc,
+                                                           output table tt-erro append).
+
+            /*Valida ser a UN pode ser utilizada pelo Usu†rio da Nota Fiscal*/
+            run ValidaUnidadeNegocioUsuario in h-cdapi024 (input c-seg-usuario,
+                                                           input RowObject.cod-unid-negoc,
+                                                           output table tt-erro append).
+
+            /*Cria os erros na BO*/
+            for each tt-erro:
+                run _insertErrorManual in this-procedure (input tt-erro.cd-erro,  /* pErrorNumber      */
+                                                          input "EMS",            /* pErrorType        */
+                                                          input "Error",          /* pErrorSubType     */
+                                                          input tt-erro.mensagem, /* pErrorDescription */
+                                                          input "",               /* pErrorHelp        */
+                                                          input "").              /* pErrorParameters  */
+            end.
+        end.
+    end.
+
+    if valid-handle(h-cdapi024) then do:
+        delete procedure h-cdapi024.
+        assign h-cdapi024 = ?.
+    end.
+    
+
+    return "OK".
+END PROCEDURE.

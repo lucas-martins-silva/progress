@@ -1,0 +1,243 @@
+PROCEDURE beforeDeleteRecord :
+/*-------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Elimina todos as tabelas relacionadas ao item-doc-est
+-------------------------------------------------------------------------------*/      
+
+    
+
+    def var l-erro-co  as logical                   no-undo.
+    def var de-qtd-max like item-doc-est.quantidade no-undo.
+    if  not valid-handle(h-boin367) then 
+        run inbo/boin367.p persistent set h-boin367.   
+    if  not valid-handle(h-boin006) then 
+        run inbo/boin006.p persistent set h-boin006.
+
+    if  (not can-find(funcao where funcao.cd-funcao = "spp-drb-sld-terc":U and funcao.ativo))
+    and RowObject.nr-ato-concessorio <> "":U 
+    and param-global.modulo-07
+    and param-global.modulo-ex
+    &if "{&bf_dis_versao_ems}":U >= "2.06":U &then                                             
+        and natur-oper.log-natur-operac-draw                                                       
+        and param-global.log-modul-draw  /*Modulo Drawback*/
+    &else                                                                
+        and substring(natur-oper.char-1,94,1) = "1":U
+        and substring(param-global.char-2,22,1) = "1" /*Modulo Drawback*/
+    &endif
+    and emitente.natureza > 2
+    and emitente.pais <> estabelec.pais
+    and substr(docum-est.char-1,90,1) = "1":U
+    and connected ("mgcex":U) then do:
+
+        if  not valid-handle (h-bocx332) then 
+            run cxbo/bocx332.p persistent set h-bocx332.
+        run eliminaMovtos in h-bocx332 (input RowObject.r-rowid,
+                                        input yes, /** Elimina Movtos **/
+                                        input no,  
+                                        output table RowErrors).
+        if  valid-handle (h-bocx332) then do:
+            delete procedure h-bocx332.
+            assign h-bocx332 = ?.
+        end.
+
+    end.
+    
+    find first item-docto-estoq-nfe-imp exclusive-lock
+         where item-docto-estoq-nfe-imp.cod-ser-docto    = RowObject.serie-docto
+           and item-docto-estoq-nfe-imp.cod-docto        = RowObject.nro-docto   
+           and item-docto-estoq-nfe-imp.cdn-emitente     = RowObject.cod-emitente
+           and item-docto-estoq-nfe-imp.cod-natur-operac = RowObject.nat-operacao
+           and item-docto-estoq-nfe-imp.num-seq          = RowObject.sequencia no-error.
+    if avail item-docto-estoq-nfe-imp then do:
+        delete item-docto-estoq-nfe-imp.
+    end.
+
+    &IF "{&bf_mat_versao_ems}" >= "2.062" &THEN
+        assign l-contrato    = no
+               i-total       = 0.
+
+        if  not avail param-global then
+            find first param-global no-lock no-error.
+
+        for first rat-ordem no-lock
+           where rat-ordem.cod-emitente = RowObject.cod-emitente
+             and rat-ordem.nro-docto    = RowObject.nro-docto
+             and rat-ordem.nat-operacao = RowObject.nat-operacao
+             and rat-ordem.serie-docto  = RowObject.serie-docto
+             and rat-ordem.sequencia    = RowObject.sequencia:
+
+            if rat-ordem.numero-ordem <> 0 
+            and avail param-global
+            and param-global.modulo-cn then
+                run cnp/cn9174.p ( rat-ordem.numero-ordem,
+                                   1,
+                                   0,
+                                   0,
+                                   ?,
+                                   output de-qtd-max,
+                                   output l-erro-co,
+                                   output l-contrato,
+                                   output i-total,
+                                   input-output table tt-erro).
+            
+        end.
+    
+        if  l-contrato then
+            for each rat-ordem no-lock
+               where rat-ordem.cod-emitente = RowObject.cod-emitente
+                 and rat-ordem.nro-docto    = RowObject.nro-docto
+                 and rat-ordem.nat-operacao = RowObject.nat-operacao
+                 and rat-ordem.serie-docto  = RowObject.serie-docto
+                 and rat-ordem.sequencia    = RowObject.sequencia:
+        
+                /* Desaloca */
+                if  not can-find(docum-est where docum-est.cod-emitente = RowObject.cod-emitente 
+                                           and docum-est.serie-docto  = RowObject.serie-docto 
+                                           and docum-est.nro-docto    = RowObject.nro-docto
+                                           and docum-est.nat-operacao = RowObject.nat-operacao 
+                                           and docum-est.rec-fisico   = yes ) then
+                        
+                    run rep/re1001p2.p (input rowid(rat-ordem),
+                                        input 0,
+                                        input no).
+            end.
+    &ENDIF
+    
+    /* Elimina relacionamento com DUIMP IM7000 */
+    IF NOT VALID-HANDLE (h-bocx00488) THEN 
+        RUN cxbo/bocx00488.p PERSISTENT SET h-bocx00488.
+    RUN piRemoveDuimpItemNF IN h-bocx00488 (INPUT RowObject.serie-docto,
+                                            INPUT RowObject.nro-docto,
+                                            INPUT RowObject.cod-emitente,
+                                            INPUT RowObject.nat-operacao,
+                                            INPUT RowObject.sequencia).
+                              
+    IF VALID-HANDLE (h-bocx00488) THEN DO:
+        DELETE PROCEDURE h-bocx00488.
+        ASSIGN h-bocx00488 = ?.
+    END.
+    
+    for each rat-lote exclusive-lock
+       where rat-lote.cod-emitente = RowObject.cod-emitente
+         and rat-lote.nro-docto    = RowObject.nro-docto
+         and rat-lote.nat-operacao = RowObject.nat-operacao
+         and rat-lote.serie-docto  = RowObject.serie-docto
+         and rat-lote.sequencia    = RowObject.sequencia:
+         
+         
+         FOR FIRST natur-oper where natur-oper.nat-operacao = rat-lote.nat-operacao NO-LOCK: END.
+        /*--- quando a nota eh fatura entrega futura grava a natureza complementar no item-doc-est ---*/
+        find bf-natur-oper-aux where
+             bf-natur-oper-aux.nat-operacao = rowObject.nat-operacao no-lock no-error.
+         
+        /*--- verifica se docum-est eh de nota de fatura faturamento ou fatura entrega futura ---*/
+        {cdp/cd9700.i1 bf-natur-oper-aux}
+        
+        
+        IF natur-oper.tipo-compra = 3 AND l-fatura-ent-futura THEN DO:        
+         
+            /*roberto*/         
+            find first bf-saldo-terc 
+                 where bf-saldo-terc.cod-emitente = RowObject.cod-emitente
+                   and bf-saldo-terc.nro-docto    = RowObject.nro-comp
+                   and bf-saldo-terc.serie-docto  = RowObject.serie-comp
+                   and bf-saldo-terc.nat-operacao = RowObject.nat-comp
+                   and bf-saldo-terc.it-codigo    = RowObject.it-codigo
+                   and bf-saldo-terc.cod-refer    = RowObject.cod-refer
+                   and bf-saldo-terc.sequencia    = RowObject.seq-comp no-lock no-error. 
+                         
+            IF  avail bf-saldo-terc THEN 
+                run updateQtdAloc in h-boin006 ( RowObject.serie-comp ,  
+                                                 RowObject.nro-comp,  
+                                                 RowObject.nat-comp,  
+                                                 RowObject.seq-comp,
+                                                 RowObject.cod-emitente,
+                                                 rat-lote.it-codigo, 
+                                                 rat-lote.cod-refer, 
+                                                 rat-lote.lote,
+                                                 "desaloca",
+                                                 rat-lote.quantidade ).           
+            ELSE DO:      
+            
+                FOR FIRST nota-fiscal
+                    WHERE nota-fiscal.nr-nota-fis = item-doc-est.nro-comp
+                      AND nota-fiscal.serie       = item-doc-est.serie-comp 
+                      AND nota-fiscal.cod-estabel = docum-est.cod-estabel NO-LOCK:
+                           
+                      FOR FIRST bf-natur-oper-aux WHERE bf-natur-oper-aux.nat-operacao = nota-fiscal.nat-operacao NO-LOCK: 
+                            
+                          run updateQtdAloc in h-boin006 ( RowObject.serie-comp ,  
+                                                           RowObject.nro-comp,  
+                                                           bf-natur-oper-aux.nat-comp,  
+                                                           RowObject.seq-comp,
+                                                           RowObject.cod-emitente,
+                                                           rat-lote.it-codigo, 
+                                                           rat-lote.cod-refer, 
+                                                           rat-lote.lote,
+                                                           "desaloca",
+                                                           rat-lote.quantidade ).    
+                      END.                                                   
+                END. 
+                    
+            END.   
+           
+        END.
+        ELSE         
+            run updateQtdAloc in h-boin006 ( RowObject.serie-comp ,  
+                                             RowObject.nro-comp,  
+                                             RowObject.nat-comp,  
+                                             RowObject.seq-comp,
+                                             RowObject.cod-emitente,
+                                             rat-lote.it-codigo, 
+                                             rat-lote.cod-refer, 
+                                             rat-lote.lote,
+                                             "desaloca",
+                                             rat-lote.quantidade ).        
+       
+                                                 
+         
+        run atualizanv-insp in h-boin367(input RowObject.it-codigo,
+                                         input RowObject.cod-emitente,
+                                         input docum-est.cod-estabel).
+    end.
+    
+
+    if valid-handle(h-boin367) then do:
+        delete procedure h-boin367.
+        assign h-boin367 = ?.                
+    end.
+    if valid-handle(h-boin006) then do:
+        delete procedure h-boin006.
+        assign h-boin006 = ?.                
+    end.
+        
+    DEFINE VARIABLE h-bodi515 AS HANDLE     NO-UNDO.
+    
+
+    if  avail rowObject then do:
+        
+        RUN dibo/bodi515.p PERSISTENT SET h-bodi515.
+
+
+        RUN eliminaDocReferEntrada IN h-bodi515 (INPUT rowObject.serie-docto, 
+                                                 INPUT rowObject.nro-docto,   
+                                                 INPUT rowObject.cod-emitente,
+                                                 INPUT rowObject.nat-operacao,        
+                                                 INPUT rowObject.nro-comp,            
+                                                 INPUT rowObject.serie-comp,          
+                                                 INPUT rowObject.r-rowid).
+                                                
+        RUN eliminaObrigTributEntrada IN h-bodi515 (INPUT rowObject.serie-docto,
+                                                    INPUT rowObject.nro-docto,
+                                                    INPUT rowObject.cod-emitente,                      
+                                                    INPUT rowObject.nat-operacao,                      
+                                                    INPUT 7,
+                                                    INPUT rowObject.sequencia).
+        
+        DELETE PROCEDURE h-bodi515.
+        ASSIGN h-bodi515 = ?.
+
+    END.    
+
+end procedure.

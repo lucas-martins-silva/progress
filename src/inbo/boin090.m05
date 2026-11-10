@@ -1,0 +1,493 @@
+PROCEDURE OpenQueryChave :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.  
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    &scoped-define KEY-PHRASE {&TABLENAME}.serie-docto  = cSerie ~
+                          AND {&TABLENAME}.nro-docto    = cDocto ~
+                          AND {&TABLENAME}.cod-emitente = cEmitente ~
+                          AND {&TABLENAME}.nat-operacao = cNatOperacao NO-LOCK
+						  
+						  
+    &Scoped-define BY-ESTAB-IN                 
+    &Scoped-define BY-ESTAB-AT
+    
+    {include/i-estab-openquery.i}
+
+    return "OK":U.
+    
+
+END PROCEDURE.
+
+
+
+PROCEDURE OpenQuerybyDataTransacao :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.      
+------------------------------------------------------------------------------*/  
+     /* Seguran‡a por estabelecimento */
+    &scoped-define KEY-PHRASE {&TableName}.nro-docto >= c-docto-ini ~
+                          and {&TableName}.nro-docto <= c-docto-fim ~
+                          and {&TableName}.cod-emitente >= i-emite-ini ~
+                          AND {&TABLENAME}.cod-emitente <= i-emite-fim ~
+                          AND {&TABLENAME}.dt-trans >= da-data-ini ~
+                          AND {&TABLENAME}.dt-trans <= da-data-fim ~
+                          AND {&TABLENAME}.ce-atual <= no ~
+                          AND {&TABLENAME}.nat-operacao <> " " no-lock
+                            
+    &Scoped-define BY-ESTAB-IN by {&TABLENAME}.dt-trans ~
+                               by {&TABLENAME}.cod-estabel
+                 
+    &Scoped-define BY-ESTAB-AT by {&TABLENAME}.cod-estabel ~
+                               by {&TABLENAME}.dt-trans
+
+    {include/i-estab-openquery.i}
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+
+
+PROCEDURE OpenQuerybydocto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.      
+------------------------------------------------------------------------------*/  
+ /* Seguran‡a por estabelecimento */
+    &scoped-define KEY-PHRASE {&TableName}.nro-docto >= cDoctoIni ~
+                          AND {&TableName}.nro-docto <= cDoctoFim ~
+                          AND {&TableName}.serie-docto     >= cSerieIni ~
+                          AND {&TABLENAME}.serie-docto     <= cSeriefim no-lock
+                            
+    &Scoped-define BY-ESTAB-IN by {&TABLENAME}.nro-docto ~
+                               by {&TABLENAME}.cod-estabel
+                 
+    &Scoped-define BY-ESTAB-AT by {&TABLENAME}.cod-estabel ~
+                               by {&TABLENAME}.nro-docto
+
+    {include/i-estab-openquery.i}
+
+    return "OK":U.    
+
+END PROCEDURE.
+
+
+
+
+PROCEDURE OpenQuerybydttrans :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    &scoped-define KEY-PHRASE {&TABLENAME}.dt-trans  >= daDataIni ~
+                          AND {&TABLENAME}.dt-trans  <= daDataFim ~
+                          AND {&TABLENAME}.serie-docto     >= cSerieIni ~
+                          AND {&TABLENAME}.serie-docto     <= cSerieFim NO-LOCK
+ 
+    &Scoped-define BY-ESTAB-IN by {&TABLENAME}.dt-trans ~
+                               by {&TABLENAME}.cod-estabel
+                 
+    &Scoped-define BY-ESTAB-AT by {&TABLENAME}.cod-estabel ~
+                               by {&TABLENAME}.dt-trans
+
+    {include/i-estab-openquery.i} 
+
+    return "OK":U.    
+
+END PROCEDURE.
+
+
+PROCEDURE OpenQuerybyemitente :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.
+------------------------------------------------------------------------------*/           
+    /* Seguran‡a por estabelecimento */    
+    &scoped-define KEY-PHRASE {&TABLENAME}.cod-emitente >= iEmiteIni ~
+                          AND {&TABLENAME}.cod-emitente <= iEmiteFim ~
+                          AND {&TABLENAME}.cod-estabel  >= cEstabIni ~
+                          AND {&TABLENAME}.cod-estabel  <= cEstabFim NO-LOCK
+
+    &Scoped-define BY-ESTAB-IN by {&TABLENAME}.cod-emitente ~
+                               by {&TABLENAME}.cod-estabel
+                 
+    &Scoped-define BY-ESTAB-AT by {&TABLENAME}.cod-estabel ~
+                               by {&TABLENAME}.cod-emitente
+
+     {include/i-estab-openquery.i} 
+
+   RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE openQueryDocto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.
+------------------------------------------------------------------------------*/
+    /* Seguran»a por estabelecimento */
+
+/**************		
+
+    &scoped-define KEY-PHRASE {&TABLENAME}.ce-atual = NO use-index dctstt_ix10 NO-LOCK
+ 		
+    &Scoped-define BY-ESTAB-IN                 
+    &Scoped-define BY-ESTAB-AT
+**************/
+    
+
+    &Scoped-define OPEN-QUERY-{&MY-QUERY}-IN ~
+                OPEN QUERY {&MY-QUERY}  ~
+                        FOR EACH tt_estab_ems2 NO-LOCK,  ~
+                            EACH docum-est use-index atual NO-LOCK ~
+                           WHERE docum-est.ce-atual = NO INDEXED-REPOSITION.
+
+    &Scoped-define OPEN-QUERY-{&MY-QUERY}-AT  ~
+                OPEN QUERY {&MY-QUERY}  ~
+                        FOR EACH tt_estab_ems2 NO-LOCK, ~
+                            EACH docum-est use-index dctstt_ix10 NO-LOCK ~
+                           WHERE docum-est.cod-estabel = tt_estab_ems2.tta_cod_estab ~
+                             AND docum-est.ce-atual = NO   ~
+                             INDEXED-REPOSITION.
+
+    &Scoped-define BY-ESTAB-IN                 
+    &Scoped-define BY-ESTAB-AT
+
+
+    {include/i-estab-openquery.i}
+
+    RETURN "OK":U.
+      
+
+END PROCEDURE.
+
+PROCEDURE openQuery0996 :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.      
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    &scoped-define KEY-PHRASE {&TABLENAME}.ce-atual = yes ~
+                          AND {&TABLENAME}.nat-operacao <> " " NO-LOCK
+						  
+    &Scoped-define BY-ESTAB-IN                 
+    &Scoped-define BY-ESTAB-AT					  
+        
+    {include/i-estab-openquery.i} 	
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+PROCEDURE findFirstDocto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND FIRST {&TableName} 
+             WHERE {&TABLENAME}.ce-atual = NO
+               AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND FIRST {&TableName} 
+             WHERE {&TABLENAME}.ce-atual = NO NO-LOCK NO-ERROR.
+       
+  RETURN "OK":U.
+  
+END PROCEDURE.
+
+
+PROCEDURE findLastDocto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/      
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND LAST {&TableName} 
+            WHERE {&TABLENAME}.ce-atual = NO
+              AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                           WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND LAST {&TableName} 
+            WHERE {&TABLENAME}.ce-atual = NO NO-LOCK NO-ERROR.      
+       
+  RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE findPrevDocto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND PREV {&TableName} 
+            WHERE {&TABLENAME}.ce-atual = NO
+              AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND PREV {&TableName} 
+            WHERE {&TABLENAME}.ce-atual = NO NO-LOCK NO-ERROR.
+                    
+  RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE findNextDocto :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/     
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND NEXT {&TableName} 
+             WHERE {&TABLENAME}.ce-atual = NO
+               AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND NEXT {&TableName} 
+             WHERE {&TABLENAME}.ce-atual = NO NO-LOCK NO-ERROR.      
+       
+  RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE openQueryMain :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Devido a nova t‚cnica de Seguran‡a por Estabelecimento, a constante
+         '&scoped-define KEY-PHRASE' substitui a clusula 'WHERE' e 'OPEN-QUERY'
+         est  defindo dentro da include 'i-estab-openquery.i'.      
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    &scoped-define KEY-PHRASE TRUE NO-LOCK
+	
+    &Scoped-define BY-ESTAB-IN                 
+    &Scoped-define BY-ESTAB-AT
+    {include/i-estab-openquery.i} 
+       
+    RETURN "OK":U.
+    
+END PROCEDURE.
+
+
+PROCEDURE findFirstMain:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND FIRST {&TableName} 
+             WHERE CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND FIRST {&TableName} NO-LOCK NO-ERROR.     
+         
+     RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE findLastMain:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/    
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND LAST {&TableName} 
+             WHERE CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND LAST {&TableName} NO-LOCK NO-ERROR.       
+
+    RETURN "OK":U.
+    
+END PROCEDURE.
+
+
+PROCEDURE findPrevMain:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND PREV {&TableName} 
+             WHERE CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND PREV {&TableName} NO-LOCK NO-ERROR. 
+     
+     RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE findNextMain:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND NEXT {&TableName} 
+             WHERE CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND NEXT {&TableName} NO-LOCK NO-ERROR. 
+     
+     RETURN "OK":U.
+END PROCEDURE.
+
+
+PROCEDURE findFirstChave:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/
+          
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND FIRST {&TableName} 
+             WHERE {&TABLENAME}.serie-docto  = cSerie
+               AND {&TABLENAME}.nro-docto    = cDocto
+               AND {&TABLENAME}.cod-emitente = cEmitente
+               AND {&TABLENAME}.nat-operacao = cNatOperacao
+               AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                            WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND FIRST {&TableName} 
+             WHERE {&TABLENAME}.serie-docto  = cSerie
+               AND {&TABLENAME}.nro-docto    = cDocto
+               AND {&TABLENAME}.cod-emitente = cEmitente
+               AND {&TABLENAME}.nat-operacao = cNatOperacao NO-LOCK NO-ERROR. 
+               
+     RETURN "OK":U.
+     
+END PROCEDURE.
+
+
+PROCEDURE findLastChave:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/         
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND LAST {&TableName} 
+            WHERE {&TABLENAME}.serie-docto  = cSerie
+              AND {&TABLENAME}.nro-docto    = cDocto
+              AND {&TABLENAME}.cod-emitente = cEmitente
+              AND {&TABLENAME}.nat-operacao = cNatOperacao
+              AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                           WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND LAST {&TableName} 
+            WHERE {&TABLENAME}.serie-docto  = cSerie
+              AND {&TABLENAME}.nro-docto    = cDocto
+              AND {&TABLENAME}.cod-emitente = cEmitente
+              AND {&TABLENAME}.nat-operacao = cNatOperacao NO-LOCK NO-ERROR. 
+           
+     RETURN "OK":U.
+     
+END PROCEDURE.
+
+
+PROCEDURE findPrevChave:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND LAST {&TableName} 
+            WHERE {&TABLENAME}.serie-docto  = cSerie
+              AND {&TABLENAME}.nro-docto    = cDocto
+              AND {&TABLENAME}.cod-emitente = cEmitente
+              AND {&TABLENAME}.nat-operacao = cNatOperacao
+              AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                           WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND LAST {&TableName} 
+            WHERE {&TABLENAME}.serie-docto  = cSerie
+              AND {&TABLENAME}.nro-docto    = cDocto
+              AND {&TABLENAME}.cod-emitente = cEmitente
+              AND {&TABLENAME}.nat-operacao = cNatOperacao NO-LOCK NO-ERROR. 
+           
+     RETURN "OK":U.
+     
+END PROCEDURE.
+
+
+PROCEDURE findNextChave:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: 
+------------------------------------------------------------------------------*/
+    /* Seguran‡a por estabelecimento */
+    IF l-estab-security-active THEN
+        FIND NEXT {&TableName} 
+            WHERE {&TABLENAME}.serie-docto  = cSerie
+              AND {&TABLENAME}.nro-docto    = cDocto
+              AND {&TABLENAME}.cod-emitente = cEmitente
+              AND {&TABLENAME}.nat-operacao = cNatOperacao
+              AND CAN-FIND(FIRST {&ESTAB-SEC-TT} 
+                           WHERE {&ESTAB-SEC-TT-FIELD} = {&TABLENAME}.cod-estabel) NO-LOCK NO-ERROR.    
+    ELSE
+        FIND NEXT {&TableName} 
+            WHERE {&TABLENAME}.serie-docto  = cSerie
+              AND {&TABLENAME}.nro-docto    = cDocto
+              AND {&TABLENAME}.cod-emitente = cEmitente
+              AND {&TABLENAME}.nat-operacao = cNatOperacao NO-LOCK NO-ERROR. 
+  
+     RETURN "OK":U.
+     
+END PROCEDURE.

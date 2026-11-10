@@ -1,0 +1,116 @@
+/******************************************************************************
+** 
+** PROCEDURE   AlterarGrupoMaquinaSplit
+** Objetivo:   Mudan‡a do grupo de m quina do split
+** Parƒmetros: buffer split-operac
+**             novo grupo de m quina
+** Objetivo:   Atualizar os padräes de tempo para a opera‡Æo do chÆo de f brica
+**             em fun‡Æo da opera‡Æo alternativa associada ao split ou 
+**             rela‡Æo de eficiˆncia entre grupo de m quina original e
+**             alternativo
+**             
+*******************************************************************************/
+PROCEDURE AlterarGrupoMaquinaSplit:
+    
+   define parameter buffer b-split for split-operac. 
+   define input parameter p-new-gm-codigo like split-operac.gm-codigo no-undo.
+   
+   define var v-log-troca-ok           as logical         no-undo.
+   define var v-old-gm-codigo like split-operac.gm-codigo no-undo. 
+
+   if b-split.gm-codigo = p-new-gm-codigo then return.
+   
+   assign v-old-gm-codigo   = b-split.gm-codigo
+          b-split.gm-codigo = p-new-gm-codigo.
+   
+   find first oper-ord where
+        oper-ord.nr-ord-produ   = b-split.nr-ord-produ and
+        oper-ord.num-operac-sfc = b-split.num-operac-sfc no-lock no-error.
+   
+   find grup-maquina where
+        grup-maquina.gm-codigo = b-split.gm-codigo no-lock.
+   
+   /*** Atualiza»Co em base a opera»Co alternativa ***/
+   blk-operacao-eng:
+   do:
+   if oper-ord.num-id-operacao <> 0 then do:
+       find first operacao where 
+            operacao.num-id-operacao = oper-ord.num-id-operacao no-lock no-error.
+       if not available operacao then leave blk-operacao-eng.
+       if oper-ord.op-altern = 0 then do: 
+           find first op-altern where 
+                      op-altern.num-id-operacao = operacao.num-id-operacao and
+                      op-altern.gm-codigo       = b-split.gm-codigo no-lock no-error.
+           if available op-altern then do:
+              run CalcularTempoPadraoA (buffer op-altern, 
+                                        input b-split.cod-ctrab,
+                                        input b-split.cod-ferr-prod,
+                                        input b-split.qtd-previs-operac,
+                                        output b-split.tempo-pad-maq,
+                                        output b-split.tempo-pad-mod,
+                                        output b-split.qtd-capac-operac).
+              assign b-split.tempo-pad-setup      = op-altern.tempo-prepar 
+                     b-split.tempo-pad-pos-operac = op-altern.qtd-tempo-pos-proces
+                     b-split.tempo-pad-operac     = if grup-maquina.ind-tip-ctrab = 4 
+                                                      then b-split.tempo-pad-mod 
+                                                      else b-split.tempo-pad-maq  
+                     b-split.tempo-pad-carga      = op-altern.tempo-prepar + b-split.tempo-pad-operac
+                     b-split.cod-grp-setup        = op-altern.cod-grp-setup. 
+              assign v-log-troca-ok = yes. 
+           end.
+                     
+       end.
+       else do:   
+           run CalcularTempoPadraoE (buffer operacao, 
+                                     input b-split.cod-ctrab,
+                                     input b-split.cod-ferr-prod,
+                                     input b-split.qtd-previs-operac,
+                                     output b-split.tempo-pad-maq,
+                                     output b-split.tempo-pad-mod,
+                                     output b-split.qtd-capac-operac).
+           assign b-split.tempo-pad-setup      = operacao.tempo-prepar 
+                  b-split.tempo-pad-pos-operac = operacao.qtd-tempo-pos-proces
+                  b-split.tempo-pad-operac     = if grup-maquina.ind-tip-ctrab = 4 
+                                                   then b-split.tempo-pad-mod 
+                                                   else b-split.tempo-pad-maq  
+                  b-split.tempo-pad-carga      = operacao.tempo-prepar + b-split.tempo-pad-operac
+                  b-split.cod-grp-setup        = operacao.cod-grp-setup. 
+           assign v-log-troca-ok = yes. 
+       end.
+       
+   end.
+   end.             
+   
+   /*** Procura rela»Co grupo de mÿquina original/alternativo ***/
+   if not v-log-troca-ok then do:
+       find first grup-maq-altern where 
+                  grup-maq-altern.gm-codigo = v-old-gm-codigo and 
+                  grup-maq-altern.gm-altern = b-split.gm-codigo no-lock no-error.
+
+       FIND FIRST operacao WHERE operacao.it-codigo   = oper-ord.it-codigo
+                             AND operacao.op-codigo   = oper-ord.op-codigo
+                             AND operacao.cod-roteiro = oper-ord.cod-roteiro NO-LOCK NO-ERROR.
+
+       if available grup-maq-altern then do:
+           assign b-split.tempo-pad-maq        = b-split.tempo-pad-maq * 
+                                                 grup-maq-altern.val-perc-eficiencia / 100 
+                  b-split.tempo-pad-mod        = b-split.tempo-pad-mod *
+                                                 grup-maq-altern.val-perc-eficiencia / 100
+                  b-split.tempo-pad-operac     = if grup-maquina.ind-tip-ctrab = 4 
+                                                   then b-split.tempo-pad-mod 
+                                                   else b-split.tempo-pad-maq  
+                  b-split.tempo-pad-carga      = IF AVAIL operacao THEN (operacao.tempo-prepar + b-split.tempo-pad-operac)
+                                                 ELSE b-split.tempo-pad-operac.
+           
+/**       Verifica»Co do grupo de setup futuro
+           if b-split.cod-grp-setup <> "" and 
+              not can-find (first grp-setup-maq where
+                                  grp-setup-maq.gm-codigo     = grup-maquina.gm-codigo and
+                                  grp-setup-maq.cod-grp-setup = b-split.cod-grp-setup) then
+               assign b-split.cod-grp-setup = "".   ***/
+           
+       end.
+   end.               
+                              
+END PROCEDURE.
+

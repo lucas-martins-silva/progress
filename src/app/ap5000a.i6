@@ -1,7 +1,0 @@
-FOR EACH tt-relacto:
-    FIND FIRST tit-ap NO-LOCK
-         WHERE ROWID(tit-ap) = tt-relacto.row-relacto NO-ERROR.
-    IF  AVAIL tit-ap THEN DO:
-        RUN pi-criar-temp-tables-titulo.
-    END.
-END.

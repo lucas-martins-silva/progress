@@ -1,0 +1,75 @@
+/*------------------------------------------------------------------------------
+Purpose: Verifica se as notas de frete que entram pelo GFE tem tratamento distinto
+Parameters: Saída: l-ctbz-gfe - valor YES indica que a contabilização do GFE é diferenciada 
+------------------------------------------------------------------------------*/
+    
+DEFINE VARIABLE l-funcao-ativa     AS LOGICAL NO-UNDO. /* GFE no CD0101 e param no RE0103                  */
+DEFINE VARIABLE l-orig-GFE         AS LOGICAL NO-UNDO. /* Documento vindo do GFE                           */
+DEFINE VARIABLE l-item-dd          AS LOGICAL NO-UNDO. /* Itens de débito direto                           */
+DEFINE VARIABLE l-item-sem-op      AS LOGICAL NO-UNDO. /* Itens com ordem de produção                      */
+DEFINE VARIABLE l-item-sem-oi      AS LOGICAL NO-UNDO. /* Itens com ordem de investimento                  */
+DEFINE VARIABLE l-sem-rateio       AS LOGICAL NO-UNDO. /* Se houver rat-docum, é nota de rateio            */
+DEFINE VARIABLE l-ctbz-gfe         AS LOGICAL NO-UNDO. /* SE estiver tudo ok, esta variável deverá se YES  */
+
+IF AVAIL docum-est AND 
+   docum-est.origem = "G":U  THEN DO: /*Origem no GFE*/
+
+    /*função contabilização no RE0103 está ativa*/
+    IF AVAIL param-estoq 
+    AND SUBSTRING(param-estoq.char-1,29,1) = "S":U THEN
+        ASSIGN l-funcao-ativa = YES.
+    ELSE 
+        ASSIGN l-funcao-ativa = NO.
+
+    ASSIGN l-orig-GFE     = YES
+           l-item-dd      = YES
+           l-item-sem-op  = YES
+           l-item-sem-oi  = YES
+           l-sem-rateio   = YES.
+
+    /* verifica se não há documento de rateio */
+    IF CAN-FIND(FIRST rat-docum 
+                WHERE rat-docum.serie-docto        = docum-est.serie-docto
+                  AND rat-docum.nro-docto    = docum-est.nro-docto
+                  AND rat-docum.cod-emitente = docum-est.cod-emitente
+                  AND rat-docum.nat-operacao = docum-est.nat-operacao) THEN
+        ASSIGN l-sem-rateio = NO.
+
+    IF "{1}" = "A" /* Atualização */ THEN DO:
+        FOR EACH item-doc-est FIELDS(it-codigo nr-ord-produ num-ord-inv) NO-LOCK
+            WHERE item-doc-est.serie-docto  = docum-est.serie-docto
+              AND item-doc-est.nro-docto    = docum-est.nro-docto
+              AND item-doc-est.cod-emitente = docum-est.cod-emitente
+              AND item-doc-est.nat-operacao = docum-est.nat-operacao:
+
+            /* verifica se item tem ordem de produção */
+            IF item-doc-est.nr-ord-produ <> 0 THEN      
+                ASSIGN l-item-sem-op = NO.
+
+            /* verifica se item tem ordem de investimento */
+            IF item-doc-est.num-ord-inv <> 0 THEN      
+                ASSIGN l-item-sem-oi = NO.
+
+            FOR FIRST item FIELDS(tipo-contr) NO-LOCK
+                WHERE item.it-codigo = item-doc-est.it-codigo:
+        
+                /* verifica se todos os itens do documento são de débito direto */
+                IF item.tipo-contr <> 4 THEN /* 4 - débito direto */
+                    ASSIGN l-item-dd = NO.
+        
+            END.
+        
+        END.
+    END.
+
+END.
+ELSE
+    ASSIGN l-orig-GFE = NO.
+
+IF l-funcao-ativa AND
+   l-orig-GFE     AND 
+   l-item-dd      AND
+   l-item-sem-op  AND
+   l-item-sem-oi  AND 
+   l-sem-rateio   THEN
+    ASSIGN l-ctbz-gfe = YES.

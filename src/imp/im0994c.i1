@@ -1,0 +1,5 @@
+DEF TEMP-TABLE tt-impto-docto NO-UNDO
+    FIELD cdn-imposto        LIKE impto-item-docto.cdn-imposto
+    FIELD descricao          LIKE tipo-tax.descricao
+    FIELD perc-imposto       LIKE impto-item-docto.perc-imposto
+    FIELD val-impto-merc-ext LIKE impto-item-docto.val-impto-merc-ext.

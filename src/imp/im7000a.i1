@@ -1,0 +1,10 @@
+/**********************************************************
+** im7000a.i1 - Limpa os campos da tela im7000a
+**********************************************************/
+    ASSIGN c-chave-{1}:SCREEN-VALUE = ""
+           c-chave-{1}:HIDDEN       = YES
+           c-valor-{1}:FORMAT       = "x(60)"
+           c-valor-{1}:SCREEN-VALUE = ""
+           c-valor-{1}:HELP         = ""
+           c-valor-{1}:HIDDEN       = YES.
+    DISABLE c-valor-{1}.

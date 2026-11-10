@@ -1,0 +1,202 @@
+/**********************************************************************************
+**
+** Include: im0088.i1 - Definiá∆o dos Form(s)
+**
+*******************************************************************************/
+
+def var c-lb-estab          as char no-undo. 
+def var c-lb-emb            as char no-undo. 
+def var c-lb-fornec         as char no-undo. 
+def var c-lb-nome           as char no-undo. 
+def var c-lb-contab         as char no-undo. 
+def var c-lb-pto-inc        as char no-undo. 
+def var c-lb-dt-inc         as char no-undo. 
+def var c-lb-pto-emb        as char no-undo. 
+def var c-lb-dt-emb         as char no-undo. 
+def var c-lb-sit            as char no-undo. 
+def var c-lb-emp            as char no-undo. 
+def var c-lb-esp            as char no-undo. 
+def var c-lb-ser            as char no-undo. 
+def var c-lb-tit            as char no-undo. 
+def var c-lb-par            as char no-undo. 
+def var c-lb-dt-emis        as char no-undo. 
+def var c-lb-dt-prev        as char no-undo. 
+def var c-lb-moeda          as char no-undo. 
+def var c-lb-vl-ori         as char no-undo.
+def var c-lb-vl-sal         as char no-undo.                     
+def var c-titulo-contab     as char no-undo format "X(40)".
+def var c-titulo-n-contab   as char no-undo format "X(40)".
+def var c-titulo-erro       as char no-undo format "x(40)".
+def var c-sel               as char no-undo format "x(8)".
+def var c-cla               as char no-undo format "x(14)".
+def var c-par               as char no-undo format "x(10)".
+def var c-imp               as char no-undo format "x(10)".
+def var c-lb-destino        as char no-undo format "x(8)".   
+def var c-lb-usuario        as char no-undo format "x(8)".
+def var c-lbl-sim           as char no-undo.
+def var c-lbl-nao           as char no-undo.
+
+form  
+      c-titulo-contab         at 24 
+      "---------------------------" at 24  skip(1)
+      with down no-box no-labels width 136 stream-io frame f-tit1.
+
+form  
+      "  " skip(2)
+      c-titulo-n-contab            at 24 
+      "------------------------------" at 23  skip(1)      
+      with down no-box no-labels width 136 stream-io frame f-tit2.            
+      
+form  
+      "  " skip(2)
+      c-titulo-erro            at 24 
+      "------------------------------" at 23  skip(1)      
+      with down no-box no-labels width 136 stream-io frame f-tit3.
+
+form 
+/*Selecao*/
+    skip(1)                                   
+    c-sel                                              no-label
+    skip(1)
+    tt-param.c-cod-estabel-ini                         colon 50
+    "|< >|"                                      at 73
+    tt-param.c-cod-estabel-fim                         no-label     
+    tt-param.c-embarque-ini                            colon 50
+    "|< >|"                                      at 73
+    tt-param.c-embarque-fim                            no-label     
+    tt-param.i-fornecedor-ini                          colon 50
+    "|< >|"                                      at 73
+    tt-param.i-fornecedor-fim                          no-label
+    tt-param.dt-prevista-ini                           colon 50
+    "|< >|"                                      at 73
+    tt-param.dt-prevista-fim                           no-label
+    skip(1)                                   
+    c-cla                                              no-label
+    skip(1)
+    tt-param.desc-classifica                           no-label 
+                                                       colon 12
+    skip(1)
+    c-par                                              no-label
+    skip(1)    
+    tt-param.contabiliza                               colon 50
+    c-sit-emb                                          colon 50
+    c-sit-proc                                         colon 50
+    skip(1) 
+    c-imp                                              no-label
+    skip(1)   
+    c-lb-destino                            at 41 no-label ": " 
+    tt-param.destino                                   no-label                   
+    " - " 
+    tt-param.arquivo                              no-label skip 
+    c-lb-usuario                            at 41 no-label ": "
+    tt-param.usuario                           no-label skip(1)  
+    with width 132 side-labels frame f-parametros stream-io.
+    
+/* Inicio -- Projeto Internacional -- ut-trfrrp.p adicionado */
+RUN utp/ut-trfrrp.p (INPUT FRAME f-parametros:HANDLE).
+
+
+form c-lb-estab          format "x(3)"
+     c-lb-emb     at 8   format "x(8)"
+     c-lb-fornec  at 28  format "x(6)"
+     c-lb-nome    at 36  format "x(14)"
+     c-lb-contab  at 52  format "x(6)"
+     c-lb-pto-inc at 60  format "x(12)"
+     c-lb-dt-inc  at 74  format "x(10)"
+     c-lb-pto-emb at 86  format "x(12)"
+     c-lb-dt-emb  at 100 format "x(10)" skip
+     c-lb-emp     at 22   format "x(3)" 
+     c-lb-esp     at 27   format "x(3)"
+     c-lb-ser     at 32  format "x(5)"
+     c-lb-tit     at 39  format "x(6)" 
+     c-lb-par     at 56  format "x(2)"     
+     c-lb-dt-emis at 60  format "x(7)"
+     c-lb-dt-prev at 72  format "x(10)"
+     c-lb-moeda   at 84  format "x(5)"
+     c-lb-vl-ori  at 96  format "x(14)"
+     c-lb-vl-sal  at 118 format "x(11)" skip
+     "------------------------------------------------------------------"
+     "------------------------------------------------------------------" to 132
+     with stream-io no-box no-label width 132 frame f-cab-corpo1.
+
+
+form c-lb-estab          format "x(3)"
+     c-lb-emb     at 8   format "x(8)"
+     c-lb-fornec  at 28  format "x(6)"
+     c-lb-nome    at 36  format "x(14)"
+     c-lb-contab  at 52  format "x(6)"
+     c-lb-pto-inc at 60  format "x(12)"
+     c-lb-dt-inc  at 74  format "x(10)"
+     c-lb-pto-emb at 86  format "x(12)"
+     c-lb-dt-emb  at 100 format "x(10)" skip
+     "------------------------------------------------------------------"
+     "------------------------------------------------------------------" to 132
+     with stream-io no-box no-label width 132 frame f-cab-corpo2.
+
+{utp/ut-liter.i Est * r}
+assign c-lb-estab   = trim(return-value).
+{utp/ut-liter.i Embarque * r}
+assign c-lb-emb   = trim(return-value).
+{utp/ut-liter.i Fornec * r}
+assign c-lb-fornec  = trim(return-value).
+{utp/ut-liter.i Nome_Abreviado * r}
+assign c-lb-nome  = trim(return-value).
+{utp/ut-liter.i Contab * r}
+assign c-lb-contab  = trim(return-value).
+{utp/ut-liter.i Pto_Incoterm * r}
+assign c-lb-pto-inc = trim(return-value).
+{utp/ut-liter.i Pto_Embarque * r}
+assign c-lb-pto-emb = trim(return-value).
+{utp/ut-liter.i Dt_Efetiva * r}
+assign c-lb-dt-inc  = trim(return-value).
+assign c-lb-dt-emb  = trim(return-value).
+{utp/ut-liter.i Situaá∆o * r}
+assign c-lb-sit  = trim(return-value).
+{utp/ut-liter.i Emp * r}
+assign c-lb-emp   = trim(return-value).
+{utp/ut-liter.i Esp * r}
+assign c-lb-esp   = trim(return-value).
+{utp/ut-liter.i SÇrie * r}
+assign c-lb-ser   = trim(return-value).
+{utp/ut-liter.i T°tulo * r}
+assign c-lb-tit   = trim(return-value).
+{utp/ut-liter.i /P * r}
+assign c-lb-par   = trim(return-value).
+{utp/ut-liter.i Emiss∆o * r}
+assign c-lb-dt-emis   = trim(return-value).
+{utp/ut-liter.i Prev_Pagto * r}
+assign c-lb-dt-prev   = trim(return-value).
+{utp/ut-liter.i Moeda * r}
+assign c-lb-moeda   = trim(return-value).
+{utp/ut-liter.i Valor_Original * r}
+assign c-lb-vl-ori   = trim(return-value).
+{utp/ut-liter.i Valor_Saldo * r}
+assign c-lb-vl-sal   = trim(return-value).
+{utp/ut-liter.i Situaá∆o_Processo * r}
+assign c-sit-proc:label in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Situaá∆o_Embarque * r}
+assign c-sit-emb:label  in frame f-parametros = trim(return-value).
+{utp/ut-liter.i Embarques_Contabilizados * L}
+assign c-titulo-contab = trim(return-value).
+{utp/ut-liter.i Embarques_n∆o_Contabilizados * L}
+assign c-titulo-n-contab = trim(return-value).
+{utp/ut-liter.i Embarques_sem_T°tulos * L}
+assign c-titulo-erro = trim(return-value).
+{utp/ut-liter.i SELEÄ«O * r}
+assign c-sel = return-value.
+{utp/ut-liter.i CLASSIFICAÄ«O * r}
+assign c-cla = return-value.
+{utp/ut-liter.i PAR∂METRO * r}
+assign c-par = return-value.
+{utp/ut-liter.i IMPRESS«O * r}
+assign c-imp = return-value.
+{utp/ut-liter.i Destino * L}
+assign c-lb-destino = trim(return-value).
+{utp/ut-liter.i Usu†rio * L}
+assign c-lb-usuario = trim(return-value).
+{utp/ut-liter.i Lista_somente_embarques_contabilizados * R}
+assign tt-param.contabiliza:label in frame f-parametros = trim(return-value). 
+{utp/ut-liter.i "Sim"}
+assign c-lbl-sim = return-value.
+{utp/ut-liter.i "N∆o"}
+assign c-lbl-nao = return-value.

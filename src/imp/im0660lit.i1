@@ -1,0 +1,73 @@
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-invoice"
+        tt-traduz-tt.campo-tt   = "#inv-vl-invoice"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "invoice-emb-imp"
+        tt-traduz-tt.campo      = "vl-invoice"
+        tt-traduz-tt.formato    = ">>>>>,>>>,>>9.99"
+        tt-traduz-tt.desc-label = "".
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-invoice"
+        tt-traduz-tt.campo-tt   = "#inv-dec-1"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "invoice-emb-imp"
+        tt-traduz-tt.campo      = "dec-1"
+        tt-traduz-tt.formato    = "->>>>>>>>>>>9.99999999"
+        tt-traduz-tt.desc-label = "".
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-invoice"
+        tt-traduz-tt.campo-tt   = "#inv-dec-2"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "invoice-emb-imp"
+        tt-traduz-tt.campo      = "dec-2"
+        tt-traduz-tt.formato    = "->>>>>>>>>>>9.99999999"
+        tt-traduz-tt.desc-label = "".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-pd-fecha-camb"
+        tt-traduz-tt.campo-tt   = "#feccambio-vl-desp"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "preco-unit"
+        tt-traduz-tt.formato    = ">>>>>,>>>,>>9.99999"
+        tt-traduz-tt.desc-label = "".
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-pd-fecha-camb"
+        tt-traduz-tt.campo-tt   = "#feccambio-vl-merc"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "preco-unit"
+        tt-traduz-tt.formato    = ">>>>>,>>>,>>9.99999"
+        tt-traduz-tt.desc-label = "".
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-pd-fecha-camb"
+        tt-traduz-tt.campo-tt   = "#feccambio-vl-total"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "preco-unit"
+        tt-traduz-tt.formato    = ">>>>>,>>>,>>9.99999"
+        tt-traduz-tt.desc-label = "".
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-comprador"
+        tt-traduz-tt.campo-tt   = "#comp-lim-compra"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "comprador"
+        tt-traduz-tt.campo      = "lim-compra"
+        tt-traduz-tt.formato    = ">>>,>>>,>>>,>>9.99"
+        tt-traduz-tt.desc-label = "".
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-comprador"
+        tt-traduz-tt.campo-tt   = "#comp-dec-1"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "comprador"
+        tt-traduz-tt.campo      = "dec-1"
+        tt-traduz-tt.formato    = "->>>>>>>>>>>9.99999999"
+        tt-traduz-tt.desc-label = "".
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.nome-tt    = "tt-comprador"
+        tt-traduz-tt.campo-tt   = "#comp-dec-2"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "comprador"
+        tt-traduz-tt.campo      = "dec-2"
+        tt-traduz-tt.formato    = "->>>>>>>>>>>9.99999999"
+        tt-traduz-tt.desc-label = "".

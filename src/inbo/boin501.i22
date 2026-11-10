@@ -1,0 +1,20 @@
+/********************************************************************************
+**
+** Geraá∆o de DIMENS«O VIS«O MANUFATURA
+** {1} Dimens∆o de manufatura
+**
+********************************************************************************/
+
+find dim-man where
+     dim-man.cod-dim-man = {1} no-lock.
+
+if not can-find(first dim-vis-man where
+                      dim-vis-man.cod-visao    = visao-man.cod-visao and
+                      dim-vis-man.cod-dimensao = dim-man.cod-dimensao) then do:
+
+   create dim-vis-man.
+   assign dim-vis-man.cod-visao    = visao-man.cod-visao
+          dim-vis-man.cod-dimensao = dim-man.cod-dimensao
+          dim-vis-man.cod-dim-man  = {1}.
+
+end.

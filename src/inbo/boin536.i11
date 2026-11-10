@@ -1,0 +1,12 @@
+/*Temp-table de passagem de parametros nas funcoes split do SFC*/
+
+Def temp-table tt-param-split NO-UNDO
+      Field cod-param as char 
+      Field char-1  as char  init ?
+      Field char-2  as char  init ?
+      Field dec-1   as dec decimals 10 init ?
+      Field dec-2   as dec decimals 10 init ?
+      Field log-1   as log init ?
+      Field log-2   as log init ?
+      Field int-1   as int init ?
+      Field int-2   as int init ?.

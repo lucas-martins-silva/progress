@@ -1,0 +1,76 @@
+PROCEDURE calculateDescontoCC :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    def var de-qtd-max like item-doc-est.quantidade no-undo.
+
+    run findOrdemCompra ( input RowObject.numero-ordem,
+                          input ? ).
+    
+
+    if  return-value = "NOK":U then
+        return "NOK":U.    
+    
+
+
+    run calculatePriceOrdemCompra ( input ?,
+                                    output de-vl-merc-liq ).
+
+     /*------------------------( Chamada EPC )-----------------------------
+      *-------------------- Cliente Bonasa Alimentos - TTROLK -------------*/
+     
+     ASSIGN l-upc-considera-desconto = ?.
+
+     IF c-nom-prog-dpc-mg97  <> "" OR 
+        c-nom-prog-appc-mg97 <> "" OR
+        c-nom-prog-upc-mg97  <> "" THEN DO:
+     
+        FOR EACH tt-epc:
+            DELETE tt-epc.
+        END.
+        
+        create tt-epc.
+        assign tt-epc.cod-event     = "ConsideraDescontoItem"
+               tt-epc.cod-parameter = "l-upc-considera-desconto"
+               tt-epc.val-parameter = string(l-upc-considera-desconto).
+     
+        {include/i-epc201.i "ConsideraDescontoItem"}
+                             
+         FIND FIRST tt-epc NO-LOCK 
+              where tt-epc.cod-event     = "ConsideraDescontoItem" 
+                AND tt-epc.cod-parameter = "l-upc-considera-desconto" NO-ERROR.
+         IF AVAIL tt-epc THEN DO:
+            ASSIGN l-upc-considera-desconto = IF tt-epc.val-parameter = 'yes' 
+                                              THEN YES
+                                              ELSE NO.
+         END.                              
+        
+     end.
+     /*-------------------------( Fim Chamada EPC )------------------------*/
+    assign de-qtd-aux = RowObject.qt-do-forn + int(RowObject.qt-do-forn = 0).
+        
+    if de-desconto-cc <> 0 then
+        if l-upc-considera-desconto <> ? then do:  /*Tem UPC Cadastrada*/                  
+                            
+            if l-upc-considera-desconto then
+                assign RowObject.desconto[1] = de-desconto-cc * de-qtd-aux.
+                                
+        end.
+        else do:
+            if avail docum-est and
+                     docum-est.origem <> "XML" then /*Se vier via xml utilizar o desconto do xml*/
+                assign RowObject.desconto[1] = de-desconto-cc * de-qtd-aux.                    
+                               
+        end.
+       
+    return "OK":U.
+
+
+END PROCEDURE.
+
+
+
+

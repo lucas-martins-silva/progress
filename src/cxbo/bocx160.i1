@@ -1,0 +1,1271 @@
+/*******************************************************************************
+**
+**  BOCX160.i1 - Pedidos de Venda Cex
+**
+*******************************************************************************/
+
+&scoped-define BOVERSION 1.1
+&scoped-define FIRST-TABLE-IN-QUERY ped-venda-cex
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME ped-venda-cex
+{include/boini.i}
+
+{cdp/cdcfgmat.i} 
+{cdp/cdcfgdis.i} /* definiá∆o de pre-processador */
+{cdp/cdcfgcex.i} 
+
+{cxbo/bocx160.i rowObject}
+{dibo/bodi159.i tt-ped-venda}
+{cxbo/bocx160.i tt-ped-venda-cex}
+{cxbo/bocx323.i tt-ped-venda-desp}
+
+{utp/ut-glob.i}
+
+DEFINE QUERY {&QUERY-NAME} for {&TABLE-NAME} scrolling.
+
+DEF VAR l-not-createupdate     AS LOGICAL INITIAL NO NO-UNDO.
+DEF VAR l-not-validatepedvenda AS LOGICAL INITIAL NO NO-UNDO.
+def var c-data-prof            as char               no-undo.
+
+DEF VAR c-aux                  AS CHAR               NO-UNDO.
+
+procedure setConstraint1:
+
+end procedure.
+
+
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    case i-abertura:
+        when 1 then
+            open query {&QUERY-NAME} for each {&TABLE-NAME} no-lock.
+    end case.
+    assign l-query = true
+           i-bo-query = i-abertura.
+    
+end procedure.
+
+{include/bostrmet.i}
+{include/boendmet.i}
+&if defined(bf-dis-comex) &then    
+&else
+    {include/bocomver.i}
+    {include/bogetver.i}
+&endif
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+{include/boexecre.i}
+{include/boexeupt.i}
+{include/boexedel.i}
+{include/bovaldel.i}
+
+ 
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+ 
+    run startMethod ("initializeValidade").
+ 
+    run endMethod   ("initializeValidade").
+end procedure.
+ 
+procedure findCh_pedido:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    def input parameter c-nr-pedido as int no-undo.
+    def output parameter c-return as char no-undo.
+
+    find ped-venda-cex 
+        WHERE ped-venda-cex.nr-pedido = c-nr-pedido no-lock no-error.
+    if not avail {&TABLE-NAME} then do:
+     /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+        pre-processador em chamada de includes */
+        {utp/ut-table.i mgcex ped-venda-cex 1}
+     /******************************************/   
+        run utp/ut-msgs.p (input "msg":U,
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:
+       run setCurrent.
+    end.
+end procedure.
+ 
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+def var dt-val-prof       as date no-undo.
+def var i-cod-consign     as int no-undo.
+def var i-cod-notif       as int no-undo.
+def var de-volume         as dec no-undo.
+def var i-cod-decl-padrao as int no-undo.
+
+  find first rowObject no-error.
+
+  if not can-find (first emitente-cex 
+                   where emitente-cex.cod-emitente = rowObject.cod-emitente) then do:
+                   
+      assign i-seq-erro = i-seq-erro + 1.                                                         
+      /*pre-processador em chamada de includes */                                               
+      {utp/ut-liter.i Cliente_Internacional * L}                                                       
+      /******************************************/                                            
+      create tt-bo-erro.                                                                      
+      ASSIGN tt-bo-erro.parametros = RETURN-VALUE .    
+      run utp/ut-msgs.p (input "msg":U,                                                       
+                         input 2,                                                             
+                         input RETURN-VALUE ).         
+        assign tt-bo-erro.i-sequen     = i-seq-erro                                             
+               tt-bo-erro.cd-erro      = 2                                                      
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+      RETURN "NOK":U.                                                                         
+   END.
+   ELSE DO:
+        FIND FIRST emitente
+            WHERE emitente.cod-emitente = rowObject.cod-emitente NO-LOCK NO-ERROR.
+        IF NOT AVAIL emitente THEN DO:
+           assign i-seq-erro = i-seq-erro + 1.
+           /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+           {utp/ut-table.i mgadm emitente 1}
+           /******************************************/
+           create tt-bo-erro.
+           ASSIGN tt-bo-erro.parametros = RETURN-VALUE + "~~" + STRING(rowObject.cod-emitente).
+           run utp/ut-msgs.p (input "msg":U,
+                              input 2,
+                              input RETURN-VALUE + "~~" + STRING(rowObject.cod-emitente)).
+           assign tt-bo-erro.i-sequen     = i-seq-erro
+                  tt-bo-erro.cd-erro      = 2
+                  tt-bo-erro.mensagem     = return-value
+                  tt-bo-erro.errorsubtype = "Error":U.
+           RETURN "NOK":U.
+        END.
+        ELSE 
+           &if defined(bf-dis-comex) &then 
+              IF emitente.identific = "F" or
+                 emitente.natureza = "F" OR 
+                 emitente.natureza = "J" THEN DO: 
+           &else
+              IF emitente.identific = 2 or
+                 emitente.natureza = 1 OR 
+                 emitente.natureza = 2 THEN DO: 
+           &endif
+                    assign i-seq-erro = i-seq-erro + 1.
+                    create tt-bo-erro.
+                    run utp/ut-msgs.p (input "msg":U,
+                                       input 26252,
+                                       input "").
+                    assign tt-bo-erro.i-sequen     = i-seq-erro
+                           tt-bo-erro.cd-erro      = 26252
+                           tt-bo-erro.mensagem     = return-value
+                           tt-bo-erro.errorsubtype = "Error":U.
+                    RETURN "NOK":U.
+              END.
+
+   end.
+   IF rowObject.nome-abrev = "" THEN DO:
+        FIND emitente
+            WHERE emitente.cod-emitente = rowObject.cod-emitente NO-LOCK NO-ERROR.
+        ASSIGN rowObject.nome-abrev = emitente.nome-abrev.
+   END.
+
+   IF rowObject.nome-abrev = "" THEN DO:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+        pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex nome-abrev 1}
+        /******************************************/
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value ).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+        RETURN "NOK":U.
+   END.
+   ELSE
+       IF NOT CAN-FIND(emitente
+                 WHERE emitente.nome-abrev = rowObject.nome-abrev) THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+            pre-processador em chamada de includes */
+            {utp/ut-table.i mgadm emitente 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE + "~~" + STRING(rowObject.nome-abrev).
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input RETURN-VALUE + "~~" + STRING(rowObject.nome-abrev)).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+            RETURN "NOK":U.
+       END.
+
+     /*IF NOT l-not-validatepedvenda THEN DO:
+         IF rowObject.nr-pedcli = "" THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+            pre-processador em chamada de includes */
+            {utp/ut-field.i mgcex ped-venda-cex nr-pedcli 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 265,
+                               input RETURN-VALUE).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 265
+                   tt-bo-erro.mensagem     = return-value.
+            RETURN "NOK":U.
+        END.
+        ELSE
+            IF NOT CAN-FIND(ped-venda
+                                WHERE ped-venda.nome-abrev = rowObject.nome-abrev 
+                                  AND ped-venda.nr-pedcli  = rowObject.nr-pedcli) THEN DO:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+                pre-processador em chamada de includes */
+                {utp/ut-liter.i Pedido_de_venda * L}
+                /******************************************/
+                create tt-bo-erro.
+                ASSIGN tt-bo-erro.parametros = RETURN-VALUE + "~~" + STRING(rowObject.nr-pedcli).
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 2,
+                                   input RETURN-VALUE + "~~" + STRING(rowObject.nr-pedcli)).
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 2
+                       tt-bo-erro.mensagem     = return-value.
+                RETURN "NOK":U.
+            END.
+    END.*/
+        if rowObject.cod-idioma = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex cod-idioma 1}
+        /******************************************/
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    end.
+    else 
+    /*** Exportaá∆o Magnus ***/
+    &if defined(bf-dis-comex) &then 
+        if not can-find(idioma where idioma.id-codigo = rowObject.cod-idioma) then do:
+    &else    
+        if not can-find(idioma where idioma.cod_idioma = rowObject.cod-idioma) then do:
+    &endif
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+              pre-processador em chamada de includes */          
+            {utp/ut-table.i mguni idioma 1}
+            /******************************************/ 
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+        end.
+    if rowObject.cod-idioma <> "" AND i-pais-impto-usuario = 2 then
+        RUN pi-valida-cod-idioma-argentina.
+         
+    if rowObject.cod-incoterm = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex cod-incoterm 1}
+        /******************************************/   
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    end.
+    else 
+        if not can-find(inco-cx where inco-cx.cod-incoterm = rowObject.cod-incoterm) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+              pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex inco-cx 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                              input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+        end.
+    
+    if rowObject.cod-itiner = 0 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex cod-itiner 1}
+        /******************************************/
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+        RETURN "NOK":U.
+    end.
+    else 
+        if not can-find(itinerario where itinerario.cod-itiner = rowObject.cod-itiner) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+              pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex itinerario 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+            RETURN "NOK":U.
+        end.
+
+    IF rowObject.pto-despacho = 0 THEN DO:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex pto-despacho 1}
+        /******************************************/
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    END.
+    ELSE
+        IF NOT CAN-FIND(pto-contr
+                            WHERE pto-contr.cod-pto-contr = rowObject.pto-despacho) THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+              pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex pto-contr 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+        END.
+    
+    IF rowObject.pto-embarque = 0 THEN DO:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex pto-embarque 1}
+        /******************************************/
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    END.
+    ELSE
+        IF NOT CAN-FIND(pto-contr
+                            WHERE pto-contr.cod-pto-contr = rowObject.pto-embarque) THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+              pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex pto-contr 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+        END.
+
+    IF rowObject.pto-desembarque = 0 THEN DO:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex pto-desembarque 1}
+        /******************************************/
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    END.
+    ELSE
+        IF NOT CAN-FIND(pto-contr
+                            WHERE pto-contr.cod-pto-contr = rowObject.pto-desembarque) THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+              pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex pto-contr 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+        END.
+
+    IF rowObject.pto-chegada = 0 THEN DO:
+        assign i-seq-erro = i-seq-erro + 1.
+        /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+           pre-processador em chamada de includes */
+        {utp/ut-field.i mgcex ped-venda-cex pto-chegada 1}
+        /******************************************/
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    END.
+    ELSE
+        IF NOT CAN-FIND(pto-contr
+                            WHERE pto-contr.cod-pto-contr = rowObject.pto-chegada) THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+              pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex pto-contr 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 2
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+        END.
+
+    &IF "{&bf_dis_versao_ems}" >= "2.06" &THEN
+         ASSIGN dt-val-prof       = rowObject.dt-val-prof      
+                i-cod-consign     = rowObject.cod-consign      
+                i-cod-notif       = rowObject.cod-notif        
+                de-volume         = rowObject.volume           
+                i-cod-decl-padrao = rowObject.cod-decl-padrao.
+    &else
+        &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+            ASSIGN dt-val-prof       = rowObject.dt-val-prof      
+                   i-cod-consign     = rowObject.cod-consign      
+                   i-cod-notif       = rowObject.cod-notif        
+                   de-volume         = rowObject.volume           
+                   i-cod-decl-padrao = rowObject.cod-decl-padrao.
+        &else                   
+            ASSIGN dt-val-prof       = rowObject.data-1
+                   i-cod-consign     = rowObject.int-1 
+                   i-cod-notif       = rowObject.int-2 
+                   de-volume         = rowObject.dec-1 
+                   i-cod-decl-padrao = int(substring(rowObject.char-1,1,6)).
+       &endif
+    &endif
+
+    
+    if i-cod-consign > 0 then
+    if not can-find(emitente where emitente.cod-emitente = i-cod-consign) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        
+        create tt-bo-erro.
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "C¢digo_Consignat†rio" *}
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 2,
+                           input tt-bo-erro.parametros).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 2
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    end.
+    
+    if i-cod-notif > 0 then
+    if not can-find(emitente where emitente.cod-emitente = i-cod-notif) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        
+        create tt-bo-erro.
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "C¢digo_Notificado" *}
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 2,
+                           input tt-bo-erro.parametros).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 2
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    end.
+    
+    if de-volume < 0 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        
+        create tt-bo-erro.
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "Volume_Total(M3)" *}
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 36,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 36
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    end.
+    
+    if i-cod-decl-padrao > 0 then
+    if not can-find(decl-padrao where decl-padrao.de-codigo = i-cod-decl-padrao) then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        
+
+        create tt-bo-erro.
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "C¢digo_Declaraá∆o" *}
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 2,
+                           input tt-bo-erro.parametros).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 2
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+    end.
+
+    {utp/ut-liter.i Data_Validade_Proforma * L}        
+    assign c-data-prof = return-value.
+    
+    if dt-val-prof = ? then do:
+        assign i-seq-erro = i-seq-erro + 1.
+     
+        create tt-bo-erro.
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "Data_Validade_Proforma" *}
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        /* Inicio -- Projeto Internacional */
+        {utp/ut-liter.i "Data_Validade_Proforma" *}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 30922,
+                           input RETURN-VALUE).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 30922
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "Error":U.
+        return "NOK":U.
+    end.
+    ELSE  /* data de validade da proforma deve ser superior ou igual Ö data de implantaá∆o do pedido */
+      IF AVAIL tt-ped-venda THEN DO:
+          if CAN-FIND (FIRST tt-ped-venda WHERE 
+                             tt-ped-venda.nr-pedido = rowObject.nr-pedido AND 
+                             tt-ped-venda.dt-implant > dt-val-prof)  then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            create tt-bo-erro.
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "Data_Validade_Proforma" *}
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE + "~~" + STRING(tt-ped-venda.dt-implant).
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-liter.i "Data_Validade_Proforma" *}
+            run utp/ut-msgs.p (input "msg":U,
+                               input 30922,
+                               input RETURN-VALUE + "~~" + STRING(tt-ped-venda.dt-implant)).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 30922
+                   tt-bo-erro.mensagem     = return-value
+                   tt-bo-erro.errorsubtype = "Error":U.
+            return "NOK":U.
+          end.
+      END.
+      
+    /*Validaá∆o Tipo Movimentaá∆o/Move Type*/
+    if int(substring(RowObject.char-2,101,6)) <> 0 then do:
+       if not can-find(first tip-movto-export
+                       where tip-movto-export.cdn-movto = int(substring(RowObject.char-2,101,6))) then do:
+          assign i-seq-erro = i-seq-erro + 1.
+          create tt-bo-erro.
+          {utp/ut-liter.i "Tipo_Movimentaá∆o" *}
+          ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+          run utp/ut-msgs.p (input "msg":U,
+                             input 2,
+                             input tt-bo-erro.parametros).
+          assign tt-bo-erro.i-sequen     = i-seq-erro
+                 tt-bo-erro.cd-erro      = 2
+                 tt-bo-erro.mensagem     = return-value
+                 tt-bo-erro.errorsubtype = "Error":U.
+       end.
+    end.
+
+      
+    &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+        run exp/ex0270c.p (input table rowObject,
+                           input-output table tt-bo-erro,
+                           input i-seq-erro).
+    &endif
+
+end procedure.
+
+PROCEDURE setValidateCreateUpdate:
+    /*
+    ** Deve ser passado yes para o validateCreate n∆o criar o registro na base de dados
+    */
+    DEF INPUT PARAMETER pl-not-createupdate AS LOGICAL NO-UNDO.
+
+    ASSIGN l-not-createupdate = pl-not-createupdate.
+END PROCEDURE.
+
+PROCEDURE setValidatePedVenda:
+    /*
+    ** Deve ser passado yes para o validateCreate n∆o valide a existància do pedido de venda
+    */
+    DEF INPUT PARAMETER pl-not-validatepedvenda AS LOGICAL NO-UNDO.
+
+    ASSIGN l-not-validatepedvenda = pl-not-validatepedvenda.
+END PROCEDURE.
+
+procedure validateCreate:
+    /*
+    **  Valida criaá∆o da tabela/duplicidade de registro.
+    */
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    def output parameter r-chave as rowid.
+    
+    run initializeValidate.
+
+    run startMethod ("validateCreate").
+ 
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+ 
+    find first rowObject no-lock no-error.
+
+    IF NOT l-not-validatepedvenda THEN DO: 
+        IF rowObject.nr-pedido = 0 THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+            pre-processador em chamada de includes */
+            {utp/ut-liter.i Pedido_de_venda * L}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 265,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 265
+                   tt-bo-erro.mensagem     = return-value.
+            RETURN "NOK":U.
+        END.
+        ELSE
+            IF NOT CAN-FIND(FIRST ped-venda
+                            WHERE ped-venda.nr-pedido = rowObject.nr-pedido) THEN DO:
+                assign i-seq-erro = i-seq-erro + 1.
+                /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+                pre-processador em chamada de includes */
+                {utp/ut-liter.i Pedido_de_venda * L}
+                /******************************************/
+                create tt-bo-erro.
+                ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 2,
+                                   input RETURN-VALUE + "~~" + STRING(rowObject.nr-pedido)).
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 2
+                       tt-bo-erro.mensagem     = return-value.
+                RETURN "NOK":U.
+            END.
+    END.
+        
+    if not available tt-bo-erro then do:
+        find ped-venda-cex where
+            ped-venda-cex.nr-pedido = rowObject.nr-pedido  
+            no-lock no-error.
+        if avail ped-venda-cex then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            /* NAO ALTERAR - Distribuicao Magnus nao reconhece 
+            pre-processador em chamada de includes */
+            {utp/ut-table.i mgcex ped-venda-cex 1}
+            /******************************************/
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 8,
+                               input return-value).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 8
+                   tt-bo-erro.mensagem     = return-value.
+        end.
+    end.
+
+    run validateFields.
+
+    find first tt-bo-erro
+        no-lock no-error.
+ 
+    if not avail tt-bo-erro 
+       AND NOT l-not-createupdate then do:
+       run executeCreate.
+       assign r-chave = to-rowid(return-value).
+    end.
+ 
+    run endMethod ("validateCreate").         
+end procedure.
+
+PROCEDURE validateUpdate:
+
+    DEFINE INPUT  PARAMETER TABLE FOR RowObject.
+    DEFINE INPUT  PARAMETER r-chave AS ROWID NO-UNDO.
+    DEFINE OUTPUT PARAMETER TABLE FOR tt-bo-erro.
+ 
+    RUN InitializeValidate.
+ 
+    FOR EACH tt-bo-erro:
+        DELETE tt-bo-erro.
+    END.
+
+    RUN validateFields.
+
+    if avail tt-ped-venda then do:
+       find first proc-ped-venda where proc-ped-venda.nome-abrev  = tt-ped-venda.nome-abrev
+                                   and proc-ped-venda.nr-pedcli   = tt-ped-venda.nr-pedcli no-lock no-error.
+             if avail proc-ped-venda then do:
+                if proc-ped-venda.cod-estabel <> tt-ped-venda.cod-estabel then do:
+                   assign i-seq-erro = i-seq-erro + 1.                                                         
+                   /*pre-processador em chamada de includes */                                               
+                   {utp/ut-liter.i Processo_de_Exportaá∆o * L} c-aux = return-value.
+                   {utp/ut-liter.i Pedido * L} 
+                   /******************************************/                                            
+                   create tt-bo-erro.                                                                      
+                   ASSIGN tt-bo-erro.parametros = RETURN-VALUE + "~~" + c-aux.    
+                   run utp/ut-msgs.p (input "msg":U,                                                       
+                                      input 25986,                                                             
+                                      input RETURN-VALUE + "~~" + c-aux).         
+                     assign tt-bo-erro.i-sequen     = i-seq-erro                                             
+                            tt-bo-erro.cd-erro      = 25986                                                     
+                            tt-bo-erro.mensagem     = return-value
+                            tt-bo-erro.errorsubtype = "Error":U.
+                   RETURN "NOK":U. 
+                end.
+             end.
+    end.
+
+    FIND FIRST tt-bo-erro NO-LOCK NO-ERROR.
+    
+    IF NOT AVAIL tt-bo-erro AND 
+       NOT l-not-createupdate THEN DO:
+       
+        &IF DEFINED(LOCKCONTROL) > 0 &THEN
+            FIND {&TABLE-NAME} WHERE ROWID({&TABLE-NAME}) = r-chave NO-LOCK NO-ERROR.
+        &ELSE    
+            FIND {&TABLE-NAME} WHERE ROWID({&TABLE-NAME}) = r-chave EXCLUSIVE-LOCK NO-ERROR.
+        &ENDIF    
+        
+        RUN executeUpdate.
+        
+    END.
+    
+END PROCEDURE.
+
+PROCEDURE validatePedVenda:
+    /*
+    ** Utilizado para integraá∆o com programa bodi159 - valida criaá∆o do ped-venda-cex
+    */
+    def input parameter table for tt-ped-venda-cex.
+    DEF INPUT PARAMETER pType AS CHAR NO-UNDO.
+    DEF INPUT PARAMETER platualiza AS LOGICAL NO-UNDO.
+    DEF OUTPUT PARAMETER TABLE FOR tt-bo-erro.
+
+    DEF VAR rped-venda-cex AS ROWID NO-UNDO.
+    find first tt-ped-venda-cex no-error.
+    
+    IF NOT platualiza THEN DO:
+        RUN setValidateCreateUpdate (INPUT YES). /* n∆o atualiza o registro na base de dados */
+        RUN setValidatePedVenda (INPUT YES). /* n∆o valida a existància do pedido de venda */
+    END.
+
+    IF pType = "create":U THEN DO:
+        RUN validateCreate (INPUT TABLE tt-ped-venda-cex,
+                            OUTPUT TABLE tt-bo-erro,
+                            OUTPUT rped-venda-cex).
+    END.
+    ELSE 
+        IF pType = "update":U THEN DO:
+            FIND ped-venda-cex
+                WHERE ped-venda-cex.nr-pedido = tt-ped-venda-cex.nr-pedido NO-LOCK NO-ERROR.
+                
+            IF AVAIL ped-venda-cex THEN
+                RUN validateUpdate (INPUT TABLE tt-ped-venda-cex,
+                                    INPUT ROWID(ped-venda-cex),
+                                    OUTPUT TABLE tt-bo-erro).
+        END.
+
+    IF CAN-FIND(FIRST tt-bo-erro) THEN
+        RETURN "NOK":U.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+procedure CreatePedVenda:
+    /*
+    **  criaá∆o da tabela.
+    */
+    def input  parameter table for RowObject.
+    
+    run initializeValidate.
+    run startMethod ("CreatePedVenda").
+ 
+    find first rowObject
+        no-lock no-error.
+        
+    if avail rowObject then do:
+       create ped-venda-cex.
+       assign ped-venda-cex.nr-pedido       = rowObject.nr-pedido
+              ped-venda-cex.cod-emitente    = rowObject.cod-emitente
+              ped-venda-cex.nome-abrev      = rowObject.nome-abrev
+              ped-venda-cex.nr-pedcli       = rowObject.nr-pedcli
+              ped-venda-cex.cod-itiner      = rowObject.cod-itiner
+              ped-venda-cex.cod-idioma      = rowObject.cod-idioma
+              ped-venda-cex.cod-incoterm    = rowObject.cod-incoterm
+              ped-venda-cex.pto-despacho    = rowObject.pto-despacho
+              ped-venda-cex.pto-embarque    = rowObject.pto-embarque
+              ped-venda-cex.pto-desembarque = rowObject.pto-desembarque
+              ped-venda-cex.pto-chegada     = rowObject.pto-chegada
+              ped-venda-cex.marca-1         = rowObject.marca-1
+              ped-venda-cex.marca-2         = rowObject.marca-2
+              ped-venda-cex.marca-3         = rowObject.marca-3
+              ped-venda-cex.marca-4         = rowObject.marca-4
+              ped-venda-cex.marca-5         = rowObject.marca-5.
+              
+       &IF "{&bf_mat_versao_ems}" >= "2.06" &THEN
+
+            ASSIGN ped-venda-cex.dt-val-prof        = rowObject.dt-val-prof    
+                   ped-venda-cex.cod-consign        = rowObject.cod-consign    
+                   ped-venda-cex.cod-notif          = rowObject.cod-notif      
+                   ped-venda-cex.volume             = rowObject.volume         
+                   ped-venda-cex.cod-decl-padrao    = rowObject.cod-decl-padrao
+                   ped-venda-cex.cdn-emit-final     = rowObject.cdn-emit-final
+                   ped-venda-cex.cod-via-transp     = rowObject.cod-via-transp
+                   ped-venda-cex.idi-tip-frete-export = rowObject.idi-tip-frete-export
+                   ped-venda-cex.cod-pais-final     = rowObject.cod-pais-final.
+                   
+             &IF "{&bf_mat_versao_ems}" >= "2.062" &THEN
+                   assign ped-venda-cex.cod-transp-int     = rowObject.cod-transp-int
+                          ped-venda-cex.veic-transp        = rowObject.veic-transp       
+                          ped-venda-cex.cod-notif2         = rowObject.cod-notif2
+                          ped-venda-cex.cdn-pto-transb[1]  = rowObject.cdn-pto-transb[1] 
+                          ped-venda-cex.cdn-pto-transb[2]  = rowObject.cdn-pto-transb[2] 
+                          ped-venda-cex.cdn-pto-transb[3]  = rowObject.cdn-pto-transb[3] 
+                          ped-venda-cex.cdn-pto-transb[4]  = rowObject.cdn-pto-transb[4].
+             &endif.    
+       &ELSE
+           &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+       
+               ASSIGN ped-venda-cex.dt-val-prof        = rowObject.dt-val-prof     
+                      ped-venda-cex.cod-consign        = rowObject.cod-consign     
+                      ped-venda-cex.cod-notif          = rowObject.cod-notif       
+                      ped-venda-cex.volume             = rowObject.volume          
+                      ped-venda-cex.cod-decl-padrao    = rowObject.cod-decl-padrao
+                      ped-venda-cex.cod-transp-int     = rowObject.cod-transp-int    
+                      ped-venda-cex.veic-transp        = rowObject.veic-transp       
+                      ped-venda-cex.cod-notif2         = rowObject.cod-notif2
+                      ped-venda-cex.cdn-pto-transb[1]  = rowObject.cdn-pto-transb[1] 
+                      ped-venda-cex.cdn-pto-transb[2]  = rowObject.cdn-pto-transb[2] 
+                      ped-venda-cex.cdn-pto-transb[3]  = rowObject.cdn-pto-transb[3] 
+                      ped-venda-cex.cdn-pto-transb[4]  = rowObject.cdn-pto-transb[4].
+       
+           &ELSE                                       
+                assign ped-venda-cex.data-1                 = rowObject.data-1  
+                       ped-venda-cex.int-1                  = rowObject.int-1   
+                       ped-venda-cex.int-2                  = rowObject.int-2   
+                       ped-venda-cex.dec-1                  = rowObject.dec-1   
+                       OVERLAY(ped-venda-cex.char-1,1,6) = subst(rowObject.char-1,1,6).
+           &endif
+       &ENDIF
+       &if defined(bf-dis-comex) &then 
+           assign ped-venda-cex.veic-transp     = rowObject.veic-transp.
+       &endif.
+    end.
+       
+    run endMethod ("CreatePedVenda").         
+end procedure.
+ 
+procedure modificaPedVenda:
+    /*
+    **  mod da tabela.
+    */
+    def input  parameter table for RowObject.
+
+    run initializeValidate.
+    run startMethod ("modificaPedVenda").
+ 
+    find first rowObject
+        no-lock no-error.
+    if avail rowObject then do:
+        find first ped-venda-cex 
+            where ped-venda-cex.nr-pedido = rowObject.nr-pedido exclusive-lock no-error.
+        if avail ped-venda-cex then do:
+            assign ped-venda-cex.cod-itiner      = rowObject.cod-itiner
+                   ped-venda-cex.cod-idioma      = rowObject.cod-idioma
+                   ped-venda-cex.cod-incoterm    = rowObject.cod-incoterm
+                   ped-venda-cex.pto-despacho    = rowObject.pto-despacho
+                   ped-venda-cex.pto-embarque    = rowObject.pto-embarque
+                   ped-venda-cex.pto-desembarque = rowObject.pto-desembarque
+                   ped-venda-cex.pto-chegada     = rowObject.pto-chegada
+                   ped-venda-cex.marca-1         = rowObject.marca-1
+                   ped-venda-cex.marca-2         = rowObject.marca-2
+                   ped-venda-cex.marca-3         = rowObject.marca-3
+                   ped-venda-cex.marca-4         = rowObject.marca-4
+                   ped-venda-cex.marca-5         = rowObject.marca-5.
+                   
+            &IF "{&bf_mat_versao_ems}" >= "2.06" &THEN
+                 ASSIGN ped-venda-cex.dt-val-prof        = rowObject.dt-val-prof    
+                        ped-venda-cex.cod-consign        = rowObject.cod-consign    
+                        ped-venda-cex.cod-notif          = rowObject.cod-notif      
+                        ped-venda-cex.volume             = rowObject.volume         
+                        ped-venda-cex.cod-decl-padrao    = rowObject.cod-decl-padrao
+                        ped-venda-cex.cdn-emit-final     = rowObject.cdn-emit-final
+                        ped-venda-cex.cod-via-transp     = rowObject.cod-via-transp
+                        ped-venda-cex.idi-tip-frete-export = rowObject.idi-tip-frete-export
+                        ped-venda-cex.cod-pais-final     = rowObject.cod-pais-final. 
+                 &IF "{&bf_mat_versao_ems}" >= "2.062" &THEN
+                   assign ped-venda-cex.cod-transp-int     = rowObject.cod-transp-int
+                          ped-venda-cex.veic-transp        = rowObject.veic-transp       
+                          ped-venda-cex.cod-notif2         = rowObject.cod-notif2
+                          ped-venda-cex.cdn-pto-transb[1]  = rowObject.cdn-pto-transb[1] 
+                          ped-venda-cex.cdn-pto-transb[2]  = rowObject.cdn-pto-transb[2] 
+                          ped-venda-cex.cdn-pto-transb[3]  = rowObject.cdn-pto-transb[3] 
+                          ped-venda-cex.cdn-pto-transb[4]  = rowObject.cdn-pto-transb[4].
+                 &endif.    
+            &ELSE
+                &IF "{&bf_cex_versao_ems}" >= "2.062" &THEN
+                    ASSIGN ped-venda-cex.dt-val-prof        = rowObject.dt-val-prof     
+                           ped-venda-cex.cod-consign        = rowObject.cod-consign     
+                           ped-venda-cex.cod-notif          = rowObject.cod-notif       
+                           ped-venda-cex.volume             = rowObject.volume          
+                           ped-venda-cex.cod-decl-padrao    = rowObject.cod-decl-padrao
+                           ped-venda-cex.cod-transp-int     = rowObject.cod-transp-int    
+                           ped-venda-cex.veic-transp        = rowObject.veic-transp       
+                           ped-venda-cex.cod-notif2         = rowObject.cod-notif2         
+                           ped-venda-cex.cdn-pto-transb[1]  = rowObject.cdn-pto-transb[1] 
+                           ped-venda-cex.cdn-pto-transb[2]  = rowObject.cdn-pto-transb[2] 
+                           ped-venda-cex.cdn-pto-transb[3]  = rowObject.cdn-pto-transb[3] 
+                           ped-venda-cex.cdn-pto-transb[4]  = rowObject.cdn-pto-transb[4].
+                &ELSE                                       
+                    assign ped-venda-cex.data-1                 = rowObject.data-1  
+                           ped-venda-cex.int-1                  = rowObject.int-1   
+                           ped-venda-cex.int-2                  = rowObject.int-2   
+                           ped-venda-cex.dec-1                  = rowObject.dec-1   
+                           OVERLAY(ped-venda-cex.char-1,1,6) = subst(rowObject.char-1,1,6).
+                &endif
+            &ENDIF
+            &if defined(bf-dis-comex) &then 
+                assign ped-venda-cex.veic-transp     = rowObject.veic-transp.
+            &endif.
+            
+        end.            
+    end.
+       
+    run endMethod ("modificaPedVenda").         
+end procedure.
+
+procedure createTTPdVendaCex:
+    def input parameter p-cod-incoterm as char no-undo.
+    def input parameter p-cod-idioma   as char no-undo.
+    def input parameter p-cod-itiner   as int  no-undo.
+    def input parameter p-marca-1      as char no-undo.
+    def input parameter p-marca-2      as char no-undo.
+    def input parameter p-marca-3      as char no-undo.
+    def input parameter p-marca-4      as char no-undo.
+    def input parameter p-marca-5      as char no-undo.
+
+    run startMethod ("createTTPdVendaCex").
+    
+    for each rowObject:
+        delete rowObject.
+    end.
+    
+    create rowObject.
+    assign rowObject.cod-itiner     = int(p-cod-itiner)
+           rowObject.cod-incoterm   = p-cod-incoterm
+           rowObject.cod-idioma     = p-cod-idioma
+           rowObject.marca-1        = p-marca-1
+           rowObject.marca-2        = p-marca-2
+           rowObject.marca-3        = p-marca-3
+           rowObject.marca-4        = p-marca-4
+           rowObject.marca-5        = p-marca-5.
+
+    run validateFields.
+
+    find first tt-bo-erro
+        no-lock no-error.
+ 
+    if not avail tt-bo-erro then do:
+       run executeCreate.
+    end.
+
+    run endMethod ("createTTPdVendaCex").   
+end. 
+
+
+procedure deletePedVendaCex:
+    define input  parameter c-nome-abrev as char.
+    define input  parameter c-nr-pedcli  as char.
+    
+    find ped-venda-cex where
+         ped-venda-cex.nome-abrev = c-nome-abrev and
+         ped-venda-cex.nr-pedcli  = c-nr-pedcli exclusive-lock no-error.
+    if avail ped-venda-cex then do:
+        
+        for each  ped-venda-desp 
+            where ped-venda-desp.num-pedido = ped-venda-cex.nr-pedido exclusive-lock:
+            delete ped-venda-desp.
+        end.
+        
+        delete ped-venda-cex.
+        
+    end.
+    
+end procedure.
+
+procedure getCharField:
+    define input  parameter c-field as char.
+    define output parameter c-value as char.
+ 
+    case c-field:
+        when "nome-abrev" then c-value = rowObject.nome-abrev.
+        when "nr-pedcli" then c-value = rowObject.nr-pedcli.
+        when "cod-idioma" then c-value = rowObject.cod-idioma.
+        when "cod-incoterm" then c-value = rowObject.cod-incoterm.                
+        when "marca-1" then c-value = rowObject.marca-1.
+        when "marca-2" then c-value = rowObject.marca-2.
+        when "marca-3" then c-value = rowObject.marca-3.
+        when "marca-4" then c-value = rowObject.marca-4.
+        when "marca-5" then c-value = rowObject.marca-5.                                        
+        when "char-1" then c-value = rowObject.char-1.
+        when "char-2" then c-value = rowObject.char-2.
+        when "check-sum" then c-value = rowObject.check-sum.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+ 
+    case c-field:
+        when "dec-1" then c-value = rowObject.dec-1.
+        when "dec-2" then c-value = rowObject.dec-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+ 
+    case c-field:
+        when "cod-emitente" then c-value = rowObject.cod-emitente.
+        when "nr-pedido" then c-value = rowObject.nr-pedido.
+        when "cod-itiner" then c-value = rowObject.cod-itiner.
+        when "pto-despacho" then c-value = rowObject.pto-despacho.
+        when "pto-embarque" then c-value = rowObject.pto-embarque.                        
+        when "pto-desembarque" then c-value = rowObject.pto-desembarque.
+        when "pto-chegada" then c-value = rowObject.pto-chegada.                
+        when "int-1" then c-value = rowObject.int-1.
+        when "int-2" then c-value = rowObject.int-2.                
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+ 
+    case c-field:
+        when "data-1" then c-value = rowObject.data-1.
+        when "data-2" then c-value = rowObject.data-2.
+        otherwise return error.
+    end case.
+end procedure.
+ 
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+ 
+    case c-field:
+        when "log-1" then c-value = rowObject.log-1.
+        when "log-2" then c-value = rowObject.log-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getErrors:
+define output parameter table for tt-bo-erro.
+end.
+procedure setRowobject:
+    define input parameter table for rowObject.
+    find first rowObject no-error.
+end.
+
+PROCEDURE setPedVenda:
+DEF INPUT PARAM TABLE FOR tt-ped-venda.
+
+FIND FIRST tt-ped-venda no-error.
+
+
+END PROCEDURE.
+
+procedure pi-retorna-ped-cex:
+    def input param table for tt-ped-venda.
+    def input-output param table for tt-ped-venda-cex.    
+    def input-output param table for tt-ped-venda-desp.
+
+    &IF INTEGER(ENTRY(1,PROVERSION,".")) >= 9 &THEN
+        empty temp-table tt-ped-venda-cex.
+        empty temp-table tt-ped-venda-desp.
+    &else 
+        for each tt-ped-venda-cex:
+            delete tt-ped-venda-cex.
+        end.
+        
+        for each tt-ped-venda-desp:
+            delete tt-ped-venda-desp.
+        end.
+    &endif.
+
+    for first tt-ped-venda no-lock: end.
+    if avail tt-ped-venda then do:
+        FOR FIRST ped-venda-cex
+            WHERE ped-venda-cex.nr-pedido = tt-ped-venda.nr-pedido NO-LOCK: end.
+                    
+        if avail ped-venda-cex then do:
+            CREATE tt-ped-venda-cex.
+            BUFFER-COPY ped-venda-cex TO tt-ped-venda-cex.
+        
+            FOR EACH ped-venda-desp NO-LOCK
+               WHERE ped-venda-desp.nr-pedcli  = ped-venda-cex.nr-pedcli 
+                 AND ped-venda-desp.nome-abrev = ped-venda-cex.nome-abrev:
+                CREATE tt-ped-venda-desp.
+                BUFFER-COPY ped-venda-desp TO tt-ped-venda-desp.
+            END.
+        end.
+    END.
+
+    return "OK":U.
+end procedure.
+PROCEDURE pi-valida-cod-idioma-argentina:
+/*------------------------------------------------------------------------------
+  Purpose:     Verifica se tem cadastrado o codigo idioma AFIP
+  Parameters:  p-cod-idioma
+  Notes:       
+------------------------------------------------------------------------------*/
+    
+    DEFINE VARIABLE v_cod_idioma_afip as INTEGER format ">>99" no-undo.
+    DEFINE VARIABLE h-boar2109 AS HANDLE NO-UNDO.
+  
+
+    IF NOT VALID-HANDLE(h-boar2109) THEN DO:
+        RUN local/arg/boar2109.p PERSISTENT SET h-boar2109.
+        run openQueryStatic in h-boar2109 (INPUT "Main":U).
+    END.
+
+    IF VALID-HANDLE(h-boar2109) THEN 
+        RUN buscaCampos IN h-boar2109 (INPUT  rowObject.cod-idioma,
+                                       OUTPUT v_cod_idioma_afip).
+
+
+  IF v_cod_idioma_afip = 0 THEN
+  DO: 
+
+      ASSIGN i-seq-erro = i-seq-erro + 1.
+      RUN utp/ut-msgs.p (INPUT "msg":U,
+                         INPUT 55612,
+                         INPUT "").
+
+
+      CREATE tt-bo-erro.
+      ASSIGN tt-bo-erro.i-sequen = i-seq-erro                   
+          tt-bo-erro.cd-erro  = 55612
+          tt-bo-erro.mensagem = RETURN-VALUE.   
+      
+
+      RUN utp/ut-msgs.p (INPUT "help",
+                         INPUT 55612, 
+                         INPUT rowObject.cod-idioma).
+
+      ASSIGN tt-bo-erro.errorhelp = RETURN-VALUE.
+
+  END.
+    
+    IF VALID-HANDLE(h-boar2109) THEN DO:
+        DELETE PROCEDURE h-boar2109.
+        ASSIGN h-boar2109 = ?.
+    END.
+
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+/* BOCX160.I1 */

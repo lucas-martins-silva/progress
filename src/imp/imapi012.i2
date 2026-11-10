@@ -1,0 +1,76 @@
+/*********************************************************/
+/* Include para tratamento da ttErrosIntegracao          */
+/*********************************************************/
+
+DEF TEMP-TABLE ttErrosIntegracao NO-UNDO
+    FIELD numMensagem       AS INTEGER   FORMAT ">>>>,>>9" LABEL "Nœmero"
+    FIELD tipoMensagem      AS INTEGER   FORMAT ">9"       LABEL "Tipo Mensagem " /*1-Erro, 2-Advert¼ncia, 3-Pergunta, 4-Informa»’o */
+    FIELD desMsgErro        AS CHARACTER FORMAT "x(60)"    LABEL "Mensagem Erro"
+    FIELD desMsgAjuda       AS CHARACTER FORMAT "x(2000)"  LABEL "Mensagem Ajuda"
+    .
+
+DEF TEMP-TABLE ttErrosRetorno NO-UNDO LIKE ttErrosIntegracao.
+
+def {1} {2} temp-table tt_log_erros_atualiz no-undo
+    field tta_cod_estab                    as character format "x(5)"           label "Estabelecimento"     column-label "Estab"
+    field tta_cod_refer                    as character format "x(10)"          label "Referˆncia"          column-label "Referˆncia"
+    field tta_num_seq_refer                as integer   format ">>>9" initial 0 label "Sequˆncia"           column-label "Seq"
+    field ttv_num_mensagem                 as integer   format ">>>>,>>9"       label "N£mero"              column-label "N£mero Mensagem"
+    field ttv_des_msg_erro                 as character format "x(60)"          label "Mensagem Erro"       column-label "Inconsist¼ncia"
+    field ttv_des_msg_ajuda                as character format "x(40)"          label "Mensagem Ajuda"      column-label "Mensagem Ajuda"
+    field ttv_ind_tip_relacto              as character format "X(15)"          label "Tipo Relacionamento" column-label "Tipo Relac"
+    field ttv_num_relacto                  as integer   format ">>>>,>>9"       label "Relacionamento"      column-label "Relacionamento"
+    .
+
+
+PROCEDURE piRepassaErros:
+    FOR EACH ttErrosIntegracao:
+
+        CREATE ttErrosRetorno.
+        BUFFER-COPY ttErrosIntegracao TO ttErrosRetorno.
+        DELETE ttErrosIntegracao.
+
+    END.
+
+    RETURN "OK".
+END.
+
+
+
+PROCEDURE piCriarErroGeral:
+    DEF INPUT PARAM pAdiantamento AS CHARACTER NO-UNDO.
+
+    FOR EACH tt_log_erros_atualiz:
+
+        CREATE ttErrosIntegracao.
+        ASSIGN ttErrosIntegracao.numMensagem  = tt_log_erros_atualiz.ttv_num_mensagem
+               ttErrosIntegracao.tipoMensagem = 1
+               ttErrosIntegracao.desMsgErro   = tt_log_erros_atualiz.ttv_des_msg_erro
+               ttErrosIntegracao.desMsgAjuda  = tt_log_erros_atualiz.ttv_des_msg_ajuda + CHR(10) + pAdiantamento.
+    END.
+
+    RETURN "OK".
+END PROCEDURE.
+
+
+
+PROCEDURE piCriarErroIndiv:
+    DEF INPUT PARAM pAdiantamento AS CHARACTER NO-UNDO.
+    DEF INPUT PARAM pMsg          AS INTEGER   NO-UNDO.
+    DEF INPUT PARAM pParam        AS CHARACTER NO-UNDO.
+
+    CREATE ttErrosIntegracao.
+    ASSIGN ttErrosIntegracao.numMensagem = pMsg.
+
+    RUN utp/ut-msgs.p (INPUT 'MSG', INPUT pMsg, INPUT pParam).
+    ASSIGN ttErrosIntegracao.desMsgErro  = RETURN-VALUE.
+
+    RUN utp/ut-msgs.p (INPUT 'HELP', INPUT pMsg, INPUT pParam).
+    ASSIGN ttErrosIntegracao.desMsgAjuda = RETURN-VALUE + CHR(10) + pAdiantamento.
+
+    RUN utp/ut-msgs.p (INPUT 'CodType', INPUT pMsg, INPUT '').
+    ASSIGN ttErrosIntegracao.tipoMensagem = IF INT(RETURN-VALUE) = 0 THEN 1 ELSE INT(RETURN-VALUE).
+
+    RETURN 'OK'.
+END PROCEDURE.
+

@@ -1,0 +1,88 @@
+{include/i_fnctrad.i}  
+
+def temp-table tt-traducoes no-undo
+    field cd-msgs as int
+    field c-msg as char
+    field c-help as char
+    index idcd is primary unique cd-msgs.
+
+def new global shared var v_cod_dialet_corren as character no-undo.
+
+procedure extraiMsg:
+
+    def input param p-cd-msg as int no-undo.
+    def input param c-parametros as char no-undo.
+    
+    find first tt-traducoes 
+         where tt-traducoes.cd-msgs = p-cd-msg no-error.
+    if not avail tt-traducoes then do:
+    
+        create tt-traducoes.
+        assign tt-traducoes.cd-msgs = p-cd-msg.
+    
+        case p-cd-msg:
+             when 361 then do:
+                    {utp/ut-liter.i v†rias * r}
+                    assign c-parametros = return-value.
+             end.
+        end. 
+        
+        &IF "{&FNC_MULTI_IDIOMA}" = "Yes" &THEN    
+        
+        Find first String_ext_produt no-lock
+             Where String_ext_produt.idi_string_orig = 8
+               and String_ext_produt.cod_dialet      = v_cod_dialet_corren
+               and String_ext_produt.cod_string_orig = string(p-cd-msg)
+               and String_ext_produt.cod_contexto    = "*":U No-error.
+        if avail String_ext_produt then
+            assign tt-traducoes.c-msg  = String_ext_produt.des_string_trad
+                   tt-traducoes.c-help = String_ext_produt.des_string_trad_2.
+        else do:
+        &ENDIF
+
+            &IF "{&EMSFND_VERSION}" >= "1.00" &then
+                find first cadast_msg no-lock
+                   where cadast_msg.cdn_msg = p-cd-msg no-error.
+                    if avail cadast_msg then
+                        assign tt-traducoes.c-msg  = cadast_msg.des_text_msg
+                               tt-traducoes.c-help = cadast_msg.dsl_help_msg + chr(10) + "".  
+                    else
+                        assign tt-traducoes.c-msg  = "Msg n∆o cadastrada".
+            &else
+                find first cad-msgs no-lock
+                   where cad-msgs.cd-msg = p-cd-msg no-error.
+                    if avail cad-msgs then
+                        assign tt-traducoes.c-msg  = cad-msgs.texto-msg
+                               tt-traducoes.c-help = cad-msgs.help-msg + chr(10) + "".  
+                    else
+                        assign tt-traducoes.c-msg  = "Msg n∆o cadastrada".
+            &endif
+        
+        &IF "{&FNC_MULTI_IDIOMA}" = "Yes" &THEN                     
+        end.
+        &ENDIF        
+
+        assign c-parametros = c-parametros + "~~~~~~~~~~~~~~~~":U.
+        assign tt-traducoes.c-msg = substitute(tt-traducoes.c-msg,
+                                      entry(1, c-parametros, "~~":U),
+                                      entry(2, c-parametros, "~~":U),
+                                      entry(3, c-parametros, "~~":U),
+                                      entry(4, c-parametros, "~~":U),
+                                      entry(5, c-parametros, "~~":U),
+                                      entry(6, c-parametros, "~~":U),
+                                      entry(7, c-parametros, "~~":U),
+                                      entry(8, c-parametros, "~~":U),
+                                      entry(9, c-parametros, "~~":U)).
+        assign tt-traducoes.c-help = substitute(tt-traducoes.c-help,
+                                      entry(1, c-parametros, "~~":U),
+                                      entry(2, c-parametros, "~~":U),
+                                      entry(3, c-parametros, "~~":U),
+                                      entry(4, c-parametros, "~~":U),
+                                      entry(5, c-parametros, "~~":U),
+                                      entry(6, c-parametros, "~~":U),
+                                      entry(7, c-parametros, "~~":U),
+                                      entry(8, c-parametros, "~~":U),
+                                      entry(9, c-parametros, "~~":U)).
+    end.
+
+end procedure.

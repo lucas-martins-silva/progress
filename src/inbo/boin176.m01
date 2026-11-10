@@ -1,0 +1,544 @@
+PROCEDURE createTbWtDocto :
+/*------------------------------------------------------------------------------
+  Purpose:
+  Parameters:  <none>
+  Notes: Criaá∆o da temp-table de documentos (tb-wt-docto), para calculo dos
+         impostos.
+------------------------------------------------------------------------------*/
+
+    if  not avail docum-est then
+        return "NOK":U.
+
+    run findNaturOper ( docum-est.nat-operacao ).
+
+    run findEmitente ( docum-est.cod-emitente ).
+
+    run findEstabelec ( docum-est.cod-estabel ).
+
+
+    if  not avail natur-oper
+    or  not avail emitente
+    or  not avail estabelec  then
+        RETURN "NOK":U.
+
+    if  not valid-handle(h_bodi317im2bra) then
+        run dibo/bodi317im2bra.p persistent set h_bodi317im2bra.
+
+    find tb-wt-docto
+        where tb-wt-docto.seq-wt-docto = 1 exclusive-lock no-error.
+
+    if  not avail tb-wt-docto then do:
+        create tb-wt-docto.
+        assign tb-wt-docto.seq-wt-docto = 1
+               tb-wt-docto.cod-emitente = docum-est.cod-emitente
+               tb-wt-docto.nr-nota      = docum-est.nro-docto
+               tb-wt-docto.nat-operacao = docum-est.nat-operacao
+               tb-wt-docto.serie        = docum-est.serie-docto.
+    end.
+
+    assign tb-wt-docto.cod-des-merc = if  natur-oper.consum-final then
+                                              2
+                                          else 1
+           tb-wt-docto.cod-estabel          = docum-est.cod-estabel
+           tb-wt-docto.dt-emis-nota         = if docum-est.dt-competencia <> ? then docum-est.dt-competencia else docum-est.dt-trans
+           tb-wt-docto.esp-docto            = docum-est.esp-docto
+           tb-wt-docto.ind-tip-nota         = 8
+           tb-wt-docto.mo-codigo            = docum-est.mo-codigo
+           tb-wt-docto.nome-abrev           = emitente.nome-abrev
+           tb-wt-docto.vl-embalagem         = docum-est.valor-embal
+           tb-wt-docto.vl-frete             = docum-est.valor-frete
+           tb-wt-docto.vl-mercad            = docum-est.valor-mercad
+
+
+           tb-wt-docto.nr-prog              = 176  /* para indicar no bodi317im1br.i1 que a boin176 que chamou */
+           /* Soma Valor Outros no Seguro para considerar no c†lculo dos impostos */
+           tb-wt-docto.vl-seguro            = docum-est.valor-seguro + docum-est.valor-outras.
+
+    /* Insere o estabelecimento de origem da nota de transferància */
+    if docum-est.estab-de-or <> ? then
+        assign overlay(tb-wt-docto.char-1,88,5) = docum-est.estab-de-or.
+
+    /* Devoluá∆o de Cliente ou Devoluá∆o de Consignaá∆o */
+
+    if  docum-est.cod-observa = 3
+    or l-transf
+    or l-dev-transf
+    or  ( natur-oper.terceiros and natur-oper.tp-oper-terc = 5 ) then
+        assign tb-wt-docto.cidade       = emitente.cidade
+               tb-wt-docto.estado       = emitente.estado
+               tb-wt-docto.pais         = emitente.pais.
+    else
+         assign tb-wt-docto.cidade       = estabelec.cidade
+                tb-wt-docto.estado       = estabelec.estado
+                tb-wt-docto.pais         = estabelec.pais.
+
+    if  valid-handle(h_bodi317im2bra) then
+        run enviaTbWtDocto in h_bodi317im2bra ( input table tb-wt-docto ) .
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE createTbWtItDocto :
+/*------------------------------------------------------------------------------
+  Purpose:
+  Parameters:  <none>
+  Notes: Criaá∆o da temp-table de itens do documento (tb-wt-it-docto), para calculo
+         dos impostos.
+------------------------------------------------------------------------------*/
+
+    def input param piSequencia  like item-doc-est.sequencia      no-undo.
+    def input param piItem       like item-doc-est.it-codigo      no-undo.
+    def input param piQuantidade like item-doc-est.quantidade     no-undo.
+    def input param piQtDoForn   like item-doc-est.quantidade     no-undo.
+    def input param piPrecoTotal like item-doc-est.preco-total[1] no-undo.
+    def input param piDesconto   like item-doc-est.desconto[1]    no-undo.
+    def input param piDespesa    like item-doc-est.despesas[1]    no-undo.
+    def input param piFrete      like item-doc-est.pr-total-cmi   no-undo.
+
+    def var         c-un-estoque like item.un                     no-undo.
+
+    def buffer bf-pauta-item         for item.
+    def buffer bf-pauta-prazo-compra for prazo-compra.
+    DEF BUFFER bf-item-doc-est       FOR item-doc-est.
+
+    if  not avail docum-est then
+        return "NOK":U.
+
+    find tb-wt-it-docto
+        where tb-wt-it-docto.seq-wt-docto    = 1
+          and tb-wt-it-docto.seq-wt-it-docto = piSequencia
+        exclusive-lock no-error.
+    if  not avail tb-wt-it-docto then do:
+        create tb-wt-it-docto.
+        assign tb-wt-it-docto.seq-wt-docto    = 1
+               tb-wt-it-docto.seq-wt-it-docto = piSequencia.
+    end.
+
+    FOR FIRST bf-item-doc-est FIELDS (nat-of serie-comp nro-comp nat-comp seq-comp data-comp char-2)
+        WHERE bf-item-doc-est.cod-emitente = docum-est.cod-emitente
+        AND   bf-item-doc-est.serie-docto  = docum-est.serie-docto
+        AND   bf-item-doc-est.nro-docto    = docum-est.nro-docto
+        AND   bf-item-doc-est.nat-operacao = docum-est.nat-operacao
+        AND   bf-item-doc-est.it-codigo    = piItem
+        AND   bf-item-doc-est.sequencia    = piSequencia:
+    END.
+
+    assign tb-wt-it-docto.calcula         = yes
+           tb-wt-it-docto.it-codigo       = piItem
+           tb-wt-it-docto.nat-operacao    = (IF  l-mult-natur-receb and l-alteracao-nat-oper THEN
+                                                 RowObject.nat-of
+                                            ELSE IF  AVAIL bf-item-doc-est THEN
+                                                 IF  l-mult-natur-receb AND bf-item-doc-est.nat-of <> "" THEN /* l-mult-natur-receb -> cd9701.i */
+                                                     bf-item-doc-est.nat-of /* Se usa Multi. Naturezas e ela foi informada: usa ela */
+                                                 ELSE docum-est.nat-operacao /* Sen∆o usa a natureza da nota. */
+                                            ELSE IF l-mult-natur-receb AND RowObject.nat-of <> "" THEN
+                                                 RowObject.nat-of
+                                            ELSE docum-est.nat-operacao)
+           tb-wt-it-docto.nr-sequencia    = piSequencia
+           tb-wt-it-docto.nr-seq-nota     = 1
+           tb-wt-it-docto.quantidade[1]   = piQuantidade
+           tb-wt-it-docto.quantidade[2]   = piQtDoForn
+           tb-wt-it-docto.vl-merc-ori     = piPrecoTotal
+           tb-wt-it-docto.vl-merc-liq     = tb-wt-it-docto.vl-merc-ori
+                                            - piDesconto
+           tb-wt-it-docto.vl-despes-it    = piDespesa
+           tb-wt-it-docto.vl-frete        = piFrete
+           tb-wt-it-docto.vl-seguro       = piDespesa
+                                            - piFrete
+           tb-wt-it-docto.vl-preori       = if tb-wt-it-docto.quantidade[1] <> 0 then
+                                                (tb-wt-it-docto.vl-merc-ori / tb-wt-it-docto.quantidade[1])
+                                            else tb-wt-it-docto.vl-merc-ori
+           tb-wt-it-docto.vl-preuni       = if tb-wt-it-docto.quantidade[1] <> 0 then
+                                                (tb-wt-it-docto.vl-merc-liq / tb-wt-it-docto.quantidade[1])
+                                            else tb-wt-it-docto.vl-merc-liq
+           tb-wt-it-docto.vl-merc-s-icms  = tb-wt-it-docto.vl-merc-liq
+           tb-wt-it-docto.vl-merc-tab     = tb-wt-it-docto.vl-merc-liq
+           /*
+           ** Integraá∆o M¢dulo Importaá∆o
+           ** Objetivo: gravar a sÇrie para achar as despesas de importacao
+           */
+           overlay(tb-wt-it-docto.char-1,1,5) = docum-est.serie-docto.
+
+    /*Pedagio*/
+    assign overlay(tb-wt-it-docto.char-1,33,16) = IF AVAIL RowObject THEN
+                                                      SUBSTR(RowObject.char-2,819,13)
+                                                  ELSE IF AVAIL bf-item-doc-est THEN
+                                                           SUBSTR(bf-item-doc-est.char-2,819,13)
+                                                       ELSE "".
+    assign tb-wt-it-docto.peso-liq-it-inf = IF AVAIL RowObject THEN
+                                                RowObject.peso-liquido
+                                            ELSE IF AVAIL bf-item-doc-est THEN
+                                                     bf-item-doc-est.peso-liquido
+                                                 ELSE 0.
+
+    if avail RowObject then
+        assign tb-wt-it-docto.serie-comp = RowObject.serie-comp
+               tb-wt-it-docto.nro-comp   = RowObject.nro-comp
+               tb-wt-it-docto.nat-comp   = RowObject.nat-comp
+               tb-wt-it-docto.seq-comp   = RowObject.seq-comp
+               tb-wt-it-docto.data-comp  = RowObject.data-comp.
+    else if  avail bf-item-doc-est then
+        assign tb-wt-it-docto.serie-comp = bf-item-doc-est.serie-comp
+               tb-wt-it-docto.nro-comp   = bf-item-doc-est.nro-comp
+               tb-wt-it-docto.nat-comp   = bf-item-doc-est.nat-comp
+               tb-wt-it-docto.seq-comp   = bf-item-doc-est.seq-comp
+               tb-wt-it-docto.data-comp  = bf-item-doc-est.data-comp.
+    else
+        if  avail it-nota-fisc then do:
+            /* refazer a leitura do it-nota-fisc para n∆o dar erro de fields */
+            find current it-nota-fisc no-lock no-error.
+            assign tb-wt-it-docto.serie-comp = it-nota-fisc.serie
+                   tb-wt-it-docto.nro-comp   = it-nota-fisc.nr-nota-fis
+                   tb-wt-it-docto.nat-comp   = it-nota-fisc.nat-operacao
+                   tb-wt-it-docto.seq-comp   = it-nota-fisc.nr-seq-fat
+                   tb-wt-it-docto.data-comp  = it-nota-fisc.dt-emis-nota.
+        end.
+
+    IF AVAIL RowObject THEN
+        ASSIGN tb-wt-it-docto.un[2] = RowObject.un
+               tb-wt-it-docto.class-fiscal = RowObject.class-fiscal.
+
+    for first bf-pauta-item FIELDS (un tipo-contr)
+        where bf-pauta-item.it-codigo = piItem no-lock: end.
+
+    if  avail bf-pauta-item
+        and avail rowObject
+        and bf-pauta-item.tipo-contr = 4 then do:
+
+            for first bf-pauta-prazo-compra
+                fields (un)
+                where bf-pauta-prazo-compra.numero-ordem = RowObject.numero-ordem
+                  and bf-pauta-prazo-compra.parcela      = RowObject.parcela no-lock:
+            end.
+
+            if  not avail bf-pauta-prazo-compra then
+                find first bf-pauta-prazo-compra
+                     where bf-pauta-prazo-compra.numero-ordem = RowObject.numero-ordem
+                     no-lock no-error.
+
+            assign c-un-estoque = if avail bf-pauta-prazo-compra
+                                      then bf-pauta-prazo-compra.un
+                                  else if avail bf-pauta-item
+                                           then bf-pauta-item.un
+                                       else "".
+
+    end.
+    else
+        assign c-un-estoque = if avail bf-pauta-item
+                                  then bf-pauta-item.un
+                              else "".
+
+    assign tb-wt-it-docto.un[1] = c-un-estoque.
+
+
+    if  valid-handle(h_bodi317im2bra) then
+        run enviaTbWtItDocto in h_bodi317im2bra ( input table tb-wt-it-docto ) .
+
+
+    RETURN "OK":U.
+
+
+END PROCEDURE.
+
+
+
+
+PROCEDURE createTbWtItImposto :
+/*------------------------------------------------------------------------------
+  Purpose:
+  Parameters:  <none>
+  Notes: Criaá∆o da temp-table de impostos (tb-wt-it-imposto), para calculo dos
+         impostos.
+------------------------------------------------------------------------------*/
+
+    def input param piSequencia   like item-doc-est.sequencia    no-undo.
+    def input param piAliquotaIPI like item-doc-est.aliquota-ipi no-undo.
+    def input param piAliquotaICM like item-doc-est.aliquota-icm no-undo.
+    def input param piAliquotaISS like item-doc-est.aliquota-iss no-undo.
+    def input param piTribIPI     like item-doc-est.cd-trib-ipi  no-undo.
+    def input param piTribICM     like item-doc-est.cd-trib-icm  no-undo.
+    def input param piTribISS     like item-doc-est.cd-trib-iss  no-undo.
+    def input param piICMRet      like item-doc-est.log-2        no-undo.
+    def input param pdePercIPI    as dec                         no-undo.
+    def input param pdePercICM    as dec                         no-undo.
+
+    if  not avail docum-est then
+        return "NOK":U.
+
+    run findNaturOper (IF  l-mult-natur-receb AND AVAIL RowObject THEN
+                           IF  RowObject.nat-of <> "" AND RowObject.nat-of <> ? THEN /* l-mult-natur-receb -> cd9701.i */
+                               RowObject.nat-of /* Se usa Multi. Naturezas e ela foi informada: usa ela */
+                           ELSE docum-est.nat-operacao
+                       ELSE docum-est.nat-operacao). /* Sen∆o usa a natureza da nota. */
+
+    find tb-wt-it-imposto
+        where tb-wt-it-imposto.seq-wt-docto    = 1
+          and tb-wt-it-imposto.seq-wt-it-docto = piSequencia
+        exclusive-lock no-error.
+
+    if  not avail tb-wt-it-imposto then do:
+        create tb-wt-it-imposto.
+        assign tb-wt-it-imposto.seq-wt-docto    = 1
+               tb-wt-it-imposto.seq-wt-it-docto = piSequencia.
+    end.
+
+    assign tb-wt-it-imposto.perc-red-icm = pdePercICM
+           tb-wt-it-imposto.perc-red-ipi = pdePercIPI
+           tb-wt-it-imposto.perc-red-iss = natur-oper.perc-red-iss
+           tb-wt-it-imposto.aliquota-ipi = piAliquotaIPI
+           tb-wt-it-imposto.aliquota-icm = piAliquotaICM
+           tb-wt-it-imposto.aliquota-iss = piAliquotaISS
+           tb-wt-it-imposto.cd-trib-ipi  = piTribIPI
+           tb-wt-it-imposto.cd-trib-icm  = piTribICM
+           tb-wt-it-imposto.cd-trib-iss  = piTribISS
+           tb-wt-it-imposto.ind-icm-ret  = piICMRet.
+
+    if  valid-handle(h_bodi317im2bra) then
+        run enviaTbWtItImposto in h_bodi317im2bra ( input table tb-wt-it-imposto ).
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+
+PROCEDURE createTempTableImpostos :
+/*------------------------------------------------------------------------------
+  Purpose:
+  Parameters:  <none>
+  Notes: Executa as procedures de criaá∆o das temp-table's para calculo dos
+         impostos.
+------------------------------------------------------------------------------*/
+
+    def var de-despesas as decimal no-undo.
+
+    if  not avail RowObject then
+        return "NOK":U.
+
+
+    run createTbWtDocto.
+
+
+    if  return-value <> "OK":U then
+        return "NOK":U.
+
+    assign de-despesas = rowObject.despesas[1] - dec(SUBSTR(Rowobject.char-2,819,13)).
+
+    run createTbWtItDocto ( RowObject.sequencia,
+                            RowObject.it-codigo,
+                            RowObject.quantidade,
+                            RowObject.qt-do-forn,
+                            RowObject.preco-total[1],
+                            RowObject.desconto[1],
+                            de-despesas,
+                            RowObject.pr-total-cmi ).
+
+
+    if  return-value <> "OK":U then
+        return "NOK":U.
+
+    run createTbWtItImposto ( RowObject.sequencia,
+                              RowObject.aliquota-ipi,
+                              RowObject.aliquota-icm,
+                              RowObject.aliquota-iss,
+                              RowObject.cd-trib-ipi,
+                              RowObject.cd-trib-icm,
+                              RowObject.cd-trib-iss,
+                              RowObject.log-2,
+                              RowObject.val-perc-rep-ipi,
+                              RowObject.val-perc-red-icms ).
+
+    RUN createTempTableImpostosCBSIBS.
+
+    if  return-value <> "OK":U then
+        return "NOK":U.
+
+    RETURN "NOK":U.
+
+
+END PROCEDURE.
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-recebe-handle DBOProgram
+PROCEDURE pi-recebe-handle:
+
+    DEF INPUT PARAMETER p-c-nome-variavel   AS  CHAR        NO-UNDO.
+    DEF INPUT PARAMETER p-h-handle          AS  HANDLE      NO-UNDO.
+
+    CASE p-c-nome-variavel:
+        WHEN "h-cdcfgfiscal"    THEN ASSIGN h-cdcfgfiscal   = p-h-handle.
+        WHEN "h-bodi613calc2"   THEN ASSIGN h-bodi613calc2  = p-h-handle.
+        WHEN "h-bodi317im2bra"  THEN ASSIGN h_bodi317im2bra = p-h-handle.
+    END CASE.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createTempTableImpostosCBSIBS DBOProgram
+PROCEDURE createTempTableImpostosCBSIBS:
+    DEF VAR cClassTrib-cbsibs   AS CHARACTER          NO-UNDO.
+    
+    FIND tb-wt-it-impostoCBSIBS EXCLUSIVE-LOCK 
+        WHERE tb-wt-it-impostoCBSIBS.seq-wt-docto    = 1
+          AND tb-wt-it-impostoCBSIBS.seq-wt-it-docto = RowObject.sequencia NO-ERROR.
+    IF NOT AVAIL tb-wt-it-impostoCBSIBS THEN DO:
+        CREATE tb-wt-it-impostoCBSIBS.
+        ASSIGN tb-wt-it-impostoCBSIBS.seq-wt-docto    = 1
+               tb-wt-it-impostoCBSIBS.seq-wt-it-docto = RowObject.sequencia.
+    END.
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS, INPUT AtributoImposto:ALIQUOTA,   OUTPUT tb-wt-it-impostoCBSIBS.aliquota-cbs).
+
+    if tb-wt-it-impostoCBSIBS.aliquota-cbs = 0 then
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS, INPUT AtributoImposto:ALIQUOTA-REG,   OUTPUT tb-wt-it-impostoCBSIBS.aliquota-cbs).
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS, INPUT AtributoImposto:ALIQ-RED,     OUTPUT tb-wt-it-impostoCBSIBS.perc-red-cbs).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS, INPUT AtributoImposto:PERC-RED-GOV, OUTPUT tb-wt-it-impostoCBSIBS.perc-red-gov-cbs).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS, INPUT AtributoImposto:PERC-DIFER,   OUTPUT tb-wt-it-impostoCBSIBS.perc-difer-cbs).
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF, INPUT AtributoImposto:ALIQUOTA,   OUTPUT tb-wt-it-impostoCBSIBS.aliquota-ibsuf).
+
+    if  tb-wt-it-impostoCBSIBS.aliquota-ibsuf = 0 then
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF, INPUT AtributoImposto:ALIQUOTA-REG,   OUTPUT tb-wt-it-impostoCBSIBS.aliquota-ibsuf).
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF, INPUT AtributoImposto:ALIQ-RED,     OUTPUT tb-wt-it-impostoCBSIBS.perc-red-ibsuf).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF, INPUT AtributoImposto:PERC-RED-GOV, OUTPUT tb-wt-it-impostoCBSIBS.perc-red-gov-ibsuf).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF, INPUT AtributoImposto:PERC-DIFER,   OUTPUT tb-wt-it-impostoCBSIBS.perc-difer-ibsuf).
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:ALIQUOTA,   OUTPUT tb-wt-it-impostoCBSIBS.aliquota-ibsmun).
+    if tb-wt-it-impostoCBSIBS.aliquota-ibsmun = 0 then
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:ALIQUOTA-REG,   OUTPUT tb-wt-it-impostoCBSIBS.aliquota-ibsmun).
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:ALIQ-RED,     OUTPUT tb-wt-it-impostoCBSIBS.perc-red-ibsmun).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:PERC-RED-GOV, OUTPUT tb-wt-it-impostoCBSIBS.perc-red-gov-ibsmun).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:PERC-DIFER,   OUTPUT tb-wt-it-impostoCBSIBS.perc-difer-ibsmun).
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,    INPUT AtributoImposto:PERC-CP, OUTPUT tb-wt-it-impostoCBSIBS.perc-cp-cbs).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF, INPUT AtributoImposto:PERC-CP, OUTPUT tb-wt-it-impostoCBSIBS.perc-cp-ibsuf).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,    INPUT AtributoImposto:ALIQ-EFETIVA-ALCZFM, OUTPUT tb-wt-it-impostoCBSIBS.perc-efet-alczfm-cbs).
+
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IS, INPUT AtributoImposto:ALIQUOTA,      OUTPUT tb-wt-it-impostoCBSIBS.aliquota-is).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IS, INPUT AtributoImposto:ALIQ-ESPEC-UN, OUTPUT tb-wt-it-impostoCBSIBS.aliq-espec-is).
+    RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IS, INPUT AtributoImposto:QTDE-TRIBUT,   OUTPUT tb-wt-it-impostoCBSIBS.qtde-tribut-is).
+
+    IF AVAIL docum-est THEN DO:
+       ASSIGN tb-wt-it-impostoCBSIBS.tp-ente-gov = docum-est.cod-tipo-ente-gov
+              tb-wt-it-impostoCBSIBS.ano-emis-nf = IF RowObject.data-comp <> ? THEN YEAR(RowObject.data-comp) ELSE YEAR(docum-est.dt-emissao).
+
+       IF docum-est.cod-tipo-ente-gov > 0 THEN DO:
+
+          RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:ALIQ-GOV, OUTPUT tb-wt-it-impostoCBSIBS.aliquota-cbs).
+          RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:ALIQ-GOV, OUTPUT tb-wt-it-impostoCBSIBS.aliquota-ibsuf).
+          RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:ALIQ-GOV, OUTPUT tb-wt-it-impostoCBSIBS.aliquota-ibsmun).
+
+       END.
+    END.
+    
+    {inbo/boin176.m73 "RowObject.it-codigo"}
+    
+    ASSIGN tb-wt-it-impostoCBSIBS.item-mono = (lSujTribMonofasica = YES).
+    
+    IF lSujTribMonofasica THEN DO:
+    
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:ALIQ-MONO,            OUTPUT tb-wt-it-impostoCBSIBS.aliq-mono-cbs).
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS,     INPUT AtributoImposto:ALIQ-MONO-RET,        OUTPUT tb-wt-it-impostoCBSIBS.aliq-mono-ret-cbs).
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:ALIQ-MONO,            OUTPUT tb-wt-it-impostoCBSIBS.aliq-mono-ibsuf).
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-UF,  INPUT AtributoImposto:ALIQ-MONO-RET,        OUTPUT tb-wt-it-impostoCBSIBS.aliq-mono-ret-ibsuf).
+        RUN getValAtribTtItemDocEstTribut (INPUT rep.imp.Imposto:IBS-MUN, INPUT AtributoImposto:ALIQ-MONO,            OUTPUT tb-wt-it-impostoCBSIBS.aliq-mono-ibsmun).
+
+        RUN getValAtribCharTtItemDocEstTribut (INPUT rep.imp.Imposto:CBS, INPUT AtributoImposto:C-CLASS-TRIB,         OUTPUT cClassTrib-cbsibs).
+        
+        ASSIGN tb-wt-it-impostoCBSIBS.tem-biocombustivel = CAN-FIND(FIRST class-trib NO-LOCK
+                                                                    WHERE class-trib.cod-cclass-trib = cClassTrib-cbsibs
+                                                                      AND class-trib.ind-tributo = 1 /*CBS/IBS*/
+                                                                      AND class-trib.biocombustivel = 1).
+        
+        /*Para o c†lculo por AdValorem do monof†sico padr∆o ser† utilizado a f¢rmula padr∆o do CBS, IBS UF e IBS MUN que utiliza a vari†vel de al°quota do programa relacinamento x tributos*/
+        ASSIGN tb-wt-it-impostoCBSIBS.aliquota-cbs    = tb-wt-it-impostoCBSIBS.aliq-mono-cbs
+               tb-wt-it-impostoCBSIBS.aliquota-ibsuf  = tb-wt-it-impostoCBSIBS.aliq-mono-ibsuf
+               tb-wt-it-impostoCBSIBS.aliquota-ibsmun = tb-wt-it-impostoCBSIBS.aliq-mono-ibsmun.
+    END.
+
+    RETURN "OK":U.
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getValAtribTtItemDocEstTribut DBOProgram
+PROCEDURE getValAtribTtItemDocEstTribut:
+
+    DEFINE INPUT  PARAM pImposto    AS CHARACTER NO-UNDO.
+    DEFINE INPUT  PARAM pAtributo   AS CHARACTER NO-UNDO.
+    DEFINE OUTPUT PARAM pValorAtrib AS DECIMAL   NO-UNDO.
+
+    FIND FIRST tt-item-doc-est-tribut NO-LOCK
+         WHERE tt-item-doc-est-tribut.cod-serie-docto   = RowObject.serie-docto
+           AND tt-item-doc-est-tribut.cod-num-docto     = RowObject.nro-docto
+           AND tt-item-doc-est-tribut.cdn-emitente      = RowObject.cod-emitente
+           AND tt-item-doc-est-tribut.cod-natur-operac  = RowObject.nat-operacao
+           AND tt-item-doc-est-tribut.num-seq           = RowObject.sequencia
+           AND tt-item-doc-est-tribut.nom-trib          = pImposto
+           AND tt-item-doc-est-tribut.cod-campo         = pAtributo NO-ERROR.
+    IF AVAIL tt-item-doc-est-tribut THEN
+       ASSIGN pValorAtrib = dec(tt-item-doc-est-tribut.cod-conteudo).
+    ELSE DO:
+        FIND FIRST item-doc-est-tribut NO-LOCK
+             WHERE item-doc-est-tribut.cod-serie-docto   = RowObject.serie-docto
+               AND item-doc-est-tribut.cod-num-docto     = RowObject.nro-docto
+               AND item-doc-est-tribut.cdn-emitente      = RowObject.cod-emitente
+               AND item-doc-est-tribut.cod-natur-operac  = RowObject.nat-operacao
+               AND item-doc-est-tribut.num-seq           = RowObject.sequencia
+               AND item-doc-est-tribut.nom-trib          = pImposto
+               AND item-doc-est-tribut.cod-campo         = pAtributo NO-ERROR.
+        IF AVAIL item-doc-est-tribut THEN
+           ASSIGN pValorAtrib = dec(item-doc-est-tribut.cod-conteudo).
+    END.
+
+    RETURN "OK":U.        
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getValAtribCharTtItemDocEstTribut DBOProgram 
+PROCEDURE getValAtribCharTtItemDocEstTribut:
+
+    DEFINE INPUT  PARAM pImposto        AS CHARACTER NO-UNDO.
+    DEFINE INPUT  PARAM pAtributo       AS CHARACTER NO-UNDO.
+    DEFINE OUTPUT PARAM pValorAtribChar AS CHARACTER NO-UNDO.
+
+    FIND FIRST tt-item-doc-est-tribut NO-LOCK
+         WHERE tt-item-doc-est-tribut.cod-serie-docto   = RowObject.serie-docto
+           AND tt-item-doc-est-tribut.cod-num-docto     = RowObject.nro-docto
+           AND tt-item-doc-est-tribut.cdn-emitente      = RowObject.cod-emitente
+           AND tt-item-doc-est-tribut.cod-natur-operac  = RowObject.nat-operacao
+           AND tt-item-doc-est-tribut.num-seq           = RowObject.sequencia
+           AND tt-item-doc-est-tribut.nom-trib          = pImposto
+           AND tt-item-doc-est-tribut.cod-campo         = pAtributo NO-ERROR.   
+    IF AVAIL tt-item-doc-est-tribut THEN
+       ASSIGN pValorAtribChar = tt-item-doc-est-tribut.cod-conteudo. 
+    ELSE DO:
+        FIND FIRST item-doc-est-tribut NO-LOCK
+             WHERE item-doc-est-tribut.cod-serie-docto   = RowObject.serie-docto
+               AND item-doc-est-tribut.cod-num-docto     = RowObject.nro-docto
+               AND item-doc-est-tribut.cdn-emitente      = RowObject.cod-emitente
+               AND item-doc-est-tribut.cod-natur-operac  = RowObject.nat-operacao
+               AND item-doc-est-tribut.num-seq           = RowObject.sequencia
+               AND item-doc-est-tribut.nom-trib          = pImposto
+               AND item-doc-est-tribut.cod-campo         = pAtributo NO-ERROR.   
+        IF AVAIL item-doc-est-tribut THEN
+           ASSIGN pValorAtribChar = item-doc-est-tribut.cod-conteudo.
+    END.
+
+    RETURN "OK":U.        
+
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME

@@ -1,0 +1,20 @@
+
+assign /* 6 esp‚cies de gastos gerais */
+        ttResumoMes.ggf[1]         =  ttResumoMes.ggf[1]     {2} movto-mat.valor-ggf-1-{1}[1]
+        ttResumoMes.ggf[2]         =  ttResumoMes.ggf[2]     {2} movto-mat.valor-ggf-2-{1}[1]
+        ttResumoMes.ggf[3]         =  ttResumoMes.ggf[3]     {2} movto-mat.valor-ggf-3-{1}[1]
+        ttResumoMes.ggf[4]         =  ttResumoMes.ggf[4]     {2} movto-mat.valor-ggf-4-{1}[1]
+        ttResumoMes.ggf[5]         =  ttResumoMes.ggf[5]     {2} movto-mat.valor-ggf-5-{1}[1]
+        ttResumoMes.ggf[6]         =  ttResumoMes.ggf[6]     {2} movto-mat.valor-ggf-6-{1}[1]
+        ttResumoMes.ggf-comp       = ttResumoMes.ggf-comp    {2} movto-mat.vl-ggf-c-{1}[1]
+        ttResumoMes.material       = ttResumoMes.material    {2} movto-mat.valor-mat-{1}[1]
+        ttResumoMes.mao-de-obra    = ttResumoMes.mao-de-obra {2} movto-mat.valor-mob-{1}[1]
+        ttResumoMes.mao-comp       = ttResumoMes.mao-comp    {2} movto-mat.vl-mob-c-{1}[1]
+        ttResumoMes.custo-total    = ttResumoMes.custo-total {2} 
+                                     (movto-mat.valor-ggf-{1}[1] + movto-mat.vl-ggf-c-{1}[1]  +
+                                      movto-mat.valor-mat-{1}[1] + movto-mat.valor-mob-{1}[1] +
+                                      movto-mat.vl-mob-c-{1}[1])
+        ttResumoMes.custo-unitario = ttResumoMes.custo-unitario {2}
+                                     ((movto-mat.valor-ggf-{1}[1] + movto-mat.vl-ggf-c-{1}[1]  +
+                                       movto-mat.valor-mat-{1}[1] + movto-mat.valor-mob-{1}[1] +
+                                       movto-mat.vl-mob-c-{1}[1]) / movto-mat.quantidade).

@@ -1,0 +1,498 @@
+        
+        /*guarda valores de datas e horas iniciais para validar as finais*/
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-DT-AMOS-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN dt-amos-ini = date({1}.dsl-conteudo).
+
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-HR-AMOS-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN hr-amos-ini = {1}.dsl-conteudo.
+        
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-DT-CAD-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN dt-cad-ini = date({1}.dsl-conteudo).
+        
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-HR-CAD-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN hr-cad-ini = {1}.dsl-conteudo.
+
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-DT-ABER-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN dt-aber-ini = date({1}.dsl-conteudo).
+
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-HR-ABER-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN hr-aber-ini = {1}.dsl-conteudo.
+        
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-DT-PREG-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN dt-preg-ini = date({1}.dsl-conteudo).
+
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-HR-PREG-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN hr-preg-ini = {1}.dsl-conteudo.
+            
+        FIND FIRST {1} NO-LOCK
+             WHERE {1}.cdn-tip-lote-pregao = pi-cod-tipo-lote    
+               AND {1}.cod-campo           = "BBM-DT-PREG-INI" NO-ERROR.
+        IF AVAIL {1} THEN
+            ASSIGN dt-preg-ini = DATE({1}.dsl-conteudo).
+
+        /*valida‡Æo do campo enviado*/
+        IF rowObject.cod-campo = "BBM-REGULAMENTO" AND
+           rowObject.dsl-conteudo <> "Privado" THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-a-regra-bbm AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "a_regra_BBM" *}
+            ASSIGN c-lbl-liter-a-regra-bbm = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-ser-privado AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "ser_privado" *}
+            ASSIGN c-lbl-liter-ser-privado = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-rowobj AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-rowobj = c-lbl-liter-conteudo-do-campo + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm + '.' + '~~~~' + c-lbl-liter-ser-privado.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32823"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-rowobj"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-USA-REGRA-10" AND 
+                rowObject.dsl-conteudo = "Sim" THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-2 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-2 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-a-regra-bbm-2 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "a_regra_BBM" *}
+            ASSIGN c-lbl-liter-a-regra-bbm-2 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-ser-sim-apenas-para-leilao-pub AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "ser_""""sim""""_apenas_para_leilÆo_p£blico" *}
+            ASSIGN c-lbl-liter-ser-sim-apenas-para-leilao-pub = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-2-rowo AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-2-rowo = c-lbl-liter-conteudo-do-campo-2 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-2 + '.' + '~~~~' + c-lbl-liter-ser-sim-apenas-para-leilao-pub + '.'.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32823"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-2-rowo"}
+                
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-TERM-RANDOM" AND 
+                rowObject.dsl-conteudo = "Sim" THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-3 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-3 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-a-regra-bbm-3 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "a_regra_BBM" *}
+            ASSIGN c-lbl-liter-a-regra-bbm-3 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-ser-sim-apenas-para-leilao-pub-2 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "ser_""""sim""""_apenas_para_leilÆo_p£blico" *}
+            ASSIGN c-lbl-liter-ser-sim-apenas-para-leilao-pub-2 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-3-rowo AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-3-rowo = c-lbl-liter-conteudo-do-campo-3 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-3 + '.' + '~~~~' + c-lbl-liter-ser-sim-apenas-para-leilao-pub-2 + '.'.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32823"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-3-rowo"}
+                
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-EXIB-RAZSOC" AND 
+                rowObject.dsl-conteudo = "Sim" THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-4 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-4 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-a-regra-bbm-4 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "a_regra_BBM" *}
+            ASSIGN c-lbl-liter-a-regra-bbm-4 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-ser-sim-apenas-para-leilao-pub-3 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "ser_""""sim""""_apenas_para_leilÆo_p£blico" *}
+            ASSIGN c-lbl-liter-ser-sim-apenas-para-leilao-pub-3 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-4-rowo AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-4-rowo = c-lbl-liter-conteudo-do-campo-4 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-4 + '.' + '~~~~' + c-lbl-liter-ser-sim-apenas-para-leilao-pub-3 + '.'.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32823"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-4-rowo"}
+                
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-TP-PREGAO" THEN DO:
+            IF LENGTH(rowObject.dsl-conteudo) > 1 THEN DO:
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-5 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Conte£do_do_campo" *}
+                ASSIGN c-lbl-liter-conteudo-do-campo-5 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-bbm AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "BBM" *}
+                ASSIGN c-lbl-liter-bbm = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-1-caracter AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "pela_BBM_maximo_1_caracter" *}
+                ASSIGN c-lbl-liter-pela-bbm-maximo-1-caracter = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-5-rowo AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-inserr-conteudo-do-campo-5-rowo = c-lbl-liter-conteudo-do-campo-5 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-1-caracter.
+                {method/svc/errors/inserr.i
+                    &ErrorNumber="32702"
+                    &ErrorType="EMS":U
+                    &ErrorSubType="Error":U
+                    &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-5-rowo"}
+            END.
+            IF rowObject.dsl-conteudo <> "D" THEN DO:
+               IF rowObject.dsl-conteudo <> "P" THEN DO:
+                    /* Inicio -- Projeto Internacional */
+                    DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-6 AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "Conte£do_do_campo" *}
+                    ASSIGN c-lbl-liter-conteudo-do-campo-6 = TRIM(RETURN-VALUE).
+                    DEFINE VARIABLE c-lbl-liter-a-regra-bbm-5 AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "a_regra_BBM" *}
+                    ASSIGN c-lbl-liter-a-regra-bbm-5 = TRIM(RETURN-VALUE).
+                    DEFINE VARIABLE c-lbl-liter-ser-p-referente-a-preco-ou-d-r AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "ser_P,_referente_a_pre‡o_ou_D,_referente_a_desconto" *}
+                    ASSIGN c-lbl-liter-ser-p-referente-a-preco-ou-d-r = TRIM(RETURN-VALUE).
+                    DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-6-rowo AS CHARACTER NO-UNDO.
+                    ASSIGN c-lbl-inserr-conteudo-do-campo-6-rowo = c-lbl-liter-conteudo-do-campo-6 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-5 + '.' + '~~~~' + c-lbl-liter-ser-p-referente-a-preco-ou-d-r + '.'.
+                    {method/svc/errors/inserr.i
+                       &ErrorNumber="32823"
+                       &ErrorType="EMS":U
+                       &ErrorSubType="Error":U
+                       &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-6-rowo"}
+               END.
+            END.
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-GARANTIA" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-7 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-7 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-2 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-2 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-7-rowo AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-7-rowo = c-lbl-liter-conteudo-do-campo-7 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-2 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32702"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-7-rowo"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-TX-OPERAC" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-8 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-8 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-3 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-3 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-2 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-2 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-8-rowo AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-8-rowo = c-lbl-liter-conteudo-do-campo-8 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-3 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-2.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32702"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-8-rowo"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-PRAZO-ENTREG" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-9 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-9 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-4 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-4 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-3 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-3 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-9-rowo AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-9-rowo = c-lbl-liter-conteudo-do-campo-9 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-4 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-3.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32702"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-9-rowo"}
+        
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-LOCAL-ENTREG" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-10 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-10 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-5 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-5 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-4 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-4 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-10-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-10-row = c-lbl-liter-conteudo-do-campo-10 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-5 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-4.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32702"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-10-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-COND-ENTREG" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-11 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-11 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-6 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-6 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-5 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-5 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-11-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-11-row = c-lbl-liter-conteudo-do-campo-11 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-6 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-5.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32702"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-11-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-ACOND" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-12 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-12 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-7 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-7 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-6 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-6 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-12-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-12-row = c-lbl-liter-conteudo-do-campo-12 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-7 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-6.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32702"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-12-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-PRAZO-RECEB" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO :
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-13 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-13 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-8 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-8 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-7 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-7 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-13-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-13-row = c-lbl-liter-conteudo-do-campo-13 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-8 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-7.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32702"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-13-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-TP-OFERTA" THEN DO:
+            IF LENGTH(rowObject.dsl-conteudo) > 1 THEN DO:
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-14 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Conte£do_do_campo" *}
+                ASSIGN c-lbl-liter-conteudo-do-campo-14 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-bbm-9 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "BBM" *}
+                ASSIGN c-lbl-liter-bbm-9 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-1-caracter-2 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "pela_BBM_maximo_1_caracter" *}
+                ASSIGN c-lbl-liter-pela-bbm-maximo-1-caracter-2 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-14-row AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-inserr-conteudo-do-campo-14-row = c-lbl-liter-conteudo-do-campo-14 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-9 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-1-caracter-2.
+                {method/svc/errors/inserr.i
+                    &ErrorNumber="32854"
+                    &ErrorType="EMS":U
+                    &ErrorSubType="ERROR":U
+                    &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-14-row"}
+            END.
+            IF rowObject.dsl-conteudo <> "C" THEN DO:
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-15 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Conte£do_do_campo" *}
+                ASSIGN c-lbl-liter-conteudo-do-campo-15 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-a-regra-bbm-6 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "a_regra_BBM" *}
+                ASSIGN c-lbl-liter-a-regra-bbm-6 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-liter-ser-c-referente-a-compra AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "ser_C,_referente_a_compra" *}
+                ASSIGN c-lbl-liter-ser-c-referente-a-compra = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-15-row AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-inserr-conteudo-do-campo-15-row = c-lbl-liter-conteudo-do-campo-15 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-6 + '.' + '~~~~' + c-lbl-liter-ser-c-referente-a-compra + '.'.
+                {method/svc/errors/inserr.i
+                    &ErrorNumber="32853"
+                    &ErrorType="EMS":U
+                    &ErrorSubType="Error":U
+                    &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-15-row"}
+            END.
+        END.        
+        ELSE IF rowObject.cod-campo = "BBM-ANEXO-NOME" AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:        
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-16 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-16 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-10 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-10 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-8 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-8 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-16-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-16-row = c-lbl-liter-conteudo-do-campo-16 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-10 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-8.
+            {method/svc/errors/inserr.i
+                    &ErrorNumber="32702"
+                    &ErrorType="EMS":U
+                    &ErrorSubType="Error":U
+                    &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-16-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-REGRA-DESEM" AND 
+                rowObject.dsl-conteudo <> "Sim" THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-17 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-17 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-a-regra-bbm-7 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "a_regra_BBM" *}
+            ASSIGN c-lbl-liter-a-regra-bbm-7 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-ser-sim AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "ser_""""sim""""" *}
+            ASSIGN c-lbl-liter-ser-sim = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-17-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-17-row = c-lbl-liter-conteudo-do-campo-17 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-7 + '.' + '~~~~' + c-lbl-liter-ser-sim + ' '.
+            {method/svc/errors/inserr.i
+                &ErrorNumber="32823"
+                &ErrorType="EMS":U
+                &ErrorSubType="Error":U
+                &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-17-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-ANEXO-TIPO"         AND 
+               (rowObject.dsl-conteudo <> "application/msword" AND
+                rowObject.dsl-conteudo <> "application/pdf"    AND
+                rowObject.dsl-conteudo <> "application/x-zip-compressed") THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-18 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-18 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-a-regra-bbm-8 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "a_regra_BBM" *}
+            ASSIGN c-lbl-liter-a-regra-bbm-8 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-ser-applicationmsword-applicat AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "ser_""""application/msword"""",_""""application/pdf""""_ou_""""application/x-zip-compressed""""" *}
+            ASSIGN c-lbl-liter-ser-applicationmsword-applicat = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-18-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-18-row = c-lbl-liter-conteudo-do-campo-18 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-8 + '.' + '~~~~' + c-lbl-liter-ser-applicationmsword-applicat.
+            {method/svc/errors/inserr.i
+                    &ErrorNumber="32853"
+                    &ErrorType="EMS":U
+                    &ErrorSubType="Error":U
+                    &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-18-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-ANEXO-TIPO"  AND
+                LENGTH(rowObject.dsl-conteudo) > 50 THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-19 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-19 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-bbm-11 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "BBM" *}
+            ASSIGN c-lbl-liter-bbm-11 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-pela-bbm-maximo-50-caracteres-9 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "pela_BBM_maximo_50_caracteres" *}
+            ASSIGN c-lbl-liter-pela-bbm-maximo-50-caracteres-9 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-19-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-19-row = c-lbl-liter-conteudo-do-campo-19 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-bbm-11 + '.' + '~~~~' + c-lbl-liter-pela-bbm-maximo-50-caracteres-9.
+            {method/svc/errors/inserr.i
+                    &ErrorNumber="32702"
+                    &ErrorType="EMS":U
+                    &ErrorSubType="Error":U
+                    &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-19-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-ANEXO-ARQ" AND
+                rowObject.dsl-conteudo <> "" THEN DO:
+            IF SEARCH(rowObject.dsl-conteudo) = ? THEN DO:
+                {method/svc/errors/inserr.i
+                       &ErrorNumber="27066"
+                       &ErrorType="EMS":U
+                       &ErrorSubType="Error":U}
+            END.
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-ICMS-INVEST" AND
+               (rowObject.dsl-conteudo <> "-1" AND
+                rowObject.dsl-conteudo <> "0"  AND
+                rowObject.dsl-conteudo <> "1") THEN DO:
+            /* Inicio -- Projeto Internacional */
+            DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-20 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "Conte£do_do_campo" *}
+            ASSIGN c-lbl-liter-conteudo-do-campo-20 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-a-regra-bbm-9 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "a_regra_BBM" *}
+            ASSIGN c-lbl-liter-a-regra-bbm-9 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-liter-ser-1-0-ou-1 AS CHARACTER NO-UNDO.
+            {utp/ut-liter.i "ser_-1,_0_ou_1" *}
+            ASSIGN c-lbl-liter-ser-1-0-ou-1 = TRIM(RETURN-VALUE).
+            DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-20-row AS CHARACTER NO-UNDO.
+            ASSIGN c-lbl-inserr-conteudo-do-campo-20-row = c-lbl-liter-conteudo-do-campo-20 + ' ' + rowObject.cod-campo + '~~~~' + ' ' + c-lbl-liter-a-regra-bbm-9 + '.' + '~~~~' + c-lbl-liter-ser-1-0-ou-1.
+            {method/svc/errors/inserr.i
+                    &ErrorNumber="32853"
+                    &ErrorType="EMS":U
+                    &ErrorSubType="Error":U
+                    &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-20-row"}
+        END.
+        ELSE IF rowObject.cod-campo = "BBM-ICMS-DEST" THEN DO: 
+            IF DEC(rowObject.dsl-conteudo) > 100 THEN DO:
+                {method/svc/errors/inserr.i
+                        &ErrorNumber="5638"
+                        &ErrorType="EMS":U
+                        &ErrorSubType="Error":U}
+            END.                        
+            IF DEC(rowObject.dsl-conteudo) < 0 THEN DO:
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-conteudo-do-campo-21 AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "Conte£do_do_campo" *}
+                ASSIGN c-lbl-liter-conteudo-do-campo-21 = TRIM(RETURN-VALUE).
+                DEFINE VARIABLE c-lbl-inserr-conteudo-do-campo-21-row AS CHARACTER NO-UNDO.
+                ASSIGN c-lbl-inserr-conteudo-do-campo-21-row = c-lbl-liter-conteudo-do-campo-21 + ' ' + rowObject.cod-campo + '~~~~' + '0'.
+                {method/svc/errors/inserr.i
+                        &ErrorNumber="416"
+                        &ErrorType="EMS":U
+                        &ErrorSubType="Error":U
+                        &ErrorParameters = "c-lbl-inserr-conteudo-do-campo-21-row"}
+            END.
+            ASSIGN rowObject.dsl-conteudo = STRING(DEC(rowObject.dsl-conteudo)).
+        END.

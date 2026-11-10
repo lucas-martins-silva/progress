@@ -1,0 +1,1511 @@
+PROCEDURE setTTRatSaldoTerc:
+    def input param table       for tt-rat-saldo-terc-dep.
+END PROCEDURE.
+
+
+PROCEDURE createItemOfComponente :
+    def input param piHboin090  as handle                     no-undo.
+    def input param table       for tt-saldo-terc.
+    
+    for each tt-item-saldo-terc-aux: delete tt-item-saldo-terc-aux. end.
+    for each tt-saldo-terc:
+        create tt-item-saldo-terc-aux.
+        buffer-copy tt-saldo-terc to tt-item-saldo-terc-aux.
+    end.
+    
+    run createItemOfComponenteEvoluido (input piHboin090, 
+                                        input table tt-item-saldo-terc-aux).
+    
+END PROCEDURE.
+
+PROCEDURE createItemOfComponenteEvoluido:
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Cria os itens da nota de retorno de terceiros apartir do componente de
+         remessa.
+------------------------------------------------------------------------------*/
+
+    def input param piHboin090  as handle                     no-undo.
+    def input param table           for tt-item-saldo-terc-aux.
+    DEF BUFFER b-natur-fiscal       FOR natur-oper. /* Buffer auxiliar p buscar valores da natureza fiscal do item. */
+    DEF BUFFER b-natur-fiscal-saida FOR natur-oper. /* Buffer auxiliar p buscar valores da natureza fiscal do item, da nota de saida. */
+    
+    def var i-seq-aux           like item-doc-est.sequencia     no-undo.
+    def var c-un-aux            as char                         no-undo.
+    def var de-indice           as dec                          no-undo.
+    def var de-proporcao        as dec decimals 10              no-undo.
+    def var h-acomp             as handle                       no-undo.
+    DEF VAR lDevSimbConsig      AS LOGICAL                      NO-UNDO.
+    DEF VAR lValidarQtde        AS LOGICAL                      NO-UNDO.
+    DEF VAR lOpeTriang          AS LOGICAL                      NO-UNDO.
+    DEF VAR deSomaDevSimb       AS DECIMAL                      NO-UNDO.
+    DEF VAR h-boin368           AS HANDLE                       NO-UNDO.
+    DEF VAR h-boin857           AS HANDLE                       NO-UNDO.
+    DEF VAR h-reapi412          AS HANDLE                       NO-UNDO.
+    
+    def var c-cod-depos         as char                         no-undo.
+    def var c-cod-localiz       like rat-saldo-terc.cod-localiz no-undo.
+    def var c-ct-codigo         like RowObject.ct-codigo        no-undo.    
+    def var c-sc-codigo         like RowObject.sc-codigo        no-undo.    
+    def var c-cod-unid-negoc    like RowObject.cod-unid-negoc   no-undo.
+    def var c-cod-depos-aux     as char                         no-undo.
+    def var de-qtd-saldo        like item-doc-est.quantidade    no-undo.
+
+
+    def var de-qtd-terc         as dec                          no-undo.
+    def var de-exp              as dec                          no-undo.
+    DEF VAR d-aliq-pis          as dec                          NO-UNDO.
+    DEF VAR d-aliq-cofins       as dec                          NO-UNDO.
+    DEF VAR d-val-base-pis      as dec                          NO-UNDO.
+    DEF VAR d-val-base-cofins   as dec                          NO-UNDO.
+    DEF VAR d-val-pis           as dec                          NO-UNDO.
+    DEF VAR d-val-cofins        as dec                          NO-UNDO.
+
+    DEFINE VARIABLE c-cfop-saida AS CHARACTER FORMAT "X(5)" NO-UNDO.
+    
+    DEFINE VARIABLE l-nat-dif-transf AS LOGICAL NO-UNDO. /*14427*/
+
+    /* Inicio -- Projeto Internacional */
+    define variable lbl-calc-itens as character no-undo.
+    {utp/ut-liter.i "Calculando_Itens" *}
+    lbl-calc-itens = RETURN-VALUE.
+
+    def buffer bf-item-doc-est-fut for item-doc-est.   
+    def buffer bf-item-doc-est-tri for item-doc-est.  
+    
+    IF NOT VALID-HANDLE(h-cdapi995) THEN
+        RUN cdp/cdapi995.p PERSISTENT SET h-cdapi995.
+
+    assign h-boin090 = piHboin090.
+
+    run getKey in piHboin090 ( output i-cod-emitente,
+                               output c-serie-docto,
+                               output c-nro-docto,
+                               output c-nat-operacao ).
+
+    run findDocumento ( i-cod-emitente,
+                        c-serie-docto,
+                        c-nro-docto,
+                        c-nat-operacao ).
+    
+    if  not avail docum-est then 
+        RETURN "NOK":U.
+        
+    run findNaturOper ( docum-est.nat-operacao ).
+    run findUsuario ( docum-est.usuario ).
+    
+    if  not avail param-re then 
+        return "NOK":U.
+
+    run getSeqItem ( output i-seq-aux ).
+
+    run utp/ut-acomp.p persistent set h-acomp.
+    run pi-inicializar in h-acomp ("Gerando Itens").
+    run pi-desabilita-cancela in h-acomp.
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Gerando_Itens_da_Nota" *}
+    run pi-acompanhar in h-acomp (RETURN-VALUE).
+    
+    &if "{&DBType}":U <> "PROGRESS":U &then
+        run openQueryStatic (input "OfDocumEst":U).
+    &else
+        run openQueryStatic (input "Main":U).
+    &endif
+    
+    IF NOT VALID-HANDLE(h-cdapi024) THEN
+       RUN cdp/cdapi024.p PERSISTENT SET h-cdapi024.
+        
+    if  not valid-handle(h-boin006) then 
+        run inbo/boin006.p persistent set h-boin006.
+        
+    if  not valid-handle(h-boin010) then 
+        run inbo/boin010.p persistent set h-boin010.
+    
+    run openQueryStatic in h-boin010 ( input "Main").
+    
+    /* para nao setar os defaults de depos, localiz, refer na setDefaultsEstoque */    
+    assign l-nf-transf-devol-ret = yes.
+    
+    EMPTY TEMP-TABLE tt-item-nf-adc.
+    
+    bloco:
+    do  trans on error undo, leave:
+    
+        for each tt-item-saldo-terc-aux exclusive-lock break by tt-item-saldo-terc-aux.sequencia:
+            
+            ASSIGN c-cod-depos      = "" 
+                   c-cod-localiz    = ""
+                   c-ct-codigo      = ""
+                   c-sc-codigo      = ""
+                   c-cod-unid-negoc = "".
+                   
+            find saldo-terc 
+                where rowid(saldo-terc) = tt-item-saldo-terc-aux.rw-saldo-terc no-lock no-error.
+
+            ASSIGN lValidarQtde  = YES
+                   deSomaDevSimb = 0.
+            
+            if  {cdp/cd0066.i2 saldo-terc.cod-estabel}
+            AND natur-oper.tp-oper-terc = 4 THEN DO: /* Faturamento de Consigna‡Æo*/
+                
+                FOR EACH  componente NO-LOCK
+                    WHERE componente.cod-emitente = saldo-terc.cod-emitente
+                      AND componente.nro-comp     = saldo-terc.nro-docto
+                      AND componente.serie-comp   = saldo-terc.serie-docto
+                      AND componente.nat-comp     = saldo-terc.nat-operacao
+                      AND componente.seq-comp     = saldo-terc.sequencia:
+
+                    FIND FIRST b-natur-oper NO-LOCK
+                         WHERE b-natur-oper.nat-operacao = componente.nat-operacao NO-ERROR.
+                    IF  AVAIL b-natur-oper THEN DO:
+                        ASSIGN lDevSimbConsig  = {cdp/cd0066.i1 b-natur-oper componente}.
+                    END.
+                    ELSE
+                        ASSIGN lDevSimbConsig  = NO.
+
+                    IF  lDevSimbConsig THEN DO: /***Devolu‡Æo Simb¢lica***/
+                        ASSIGN lValidarQtde = NO
+
+                               deSomaDevSimb = deSomaDevSimb                +
+                                               (componente.qtd-devol-simbol -
+                                                componente.qtd-fatur-consig -
+                                                componente.qtd-afatur-consig). 
+                                       
+                    END.
+                END.
+
+                IF  tt-item-saldo-terc-aux.quantidade > deSomaDevSimb THEN DO:
+                    /* Quantidade de Saldo em Terceiros Insuficiente para Sequencia */
+                    {method/svc/errors/inserr.i
+                                    &ErrorNumber="5934"
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="string(i-seq-aux)"}
+                    DELETE PROCEDURE h-acomp.
+                    ASSIGN h-acomp = ?.
+
+                    UNDO bloco, RETURN "NOK":U. /* Desfaz o bloco e retorna com erro */
+                END.
+            END.
+
+            if  lValidarQtde
+            AND natur-oper.tp-oper-terc <> 6   /* Diferente de Reajuste de Preco */
+            and tt-item-saldo-terc-aux.quantidade > ( saldo-terc.quantidade - saldo-terc.dec-1 ) then do:
+                /* Quantidade de Saldo em Terceiros Insuficiente para Sequencia */
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="5934"
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="string(i-seq-aux)"}
+
+                delete procedure h-acomp.
+                ASSIGN h-acomp = ?.
+
+                undo bloco, return "NOK":U. /* Desfaz o bloco e retorna com erro */
+            end.                                    
+                
+            for first componente 
+                fields (num-pedido serie-docto nro-docto nat-operacao sequencia cod-emitente
+                        it-codigo quantidade qt-do-forn cod-refer un numero-ordem parcela
+                        cod-depos peso-liquido ct-codigo 
+                        sc-codigo nr-ord-produ baixa-ce class-fiscal 
+                        aliquota-ipi aliquota-icm narrativa preco-total[1] 
+                        desconto[1] log-2 char-1 cod-localiz dt-vali-lote 
+                        cod-unid-negoc) 
+                of saldo-terc no-lock.
+            end.
+
+            run pi-acompanhar in h-acomp (lbl-calc-itens + ": " + string(i-seq-aux) + " / " 
+                                                                + componente.it-codigo).                                                                
+
+            run findItem ( componente.it-codigo ).
+                       
+            assign lDevSimbConsig = {cdp/cd0066.i docum-est.cod-estabel natur-oper}
+
+            run emptyRowObject.
+
+            /*--- quando a natureza for do tipo remessa faturamento antecipado, grava a chave 
+                  da nota de fatura na nota de remessa ---*/
+            run getFatAntecipEntFutura(docum-est.nat-operacao,
+                                       output l-fatura-fat-antecip,
+                                       output l-remessa-fat-antecip,
+                                       output l-fatura-ent-futura,
+                                       output l-remessa-ent-futura).
+
+            /* Se usa m£ltiplas naturezas: busca natureza fiscal do item. Var def em cd9701.i -> l-mult-natur-receb */
+            FOR FIRST b-natur-fiscal NO-LOCK
+                WHERE b-natur-fiscal.nat-operacao = IF l-mult-natur-receb THEN tt-item-saldo-terc-aux.nat-of ELSE docum-est.nat-operacao: END.
+                
+            c-cfop-saida = ''. 
+            IF natur-oper.transf THEN 
+            FOR FIRST b-natur-fiscal-saida NO-LOCK
+                WHERE b-natur-fiscal-saida.nat-operacao = saldo-terc.nat-operacao:
+                IF INT(SUBSTRING(b-natur-fiscal-saida.cod-cfop,1,1)) >= 5 THEN c-cfop-saida = b-natur-fiscal-saida.cod-cfop.
+            END.
+
+            /*14427 - Alteracao para gerar os itens na nota de transferencia conforme a natureza, caso sejam geradas mais de uma NF (origem monitor NF-e) */
+            IF docum-est.origem = "XML":U AND 
+               NOT l-mult-natur-receb AND 
+               natur-oper.transf THEN DO:
+
+                ASSIGN l-nat-dif-transf = NO.
+                FOR FIRST doc-orig-nfe NO-LOCK
+                    WHERE doc-orig-nfe.ch-acesso-comp-nfe = TRIM(docum-est.cod-chave-aces-nf-eletro)
+                      AND doc-orig-nfe.idi-orig-trad      = 2,
+                     EACH item-doc-orig-nfe NO-LOCK
+                    WHERE item-doc-orig-nfe.ch-acesso-comp-nfe = doc-orig-nfe.ch-acesso-comp-nfe
+                      AND item-doc-orig-nfe.idi-orig-trad      = 2:
+
+                    IF item-doc-orig-nfe.nat-operacao <> "" AND
+                       item-doc-orig-nfe.it-codigo    = componente.it-codigo AND
+                       item-doc-orig-nfe.nat-operacao <> docum-est.nat-operacao THEN
+                        ASSIGN l-nat-dif-transf = YES.
+                END.
+                IF l-nat-dif-transf THEN NEXT.
+            END.
+
+            create RowObject.
+            assign RowObject.cod-emitente          = docum-est.cod-emitente 
+                   RowObject.serie-docto           = docum-est.serie-docto
+                   RowObject.nro-docto             = docum-est.nro-docto
+                   RowObject.nat-operacao          = docum-est.nat-operacao
+                   RowObject.sequencia             = i-seq-aux
+                   RowObject.it-codigo             = componente.it-codigo
+                   RowObject.cod-refer             = componente.cod-refer
+                   RowObject.serie-comp            = componente.serie-docto
+                   RowObject.nro-comp              = componente.nro-docto
+                   RowObject.nat-comp              = componente.nat-operacao 
+                   RowObject.seq-comp              = componente.sequencia
+                   RowObject.desconto[1]           = tt-item-saldo-terc-aux.desconto
+                   RowObject.nr-ord-produ           = tt-item-saldo-terc-aux.nr-ord-prod
+                   RowObject.ct-codigo             = if l-remessa-ent-futura then "" else componente.ct-codigo
+                   RowObject.sc-codigo             = if l-remessa-ent-futura then "" else componente.sc-codigo 
+                   RowObject.baixa-ce              = if  natur-oper.tp-oper-terc = 4  /* Fat. Consignacao  */
+                                                     or  natur-oper.tp-oper-terc = 6  /* Reajuste de Preco */
+                                                     OR  lDevSimbConsig
+                                                     then no
+                                                     else if  natur-oper.transf       /* NF Transferencia  */
+                                                          then yes
+                                                          else componente.baixa-ce
+                   RowObject.class-fiscal          = componente.class-fiscal
+                   RowObject.quantidade            = tt-item-saldo-terc-aux.quantidade
+                   RowObject.preco-total[1]        = tt-item-saldo-terc-aux.preco-total
+                   RowObject.preco-unit[1]         = RowObject.preco-total[1] / RowObject.quantidade
+                   RowObject.aliquota-ipi          = componente.aliquota-ipi
+                   RowObject.aliquota-icm          = componente.aliquota-icm
+                   RowObject.log-2                 = componente.log-2          /* Item possui ICMS Retido */
+                   RowObject.cod-depos             = tt-item-saldo-terc-aux.cod-depos
+                   RowObject.cod-localiz           = componente.cod-localiz
+                   RowObject.narrativa             = componente.narrativa
+                   i-seq-aux                       = i-seq-aux + param-re.inc-seq
+                   RowObject.peso-liquido          = (RowObject.quantidade * componente.peso-liquido)
+                                                      / componente.quantidade
+                   RowObject.nat-of                = tt-item-saldo-terc-aux.nat-of /* Sempre gravar  a natureza fiscal do item... */
+                   RowObject.log-1                 = l-remessa-ent-futura /* Sempre realiza FIFO de ordem de compra se for remessa de entr futura*/
+                   RowObject.cod-cfop-saida        = c-cfop-saida.         
+
+            if natur-oper.transf then
+                assign RowObject.cod-depos     = ''
+                       RowObject.cod-localiz   = ''.
+                        
+            if not natur-oper.transf then do:
+
+                assign RowObject.un = componente.un.
+            end. 
+            
+            FOR FIRST item-doc-orig-nfe NO-LOCK
+                WHERE item-doc-orig-nfe.ch-acesso-comp-nfe = TRIM(docum-est.cod-chave-aces-nf-eletro)
+                  AND item-doc-orig-nfe.seq-item           = INT(componente.sequencia / 10)
+                  AND item-doc-orig-nfe.idi-orig-trad      = 2: /*Dados traduzidos*/                                  
+                ASSIGN OVERLAY(RowObject.char-2,832,5) = STRING(item-doc-orig-nfe.seq-item).
+
+                //FCI
+                IF docum-est.origem = "XML":U AND
+                   TRIM(SUBSTRING(item-doc-orig-nfe.char-1,30,50)) <> "" THEN DO:
+
+                    IF NOT VALID-HANDLE(h-bodi538) THEN
+                        RUN dibo/bodi538.p PERSISTENT SET h-bodi538.
+
+                    RUN pi-Inclui-Altera-ItemDocEst IN h-bodi538 (INPUT docum-est.nro-docto,
+                                                                  INPUT docum-est.serie-docto,
+                                                                  INPUT docum-est.cod-estabel,
+                                                                  INPUT docum-est.cod-emitente,
+                                                                  INPUT docum-est.nat-operacao,
+                                                                  INPUT docum-est.dt-trans,
+                                                                  INPUT RowObject.it-codigo,
+                                                                  INPUT RowObject.sequencia,
+                                                                  INPUT NO,
+                                                                  INPUT TRIM(SUBSTRING(item-doc-orig-nfe.char-1,30,50))).
+                END.
+            END.
+                   
+            if natur-oper.tp-oper-terc = 5 then do: /*devolucao de consignacao*/
+                                    
+                for first it-nota-fisc 
+                    where it-nota-fisc.cod-estabel = saldo-terc.cod-estabel
+                      and it-nota-fisc.serie       = componente.serie-docto
+                      and it-nota-fisc.nr-nota-fis = componente.nro-docto 
+                      and it-nota-fisc.nr-seq-fat  = componente.sequencia no-lock:
+                      
+                      RUN piBuscaPisCofins IN h-cdapi995 (INPUT  "it-nota-fisc",
+                                         INPUT  ROWID(it-nota-fisc),
+                                         INPUT  NO, /* não recalcular e gravar quando já existe na ext-it-nota-fisc */
+                                         INPUT  NO,
+                                         OUTPUT d-aliq-pis,
+                                         OUTPUT d-val-base-pis,
+                                         OUTPUT d-val-pis,
+                                         OUTPUT d-aliq-cofins,
+                                         OUTPUT d-val-base-cofins,
+                                         OUTPUT d-val-cofins).
+                       
+                      /**************************
+                      ** PIS/COFINS POR UNIDADE **
+                      **************************/
+            
+                      de-valor-un-pis-devol    = IF it-nota-fisc.idi-forma-calc-pis = 2 /* Pis Un Prod */
+                                                 THEN it-nota-fisc.val-unit-pis         /* Vl Unit Pis*/
+                                                 ELSE 0.
+                      de-valor-un-cofins-devol = IF it-nota-fisc.idi-forma-calc-cofins = 2 /* Pis Un Prod */
+                                                 THEN it-nota-fisc.val-unit-cofins         /* Vl Unit Pis*/
+                                                 ELSE 0. 
+            
+                      IF de-valor-un-pis-devol  <> 0 then
+                        assign d-aliq-pis = 0.
+            
+                      IF de-valor-un-cofins-devol <> 0 then
+                        assign d-aliq-cofins = 0.  
+                                             
+                      assign rowObject.idi-tributac-pis     = int(substring(it-nota-fisc.char-2,96,1)) /* Tributacao PIS     */     
+                             rowObject.idi-tributac-cofins  = int(substring(it-nota-fisc.char-2,97,1)) /* Tributacao COFINS  */ 
+                             rowObject.val-aliq-pis         = d-aliq-pis         /* Aliquota PIS  */     
+                             rowObject.val-aliq-cofins      = d-aliq-cofins.    /* Aliquota do COFINS */  
+                            
+                end. /*end it-nota-fisc*/
+                            
+            RUN grava-aliquotas IN h-cdapi995 (INPUT "item-doc-est",
+                                               INPUT RowObject.serie-docto + "/" + 
+                                                     RowObject.nro-docto + "/" + 
+                                                     string(RowObject.cod-emitente) + "/" + 
+                                                     RowObject.nat-operacao + "/" + 
+                                                     string(RowObject.sequencia), 
+                                               INPUT d-aliq-pis, 
+                                               INPUT d-aliq-cofins).               
+            end. /*end natur-oper 5*/
+            
+            IF  natur-oper.transf
+            AND docum-est.origem = "XML":U THEN DO:
+                EMPTY TEMP-TABLE tt-ext-item-doc-est.
+                FOR FIRST item-doc-orig-nfe NO-LOCK
+                    WHERE item-doc-orig-nfe.ch-acesso-comp-nfe = TRIM(docum-est.cod-chave-aces-nf-eletro)
+                      AND item-doc-orig-nfe.seq-item           = INT(SUBSTRING(RowObject.char-2,832,5)) /*Sequencia Item monitor*/
+                      AND item-doc-orig-nfe.idi-orig-trad      = 1: /*Dados originais XML*/
+                      
+                    CREATE tt-ext-item-doc-est.
+                    ASSIGN tt-ext-item-doc-est.serie-docto  = RowObject.serie-docto
+                           tt-ext-item-doc-est.nro-docto    = RowObject.nro-docto
+                           tt-ext-item-doc-est.cod-emitente = RowObject.cod-emitente
+                           tt-ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+                           tt-ext-item-doc-est.sequencia    = RowObject.sequencia
+                           tt-ext-item-doc-est.cod-param    = "infoXML":U.
+                    ASSIGN OVERLAY(tt-ext-item-doc-est.cod-livre-1,1,120) = item-doc-orig-nfe.desc-item
+                           OVERLAY(tt-ext-item-doc-est.cod-livre-2,1,6)   = item-doc-orig-nfe.un-comercial.
+                END.
+                
+                IF  NOT VALID-HANDLE(h-boin01017) THEN
+                    RUN inbo/boin01017.p PERSISTENT SET h-boin01017.
+                    
+                RUN openQueryStatic IN h-boin01017 (INPUT "Main":U) NO-ERROR.
+                
+                RUN goToKey IN h-boin01017 (INPUT tt-ext-item-doc-est.serie-docto, 
+                                            INPUT tt-ext-item-doc-est.nro-docto,   
+                                            INPUT tt-ext-item-doc-est.cod-emitente,
+                                            INPUT tt-ext-item-doc-est.nat-operacao,
+                                            INPUT tt-ext-item-doc-est.sequencia,   
+                                            INPUT "infoXML":U). 
+                                          
+                IF  RETURN-VALUE = "OK":U THEN DO:
+                    RUN emptyRowErrors IN h-boin01017.
+                    RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+                    RUN updateRecord IN h-boin01017.  
+                END.    
+                ELSE DO:
+                    RUN emptyRowErrors IN h-boin01017.
+                    RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+                    RUN createRecord IN h-boin01017.
+                END.
+                      
+                IF VALID-HANDLE(h-boin01017) THEN DO:
+                    DELETE PROCEDURE h-boin01017.
+                    ASSIGN h-boin01017 = ?.
+                END.
+            END.
+            EMPTY TEMP-TABLE tt-ext-item-doc-est.
+            
+            /** NFe - Grupo Combustivel **/ 
+            IF  natur-oper.cod-model-nf-eletro   = "55" THEN DO:
+                FOR FIRST doc-orig-nfe NO-LOCK
+                    WHERE doc-orig-nfe.ch-acesso-comp-nfe = TRIM(docum-est.cod-chave-aces-nf-eletro)
+                      AND doc-orig-nfe.idi-orig-trad      = 2,
+                     EACH item-doc-orig-nfe NO-LOCK
+                    WHERE item-doc-orig-nfe.ch-acesso-comp-nfe = doc-orig-nfe.ch-acesso-comp-nfe
+                      AND item-doc-orig-nfe.idi-orig-trad      = 2
+                      AND item-doc-orig-nfe.seq-item           = INT(SUBSTRING(RowObject.char-2,832,5)) /*Sequencia Item monitor*/
+                      AND item-doc-orig-nfe.cod-prod-anp       <> "":
+                      
+                      CREATE tt-item-nf-adc.
+                      ASSIGN tt-item-nf-adc.cod-estab        = docum-est.cod-estabel 
+                             tt-item-nf-adc.cod-serie        = RowObject.serie-docto 
+                             tt-item-nf-adc.cod-nota-fisc    = RowObject.nro-docto   
+                             tt-item-nf-adc.cdn-emitente     = RowObject.cod-emitente
+                             tt-item-nf-adc.cod-natur-operac = (IF RowObject.nat-of <> "" THEN RowObject.nat-of ELSE RowObject.nat-operacao)
+                             tt-item-nf-adc.idi-tip-dado     = 36 /*NFe - grupo combustivel*/
+                             tt-item-nf-adc.num-seq          = RowObject.sequencia
+                             tt-item-nf-adc.num-seq-item-nf  = RowObject.sequencia
+                             tt-item-nf-adc.cod-item         = RowObject.it-codigo
+                       &IF '{&product_version}' >= '12.1.X.2205'  &THEN       
+                             tt-item-nf-adc.cod-livre-1      = item-doc-orig-nfe.cod-prod-anp 
+                             tt-item-nf-adc.cod-livre-2      = item-doc-orig-nfe.desc-anp     
+                             tt-item-nf-adc.val-livre-1      = item-doc-orig-nfe.perc-glp     
+                             tt-item-nf-adc.val-livre-2      = item-doc-orig-nfe.perc-gnn     
+                             tt-item-nf-adc.val-livre-3      = item-doc-orig-nfe.perc-gni     
+                             tt-item-nf-adc.val-livre-4      = item-doc-orig-nfe.valor-part.  
+                       &ELSE
+                             tt-item-nf-adc.cod-livre-1           = item-doc-orig-nfe.cod-prod-anp   
+                             tt-item-nf-adc.cod-livre-2           = SUBSTRING(item-doc-orig-nfe.char-2,1,95)
+                             tt-item-nf-adc.val-livre-1           = DECIMAL(SUBSTRING(item-doc-orig-nfe.char-2,96,8))
+                             tt-item-nf-adc.val-livre-2           = DECIMAL(SUBSTRING(item-doc-orig-nfe.char-2,104,8))
+                             tt-item-nf-adc.val-livre-3           = DECIMAL(SUBSTRING(item-doc-orig-nfe.char-2,112,8))
+                             tt-item-nf-adc.val-livre-4           = DECIMAL(SUBSTRING(item-doc-orig-nfe.char-2,120,16)).
+                       &ENDIF
+                       
+                END.
+            END.
+            
+            IF  natur-oper.transf and RowObject.desconto[1] = 0 then
+                for first it-nota-fisc
+                    where it-nota-fisc.cod-estabel = saldo-terc.cod-estabel
+                      and it-nota-fisc.serie       = componente.serie-docto
+                      and it-nota-fisc.nr-nota-fis = componente.nro-docto 
+                      and it-nota-fisc.nr-seq-fat  = componente.sequencia
+                      and it-nota-fisc.it-codigo   = componente.it-codigo no-lock:
+                      if it-nota-fisc.val-desconto-total <> 0 then
+                          assign  RowObject.desconto[1]    = it-nota-fisc.val-desconto-total
+                                  RowObject.preco-total[1] = it-nota-fisc.vl-merc-ori
+                                  RowObject.preco-unit[1]  = RowObject.preco-total[1] / RowObject.quantidade.
+                                  
+                      if it-nota-fisc.per-des-icms > 0 then do: /*desconto ICMS desonerado*/ 
+            	          FOR FIRST ext-it-nota-fisc
+            		      WHERE ext-it-nota-fisc.cod-estabel = it-nota-fisc.cod-estabel
+            		      AND   ext-it-nota-fisc.serie       = it-nota-fisc.serie
+            		      AND   ext-it-nota-fisc.nr-nota-fis = it-nota-fisc.nr-nota-fis
+            		      AND   ext-it-nota-fisc.nr-seq-fat  = it-nota-fisc.nr-seq-fat
+            		      AND   ext-it-nota-fisc.it-codigo   = it-nota-fisc.it-codigo
+            		      AND   ext-it-nota-fisc.cod-param   = "Val-Desc-ICMS" NO-LOCK: END.
+                          IF AVAIL ext-it-nota-fisc THEN
+                             ASSIGN RowObject.desconto[1] = (it-nota-fisc.vl-merc-ori - it-nota-fisc.vl-merc-liq) - ext-it-nota-fisc.val-livre-1.
+                          ELSE       
+                              IF it-nota-fisc.val-pct-desconto-total >= it-nota-fisc.per-des-icms THEN DO:
+                                  IF it-nota-fisc.dec-1 > 0                         OR   /*ICMS ZFM*/ 
+                                     dec(substring(it-nota-fisc.char-1,128,16)) > 0 OR   /*PIS ZFM*/
+                                     dec(substring(it-nota-fisc.char-1,145,16)) > 0 THEN /*COFINS ZFM*/
+                                      ASSIGN RowObject.desconto[1] = (it-nota-fisc.vl-merc-ori - it-nota-fisc.vl-merc-liq) - (it-nota-fisc.vl-merc-ori * (it-nota-fisc.per-des-icms / 100)).
+                                  ELSE
+                                      ASSIGN RowObject.desconto[1] = (it-nota-fisc.vl-merc-ori - (it-nota-fisc.vl-merc-liq / ((100 - it-nota-fisc.per-des-icms) / 100))).
+                              END.        
+                             
+                          if RowObject.desconto[1] < 0 then
+                              ASSIGN  RowObject.desconto[1] = 0.
+                      end.    
+                end.
+                
+            /*DMANRECEB-206 - Copia os vaores de subst. trib. antecipada da NF de saida quando for uma NFT*/
+            IF  natur-oper.transf and natur-oper.log-contrib-st-antec then do:
+                for first it-nota-fisc
+                    where it-nota-fisc.cod-estabel = saldo-terc.cod-estabel
+                      and it-nota-fisc.serie       = componente.serie-docto
+                      and it-nota-fisc.nr-nota-fis = componente.nro-docto 
+                      and it-nota-fisc.nr-seq-fat  = componente.sequencia no-lock: end.
+                if avail it-nota-fisc then do:
+                    IF NOT VALID-HANDLE (h-reapi412) THEN
+                        RUN rep/reapi412.p PERSISTENT SET h-reapi412.
+                    RUN inicializaAtributos        IN h-reapi412.
+                    RUN setRowidItemNotaFiscal     IN h-reapi412 (INPUT ROWID(it-nota-fisc)).
+                    RUN setRowidNaturezaOperFiscal IN h-reapi412 (INPUT ROWID(b-natur-fiscal)).
+                    RUN setSerieDocto              IN h-reapi412 (INPUT RowObject.serie-docto).
+                    RUN setNumeroDocto             IN h-reapi412 (INPUT RowObject.nro-docto).
+                    RUN setEmitenteDocto           IN h-reapi412 (INPUT RowObject.cod-emitente).
+                    RUN setNatOperacaoDocto        IN h-reapi412 (INPUT RowObject.nat-operacao).
+                    RUN setCodEstabelDocto         IN h-reapi412 (INPUT docum-est.cod-estabel).
+                    RUN setICMSRetido              IN h-reapi412 (INPUT RowObject.log-2).
+                    RUN setQuantidadeItem          IN h-reapi412 (INPUT RowObject.quantidade).
+                    RUN setSequenciaItem           IN h-reapi412 (INPUT RowObject.sequencia).
+                    RUN setItem                    IN h-reapi412 (INPUT RowObject.it-codigo).
+
+                    RUN buscaIcmsSTSaida           IN h-reapi412.
+
+                    IF RETURN-VALUE = "OK" THEN DO:
+                        RUN isSaveICMS-STA IN h-reapi412. /* Eh para salvar? */
+                        IF RETURN-VALUE = "YES" THEN DO:
+                            RUN saveICMS-STA IN h-reapi412. /* Salva */
+                            IF RETURN-VALUE = "NOK" THEN DO:
+                                RUN getRowErrors IN h-reapi412 (OUTPUT TABLE RowErrors).
+                                UNDO bloco, RETURN "NOK":U. /* Desfaz o bloco e retorna */
+                            END.
+                            ELSE DO:
+                                RUN getValBaseSubs IN h-reapi412 (OUTPUT RowObject.base-subs[1]).
+                                RUN getValSubs     IN h-reapi412 (OUTPUT RowObject.vl-subs[1]).
+                            END.
+                        END.
+                    END.
+                end.
+            end.
+                
+            IF  NOT l-mult-natur-receb OR NOT AVAIL b-natur-fiscal THEN
+                /* -> Se NÇO usa m£lti natur ou nÆo achou a natur. fiscal do item provavelmente ‚ uma*/
+                /* nota antiga (digitada antes de marcar o parƒm), entÆo segue o fluxo como se nÆo usasse multi. natur. */
+                /* Usa os atributos fiscais da natureza da nota. */
+                ASSIGN 
+                    RowObject.val-perc-rep-ipi  = natur-oper.perc-red-ipi
+                    RowObject.val-perc-red-icms = natur-oper.perc-red-icm.
+            ELSE 
+                /* Se USA multi naturezas e possui uma nat-of v lida cadastrada */
+                ASSIGN 
+                    RowObject.val-perc-rep-ipi  = b-natur-fiscal.perc-red-ipi
+                    RowObject.val-perc-red-icms = b-natur-fiscal.perc-red-icm.
+
+            IF  RowObject.preco-unit[1] = ? THEN
+                ASSIGN RowObject.preco-unit[1] = 0.
+
+            IF  NOT natur-oper.transf THEN DO:
+                if natur-oper.tp-oper-terc = 5 then do: /*Devolucao Consignacao*/
+                    for first it-nota-fisc 
+                        where it-nota-fisc.cod-estabel = docum-est.cod-estabel
+                          and it-nota-fisc.serie       = componente.serie-docto
+                          and it-nota-fisc.nr-nota-fis = componente.nro-docto 
+                          and it-nota-fisc.nr-seq-fat  = componente.sequencia 
+                          and it-nota-fisc.it-codigo   = componente.it-codigo no-lock: end.
+                    if avail it-nota-fisc then do:
+                        /* Calcula indice para conversao da quantidade */
+                        assign de-proporcao         = it-nota-fisc.qt-faturada[2] / it-nota-fisc.qt-faturada[1]
+                               RowObject.qt-do-forn = RowObject.quantidade * de-proporcao.    
+                    end.
+                    else do:
+                        assign RowObject.qt-do-forn = RowObject.quantidade.                
+                    end.
+                end.
+                else do:
+                    IF componente.qt-do-forn <> componente.quantidade THEN DO:  /*Tem fator de conversÆo*/
+                        ASSIGN de-exp               =  LENGTH(componente.qt-do-forn) - 1
+                               de-proporcao         = (tt-item-saldo-terc-aux.quantidade * EXP(10,de-exp)) / componente.quantidade
+                               RowObject.qt-do-forn = (de-proporcao * componente.qt-do-forn) / EXP(10,de-exp).                                
+                    END.                                
+                    ELSE DO:    /*NÆo tem fator de conversÆo*/
+                        assign RowObject.qt-do-forn = tt-item-saldo-terc-aux.quantidade.            
+                    END.                    
+                end.
+            END.
+
+            if item.ind-inf-qtf = ? and
+                not natur-oper.transf  then
+                for first it-nota-fisc
+                    fields ( un-fatur )
+                    where it-nota-fisc.cod-estabel = docum-est.cod-estabel
+                      and it-nota-fisc.serie       = componente.serie-docto
+                      and it-nota-fisc.nr-nota-fis = componente.nro-docto 
+                      and it-nota-fisc.nr-seq-fat  = componente.sequencia no-lock:
+                      RowObject.un = it-nota-fisc.un-fatur[2].
+                end.
+            
+            if not natur-oper.transf 
+               and natur-oper.tp-oper-terc = 2 
+                    and natur-oper.terceiros then do:
+                for first it-nota-fisc
+                    fields ( un-fatur )
+                    where it-nota-fisc.cod-estabel = docum-est.cod-estabel
+                      and it-nota-fisc.serie       = componente.serie-docto
+                      and it-nota-fisc.nr-nota-fis = componente.nro-docto 
+                      and it-nota-fisc.nr-seq-fat  = componente.sequencia
+                      and it-nota-fisc.ind-fat-qtfam = ? no-lock:
+                      RowObject.un = it-nota-fisc.un-fatur[2].
+                end.
+            end.
+                
+            if not natur-oper.transf and 
+               natur-oper.tp-oper-terc = 5 THEN do : /* Devolucao Consignacao  */
+                for first it-nota-fisc fields ( it-nota-fisc.dt-emis-nota )
+                    where it-nota-fisc.cod-estabel = docum-est.cod-estabel
+                      and it-nota-fisc.serie       = componente.serie-docto
+                      and it-nota-fisc.nr-nota-fis = componente.nro-docto 
+                      and it-nota-fisc.nr-seq-fat  = componente.sequencia no-lock:
+                    assign RowObject.data-comp = it-nota-fisc.dt-emis-nota.
+                end.  
+            end.
+            
+            if substr(componente.char-1,1,16) <> "" then
+                   /* Grava chave da reserva da ordem de produ‡Æo */       
+                   assign RowObject.item-pai       = substr(componente.char-1,1,16)
+                          RowObject.cod-roteiro    = substr(componente.char-1,17,16)
+                          RowObject.op-codigo      = int(substr(componente.char-1,35,5)).
+            else do:
+                   assign RowObject.item-pai       = tt-item-saldo-terc-aux.item-pai   
+                          RowObject.cod-roteiro    = tt-item-saldo-terc-aux.cod-roteiro
+                          RowObject.op-codigo      = tt-item-saldo-terc-aux.op-codigo.
+            end.
+
+            /* Zera a Ordem de Producao para notas de Faturamento de Consignacao e */
+            /* Reajuste Preco. Quando  o  item nao possuir tipo de controle Fisico */ 
+            /* ou Debito Direto a Conta de Aplicacao tamb‚m sera zerada.           */
+
+            if  RowObject.nr-ord-produ = 0 then
+                assign RowObject.nr-ord-produ = saldo-terc.nr-ord-produ.
+
+            if  can-do("4,6", string(natur-oper.tp-oper-terc)) then do:
+
+                assign RowObject.nr-ord-produ = 0.
+
+                /* Item com tipo de controle Total ou Consignado */
+                if  can-do("2,3", string(item.tipo-contr)) then
+                    assign RowObject.ct-codigo = ""
+                           RowObject.sc-codigo = "".
+            end.
+            
+            /* Verifica se eh Transferencia e Documento do conversor NF-e */
+            IF docum-est.origem = "XML":U AND
+               natur-oper.transf AND
+               CAN-FIND(FIRST doc-orig-nfe WHERE doc-orig-nfe.ch-acesso-comp-nfe = TRIM(docum-est.cod-chave-aces-nf-eletro)
+                                             AND doc-orig-nfe.idi-orig-trad      = 2) THEN DO:
+
+                IF NOT VALID-HANDLE(h-boin857) THEN
+                    RUN inbo/boin857.p PERSISTEN SET h-boin857. /* item-doc-orig-nfe */
+
+                RUN openQueryStatic IN h-boin857 (INPUT "Main":U).
+
+                RUN goToKey IN h-boin857 (INPUT  TRIM(docum-est.cod-chave-aces-nf-eletro),
+                                          INPUT  2, /* idi-orig-trad */
+                                          INPUT  (saldo-terc.sequencia / 10)). /* Seq saldo-terc‚ sempre 10 em 10 e do conversor sempre 1 em 1 */
+
+                RUN getCharField IN h-boin857 (INPUT "cod-depos":U,      OUTPUT c-cod-depos     ).
+                RUN getCharField IN h-boin857 (INPUT "cod-localiz":U,    OUTPUT c-cod-localiz   ).
+                RUN getCharField IN h-boin857 (INPUT "ct-codigo":U,      OUTPUT c-ct-codigo     ).
+                RUN getCharField IN h-boin857 (INPUT "sc-codigo":U,      OUTPUT c-sc-codigo     ).
+                RUN getCharField IN h-boin857 (INPUT "cod-unid-negoc":U, OUTPUT c-cod-unid-negoc).
+                
+                IF c-cod-depos <> "" THEN
+                  ASSIGN RowObject.cod-depos = c-cod-depos.
+                  
+                IF c-cod-localiz <> "" THEN
+                  ASSIGN RowObject.cod-localiz = c-cod-localiz.
+                  
+                IF c-ct-codigo <> "" THEN DO:
+                  ASSIGN RowObject.ct-codigo = c-ct-codigo
+                         RowObject.sc-codigo = c-sc-codigo.
+                    
+                  IF c-cod-unid-negoc <> "" THEN
+                    ASSIGN RowObject.cod-unid-negoc = c-cod-unid-negoc.
+                    
+                END.
+                       
+                IF  VALID-HANDLE(h-boin857) THEN DO:
+                    DELETE PROCEDURE h-boin857.
+                    ASSIGN h-boin857 = ?.
+                END.
+            END.
+
+            if  RowObject.nr-ord-produ <> 0 then do:
+                run findOrdProd ( RowObject.nr-ord-produ ).
+                if  avail ord-prod then
+                    assign RowObject.ct-codigo      = ord-prod.ct-codigo
+                           RowObject.sc-codigo      = ord-prod.sc-codigo
+                           RowObject.cod-unid-negoc = ord-prod.cod-unid-negoc. /*Unidade de Neg¢cio*/
+            end.
+            ELSE DO: /*Unidade de Neg¢cio*/
+                IF natur-oper.transf AND
+                   RowObject.cod-unid-negoc = "" AND
+                   componente.ct-codigo <> "" THEN
+                    ASSIGN RowObject.cod-unid-negoc = componente.cod-unid-negoc.
+                
+                IF RowObject.cod-unid-negoc <> "" THEN DO:
+                    IF NOT VALID-HANDLE(h-cdapi024) THEN
+                       RUN cdp/cdapi024.p PERSISTENT SET h-cdapi024.
+                      
+                    EMPTY TEMP-TABLE tt-erro.
+                    /*Valida se a UN pode ser utilizada pelo Estabelecimento da Notal Fiscal*/
+                    RUN ValidaUnidadeNegocioEstabel IN h-cdapi024(INPUT  docum-est.cod-estabel,
+                                                                  INPUT  docum-est.dt-trans,
+                                                                  INPUT  RowObject.cod-unid-negoc,
+                                                                  OUTPUT TABLE tt-erro APPEND).
+                                                                  
+                    /*Valida ser a UN pode ser utilizada pelo Usu rio da Nota Fiscal*/
+                    RUN ValidaUnidadeNegocioUsuario IN h-cdapi024(INPUT  c-seg-usuario,
+                                                                  INPUT  RowObject.cod-unid-negoc,
+                                                                  OUTPUT TABLE tt-erro APPEND).
+                    IF CAN-FIND(FIRST tt-erro) THEN
+                        FOR FIRST item-uni-estab FIELDS(cod-unid-negoc)
+                            WHERE item-uni-estab.it-codigo   = RowObject.it-codigo
+                              AND item-uni-estab.cod-estabel = docum-est.cod-estabel NO-LOCK:
+                            ASSIGN RowObject.cod-unid-negoc = item-uni-estab.cod-unid-negoc.
+                        END.
+                END.
+            END.
+
+            /*Se for faturamento de consigna‡Æo atualizar  sempre a unidade de neg¢cio com a unidade de neg¢cio 
+            do saldo em poder de terceiros*/
+            if  natur-oper.tp-oper-terc      = 4   /* Faturamento Consigna‡Æo */
+                and RowObject.cod-unid-negoc = "" then 
+                assign RowObject.cod-unid-negoc = componente.cod-unid-negoc.
+            
+             /* Para executar a funcao de decimais e preciso um assign para cada campo */
+            assign RowObject.preco-total[1] = fn_ajust_dec(RowObject.preco-total[1], 0).
+            assign RowObject.desconto[1]    = fn_ajust_dec(RowObject.desconto[1], 0).
+            
+
+            assign l-cria-rat-lote = no. 
+
+            /*--- quando a natureza for do tipo remessa faturamento antecipado, grava a chave 
+                  da nota de fatura na nota de remessa ---*/
+            run getFatAntecipEntFutura(RowObject.nat-operacao,
+                                       output l-fatura-fat-antecip,
+                                       output l-remessa-fat-antecip,
+                                       output l-fatura-ent-futura,
+                                       output l-remessa-ent-futura).
+
+            if  l-remessa-ent-futura then do:
+                assign RowObject.emite-comp   = componente.cod-emitente
+                       RowObject.nro-comp     = componente.nro-docto
+                       RowObject.nat-comp     = componente.nat-operacao
+                       RowObject.serie-comp   = componente.serie-docto.
+            end. 
+            
+            IF natur-oper.tp-oper-terc = 4 THEN DO: /* Faturamento Consigna‡Æo */
+                IF AVAIL ITEM AND item.tipo-con-est = 2 THEN DO: /*numero de serie*/
+
+                    FIND FIRST tt-rat-saldo-terc-dep NO-LOCK
+                         WHERE tt-rat-saldo-terc-dep.it-codigo = saldo-terc.it-codigo
+                           AND tt-rat-saldo-terc-dep.cod-refer = saldo-terc.cod-refer
+                           AND tt-rat-saldo-terc-dep.sequencia = saldo-terc.sequencia 
+                           AND tt-rat-saldo-terc-dep.qtd-digitada > 0 NO-ERROR.
+                    IF AVAIL tt-rat-saldo-terc-dep THEN
+                        ASSIGN RowObject.lote = tt-rat-saldo-terc-dep.lote.
+
+                END. /*IF AVAIL ITEM AND item.tipo-con-est = 2 */
+            END. /*IF natur-oper.tp-oper-terc = 4 */
+
+            IF l-NT2024002 AND natur-oper.tp-oper-terc <> 4 THEN DO:
+                RUN copiarInfCBSIBSNFOrig(INPUT piHboin090).
+            END.   
+          
+            run emptyRowErrors.
+
+            run createRecord.  /* Cria tabela item-doc-est */
+
+            if  return-value = "NOK":U then do:
+                /* Inicio -- Projeto Internacional */
+                DEFINE VARIABLE c-lbl-liter-a-sequencia AS CHARACTER NO-UNDO.
+                {utp/ut-liter.i "A_sequˆncia" *}
+                ASSIGN c-lbl-liter-a-sequencia = TRIM(RETURN-VALUE).
+                {method/svc/errors/inserr.i
+                                    &ErrorNumber="6470" /* &1 esta com problemas. */
+                                    &ErrorType="EMS"
+                                    &ErrorSubType="ERROR"
+                                    &ErrorParameters="c-lbl-liter-a-sequencia + ' ' + string(RowObject.seq-comp)"}            
+                                    
+
+                delete procedure h-acomp.
+                ASSIGN h-acomp = ?.
+                undo bloco, return "NOK":U. /* Desfaz o bloco e retorna com erro */
+            end.
+            
+            if not avail natur-oper then
+                run findNaturOper ( docum-est.nat-operacao ).
+
+            /*--- quando a natureza for do tipo remessa entrega futura usa como base as ordens de compra 
+                  informadas no FIFO da nota de fatura ---*/
+            if  l-remessa-ent-futura then do:
+            
+                assign de-qtd-saldo    = RowObject.quantidade. 
+                
+                IF NOT VALID-HANDLE(h-boin368) THEN
+                    RUN inbo/boin368.p PERSISTENT SET h-boin368.   
+                RUN openQueryStatic IN h-boin368("Main":U).                     
+            
+                FOR EACH  bf-item-doc-est-fut fields (nat-operacao sequencia)
+                    WHERE bf-item-doc-est-fut.nro-docto    = saldo-terc.nro-docto   
+                      AND bf-item-doc-est-fut.cod-emitente = saldo-terc.cod-emitente
+                      AND bf-item-doc-est-fut.nat-comp     = saldo-terc.nat-operacao
+                      AND bf-item-doc-est-fut.serie-docto  = saldo-terc.serie-docto
+                      AND bf-item-doc-est-fut.sequencia    = saldo-terc.sequencia NO-LOCK:
+                    
+                    /* Cria o FIFO na remessa com base no FIFO informado na NF de fatura */
+                    FOR EACH rat-ordem fields (num-pedido numero-ordem parcela)
+                       WHERE rat-ordem.nro-docto    = saldo-terc.nro-docto
+                         AND rat-ordem.serie-docto  = saldo-terc.serie-docto
+                         AND rat-ordem.nat-operacao = bf-item-doc-est-fut.nat-operacao
+                         AND rat-ordem.cod-emitente = saldo-terc.cod-emitente
+                         AND rat-ordem.sequencia    = bf-item-doc-est-fut.sequencia NO-LOCK:
+
+                        RUN pi-cria-rat-ordem-compra (input rat-ordem.num-pedido, 
+                                                      input rat-ordem.numero-ordem,
+                                                      input rat-ordem.parcela,
+                                                      input-output de-qtd-saldo,
+                                                      input de-indice,
+                                                      input h-boin368).
+
+                    END.
+                END.
+
+                /* Cria o FIFO na remessa com base no pedido e ordem informado na NF de fatura (sem FIFO) */
+                IF de-qtd-saldo > 0 AND
+                   componente.num-pedido   <> 0 AND 
+                   componente.numero-ordem <> 0 THEN
+                    RUN pi-cria-rat-ordem-compra (input componente.num-pedido, 
+                                                  input componente.numero-ordem,
+                                                  input componente.parcela,
+                                                  input-output de-qtd-saldo,
+                                                  input de-indice,
+                                                  input h-boin368).               
+     
+            end. 
+
+            RUN findItem (rowObject.it-codigo).
+            
+            IF RowObject.cod-depos <> "" THEN
+                RUN findDeposito ( RowObject.cod-depos).
+
+            /* Cria a tabela rat-componente com o detalhamento da movimentacao */
+            /* em terceiros                                                    */
+            IF  natur-oper.tp-oper-terc = 6 
+                OR natur-oper.tp-oper-terc = 4
+                OR ({cdp/cd0066.i2 docum-est.cod-estabel}
+                AND lDevSimbConsig) THEN DO:
+                
+                FOR EACH tt-rat-saldo-terc-dep 
+                     WHERE tt-rat-saldo-terc-dep.it-codigo = saldo-terc.it-codigo
+                       AND tt-rat-saldo-terc-dep.cod-refer = saldo-terc.cod-refer
+                       AND tt-rat-saldo-terc-dep.sequencia = saldo-terc.sequencia 
+                       AND tt-rat-saldo-terc-dep.qtd-digitada > 0 NO-LOCK:  
+
+                    for each tt-rat-componente:
+                        delete tt-rat-componente.
+                    end.
+                     
+                    assign c-cod-depos   = if  tt-rat-saldo-terc-dep.cod-depos <> " " 
+                                           then tt-rat-saldo-terc-dep.cod-depos       
+                                           else RowObject.cod-depos
+                           c-cod-localiz = tt-rat-saldo-terc-dep.cod-localiz. 
+                    
+                    assign c-cod-depos-aux =  c-cod-depos.
+                    /* Se nÆo encontra, sugere o dep¢sito e localizacao da item-uni-estab */
+                    run sugereItemUniEstab (input docum-est.cod-estabel,
+                                            input tt-rat-saldo-terc-dep.it-codigo,
+                                            input-output c-cod-depos-aux,
+                                            input-output c-cod-localiz). 
+                     
+                    create tt-rat-componente.
+                    assign tt-rat-componente.serie-docto  = RowObject.serie-docto
+                           tt-rat-componente.nro-docto    = RowObject.nro-docto
+                           tt-rat-componente.cod-emitente = RowObject.cod-emitente
+                           tt-rat-componente.nat-operacao = IF  l-fatura-ent-futura THEN
+                                                                RowObject.nat-comp
+                                                            ELSE
+                                                                RowObject.nat-operacao 
+                           tt-rat-componente.it-codigo    = RowObject.it-codigo 
+                           tt-rat-componente.cod-refer    = RowObject.cod-refer
+                           tt-rat-componente.sequencia    = RowObject.sequencia
+                           tt-rat-componente.cod-depos    = if natur-oper.tipo-compra = 3 then c-cod-depos else c-cod-depos-aux /* Devolu‡Æo Cliente */
+                           tt-rat-componente.cod-localiz  = c-cod-localiz
+                           tt-rat-componente.lote         = tt-rat-saldo-terc-dep.lote
+                           tt-rat-componente.dt-vali-lote = tt-rat-saldo-terc-dep.dt-vali-lote
+                           tt-rat-componente.componente   = 2.
+                           
+                    
+                    ASSIGN tt-rat-componente.quantidade   = tt-rat-componente.quantidade + tt-rat-saldo-terc-dep.qtd-digitada.
+                    
+                           
+                    if natur-oper.log-oper-triang then
+                        assign tt-rat-componente.nro-comp     = item-doc-est.nro-docto-terc
+                               tt-rat-componente.serie-comp   = item-doc-est.serie-terc
+                               tt-rat-componente.nat-comp     = item-doc-est.nat-terc 
+                               tt-rat-componente.seq-comp     = item-doc-est.seq-terc
+                               tt-rat-componente.emite-comp   = item-doc-est.cod-emit-terc.
+                    else
+                        assign tt-rat-componente.nro-comp     = saldo-terc.nro-docto
+                               tt-rat-componente.serie-comp   = saldo-terc.serie-docto
+                               tt-rat-componente.nat-comp     = saldo-terc.nat-operacao 
+                               tt-rat-componente.seq-comp     = saldo-terc.sequencia
+                               tt-rat-componente.emite-comp   = saldo-terc.cod-emitente.
+                           
+                    find first rowErrors no-lock no-error.
+                    
+                    run emptyRowObject in h-boin010.
+                    run emptyRowErrors in h-boin010.                    
+                    
+                    run setRecord      in h-boin010 ( input table tt-rat-componente ).
+                    run createRecord   in h-boin010. /* Cria tabela rat-componente */
+
+                    run getRowErrors in h-boin010 ( output table tt-RowErrorsAux ).
+
+                    
+                    FOR EACH tt-RowErrorsAux NO-LOCK:
+                        CREATE RowErrors.
+                        BUFFER-COPY tt-RowErrorsAux TO RowErrors.
+                    END.
+
+                    find first rowErrors no-lock no-error.
+                    if  avail rowErrors and
+                        rowErrors.ErrorSubType = "ERROR":U then do:
+                        run eliminaHandle.
+                        return "NOK":U.
+                    end.
+                
+                    IF NOT (natur-oper.tp-oper-terc = 4 AND  /* Fatura Consignacao e estabelecimento parametrizado para devolucao simbolica */
+                            {cdp/cd0066.i2 saldo-terc.cod-estabel}) THEN
+                        run updateQtdAloc in h-boin006 ( RowObject.serie-comp ,  
+                                                         RowObject.nro-comp,  
+                                                         RowObject.nat-comp,  
+                                                         RowObject.seq-comp,
+                                                         RowObject.cod-emitente,
+                                                         tt-rat-componente.it-codigo, 
+                                                         tt-rat-componente.cod-refer, 
+                                                         tt-rat-componente.lote, 
+                                                         "aloca",
+                                                         tt-rat-componente.quantidade ).   
+                end.
+            end.
+            
+            /* Cria a tabela rat-lote de acordo com a nota de saida para */
+            /* itens controlados no estoque por lote ou referencia.      */
+            
+            if  RowObject.baixa-ce then do:
+                if can-find(first tt-rat-saldo-terc-dep
+                            WHERE tt-rat-saldo-terc-dep.it-codigo = saldo-terc.it-codigo
+                              AND tt-rat-saldo-terc-dep.cod-refer = saldo-terc.cod-refer
+                              AND tt-rat-saldo-terc-dep.sequencia = saldo-terc.sequencia) then
+                    run createRatLoteByRatSaldoTerc ( input table tt-rat-saldo-terc-dep ).
+                else
+                    run createRatLoteDevolTerc ( tt-item-saldo-terc-aux.quantidade ).
+                
+            
+
+                if  return-value = "NOK":U then do:
+                    /* Inicio -- Projeto Internacional */
+                    DEFINE VARIABLE c-lbl-liter-a-sequencia-2 AS CHARACTER NO-UNDO.
+                    {utp/ut-liter.i "A_sequˆncia" *}
+                    ASSIGN c-lbl-liter-a-sequencia-2 = TRIM(RETURN-VALUE).
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="6470" /* &1 esta com problemas. */
+                                        &ErrorType="EMS"
+                                        &ErrorSubType="ERROR"
+                                        &ErrorParameters="c-lbl-liter-a-sequencia-2 + ' ' + string(RowObject.seq-comp)"}            
+
+                    undo bloco, return "NOK":U. /* Desfaz o bloco e retorna com erro */
+                end.
+            end.     
+                       
+            FIND FIRST bf-item-doc-est-tri
+                 WHERE bf-item-doc-est-tri.cod-emit-terc   = RowObject.cod-emitente
+                 AND   bf-item-doc-est-tri.nro-docto-terc  = RowObject.nro-comp
+                 AND   bf-item-doc-est-tri.serie-terc      = RowObject.serie-comp
+                 AND   bf-item-doc-est-tri.nat-terc        = RowObject.nat-comp NO-LOCK NO-ERROR.
+            IF AVAIL bf-item-doc-est-tri THEN 
+                ASSIGN lOpeTriang = YES.
+            
+           if (RowObject.nro-comp <> "" and 
+               lOpeTriang = NO) or 
+              (saldo-terc.tipo-sal-terc = 3 AND AVAIL b-natur-fiscal AND b-natur-fiscal.log-contrib-st-antec) then do:
+                RUN notaFiscAdic.
+                
+                if  return-value = "NOK":U then do:
+                    undo bloco, return "NOK":U. /* Desfaz o bloco e retorna com erro */
+                end.
+           end.
+        
+        end. /* for each */
+    end. /* do trans */
+
+    /* Inicio -- Projeto Internacional */
+    {utp/ut-liter.i "Totalizando_Itens_Documento" *}
+    run pi-acompanhar in h-acomp (RETURN-VALUE).
+
+    /* A variÿvel i-totaliza indicar o que documento deverÿ ser totalizado **/
+    run getTotalizaNota ( 0 ).
+
+    RUN copiaEnteOperGovNForig IN piHboin090 (INPUT i-cod-emitente,
+                                              INPUT c-serie-docto,
+                                              INPUT c-nro-docto,
+                                              INPUT c-nat-operacao).
+
+    /* Calculo do ICMS, ICMS Subst, ICMS Complementar e totaliza a NF */
+    run TransferTotalItensNota ( i-cod-emitente,
+                                 c-serie-docto,
+                                 c-nro-docto,
+                                 c-nat-operacao ).
+                                 
+    /* Cria tt-item-nf-adc - Grupo Combustivel */
+    IF CAN-FIND(FIRST tt-item-nf-adc
+                WHERE tt-item-nf-adc.cod-livre-1 <> "") THEN DO:
+        RUN pi-cria-item-nf-adc.
+    END.        
+
+    /* seta o valor "no" para que ao importar os itens de uma nota de compra
+       via EDI, as informa‡äes default de dep¢sito, localiza‡Æo e c¢digo de
+       referˆncia sejam sugeridas para o item. */
+    assign l-nf-transf-devol-ret = no
+           l-cria-rat-lote = yes.
+           
+    return "OK":U.
+
+    FINALLY:
+        delete procedure h-acomp NO-ERROR.
+        ASSIGN h-acomp = ?.
+
+        IF VALID-HANDLE(h-reapi412) THEN DO:
+            DELETE PROCEDURE h-reapi412 NO-ERROR.
+            ASSIGN h-reapi412 = ?.
+        END.
+        IF VALID-HANDLE(h-boin368) THEN DO:
+           DELETE PROCEDURE h-boin368 NO-ERROR.
+           ASSIGN h-boin368 = ?.
+        END.
+        IF VALID-HANDLE(h-cdapi024) THEN DO:
+            DELETE PROCEDURE h-cdapi024.
+            ASSIGN h-cdapi024 = ?.
+        END.
+        IF VALID-HANDLE(h-bodi538) THEN DO:
+            DELETE PROCEDURE h-bodi538 NO-ERROR.
+            ASSIGN h-bodi538 = ?.
+        END.
+    END.
+
+END PROCEDURE.
+
+PROCEDURE notaFiscAdic :
+   
+    DEFINE VARIABLE c-chave             AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE c-modelo            AS CHARACTER  NO-UNDO.
+    DEF BUFFER b-docum-est-2            FOR docum-est.
+    DEFINE BUFFER saldo-terc            FOR saldo-terc.
+    DEFINE BUFFER b1-docum-est          FOR docum-est.
+    DEFINE BUFFER b1-item-doc-est       FOR item-doc-est.
+    DEFINE BUFFER b1-nota-fiscal        FOR nota-fiscal.
+    DEFINE VARIABLE l-remessa-sem-movto AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE h-bodi516           AS HANDLE  NO-UNDO.
+    DEFINE VARIABLE l-ret-goToKey       AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE c-cod-estab-aux     LIKE docum-est.cod-estabel NO-UNDO.
+    
+    DEFINE BUFFER bf-natur-fiscal FOR natur-oper. /* buffer aux. para buscar a natureza do item */
+	
+    IF NOT AVAIL natur-oper OR 
+       natur-oper.nat-operacao <> docum-est.nat-operacao THEN
+	    RUN findNaturOper ( docum-est.nat-operacao ).
+	
+    IF  AVAIL natur-oper AND
+        NOT natur-oper.log-oper-triang AND
+        natur-oper.terceiros  AND
+        NOT natur-oper.transf THEN DO: 
+        
+        CASE natur-oper.tp-oper-terc:
+            WHEN 2 THEN /*Retorno beneficiamento ou Remessa de Entrega Futura*/
+             IF SUBSTRING(natur-oper.char-1,1,5) = "0" THEN   /* Remessa de Entrega Futura */
+                RUN rep/re1910.p (INPUT  docum-est.cod-estabel,
+                		  INPUT  docum-est.serie-docto,
+                		  INPUT  docum-est.nro-docto,
+                		  INPUT  docum-est.cod-emitente,
+                		  INPUT  docum-est.nat-operacao,
+                		  INPUT  componente.it-codigo,
+                		  INPUT  componente.serie-docto,      
+                		  INPUT  componente.nro-docto,
+                          INPUT  componente.nat-operacao,
+                		  INPUT  6, /*Remessa de Entrega Futura*/
+                		  OUTPUT TABLE rowErrors).
+             ELSE /*Retorno de Beneficiamento */
+                RUN rep/re1910.p (INPUT  docum-est.cod-estabel,
+                		  INPUT  docum-est.serie-docto,
+                		  INPUT  docum-est.nro-docto,
+                		  INPUT  docum-est.cod-emitente,
+                		  INPUT  docum-est.nat-operacao,
+                		  INPUT  componente.it-codigo,
+                		  INPUT  componente.serie-docto,      
+                		  INPUT  componente.nro-docto,
+                                  INPUT  componente.nat-operacao,
+                		  INPUT  2, /*retorno de beneficiamento*/
+                		  OUTPUT TABLE rowErrors).
+            WHEN 4 THEN /*Faturamento Consigna‡Æo*/
+                RUN rep/re1910.p (INPUT  docum-est.cod-estabel,
+                		  INPUT  docum-est.serie-docto,
+                		  INPUT  docum-est.nro-docto,
+                		  INPUT  docum-est.cod-emitente,
+                		  INPUT  docum-est.nat-operacao,
+                		  INPUT  componente.it-codigo,
+                		  INPUT  componente.serie-docto,      
+                		  INPUT  componente.nro-docto,
+                                  INPUT  componente.nat-operacao,
+                		  INPUT  4, /*faturamento consigna‡Æo*/
+                		  OUTPUT TABLE rowErrors).
+            WHEN 5 THEN /*Devolu‡Æo Consigna‡Æo*/
+                RUN rep/re1910.p (INPUT  docum-est.cod-estabel,
+                		  INPUT  docum-est.serie-docto,
+                		  INPUT  docum-est.nro-docto,
+                		  INPUT  docum-est.cod-emitente,
+                		  INPUT  docum-est.nat-operacao,
+                		  INPUT  componente.it-codigo,
+                		  INPUT  componente.serie-docto,      
+                		  INPUT  componente.nro-docto,
+                                  INPUT  componente.nat-operacao,
+                		  INPUT  3, /*faturamento consigna‡Æo*/
+                		  OUTPUT TABLE rowErrors).
+            WHEN 6 THEN /*Reajuste Pre‡o*/
+                RUN rep/re1910.p (INPUT  docum-est.cod-estabel,
+                		  INPUT  docum-est.serie-docto,
+                		  INPUT  docum-est.nro-docto,
+                		  INPUT  docum-est.cod-emitente,
+                		  INPUT  docum-est.nat-operacao,
+                		  INPUT  componente.it-codigo,
+                		  INPUT  componente.serie-docto,      
+                		  INPUT  componente.nro-docto,
+                                  INPUT  componente.nat-operacao,
+                		  INPUT  5, /*reajuste pre‡o*/
+                		  OUTPUT TABLE rowErrors).
+            WHEN 9 or WHEN 11 THEN /*Ret Dep Fechado ou Ret Armaz Geral*/
+                RUN rep/re1910.p (INPUT  docum-est.cod-estabel,
+                		  INPUT  docum-est.serie-docto,
+                		  INPUT  docum-est.nro-docto,
+                		  INPUT  docum-est.cod-emitente,
+                		  INPUT  docum-est.nat-operacao,
+                		  INPUT  componente.it-codigo,
+                		  INPUT  componente.serie-docto,      
+                		  INPUT  componente.nro-docto,
+                                  INPUT  componente.nat-operacao,
+                		  INPUT  2, /*retorno de beneficiamento*/
+                		  OUTPUT TABLE rowErrors).
+        END CASE.
+    END.
+        
+    IF AVAIL natur-oper AND natur-oper.transf then
+        ASSIGN c-cod-estab-aux = docum-est.estab-de-or.
+    ELSE
+        ASSIGN c-cod-estab-aux = docum-est.cod-estabel.
+
+    /*** Copia das informa‡äes adicionais dos itens da nota de remessa ***/
+    FIND FIRST nota-fiscal NO-LOCK 
+         WHERE nota-fiscal.cod-estabel = c-cod-estab-aux
+           AND nota-fiscal.serie       = componente.serie-docto
+           AND nota-fiscal.nr-nota-fis = componente.nro-docto NO-ERROR.
+
+    FOR FIRST it-nota-fisc NO-LOCK
+        WHERE it-nota-fisc.cod-estabel = c-cod-estab-aux
+          AND it-nota-fisc.serie       = componente.serie-docto
+          AND it-nota-fisc.nr-nota-fis = componente.nro-docto 
+          AND it-nota-fisc.nr-seq-fat  = componente.sequencia:
+        
+        FOR EACH item-nf-adc NO-LOCK 
+           WHERE item-nf-adc.cod-estab        = it-nota-fisc.cod-estabel 
+             AND item-nf-adc.cod-serie        = it-nota-fisc.serie       
+             AND item-nf-adc.cod-nota-fisc    = it-nota-fisc.nr-nota-fis 
+             AND item-nf-adc.cdn-emitente     = nota-fiscal.cod-emitente 
+             AND item-nf-adc.cod-natur-operac = it-nota-fisc.nat-operacao
+             AND item-nf-adc.num-seq          = it-nota-fisc.nr-seq-fat
+             AND item-nf-adc.num-seq-item-nf  = it-nota-fisc.nr-seq-fat
+             AND item-nf-adc.cod-item         = it-nota-fisc.it-codigo : 
+
+            IF item-nf-adc.idi-tip-dado <> 24 AND item-nf-adc.idi-tip-dado <> 25 and item-nf-adc.idi-tip-dado <> 39 THEN NEXT.
+            
+            /*Se for NF Transf copia FCP se a natureza estiver parametrizada como Substitu¡do,*/
+            /*pois substituto deve estar parametrizado para calcular*/
+            IF AVAIL natur-oper AND natur-oper.transf AND natur-oper.log-icms-substto-antecip THEN NEXT.
+            IF AVAIL natur-oper AND natur-oper.transf AND item-nf-adc.idi-tip-dado <> 25 THEN NEXT.
+        
+            EMPTY TEMP-TABLE tt-item-nf-adc.
+            CREATE tt-item-nf-adc.
+            ASSIGN tt-item-nf-adc.cod-estab        = docum-est.cod-estabel
+                   tt-item-nf-adc.cod-serie        = RowObject.serie-docto
+                   tt-item-nf-adc.cod-nota-fisc    = RowObject.nro-docto
+                   tt-item-nf-adc.cdn-emitente     = RowObject.cod-emitente
+                   tt-item-nf-adc.cod-natur-operac = (IF RowObject.nat-of <> "" THEN RowObject.nat-of ELSE RowObject.nat-operacao)
+                   tt-item-nf-adc.num-seq          = RowObject.sequencia
+                   tt-item-nf-adc.num-seq-item-nf  = RowObject.sequencia
+                   tt-item-nf-adc.cod-item         = RowObject.it-codigo.
+        
+            CASE item-nf-adc.idi-tip-dado:
+                /* NT2015/003 - Copia das informa‡äes do ICMS de Partilha - DIFAL */
+                WHEN 24 THEN DO:
+                    ASSIGN tt-item-nf-adc.idi-tip-dado = 24
+                           tt-item-nf-adc.cod-livre-1  = item-nf-adc.cod-livre-1   /*Aliq UF Dest*/
+                           tt-item-nf-adc.cod-livre-2  = item-nf-adc.cod-livre-2   /*Aliq Inter*/
+                           tt-item-nf-adc.val-livre-2  = item-nf-adc.val-livre-2   /*% ICMS FCP*/
+                           tt-item-nf-adc.num-livre-1  = item-nf-adc.num-livre-1   /*ICMSInterPart*/
+                           tt-item-nf-adc.val-livre-1  = ROUND((item-nf-adc.val-livre-1 / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2)  /*Vl BC UF Dest*/
+                           tt-item-nf-adc.cod-livre-4  = STRING(ROUND((DEC(item-nf-adc.cod-livre-4) / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2))  /*Vl ICMS FCP*/
+                           tt-item-nf-adc.val-livre-3  = ROUND((item-nf-adc.val-livre-4 / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2)   /* VL ICMS UF Dest inverte Devol */
+                           tt-item-nf-adc.val-livre-4  = ROUND((item-nf-adc.val-livre-3 / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2).  /* VL ICMS UF Orig inverte Devol */
+        
+                    ASSIGN OVERLAY(tt-item-nf-adc.cod-livre-3,1,2)   = SUBSTRING(item-nf-adc.cod-livre-3,3,2)    /* Devolucao UF Destino passa p/ Origem   */ 
+                           OVERLAY(tt-item-nf-adc.cod-livre-3,3,2)   = SUBSTRING(item-nf-adc.cod-livre-3,1,2)    /* Devolucao UF Origem passa p/ Destino   */
+                           OVERLAY(tt-item-nf-adc.cod-livre-3,5,100) = SUBSTRING(item-nf-adc.cod-livre-3,5,100)  /* Grava os demais parametros desse campo */
+                           OVERLAY(tt-item-nf-adc.cod-livre-3,41,20) = STRING(ROUND((DEC(TRIM(SUBSTRING(item-nf-adc.cod-livre-3,41,20)))/ it-nota-fisc.qt-faturada[1] * RowObject.quantidade),2)). /* Vl BC FCP UF Dest*/
+                END.
+                /* Copia das informa‡äes de FCP */
+                WHEN 25 THEN DO:
+                   ASSIGN tt-item-nf-adc.idi-tip-dado = 25
+                          tt-item-nf-adc.log-livre-1  = item-nf-adc.log-livre-1  /*YES = FCP majorou ST, NO = FCP majorou ICMS*/
+                          tt-item-nf-adc.log-livre-2  = item-nf-adc.log-livre-2  /*Quando o FCP e FCP ST for junto no mesmo item da nota ser  = ?*/
+                          
+                          tt-item-nf-adc.val-livre-1  = ROUND((item-nf-adc.val-livre-1 / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2) /*Base FCP ST*/
+                          tt-item-nf-adc.val-livre-2  = item-nf-adc.val-livre-2  /*Aliquota FCP ST*/
+                          tt-item-nf-adc.cod-livre-4  = STRING(ROUND((DEC(item-nf-adc.cod-livre-4) / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2)) /*Valor FCP ST*/
+                          tt-item-nf-adc.num-livre-1  = item-nf-adc.num-livre-1  /*Cod. mensagem FCP ST observ. nota*/
+                          
+                          tt-item-nf-adc.val-livre-3 = ROUND((item-nf-adc.val-livre-3 / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2) /*Base FCP*/
+                          tt-item-nf-adc.val-livre-4 = item-nf-adc.val-livre-4   /*Aliquota FCP*/
+                          tt-item-nf-adc.cod-livre-3 = STRING(ROUND((DEC(item-nf-adc.cod-livre-3) / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2)) /*Valor FCP*/
+                          tt-item-nf-adc.num-livre-2 = item-nf-adc.num-livre-2.  /*Cod. mensagem FCP    */   
+        
+                    ASSIGN OVERLAY(RowObject.char-2,880,8)  = STRING(item-nf-adc.val-livre-2) /*Aliquota FCP*/
+                           OVERLAY(RowObject.char-2,888,20) = STRING(item-nf-adc.cod-livre-4) /*Valor FCP*/.
+                           
+                    IF DEC(SUBSTRING(item-nf-adc.cod-livre-2,1,20)) > 0 THEN     /*Valor FCP Diferido*/
+                        ASSIGN OVERLAY(tt-item-nf-adc.cod-livre-2,1,20) = STRING(ROUND(DEC(SUBSTRING(item-nf-adc.cod-livre-2,1,20)) / it-nota-fisc.qt-faturada[1] * RowObject.quantidade,2)).   /*Valor FCP Diferido*/
+                        
+                       
+                    IF DEC(SUBSTRING(item-nf-adc.cod-livre-2,21,8)) > 0 THEN     /*Percentual FCP Diferido*/
+                        ASSIGN OVERLAY(tt-item-nf-adc.cod-livre-2,21,8) = SUBSTRING(item-nf-adc.cod-livre-2,21,8).   /*Percentual FCP Diferido*/                                       
+                   
+        
+                    IF item-nf-adc.log-livre-1 AND  /*FCP Majorou ST*/
+                       SUBSTR(natur-oper.char-1,168,1) = "S":U THEN /*Deduzir ICMS ST Devol. Cliente*/
+                        ASSIGN tt-item-nf-adc.cod-livre-4       = STRING(0)
+                               OVERLAY(RowObject.char-2,888,20) = STRING(0).    
+                                   
+                    EMPTY TEMP-TABLE tt-ext-item-doc-est.
+                    
+                    IF NOT VALID-HANDLE(h-boin01017) THEN
+                        RUN inbo/boin01017.p PERSISTENT SET h-boin01017.
+                    
+                    RUN openQueryStatic IN h-boin01017 (INPUT "Main":U) NO-ERROR.
+
+                    RUN goToKey IN h-boin01017 (INPUT RowObject.serie-docto, 
+                                                INPUT RowObject.nro-docto,   
+                                                INPUT RowObject.cod-emitente,
+                                                INPUT RowObject.nat-operacao,
+                                                INPUT RowObject.sequencia,   
+                                                INPUT "fcp":U).
+                                                
+                    IF RETURN-VALUE = "OK":U THEN DO:
+		                ASSIGN l-ret-goToKey = YES.
+                        RUN emptyRowErrors IN h-boin01017.
+                        RUN getRecord IN h-boin01017 (OUTPUT TABLE tt-ext-item-doc-est).
+                        FIND FIRST tt-ext-item-doc-est EXCLUSIVE-LOCK NO-ERROR.
+                    END.
+                    ELSE DO:
+                        ASSIGN l-ret-goToKey = NO.
+                        CREATE tt-ext-item-doc-est.
+                        ASSIGN tt-ext-item-doc-est.serie-docto  = RowObject.serie-docto                                                           
+                               tt-ext-item-doc-est.nro-docto    = RowObject.nro-docto                                                           
+                               tt-ext-item-doc-est.cod-emitente = RowObject.cod-emitente                                                        
+                               tt-ext-item-doc-est.nat-operacao = RowObject.nat-operacao
+                               tt-ext-item-doc-est.sequencia    = RowObject.sequencia       
+                               tt-ext-item-doc-est.cod-param    = "fcp":U.
+                    END.
+                                       
+                    ASSIGN tt-ext-item-doc-est.val-livre-1  = tt-item-nf-adc.val-livre-3        /*Base FCP*/
+                           tt-ext-item-doc-est.val-livre-2  = tt-item-nf-adc.val-livre-4        /*Aliq FCP*/
+                           tt-ext-item-doc-est.val-livre-3  = DEC(tt-item-nf-adc.cod-livre-3).  /*Valor FCP*/
+                           
+                           
+                    IF DEC(SUBSTRING(tt-item-nf-adc.cod-livre-2,1,20)) > 0 THEN     /*Valor FCP Diferido*/
+                       ASSIGN OVERLAY(tt-ext-item-doc-est.cod-livre-1,1,20) = SUBSTRING(tt-item-nf-adc.cod-livre-2,1,20).   /*Valor FCP Diferido*/
+                       
+                    IF DEC(SUBSTRING(tt-item-nf-adc.cod-livre-2,21,8)) > 0 THEN     /*Percentual FCP Diferido*/
+                       ASSIGN OVERLAY(tt-ext-item-doc-est.cod-livre-1,21,8) = SUBSTRING(tt-item-nf-adc.cod-livre-2,21,8).   /*Percentual FCP Diferido*/                              
+                          
+                    IF l-mult-natur-receb THEN /* Var def em cd9701.i */
+                        FIND FIRST bf-natur-fiscal WHERE bf-natur-fiscal.nat-operacao = RowObject.nat-of NO-LOCK NO-ERROR.
+                    
+                    /* Se nÆo usa multiplas naturezas ou usa mas a nota ‚ antiga (digit. antes de marcar o parƒm.) */
+                    IF NOT l-mult-natur-receb OR NOT AVAIL bf-natur-fiscal THEN
+                        FIND FIRST bf-natur-fiscal WHERE bf-natur-fiscal.nat-operacao = RowObject.nat-operacao NO-LOCK NO-ERROR.
+                                                                                             
+                    IF AVAIL bf-natur-fiscal AND substr(bf-natur-fiscal.char-1,168,1) <> "S":U THEN DO:
+                       ASSIGN tt-ext-item-doc-est.val-livre-4  = tt-item-nf-adc.val-livre-1        /*Base FCP ST*/ 
+                              tt-ext-item-doc-est.val-livre-5  = tt-item-nf-adc.val-livre-2        /*Aliq FCP ST*/ 
+                              tt-ext-item-doc-est.val-livre-6  = DEC(tt-item-nf-adc.cod-livre-4).  /*Valor FCP ST*/                          
+                    END.
+                
+                    /*1-FCP Normal, 2-FCP Subst. Trib., 3-FCP Subst. Trib. Antecip*/
+                    ASSIGN tt-ext-item-doc-est.num-livre-2 = 1.
+                
+                    IF AVAIL bf-natur-fiscal AND bf-natur-fiscal.subs-trib THEN
+                       ASSIGN tt-ext-item-doc-est.num-livre-2 = 2.
+                       
+                    ELSE IF AVAIL bf-natur-fiscal AND 
+                            (bf-natur-fiscal.log-contrib-st-antec or bf-natur-fiscal.log-icms-substto-antecip) AND 
+                            NOT bf-natur-fiscal.terceiros THEN
+                      ASSIGN tt-ext-item-doc-est.num-livre-2 = 3.
+                                      
+                    IF l-ret-goToKey THEN DO:
+                       RUN emptyRowErrors IN h-boin01017.
+                       RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+                       RUN updateRecord IN h-boin01017.  
+                    END.    
+                    ELSE DO:
+                       RUN emptyRowErrors IN h-boin01017.
+                       RUN setRecord IN h-boin01017 (INPUT TABLE tt-ext-item-doc-est).
+                       RUN createRecord IN h-boin01017.
+                    END.
+                  
+                    IF VALID-HANDLE(h-boin01017) THEN DO:
+                       DELETE PROCEDURE h-boin01017.
+                       ASSIGN h-boin01017 = ?.
+                    END.
+                END.
+                WHEN 39 THEN DO:
+                    ASSIGN tt-item-nf-adc.idi-tip-dado = 39
+                           tt-item-nf-adc.cod-livre-1  = item-nf-adc.cod-livre-1   /*fundo*/
+                           tt-item-nf-adc.val-livre-1  = ROUND((item-nf-adc.val-livre-1 / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2)    /*base fundo*/
+                           tt-item-nf-adc.val-livre-2  = item-nf-adc.val-livre-2                                                                    /*% fundo*/
+                           tt-item-nf-adc.val-livre-3  = ROUND((item-nf-adc.val-livre-3 / it-nota-fisc.qt-faturada[1] * RowObject.quantidade), 2).  /*Valor fundo*/
+                END.
+            END CASE.
+        
+            IF NOT VALID-HANDLE(h-bodi516) THEN
+               RUN dibo/bodi516.p PERSISTENT SET h-bodi516.
+            RUN openQueryStatic IN h-bodi516 (INPUT "Main":U).
+            RUN goToKey IN h-bodi516 (INPUT docum-est.cod-estabel,
+                                      INPUT RowObject.serie-docto,
+                                      INPUT RowObject.nro-docto,
+                                      INPUT RowObject.cod-emitente,
+                                      INPUT (IF RowObject.nat-of <> "" THEN RowObject.nat-of ELSE RowObject.nat-operacao),
+                                      INPUT item-nf-adc.idi-tip-dado, /*24-Difal ou 25-FCP*/
+                                      INPUT RowObject.sequencia,
+                                      INPUT RowObject.sequencia,
+                                      INPUT RowObject.it-codigo).
+        
+	    IF RETURN-VALUE = "NOK":U THEN do:
+	        RUN setRecord IN h-bodi516 (INPUT TABLE tt-item-nf-adc).
+	        RUN emptyRowErrors IN h-bodi516.
+	        RUN createRecord IN h-bodi516.
+	    END.   
+	    ELSE DO:
+		RUN setRecord IN h-bodi516 (INPUT TABLE tt-item-nf-adc).
+		RUN emptyRowErrors IN h-bodi516.
+		RUN updateRecord IN h-bodi516.  
+	    END.
+		        
+            IF VALID-HANDLE(h-bodi516) THEN
+                DELETE PROCEDURE h-bodi516.
+            ASSIGN h-bodi516 = ?.
+        END.
+    END.
+
+    RETURN "OK":U.
+END PROCEDURE.
+
+
+/*
+Cria o FIFO das parcelas da ordem de compra considerando a quantidade saldo passada por parâmetro
+*/
+PROCEDURE pi-cria-rat-ordem-compra :
+    
+    def input        param i-num-pedido    like rat-ordem.num-pedido    no-undo.
+    def input        param i-numero-ordem  like rat-ordem.numero-ordem  no-undo.
+    def input        param i-parcela-oc    like rat-ordem.parcela       no-undo.
+    def input-output param de-qtd-saldo    like item-doc-est.quantidade no-undo.
+    def input        param de-indice         as dec                     no-undo.
+    def input        param h-boin368         as handle                  no-undo.
+    
+    def var de-qtd-aux   like item-doc-est.quantidade   no-undo. 
+
+    IF NOT VALID-HANDLE(h-boin368) THEN 
+        RETURN "NOK":U.
+    
+    for each prazo-compra  
+       fields ( numero-ordem   parcela   quant-saldo   dec-1) NO-LOCK
+        where prazo-compra.numero-ordem = i-numero-ordem
+          and prazo-compra.parcela      = i-parcela-oc
+          and prazo-compra.situacao     = 2  /* CONFIRMADA */ 
+           by prazo-compra.data-entrega :
+           
+            if (prazo-compra.quant-saldo - prazo-compra.dec-1) <= 0 then 
+                next.
+            
+            assign de-qtd-aux = ( prazo-compra.quant-saldo - prazo-compra.dec-1 ).
+            if  de-qtd-aux > de-qtd-saldo then 
+                assign de-qtd-aux = de-qtd-saldo.                              
+
+            if  de-qtd-aux <= 0 then 
+                next.                        
+
+            FOR EACH tt-rat-ordem:
+                DELETE tt-rat-ordem.
+            END.
+    
+            CREATE tt-rat-ordem.                                
+            assign tt-rat-ordem.nro-docto    = RowObject.nro-docto   
+                   tt-rat-ordem.nat-operacao = RowObject.nat-operacao
+                   tt-rat-ordem.serie-docto  = RowObject.serie-docto 
+                   tt-rat-ordem.cod-emitente = RowObject.cod-emitente
+                   tt-rat-ordem.sequencia    = RowObject.sequencia
+                   tt-rat-ordem.num-pedido   = i-num-pedido 
+                   tt-rat-ordem.numero-ordem = prazo-compra.numero-ordem
+                   tt-rat-ordem.parcela      = prazo-compra.parcela
+                   tt-rat-ordem.quantidade   = de-qtd-aux
+                   tt-rat-ordem.qtidade-forn = de-qtd-aux * de-indice.                                        
+    
+            RUN setRecord IN h-boin368(INPUT TABLE tt-rat-ordem).
+    
+            RUN createRecord IN h-boin368. 
+
+            IF RETURN-VALUE = "OK":U THEN
+                ASSIGN de-qtd-saldo = de-qtd-saldo - tt-rat-ordem.quantidade.
+
+            if  de-qtd-saldo <= 0 then 
+                leave.
+    end.
+    
+    RETURN "OK":U.
+
+END PROCEDURE.
+
+PROCEDURE pi-cria-item-nf-adc :
+
+    DEF VAR h-bodi516   AS HANDLE       NO-UNDO.    
+
+    IF NOT VALID-HANDLE(h-bodi516) THEN
+        RUN dibo/bodi516.p PERSISTENT SET h-bodi516.
+        
+    FOR EACH tt-item-nf-adc NO-LOCK:
+    
+        EMPTY TEMP-TABLE tt2-item-nf-adc.
+        CREATE tt2-item-nf-adc.
+        BUFFER-COPY tt-item-nf-adc TO tt2-item-nf-adc.
+    
+        RUN setConstraintTipo IN h-bodi516 (INPUT tt-item-nf-adc.cod-estab,
+                                            INPUT tt-item-nf-adc.cod-serie,
+                                            INPUT tt-item-nf-adc.cod-nota-fisc,
+                                            INPUT tt-item-nf-adc.cdn-emitente,
+                                            INPUT tt-item-nf-adc.idi-tip-dado)   /* 36 - NFe - grupo combustivel*/.
+        RUN OpenQueryStatic IN h-bodi516 (INPUT "Tipo":U).
+                
+        RUN goToKey IN h-bodi516 (INPUT tt2-item-nf-adc.cod-estab,
+                                  INPUT tt2-item-nf-adc.cod-serie,       
+                                  INPUT tt2-item-nf-adc.cod-nota-fisc,   
+                                  INPUT tt2-item-nf-adc.cdn-emitente,    
+                                  INPUT tt2-item-nf-adc.cod-natur-operac,
+                                  INPUT tt2-item-nf-adc.idi-tip-dado, /* 36 - NFe - grupo combustivel*/
+                                  INPUT tt2-item-nf-adc.num-seq,
+                                  INPUT tt2-item-nf-adc.num-seq-item-nf,
+                                  INPUT tt2-item-nf-adc.cod-item).
+                                      
+        IF RETURN-VALUE <> "OK":U THEN DO:
+            RUN setRecord      IN h-bodi516 (INPUT TABLE tt2-item-nf-adc).
+            RUN emptyRowErrors IN h-bodi516.
+            RUN createRecord   IN h-bodi516.
+        END.
+    END.        
+                      
+    IF VALID-HANDLE(h-bodi516) THEN
+        DELETE PROCEDURE h-bodi516.
+    
+    RETURN "OK":U.
+
+END PROCEDURE.

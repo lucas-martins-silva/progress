@@ -1,0 +1,994 @@
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-emissao"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "data-emissao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "narrat-ordem"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "narrativa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-cotacao"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "data-cotacao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "mo-codigo"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "mo-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "aliquota-ipi-ordem"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "aliquota-ipi".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "taxa-financ"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "taxa-financ".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "valor-taxa"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "valor-taxa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "perc-descto"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "perc-descto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "prazo-entreg"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "prazo-entreg".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "contato"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "contato".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-atualiz"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "data-atualiz".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "hora-atualiz"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "hora-atualiz".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-refer"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "cod-refer".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "valor-descto"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "valor-descto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "nr-dias-taxa"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "nr-dias-taxa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "licenca-import"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "licenca-import".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "loc-entrega"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "loc-entrega".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "valor-descto-mo-inf"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "ordem-compra"
+        tt-traduz-tt.campo      = "valor-descto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-pto-contr-base"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "historico-proc-imp"
+        tt-traduz-tt.campo      = "cod-pto-contr".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "aliquota-ii"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "ITEM"
+        tt-traduz-tt.campo      = "aliquota-ii".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "regime-import"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "regime-impot".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "un-fornec"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "un".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cdn-pais-orig"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "cdn-pais-orig".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-fabricante"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cod-emitente".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-pto-contr-base"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "pto-contr"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "nome-pais-orig"
+        tt-traduz-tt.banco      = "mguni"
+        tt-traduz-tt.tabela     = "pais"
+        tt-traduz-tt.campo      = "nome-pais".
+ {utp/ut-liter.i "Moeda"}       
+ CREATE tt-traduz-tt.
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-moeda"
+        tt-traduz-tt.banco      = "mguni"
+        tt-traduz-tt.tabela     = "moeda"
+        tt-traduz-tt.campo      = "descricao"
+        tt-traduz-tt.desc-label = RETURN-VALUE.
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "sigla-moeda"
+        tt-traduz-tt.banco      = "mguni"
+        tt-traduz-tt.tabela     = "moeda"
+        tt-traduz-tt.campo      = "sigla".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-item"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "descricao-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "peso-liquido"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "peso-liquido".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "peso-bruto"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "peso-bruto".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "altura"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "altura".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "comprim"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "comprim".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "largura"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "largura".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ge-codigo"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "ge-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "fm-codigo"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "fm-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "fm-cod-com"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "fm-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "un"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "un".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-grup-estoq"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "grup-estoque"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-familia"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "familia"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-fam-comerc"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "familia"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "item-fornec"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "item-do-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-embal"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "cod-embal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "fator-conver"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "fator-conver".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "num-casa-dec"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "num-casa-dec".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "narrat-item-fornec"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item-fornec"
+        tt-traduz-tt.campo      = "narrativa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-item-fornec"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "ITEM"
+        tt-traduz-tt.campo      = "desc-item".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-un-interno"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "tab-unidade"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-un-fornec"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "tab-unidade"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "sigla-embalag"
+        tt-traduz-tt.banco      = "mgdis"
+        tt-traduz-tt.tabela     = "embalag"
+        tt-traduz-tt.campo      = "sigla-emb".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-embalag"
+        tt-traduz-tt.banco      = "mgdis"
+        tt-traduz-tt.tabela     = "embalag"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "peso-embalag"
+        tt-traduz-tt.banco      = "mgdis"
+        tt-traduz-tt.tabela     = "embalag"
+        tt-traduz-tt.campo      = "peso-embal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "peso-liquido-total"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "peso-liquido".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "peso-bruto-total"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "peso-bruto".
+
+ {utp/ut-liter.i "Pre‡o_Unit rio"}
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-liq"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base"
+        tt-traduz-tt.desc-label = RETURN-VALUE.
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-liq"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-bru"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-bru"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ {utp/ut-liter.i "Pre‡o_Total"}
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-liq-total"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base"
+        tt-traduz-tt.desc-label = RETURN-VALUE.
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-liq-total"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-bru-total"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-bru-total"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-liq-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-liq-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-bru-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-bru-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-liq-total-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-liq-total-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-fornec-bru-total-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "preco-interno-bru-total-mo-inf"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "preco-base".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ocupacao-total"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "item"
+        tt-traduz-tt.campo      = "volume".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "class-fiscal"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "cotacao-item"
+        tt-traduz-tt.campo      = "class-fiscal".
+        
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "quantidade"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "quantidade".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "qtd-do-forn"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "qtd-do-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "parcela"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "parcela".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "quantid-orig"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "quantid-orig".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "quant-saldo"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "quant-saldo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "quant-rejeit"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "quant-rejeit".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "quant-receb"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "quant-receb".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "qtd-sal-forn"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "qtd-sal-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "qtd-rej-forn"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "qtd-rej-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "qtd-rec-forn"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "qtd-rec-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-orig"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "data-orig".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-entrega"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "data-entrega".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-alter"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "data-alter".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "quant-a-ped"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "quant-a-ped".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "qtd-a-ped-forn"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "qtd-a-ped-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cc-codigo"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "cc-codigo".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "item-cotacao"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "item-cotacao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "qtd-aloc-forn"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "qtd-aloc-forn".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "quant-alocada"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "prazo-compra"
+        tt-traduz-tt.campo      = "quant-alocada".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "seq-cotac"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "seq-cotac".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "mapa-cotacao"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "mapa-cotacao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "sequencia"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "sequencia".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-emitente-desp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "cod-emitente-desp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-desp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "cod-desp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "val-desp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "val-desp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-cotacao-desp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "data-cotacao-desp".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-pto-contr"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "cotacao-item-cex"
+        tt-traduz-tt.campo      = "cod-pto-contr".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "val-desp-mo-inf"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "desp-imp"
+        tt-traduz-tt.campo      = "val-desp".
+
+ {utp/ut-liter.i "Emitente_Desp"}
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "nome-emit-desp"
+        tt-traduz-tt.desc-label = RETURN-VALUE.
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "endereco-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "bairro-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "bairro".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cidade-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cidade".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "pais-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "pais".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cep-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cep".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cgc-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cgc".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "estado-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "estado".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ins-estadual-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-estadual".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ins-municipal-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-municipal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "caixa-postal-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "caixa-postal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "e-mail-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "e-mail".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-aba-emit-desp"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-aba".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telefone1-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telefone2-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal1-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal2-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "home-page-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "home-page".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telefax-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefax".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal-fax-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-fax".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telef-fac-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-fac".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal-fac-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-fac".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telef-modem-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-modem".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal-modem-emit-desp"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-modem".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "desc-despesa"
+        tt-traduz-tt.banco      = "mgdis"
+        tt-traduz-tt.tabela     = "despesa"
+        tt-traduz-tt.campo      = "des-despesa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "narrativa-cond-pagto"
+        tt-traduz-tt.banco      = "mgind"
+        tt-traduz-tt.tabela     = "narrativa"
+        tt-traduz-tt.campo      = "descricao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ind-tip-doc"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "ind-tip-doc".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "nr-requisicao"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "nr-requisicao".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "des-narrativa"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "des-narrativa".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "char-1"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "char-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "char-2"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "char-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "dec-1"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "dec-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "dec-2"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "dec-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "int-1"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "int-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "int-2"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "int-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "log-1"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "log-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "log-2"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "log-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-1"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "data-1".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "data-2"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "data-2".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "nr-trans"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "nr-trans".
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "seq-narra"
+        tt-traduz-tt.banco      = "movind"
+        tt-traduz-tt.tabela     = "texto-follow-up"
+        tt-traduz-tt.campo      = "seq-narra".
+
+ {utp/ut-liter.i "Fabricante"}
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "nome-fabric"
+        tt-traduz-tt.desc-label = RETURN-VALUE.        
+
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "endereco-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "endereco".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "bairro-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "bairro".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cidade-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cidade".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "pais-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "pais".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cep-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cep".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cgc-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "cgc".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "estado-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "estado".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ins-estadual-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-estadual".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ins-municipal-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ins-municipal".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "caixa-postal-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "caixa-postal".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "e-mail-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "e-mail".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "cod-aba-fabric"
+        tt-traduz-tt.banco      = "mgcex"
+        tt-traduz-tt.tabela     = "emitente-cex"
+        tt-traduz-tt.campo      = "cod-aba".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telefone1-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone[1]".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telefone2-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefone[2]".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal1-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal[1]".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal2-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal[2]".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "home-page-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "home-page".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telefax-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telefax".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal-fax-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-fax".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telef-fac-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-fac".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal-fac-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-fac".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "telef-modem-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "telef-modem".
+ 
+ CREATE tt-traduz-tt. 
+ ASSIGN tt-traduz-tt.campo-tt   = "ramal-modem-fabric"
+        tt-traduz-tt.banco      = "mgadm"
+        tt-traduz-tt.tabela     = "emitente"
+        tt-traduz-tt.campo      = "ramal-modem".
+ 

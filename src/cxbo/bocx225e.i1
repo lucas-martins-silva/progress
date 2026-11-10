@@ -1,0 +1,33 @@
+/*
+**
+** BOCX225E.I1 - Defini‡Æo vari veis para utiliza‡Æo BOCX225E.I2
+**
+*/
+
+DEF VAR de-peso-bruto-i1    AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999" NO-UNDO.
+DEF VAR de-peso-liquido-i1  AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999" NO-UNDO.
+DEF VAR de-cub-unit-i1      AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999" NO-UNDO.
+DEF VAR de-cub-tot-i1       AS DECIMAL FORMAT ">>>>>,>>>,>>9.99"    NO-UNDO.
+DEF VAR de-peso-embal-i1    AS DECIMAL FORMAT ">>>>>,>>>,>>9.99999" NO-UNDO.
+DEF VAR l-ja-gravado        AS LOGICAL FORMAT "yes/no" INITIAL "No" NO-UNDO.    
+DEF VAR i-trib-ii-i1        AS INTEGER NO-UNDO.
+DEF VAR i-trib-ipi-i1       AS INTEGER NO-UNDO.
+DEF VAR i-trib-icms-i1      AS INTEGER NO-UNDO.
+DEF VAR i-trib-pis-i1       AS INTEGER NO-UNDO.
+DEF VAR i-trib-cofins-i1    AS INTEGER NO-UNDO.
+DEF VAR de-aliq-ii-i1       AS DECIMAL FORMAT ">>9.9999" NO-UNDO.
+DEF VAR de-aliq-ipi-i1      AS DECIMAL FORMAT ">>9.99" NO-UNDO.
+DEF VAR de-aliq-icms-i1     AS DECIMAL FORMAT ">>9.99" NO-UNDO.
+DEF VAR de-aliq-pis-i1      AS DECIMAL FORMAT ">>9.9999" NO-UNDO.
+DEF VAR de-aliq-cofins-i1   AS DECIMAL FORMAT ">>9.9999" NO-UNDO.
+
+/******************************************************
+* Engenharia IPI Suspensao Incorporar Base PIS COFINS *
+******************************************************/
+DEFINE VARIABLE c-suspensao-II  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE c-suspensao-IPI AS CHARACTER NO-UNDO.
+
+
+/* BOCX225E.I1 */
+
+

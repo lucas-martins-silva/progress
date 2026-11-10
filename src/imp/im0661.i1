@@ -1,0 +1,65 @@
+/*******************************************************************
+***  
+***   IM0661.I1 - Defini‡Æo das Forms
+***
+*******************************************************************/
+
+form c-lb-item              at 01
+     c-lb-descr             at 18 skip
+     c-lb-fornecedor        at 01     
+     c-lb-un                at 18
+     c-lb-mes[1]            at 27
+     c-lb-mes[2]            at 35
+     c-lb-mes[3]            at 43
+     c-lb-mes[4]            at 51
+     c-lb-mes[5]            at 59
+     c-lb-mes[6]            at 67   
+     c-lb-mes[7]            at 75
+     c-lb-mes[8]            at 83 
+     c-lb-mes[9]            at 91 
+     c-lb-mes[10]           at 99
+     c-lb-mes[11]           at 107
+     c-lb-mes[12]           at 115
+     c-lb-totais            at 123 skip
+     c-lb-moeda             at 18 
+     with down width 132 no-label no-box stream-io frame f-lab-cabecalho.
+
+form 
+     tt-item.it-codigo          at 01
+     tt-item.desc-item          
+     with down width 132 no-box no-label stream-io frame f-item.
+
+form 
+     tt-item.nome-abrev         at 01
+     tt-item.un                 at 18
+     de-quant-mes[1]            at 23  
+     de-quant-mes[2]
+     de-quant-mes[3]
+     de-quant-mes[4]
+     de-quant-mes[5]
+     de-quant-mes[6]
+     de-quant-mes[7]
+     de-quant-mes[8]
+     de-quant-mes[9]
+     de-quant-mes[10]
+     de-quant-mes[11]
+     de-quant-mes[12]
+     de-total-quant
+     skip
+     tt-item.sigla               at 18
+     de-preco-total-mes[1]       
+     de-preco-total-mes[2]
+     de-preco-total-mes[3]
+     de-preco-total-mes[4]
+     de-preco-total-mes[5]
+     de-preco-total-mes[6]
+     de-preco-total-mes[7]
+     de-preco-total-mes[8]
+     de-preco-total-mes[9]
+     de-preco-total-mes[10]
+     de-preco-total-mes[11]
+     de-preco-total-mes[12]
+     de-total-preco
+     with down width 132 no-box no-label stream-io frame f-detalhe.     
+
+

@@ -1,0 +1,61 @@
+/*******************************************************************************
+**
+** Gera‡Æo HIERARQUIA VISÇO MANUFATURA
+**
+*******************************************************************************/
+
+for each  hrq-vis-man
+    where hrq-vis-man.cod-visao-n{2}  = ""
+      and hrq-vis-man.cod-visao-n{1} <> "" EXCLUSIVE-LOCK :
+    
+    find first visao-man
+         where visao-man.cod-visao = hrq-vis-man.cod-visao-n{1} no-lock no-error.
+    
+    assign v-lista-dim1 = "".
+         
+    for each  dim-vis-man
+        where dim-vis-man.cod-visao = visao-man.cod-visao NO-LOCK :
+        
+        if v-lista-dim1 = "" then
+             assign v-lista-dim1 = dim-vis-man.cod-dimensao.
+        else assign v-lista-dim1 = v-lista-dim1 + "," + dim-vis-man.cod-dimensao.
+    end.  
+    
+    blk-visao:
+    for each  visao-man
+        where visao-man.num-dim = {3} NO-LOCK :
+        
+        assign v-lista-dim2 = "".
+        
+        for each  dim-vis-man
+            where dim-vis-man.cod-visao = visao-man.cod-visao NO-LOCK :
+            
+            if v-lista-dim2 = "" then
+                 assign v-lista-dim2 = dim-vis-man.cod-dimensao.
+            else assign v-lista-dim2 = v-lista-dim2 + "," + dim-vis-man.cod-dimensao.
+        end.
+        
+        /*** Teste de interse‡Æo de resultados ***/
+        do i-inter = 1 to num-entries(v-lista-dim1):
+           if not can-do (v-lista-dim2, entry(i-inter, v-lista-dim1)) then next blk-visao.
+        end.
+        
+        if hrq-vis-man.cod-visao-n{2} = "" then
+             assign hrq-vis-man.cod-visao-n{2} = visao-man.cod-visao
+                    hrq-vis-man.des-hrq-vis  = visao-man.des-visao. 
+        else do:
+             find first b-hrq-vis where
+                        b-hrq-vis.cod-visao-n{1} = hrq-vis-man.cod-visao-n{1} and
+                        b-hrq-vis.cod-visao-n{2} = visao-man.cod-visao no-lock no-error.
+             
+             if not available b-hrq-vis then do:
+                create b-hrq-vis.
+                buffer-copy hrq-vis-man to b-hrq-vis
+                assign b-hrq-vis.cod-visao-n{2} = visao-man.cod-visao
+                       b-hrq-vis.des-hrq-vis    = visao-man.des-visao
+                       b-hrq-vis.num-id-hrq     = i-seq
+                       i-seq                    = i-seq + 1.
+             end.                                
+        end.
+    end.
+end.

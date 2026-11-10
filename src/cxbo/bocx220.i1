@@ -1,0 +1,1645 @@
+/*******************************************************************************
+**
+**  BOCX220.P  
+**
+**  embarque-imp - Embarque
+**
+*******************************************************************************/
+
+&scoped-define BOVERSION 1.1
+&scoped-define PRVERSION 2.00.00.000
+&scoped-define FIRST-TABLE-IN-QUERY embarque-imp
+&scoped-define QUERY-NAME qTable
+&scoped-define TABLE-NAME embarque-imp
+
+{include/boini.i}
+{method/dbotterr.i}
+{cdp/cdcfgcex.i}
+{cxbo/bocx220.i RowObject}
+
+{cdp/cdcfgdis.i}
+{cdp/cdcfgmat.i}
+{include/i_dbtype.i}
+
+{cdp/cdcfgfin.i} /* Miniflexibilizaá∆o CÉmbio */
+
+DEFINE QUERY {&QUERY-NAME} for embarque-imp scrolling.
+
+/* definicao de variaveis usadas no mÇtodo gravaMeioTransporte ---*/
+{cdp/cd4300.i3}   /* variaveis para o cd4300.i4  */
+
+def var c-embarque     like embarque-imp.embarque    no-undo.
+def var c-cod-estabel  like estabelec.cod-estabel    no-undo.
+def var c-idioma       like processo-imp.cod-idioma  no-undo.
+def var de-unit        like cotacao-item.preco-unit  no-undo.
+def var i-cod-emitente like emitente.cod-emitente    no-undo.
+def var c-est-ini      like estabelec.cod-estabel    no-undo.
+def var c-est-fim      like estabelec.cod-estabel    no-undo.
+def var c-embarque-ini like embarque-imp.embarque    no-undo.
+def var c-embarque-fim like embarque-imp.embarque    no-undo.
+def var c-ordem        as char                       no-undo.
+def var r-chave        as rowid                      no-undo.
+def var c-meio-transp  as char format "x(20)"        no-undo.
+def var h-boad355      as handle no-undo.
+def var h-boin682      as handle no-undo.
+def var v-pagar        as char no-undo.
+def var v-receber      as char no-undo.
+def var l-modulo-mec   as logical no-undo.
+def var c-lit-trad     as char no-undo. /* variavel para traduzir as literais */
+
+def var c-decl-import-ini like embarque-imp.declaracao-import no-undo.
+def var c-decl-import-fim like embarque-imp.declaracao-import no-undo.
+
+def var c-declaracao-import like embarque-imp.declaracao-import no-undo.
+def temp-table tt-documentos no-undo
+    field nr-documento  as character
+    field tipo          as integer
+    field dt-trans      as date.
+
+{inbo/boin274.i tt-ord-compra}
+/*def temp-table tt-ord-compra like ordem-compra 
+         field r-rowid  as rowid.*/
+         
+DEFINE TEMP-TABLE tt-embarque-rel NO-UNDO
+    FIELD embarque      LIKE embarque-imp.embarque
+    FIELD cod-estabel   LIKE embarque-imp.cod-estabel
+    FIELD embarque-orig LIKE embarque-imp.embarque
+    FIELD r-rowid AS ROWID.
+
+DEFINE BUFFER b-embarque-imp  FOR embarque-imp.
+define buffer bf-embarque-imp for embarque-imp.
+
+procedure setConstraint1:
+end procedure. 
+
+procedure setConstraint2:
+    def input parameter p-cod      like estabelec.cod-estabel no-undo.
+    def input parameter p-embarque like embarque-imp.embarque no-undo.
+
+    assign c-cod-estabel = p-cod
+           c-embarque    = p-embarque.
+end procedure.
+
+procedure setConstraint3:
+    def input parameter p-est-ini      like estabelec.cod-estabel no-undo.
+    def input parameter p-est-fim      like estabelec.cod-estabel no-undo.
+    def input parameter p-embarque-ini like embarque-imp.embarque no-undo.
+    def input parameter p-embarque-fim like embarque-imp.embarque no-undo.
+
+    assign c-est-ini      = p-est-ini
+           c-est-fim      = p-est-fim
+           c-embarque-ini = p-embarque-ini
+           c-embarque-fim = p-embarque-fim.
+
+end procedure.
+
+procedure setConstraint7:
+    def input parameter p-meio-transp  as char format "x(20)" no-undo.
+
+    assign c-meio-transp = p-meio-transp.
+
+end procedure.
+
+procedure setConstraint8:
+     define input parameter p-c-cod-estabel      like estabelec.cod-estabel          no-undo.
+     define input parameter p-c-decl-import-ini  like embarque-imp.declaracao-import no-undo.
+     define input parameter p-c-decl-import-fim  like embarque-imp.declaracao-import no-undo.
+     define input parameter p-c-embarque-ini     like embarque-imp.embarque          no-undo.
+     define input parameter p-c-embarque-fim     like embarque-imp.embarque          no-undo.
+     
+
+     assign c-cod-estabel     = p-c-cod-estabel
+            c-decl-import-ini = p-c-decl-import-ini
+            c-decl-import-fim = p-c-decl-import-fim
+            c-embarque-ini    = p-c-embarque-ini   
+            c-embarque-fim    = p-c-embarque-fim.
+     
+end procedure.
+
+procedure setConstraint9:
+     define input parameter p-c-declaracao-import like embarque-imp.declaracao-import no-undo.
+
+     assign c-declaracao-import = p-c-declaracao-import.
+     
+end procedure.
+procedure openQuery:
+    define input parameter i-abertura as integer no-undo.
+    case i-abertura:
+        when 1 then 
+            open query {&QUERY-NAME} for each embarque-imp no-lock.
+        when 2 then 
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.cod-estabel >= c-cod-estabel 
+                  and embarque-imp.embarque    >= c-embarque.
+        when 3 then 
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.cod-estabel >= c-est-ini      
+                  and embarque-imp.cod-estabel <= c-est-fim      
+                  and embarque-imp.embarque    >= c-embarque-ini 
+                  and embarque-imp.embarque    <= c-embarque-fim by embarque-imp.embarque.
+        when 4 then 
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.cod-estabel >= c-est-ini      
+                  and embarque-imp.cod-estabel <= c-est-fim      
+                  and embarque-imp.embarque    >= c-embarque-ini 
+                  and embarque-imp.embarque    <= c-embarque-fim by embarque-imp.cod-estabel.
+        when 5 then 
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.cod-estabel >= c-est-ini      
+                  and embarque-imp.cod-estabel <= c-est-fim      
+                  and embarque-imp.embarque    >= c-embarque-ini 
+                  and embarque-imp.embarque    <= c-embarque-fim by embarque-imp.embarque.
+        when 6 then 
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.cod-estabel >= c-est-ini      
+                  and embarque-imp.cod-estabel <= c-est-fim      
+                  and embarque-imp.embarque    >= c-embarque-ini 
+                  and embarque-imp.embarque    <= c-embarque-fim by embarque-imp.cod-estabel.
+        when 7 then 
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.situacao = 1
+                  and substr(embarque-imp.char-1,1,20) = c-meio-transp.
+        when 8 then
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.cod-estabel       = c-cod-estabel
+                  and embarque-imp.declaracao-import <> ""
+                  and embarque-imp.declaracao-import >= c-decl-import-ini
+                  and embarque-imp.declaracao-import <= c-decl-import-fim
+                  and embarque-imp.embarque          >= c-embarque-ini   
+                  and embarque-imp.embarque          <= c-embarque-fim   
+                by embarque-imp.declaracao-import
+                by embarque-imp.cod-estabel
+                by embarque-imp.embarque.
+        when 9 then
+            open query {&QUERY-NAME} for each embarque-imp no-lock 
+                where embarque-imp.declaracao-import <> ""
+                  and embarque-imp.declaracao-import  = c-declaracao-import
+                by embarque-imp.declaracao-import
+                by embarque-imp.cod-estabel
+                by embarque-imp.embarque.                
+    end case.
+    assign l-query    = true
+           i-bo-query = i-abertura.
+end procedure.
+
+&if defined(bf-mat-comex) &then
+&else
+{include/bocomver.i}
+{include/bogetver.i}
+{utp/ut-glob.i}
+&endif
+
+{include/bostrmet.i}
+{include/boendmet.i}
+{include/bonav.i}
+{include/bofind.i}
+{include/bosetcur.i}
+{include/bogetcur.i}
+{include/bosersen.i}
+{include/boprebro.i}
+{include/boexecre.i}
+/* {include/boexeupt.i} */
+{include/boexedel.i}
+/* {include/bovalupt.i} */
+/* {include/bovaldel.i} */
+
+procedure initializeValidate:
+    /*
+    **  Inicializa Validate
+    */
+
+    run startMethod ("initializeValidade").
+
+    run endMethod   ("initializeValidade").
+end procedure.
+
+procedure findPk_codigo:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    def input  parameter c-cod-estabel like estabelec.cod-estabel no-undo.
+    def input  parameter c-embarque    like embarque-imp.embarque no-undo.
+    def output parameter c-return      as   char                  no-undo.
+
+    run startMethod("find":U).
+
+    find embarque-imp 
+        where embarque-imp.cod-estabel = c-cod-estabel 
+          and embarque-imp.embarque    = c-embarque no-lock no-error.
+    if not avail embarque-imp then do:
+        {utp/ut-table.i mgcex embarque-imp 1}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else
+       run setCurrent.
+
+    run endMethod("find":U).
+end procedure.
+
+procedure findCh_embarque:
+    /*
+    **  Procura pelo indice, caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    def input  parameter c-cod-estabel as char no-undo.
+    def input  parameter c-embarque    as char no-undo.
+    def output parameter c-return      as char no-undo.
+
+    run startMethod("find":U).
+
+    find embarque-imp 
+        where embarque-imp.cod-estabel = c-cod-estabel 
+          and embarque-imp.embarque    = c-embarque no-lock no-error.
+    if not avail embarque-imp then do:
+        {utp/ut-table.i mgcex embarque-imp 1}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else
+        run setCurrent.
+
+    run endMethod("find":U).
+end procedure.
+
+procedure executeUpdate:
+    /*
+    **  Executa Update
+    */
+    buffer-copy RowObject except r-rowid cod-estabel embarque to embarque-imp.
+
+end procedure.
+
+procedure validateDelete:
+    /*
+    **  Valida Delete
+    */
+    def input-output parameter r-chave as rowid.
+    def output       parameter table for tt-bo-erro.
+
+    run InitializeValidate.
+
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+
+    find embarque-imp
+        where rowid(embarque-imp) = r-chave exclusive-lock no-error.
+    if avail embarque-imp then do:
+       find first historico-embarque where
+                  historico-embarque.cod-estabel = embarque-imp.cod-estabel and
+                  historico-embarque.embarque    = embarque-imp.embarque no-lock no-error.
+       if avail historico-embarque then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                {utp/ut-table.i mgcex historico-embarque 1}
+                assign c-ordem = trim(return-value).     
+                {utp/ut-field.i mgcex embarque-imp embarque 1} 
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 5,
+                                   input return-value + "~~" + c-ordem).
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 5
+                       tt-bo-erro.mensagem     = return-value.
+                leave.       
+       end.           
+       else do:
+            find first ordens-embarque where 
+                       ordens-embarque.cod-estabel = embarque-imp.cod-estabel and 
+                       ordens-embarque.embarque    = embarque-imp.embarque no-lock no-error.
+            if avail ordens-embarque then do:
+                assign i-seq-erro = i-seq-erro + 1.
+                {utp/ut-table.i mgcex ordens-embarque 1}
+                assign c-ordem = trim(return-value).     
+                {utp/ut-field.i mgcex embarque-imp embarque 1} 
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 5,
+                                   input return-value + "~~" + c-ordem).
+                create tt-bo-erro.
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 5
+                       tt-bo-erro.mensagem     = return-value.
+                leave.
+            end.
+            else do:
+            
+                for each embarq-imp-internac 
+                   where embarq-imp-internac.cod-estabel = embarque-imp.cod-estabel
+                     and embarq-imp-internac.embarque    = embarque-imp.embarque exclusive-lock:
+                     delete embarq-imp-internac.
+                end.
+                
+                for each ordens-embarque where 
+                         ordens-embarque.cod-estabel = embarque-imp.cod-estabel and 
+                         ordens-embarque.embarque    = embarque-imp.embarque exclusive-lock:
+                         delete ordens-embarque.
+                end.
+
+                for each historico-embarque where 
+                         historico-embarque.cod-estabel = embarque-imp.cod-estabel and 
+                         historico-embarque.embarque    = embarque-imp.embarque exclusive-lock:
+                         delete historico-embarque.
+                end.
+
+                for each decl-hist-embarq-imp where 
+                         decl-hist-embarq-imp.cod-estabel = embarque-imp.cod-estabel and 
+                         decl-hist-embarq-imp.embarque    = embarque-imp.embarque exclusive-lock:
+                         delete decl-hist-embarq-imp.
+                end.
+
+                for each desp-embarque where 
+                         desp-embarque.cod-estabel = embarque-imp.cod-estabel and 
+                         desp-embarque.embarque    = embarque-imp.embarque exclusive-lock:
+                         delete desp-embarque.
+                end.         
+
+                for each invoice-emb-imp where 
+                         invoice-emb-imp.cod-estabel = embarque-imp.cod-estabel and 
+                         invoice-emb-imp.embarque    = embarque-imp.embarque exclusive-lock:
+                         delete invoice-emb-imp.
+                end.
+
+                run executeDelete. 
+            end.     
+       end.
+    end. 
+
+    if l-query then get next {&QUERY-NAME}
+        no-lock no-wait.
+    else
+        find next embarque-imp
+            no-lock no-error.    
+    if not avail embarque-imp then do:
+       if l-query then
+           get prev {&QUERY-NAME}
+           no-lock no-wait.
+       else
+           find prev embarque-imp
+               no-lock no-error.
+    end.
+    assign r-chave = rowid(embarque-imp).
+    return "".
+end procedure. 
+
+procedure validateUpdate:
+    /*
+    **  Valida Update
+    */
+    def input parameter table for RowObject.
+    def input parameter r-chave as rowid no-undo.
+    def output parameter table for tt-bo-erro.
+
+    run startMethod("validateUpdate").
+
+    run InitializeValidate.
+    
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+
+    run validateFields.
+
+
+    find first tt-bo-erro
+        no-lock no-error.
+    if not avail tt-bo-erro then do:
+        find embarque-imp 
+            where rowid(embarque-imp) = r-chave exclusive-lock no-error no-wait.
+        if locked(embarque-imp) then do:
+            assign i-seq-erro = i-seq-erro + 1.    
+            run utp/ut-msgs.p (input "msg":U,
+	                       input 16096,
+ 			       input "").
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+  	            tt-bo-erro.cd-erro  = 16096
+ 	            tt-bo-erro.mensagem = return-value.                
+        end.
+        else 
+	    if avail embarque-imp then
+                run executeUpdate.
+    end.
+    run endMethod("validateUpdate":U).
+end procedure.
+
+procedure validateCreate:
+    /*
+    **  Valida criaá∆o da tabela/duplicidade de registro.
+    */
+    def input  parameter table for RowObject.
+    def output parameter table for tt-bo-erro.
+    def output parameter r-chave as rowid.
+
+    def var i-embarque-imp as int no-undo.
+    def var c-embarque-imp like embarque-imp.embarque no-undo.
+
+    run startMethod("validateCreate":U).
+
+    run initializeValidate.
+    
+    for each tt-bo-erro:
+        delete tt-bo-erro.
+    end.
+
+    find first rowObject no-error.
+
+    if rowObject.cod-estabel = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex embarque-imp cod-estabel 1}
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+    else do:
+       if not can-find(estabelec where estabelec.cod-estabel = rowObject.cod-estabel) then do:
+          assign i-seq-erro = i-seq-erro + 1.
+          {utp/ut-table.i mgadm estabelec 1}
+          create tt-bo-erro.
+          ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+          run utp/ut-msgs.p (input "msg":U,
+                             input 2,
+                             input return-value).
+          assign tt-bo-erro.i-sequen = i-seq-erro
+                 tt-bo-erro.cd-erro  = 2
+                 tt-bo-erro.mensagem = return-value.
+       end.           
+    end. 
+
+    if rowObject.embarque = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex embarque-imp embarque 1}
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    &If defined(bf-mat-comex) &then
+       ASSIGN i-embarque-imp = int(rowobject.embarque) no-error.
+
+       IF ERROR-STATUS:ERROR THEN DO:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-liter.i Embarque * L}
+            create tt-bo-erro.
+            assign tt-bo-erro.parametros = trim(return-value).
+            run utp/ut-msgs.p (input "msg":U,
+                               input 27335,
+                               input tt-bo-erro.parametros).
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 27335
+                   tt-bo-erro.mensagem     = return-value.
+       END.      
+
+       if LENGTH(rowObject.embarque) > 8 then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-liter.i Embarque * L}
+            create tt-bo-erro.
+            assign tt-bo-erro.parametros = trim(return-value).
+            run utp/ut-msgs.p (input "msg":U,
+                               input 27336,
+                               input tt-bo-erro.parametros + "~~" + "8").
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 27336
+                   tt-bo-erro.mensagem     = return-value.       
+       end.
+
+    &else
+        /*
+        ** Validaá∆o EMS 5.0
+        */
+        if  can-find(funcao where funcao.cd-funcao = "adm-apb-ems-5.00" 
+                              AND funcao.ativo = yes 
+                              AND funcao.log-1 = yes) THEN
+            IF LENGTH(rowObject.embarque) > 16 THEN DO:
+                assign i-seq-erro = i-seq-erro + 1.
+                {utp/ut-liter.i Embarque * L}
+                create tt-bo-erro.
+                assign tt-bo-erro.parametros = trim(return-value).
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 27336,
+                                   input tt-bo-erro.parametros + "~~" + "16").
+                assign tt-bo-erro.i-sequen     = i-seq-erro
+                       tt-bo-erro.cd-erro      = 27336
+                       tt-bo-erro.mensagem     = return-value.       
+            END.
+        
+    &endif
+
+    run validateFields.
+
+    find first tt-bo-erro
+        no-lock no-error.
+    if not available tt-bo-erro then do:
+        find embarque-imp where
+             embarque-imp.cod-estabel = rowObject.cod-estabel and
+             embarque-imp.embarque    = rowObject.embarque
+             no-lock no-error.
+        if avail embarque-imp then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-table.i mgcex embarque-imp 1}
+            run utp/ut-msgs.p (input "msg":U,
+                               input 8,
+                               input return-value).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen     = i-seq-erro
+                   tt-bo-erro.cd-erro      = 8
+                   tt-bo-erro.mensagem     = return-value.
+        end.
+    end.    
+    find first tt-bo-erro
+        no-lock no-error.
+
+    if not avail tt-bo-erro then do:
+        run executeCreate.
+        assign r-chave = to-rowid(return-value).
+    end.
+
+    run endMethod("validateCreate":U).    
+
+end procedure.
+
+procedure validateFields:
+    /*
+    **  Valida Fields
+    */
+
+    if not avail rowObject then
+        find first rowObject no-lock no-error.
+
+    /* Nao permiti embarque que contenha virgula */
+    IF INDEX(rowObject.embarque, ",") > 0 THEN DO:
+        assign i-seq-erro = i-seq-erro + 1.
+        run utp/ut-msgs.p(input "msg":U,
+                          input 55853,
+                          input "").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 55853
+               tt-bo-erro.mensagem     = return-value
+               tt-bo-erro.errorsubtype = "ERROR":U.
+
+        run utp/ut-msgs.p (input "help":U,
+                           input 55853,
+                           input "").
+
+        assign tt-bo-erro.errorhelp = return-value.
+
+    END.
+
+    if LENGTH(RowObject.cod-conhecto-house) > 25 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        
+        {utp/ut-liter.i "Conhecimento" *}
+        ASSIGN c-lit-trad = TRIM(RETURN-VALUE).
+
+        run utp/ut-msgs.p (input "msg":U,
+                           input 27743,
+                           input RETURN-VALUE + "~~" + "25").
+        
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 27743
+               tt-bo-erro.mensagem     = RETURN-VALUE
+               tt-bo-erro.parametros   = c-lit-trad + "~~" + "25".
+    end.
+           
+    if LENGTH(RowObject.cod-conhecto-master) > 25 then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        
+        {utp/ut-liter.i "Conhecimento" *}
+        ASSIGN c-lit-trad = TRIM(RETURN-VALUE).
+
+        run utp/ut-msgs.p (input "msg":U,
+                           input 27743,
+                           input RETURN-VALUE + "~~" + "25").
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 27743
+               tt-bo-erro.mensagem     = RETURN-VALUE
+               tt-bo-erro.parametros   = c-lit-trad + "~~" + "25".
+    end.
+       
+    
+    if rowObject.cod-incoterm = "" then do:
+        assign i-seq-erro = i-seq-erro + 1.
+        {utp/ut-field.i mgcex embarque-imp cod-incoterm 1}
+        create tt-bo-erro.
+        ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+        run utp/ut-msgs.p (input "msg":U,
+                           input 265,
+                           input return-value).
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 265
+               tt-bo-erro.mensagem     = return-value.
+    end.
+    else do:
+        if not can-find(first inco-cx where 
+               trim(inco-cx.cod-incoterm) = trim(rowObject.cod-incoterm)) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-table.i mgcex inco-cx 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.           
+    end.
+
+    if rowObject.cod-despachante <> 0 then do:
+        if not can-find(emitente where emitente.cod-emitente = rowObject.cod-despachante) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-table.i mgadm emitente 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.
+       
+        find emitente 
+            where emitente.cod-emitente = rowObject.cod-despachante no-lock no-error.
+        if avail emitente then do:                
+            {cdp/cd2502.i} /* Se È fornecedor ou ambos */
+        end.    
+    end.
+
+    if rowObject.cod-transportador <> 0 then do:
+        if not can-find(transporte where transporte.cod-transp = rowObject.cod-transportador) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-table.i mgadm transporte 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.
+    end.
+
+    if rowObject.cod-banco <> 0 then do:
+        if not can-find(banco where banco.cod-banco = rowObject.cod-banco) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-table.i mgadm banco 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.
+    end.
+    
+    if rowObject.cdn-corretor-cambio-import <> 0 and rowObject.cdn-corretor-cambio-import <> ? then do:
+        if not can-find(emitente where emitente.cod-emitente = rowObject.cdn-corretor-cambio-import) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-field.i mgcex embarque-imp cdn-corretor-cambio-import 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.
+        find emitente 
+            where emitente.cod-emitente = rowObject.cdn-corretor-cambio-import no-lock no-error.
+        if avail emitente then do:                
+            {cdp/cd2502.i} /* Se È fornecedor ou ambos */
+        end.    
+    end.
+    if rowObject.cdn-despa-exter-import <> 0 and rowObject.cdn-despa-exter-import <> ? then do:
+        if not can-find(emitente where emitente.cod-emitente = rowObject.cdn-despa-exter-import) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-field.i mgcex embarque-imp cdn-despa-exter-import 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.
+        find emitente 
+            where emitente.cod-emitente = rowObject.cdn-despa-exter-import no-lock no-error.
+        if avail emitente then do:                
+            {cdp/cd2502.i} /* Se È fornecedor ou ambos */
+        end.    
+    end.
+    if rowObject.cdn-segurad-import <> 0 and rowObject.cdn-segurad-import <> ? then do:
+        if not can-find(emitente where emitente.cod-emitente = rowObject.cdn-segurad-import) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-field.i mgcex embarque-imp cdn-segurad-import 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.
+        find emitente 
+            where emitente.cod-emitente = rowObject.cdn-segurad-import no-lock no-error.
+        if avail emitente then do:                
+            {cdp/cd2502.i} /* Se È fornecedor ou ambos */
+        end.    
+    end.
+    if rowObject.cdn-corretor-import <> 0 and rowObject.cdn-corretor-import <> ? then do:
+        if not can-find(emitente where emitente.cod-emitente = rowObject.cdn-corretor-import) then do:
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-field.i mgcex embarque-imp cdn-corretor-import 1}
+            create tt-bo-erro.
+            ASSIGN tt-bo-erro.parametros = RETURN-VALUE.
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input return-value).
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = return-value.
+        end.
+        find emitente 
+            where emitente.cod-emitente = rowObject.cdn-corretor-import no-lock no-error.
+        if avail emitente then do:                
+            {cdp/cd2502.i} /* Se È fornecedor ou ambos */
+        end.    
+    end.
+    
+    IF  i-pais-impto-usuario = 21 THEN DO:
+
+        /*Valida Emitente de ISD*/
+        FIND FIRST embarq-imp-internac NO-LOCK
+            WHERE embarq-imp-internac.cod-estabel = rowObject.cod-estabel
+            AND   embarq-imp-internac.embarque    = rowObject.embarque NO-ERROR.
+        if  avail embarq-imp-internac
+        and embarq-imp-internac.cdn-emitente-saida-div <> 0
+        AND NOT CAN-FIND(FIRST emitente
+                         WHERE emitente.cod-emitente = embarq-imp-internac.cdn-emitente-saida-div) THEN DO:
+
+            assign i-seq-erro = i-seq-erro + 1.
+            {utp/ut-liter.i Emitente_ISD *}
+            run utp/ut-msgs.p (input "msg":U,
+                               input 2,
+                               input RETURN-VALUE).
+            create tt-bo-erro.
+            assign tt-bo-erro.i-sequen = i-seq-erro
+                   tt-bo-erro.cd-erro  = 2
+                   tt-bo-erro.mensagem = RETURN-VALUE.
+        END.
+    END.
+
+end procedure.
+
+procedure RetornaMoedaValor:
+    def input  parameter c-embarque      like historico-embarque.embarque    no-undo.
+    def input  parameter c-cod-estabel   like historico-embarque.cod-estabel no-undo.
+    def output parameter de-valor        like cotacao-item.preco-unit        no-undo.
+    def output parameter i-moeda         like moeda.mo-codigo                no-undo.
+
+    assign de-valor = 0.
+
+    for first embarque-imp fields(cod-estabel embarque)
+        where embarque-imp.cod-estabel = c-cod-estabel
+        and   embarque-imp.embarque    = c-embarque no-lock :
+
+        for each ordens-embarque fields(numero-ordem quantidade qt-do-forn)
+            where ordens-embarque.cod-estabel = embarque-imp.cod-estabel
+              and ordens-embarque.embarque    = embarque-imp.embarque no-lock:
+            
+            ASSIGN de-unit = 0.
+            for first ordem-compra
+                where ordem-compra.numero-ordem = ordens-embarque.numero-ordem no-lock:
+                find cotacao-item
+                    where cotacao-item.numero-ordem = ordem-compra.numero-ordem
+                      and cotacao-item.it-codigo    = ordem-compra.it-codigo
+                      and cotacao-item.cod-emitente = ordem-compra.cod-emitente
+                      and cotacao-item.cot-aprovada = yes no-lock no-error.
+                if avail cotacao-item then
+                    assign de-unit = (cotacao-item.pre-unit-for * 100) / (100 + cotacao-item.aliquota-ipi)
+                           i-moeda = cotacao-item.mo-codigo.
+                else 
+                    assign i-moeda = ordem-compra.mo-codigo.
+            end.
+            assign de-valor = de-valor + (ordens-embarque.qt-do-forn * de-unit).
+
+        end.
+    end.
+
+end procedure.
+
+procedure validateCodigo:
+/*
+** Valida o formato e o tipo de dado que esta sendo informado.
+*/
+    def input-output parameter c-cod-despachante as char no-undo.
+    def input-output parameter c-cod-transp      as char no-undo.
+    def input-output parameter c-cod-banco       as char no-undo.
+    def output parameter table for tt-bo-erro.
+
+    def var i-teste as integer no-undo.
+
+    assign i-teste = int(c-cod-despachante) no-error.
+    if  error-status:error then do:
+        assign i-seq-erro = i-seq-erro + 1
+               c-cod-despachante = "0".
+        {utp/ut-field.i mgcex embarque-imp cod-despachante 1}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 16963,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 16963
+               tt-bo-erro.mensagem     = return-value.
+    end.
+
+    assign i-teste = int(c-cod-transp) no-error.
+    if  error-status:error then do:
+        assign i-seq-erro = i-seq-erro + 1
+               c-cod-transp = "0".
+        {utp/ut-field.i mgcex embarque-imp cod-transportador 1}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 16963,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 16963
+               tt-bo-erro.mensagem     = return-value.
+    end.                              
+
+    assign i-teste = int(c-cod-banco) no-error.
+    if  error-status:error then do:
+        assign i-seq-erro = i-seq-erro + 1
+               c-cod-banco = "0".
+        {utp/ut-field.i mgcex embarque-imp cod-banco 1}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 16963,
+                           input return-value).
+        create tt-bo-erro.
+        assign tt-bo-erro.i-sequen     = i-seq-erro
+               tt-bo-erro.cd-erro      = 16963
+               tt-bo-erro.mensagem     = return-value.
+    end.    
+end procedure.    
+
+procedure getCharField:
+    define input parameter c-field as char.
+    define output parameter c-value as char.
+
+    case c-field:
+        when "cod-estabel":U then c-value = RowObject.cod-estabel. 
+        when "embarque":U then c-value = RowObject.embarque.
+        
+        &if "{&bf_cex_versao_ems}" >= "2.062" &then
+             &if "{&bf_dis_versao_ems}" >= "2.04" &then
+                    when "cod-conhecto-house":U then c-value = RowObject.cod-conhecto-house.
+                    when "cod-conhecto-master":U then c-value = RowObject.cod-conhecto-master.
+             &endif
+        &else
+                &if "{&bf_mat_versao_ems}" >= "2.05" &then
+                    when "cod-conhecto-house":U then c-value = RowObject.cod-conhecto-house.
+                    when "cod-conhecto-master":U then c-value = RowObject.cod-conhecto-master.
+                &else
+                    when "nr-conhecimento":U then c-value = RowObject.nr-conhecimento.
+                &endif
+        &endif
+        when "cod-incoterm":U then c-value = trim(RowObject.cod-incoterm).
+        when "licenca-import":U then c-value = RowObject.licenca-import.
+        when "declaracao-import":U then c-value = RowObject.declaracao-import.
+        when "nr-rof":U then c-value = RowObject.nr-rof.
+        when "carta-credito":U then c-value = RowObject.carta-credito.
+        when "narrativa":U  then c-value = RowObject.narrativa.
+        when "char-1":U then c-value = RowObject.char-1.
+        when "char-2":U then c-value = RowObject.char-2.
+        when "check-sum":U then c-value = RowObject.check-sum.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDecField:
+    define input  parameter c-field as char.
+    define output parameter c-value as decimal.
+
+    case c-field:
+        when "dec-1":U then c-value = RowObject.dec-1.
+        when "dec-2":U then c-value = RowObject.dec-2.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getIntField:
+    define input  parameter c-field as char.
+    define output parameter c-value as integer.
+
+    case c-field:
+        when "cod-despachante":U  then c-value = RowObject.cod-despachante.
+        when "cod-transportador":U then c-value = RowObject.cod-transportador.
+        when "cod-via-transp":U then c-value = RowObject.cod-via-transp.
+        when "cod-banco":U then c-value = RowObject.cod-banco.
+        when "situacao":U then c-value = RowObject.situacao.
+        when "int-1":U then c-value = RowObject.int-1.
+        when "int-2":U then c-value = RowObject.int-2.        
+        when "cdn-pto-despch":U then c-value = RowObject.cdn-pto-despch.
+        when "cdn-pto-embarq":U then c-value = RowObject.cdn-pto-embarq.
+        when "cdn-pto-desembar":U then c-value = RowObject.cdn-pto-desembar.
+        when "cdn-pto-chegad":U then c-value = RowObject.cdn-pto-chegad.
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getDateField:
+    define input  parameter c-field as char.
+    define output parameter c-value as date.
+
+    case c-field:   
+        when "data-DI":U then c-value = RowObject.data-DI.
+        when "data-1":U then c-value = RowObject.data-1.
+        when "data-2":U then c-value = RowObject.data-2.        
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure getLogField:
+    define input  parameter c-field as char.
+    define output parameter c-value as logical.
+
+    case c-field:
+        when "contabilizado":U then c-value = RowObject.contabilizado.
+        when "log-embarq-transf-draw":U then c-value = RowObject.log-embarq-transf-draw.
+        when "log-1":U then c-value = RowObject.log-1.
+        when "log-2":U then c-value = RowObject.log-2.        
+        otherwise return error.
+    end case.
+end procedure.
+
+procedure returnProcesso:
+def input  parameter c-cod-estabel  like estabelec.cod-estabel no-undo.
+def input  parameter c-embarque     like embarque-imp.embarque no-undo.
+def output parameter i-cod-emitente like emitente.cod-emitente no-undo.
+def output parameter c-nome-abrev   like emitente.nome-abrev   no-undo.
+def output parameter c-estab-fisc   like estabelec.cod-estabel no-undo.
+
+find first ordens-embarque 
+    where ordens-embarque.cod-estabel = c-cod-estabel 
+      and ordens-embarque.embarque    = c-embarque no-lock no-error.
+if avail ordens-embarque then do:
+    find processo-imp 
+        where processo-imp.cod-estabel = ordens-embarque.cod-estabel 
+          and processo-imp.nr-proc-imp = ordens-embarque.nr-proc-imp no-lock no-error.
+    if avail processo-imp then do:
+        assign i-cod-emitente = processo-imp.cod-exportador
+               c-estab-fisc   = processo-imp.estab-fisc.
+        find emitente
+            where emitente.cod-emitente = i-cod-emitente no-lock no-error.
+        if avail emitente then
+            assign c-nome-abrev = emitente.nome-abrev.
+    end.    
+end.
+
+end procedure.
+
+procedure pi-cria-documentos:
+    def input  parameter p-cod-estabel as  character no-undo.
+    def input  parameter p-nr-embarque as  character no-undo.
+    def input  parameter p-dt-trans    as  date      no-undo.
+    def output parameter table         for tt-documentos.
+
+    def var h-bocx295 as handle no-undo.    
+
+    &if defined(BF_FIN_MODUL_CAMBIO) &then
+        find first param-global no-lock no-error.
+        if param-global.modulo-mec = yes then do:
+            find first embarque-imp no-lock
+                 where embarque-imp.cod-estabel = p-cod-estabel
+                 and   embarque-imp.embarque    = p-nr-embarque no-error.
+            if avail embarque-imp then do:
+                /*** Busca Invoice's ***/
+                run cxbo/bocx295.p persistent set h-bocx295.
+                run pi-busca-documentos in h-bocx295 (input  embarque-imp.cod-estabel,
+                                                      input  embarque-imp.embarque,
+                                                      input  p-dt-trans,
+                                                      output table tt-documentos).
+                delete procedure h-bocx295.
+
+                /*** Cria Documentos ***/
+                
+                &if "{&bf_cex_versao_ems}" >= "2.062" &then
+                     &if "{&bf_dis_versao_ems}" >= "2.04" &then
+                            if embarque-imp.cod-conhecto-house <> "":U then do:
+                                create tt-documentos.
+                                assign tt-documentos.nr-documento = embarque-imp.cod-conhecto-house
+                                       tt-documentos.tipo         = 4
+                                       tt-documentos.dt-trans     = p-dt-trans.
+                            end.
+                            if embarque-imp.cod-conhecto-master <> "":U then do:
+                                create tt-documentos.
+                                assign tt-documentos.nr-documento = embarque-imp.cod-conhecto-master
+                                       tt-documentos.tipo         = 4
+                                       tt-documentos.dt-trans     = p-dt-trans.
+                            end.
+                     &endif
+                &else
+                        &if "{&bf_mat_versao_ems}" >= "2.05" &then
+                            if embarque-imp.cod-conhecto-house <> "":U then do:
+                                create tt-documentos.
+                                assign tt-documentos.nr-documento = embarque-imp.cod-conhecto-house
+                                       tt-documentos.tipo         = 4
+                                       tt-documentos.dt-trans     = p-dt-trans.
+                            end.
+                            if embarque-imp.cod-conhecto-master <> "":U then do:
+                                create tt-documentos.
+                                assign tt-documentos.nr-documento = embarque-imp.cod-conhecto-master
+                                       tt-documentos.tipo         = 4
+                                       tt-documentos.dt-trans     = p-dt-trans.
+                            end.
+                        &else
+                            if embarque-imp.nr-conhecimento <> "":U then do:
+                                create tt-documentos.
+                                assign tt-documentos.nr-documento = embarque-imp.nr-conhecimento
+                                       tt-documentos.tipo         = 4
+                                       tt-documentos.dt-trans     = p-dt-trans.
+                            end.
+                        &endif
+                &endif
+                if embarque-imp.nr-rof <> "":U then do:
+                    create tt-documentos.
+                    assign tt-documentos.nr-documento = embarque-imp.nr-rof
+                           tt-documentos.tipo         = 7
+                           tt-documentos.dt-trans     = p-dt-trans.
+                end.
+
+                if embarque-imp.declaracao-import <> "":U then do:
+                    create tt-documentos.
+                    assign tt-documentos.nr-documento = embarque-imp.declaracao-import
+                           tt-documentos.tipo         = 2
+                           tt-documentos.dt-trans     = p-dt-trans.
+                end.
+
+                if embarque-imp.licenca-import <> "":U then do:
+                    create tt-documentos.
+                    assign tt-documentos.nr-documento = embarque-imp.licenca-import
+                           tt-documentos.tipo         = 3
+                           tt-documentos.dt-trans     = p-dt-trans.
+                end.
+            end.    
+        end.
+    &endif
+
+    RETURN "OK":U.
+end procedure.
+
+procedure gravaMeioTransporte:
+    /* Grava na tabela embarque-imp, o meio de transporte informado no £ltimo
+    ** ponto de controle efetivado.  
+    ** Caso n∆o existam pontos efetivados, grava o primeiro meio de transporte 
+    ** que esteja associado a um ponto de controle do embarque
+    ** utiliza o campo substr(embarque-imp.char-1,1,20)
+    */
+
+    def input parameter p-cod-estabel like historico-embarque.cod-estabel    no-undo.
+    def input parameter p-embarque    like historico-embarque.embarque       no-undo.
+    def var c-meio-transporte-aux     as char format "x(20)" NO-UNDO.    
+    
+    {imp/im0045.i50} /* Include tratamento atributo livre */
+
+    find last historico-embarque where
+         historico-embarque.cod-estabel = p-cod-estabel and
+         historico-embarque.embarque    = p-embarque    and
+         historico-embarque.dt-efetiva <> ? no-lock no-error.
+
+    if  not avail historico-embarque then
+        for each historico-embarque fields (cod-estabel embarque id-meio-transp) where
+                 historico-embarque.cod-estabel = p-cod-estabel and
+                 historico-embarque.embarque    = p-embarque no-lock:
+
+            if  historico-embarque.id-meio-transp <> "" then do:
+                assign c-meio-transporte-aux = historico-embarque.id-meio-transp.
+                leave.
+            end.
+        end.
+    else
+        assign c-meio-transporte-aux = historico-embarque.id-meio-transp.
+
+    find embarque-imp where 
+         embarque-imp.cod-estabel = p-cod-estabel and
+         embarque-imp.embarque    = p-embarque exclusive-lock no-error.
+    if  avail embarque-imp then do:
+        {cdp/cd4300.i4 "yes" embarque-imp.char-1}
+        {imp/im0045.i51 "yes"}
+
+        assign c-embarque-orig-i50 = c-embarque-orig-i50
+               c-meio-transporte = c-meio-transporte-aux.
+
+        {imp/im0045.i51 no}
+        {cdp/cd4300.i4  no embarque-imp.char-1}
+    end.
+    ASSIGN c-meio-transporte-aux = "".
+end procedure.
+
+procedure atualsitemb:
+    /* Procedure criada para atualizar a situacao do embarque, quando Ç eliminado o ultimo 
+    ** ponto de controle que n∆o est† efetiva, e alterar a situacao do embarque-imp para
+    ** Encerrado.
+    */
+    def input parameter p-cod-estabel like historico-embarque.cod-estabel no-undo.
+    def input parameter p-embarque    like historico-embarque.embarque    no-undo.
+
+    if not can-find(first historico-embarque 
+                        where historico-embarque.cod-estabel = p-cod-estabel 
+                          and historico-embarque.embarque    = p-embarque    
+                          and historico-embarque.dt-efetiva  = ?) then do:
+
+         find embarque-imp  where 
+                   embarque-imp.cod-estabel = p-cod-estabel and 
+                   embarque-imp.embarque    = p-embarque exclusive-lock no-error.
+         
+         if avail embarque-imp then
+             assign embarque-imp.situacao = 2.
+         else 
+             return "NOK":U.
+
+    end.
+    else 
+        return "NOK":U.
+
+    return "OK":U.
+end procedure.
+
+procedure alterasitembar:
+    /* Atualiza a situacao do embarque-imp, sempre que for incluido um novo
+    ** ponto de controle. 
+    */
+
+    def input parameter p-cod-estabel like historico-embarque.cod-estabel    no-undo.
+    def input parameter p-embarque    like historico-embarque.embarque       no-undo.
+
+    find first embarque-imp where
+               embarque-imp.cod-estabel = p-cod-estabel and
+               embarque-imp.embarque    = p-embarque exclusive-lock no-error.
+
+    if avail embarque-imp and
+       embarque-imp.situacao = 2 then
+       assign embarque-imp.situacao = 1.   
+    else return "NOK".
+
+end procedure.
+
+procedure cod-tax_default:
+    
+    &if "{&bf_mat_versao_ems}" >= "2.05" &then
+        define input  parameter p-new-cod-estabel like param-imp.cod-estabel.
+        define output parameter p-new-tax-perc like tipo-tax.tax-perc.
+    
+        run adbo/boad355.p persistent set h-boad355.
+        run pi-verificar-produto in h-boad355 (output v-pagar, output v-receber).
+        delete procedure h-boad355.
+    
+        /* Integraá∆o Modulo Importaá∆o */
+        run inbo/boin682.p persistent set h-boin682.
+        run openQueryStatic in h-boin682 ("Main").
+        run getFirst in h-boin682.
+        run getLogField in h-boin682 (input "modulo-mec", output l-modulo-mec).
+        delete procedure h-boin682.
+        assign h-boin682 = ?.
+
+        if (v-pagar = "EMS 5" and
+            v-receber = "EMS 5") and
+            l-modulo-mec then do:
+    
+             find first param-imp where
+                        param-imp.cod-estabel = p-new-cod-estabel no-lock no-error.
+             if avail param-imp then do:
+                 find first tipo-tax where
+                            tipo-tax.cod-tax = param-imp.cod-tax and
+                            tipo-tax.tipo = 1 no-lock no-error.
+                 if avail tipo-tax then
+                      assign p-new-tax-perc = tipo-tax.tax-perc.
+             end.
+        end.
+            
+    &endif
+end procedure.
+
+Procedure crianovoembarque:
+    define input  parameter p-new-embarque like embarque-imp.embarque.
+    define input  parameter v-rowid        as rowid.
+    define output parameter table          for RowObject.
+    define output parameter table          for tt-bo-erro.
+    define output parameter r-rowid        as  rowid.
+
+    def var c-cod-incoterm  as char no-undo.
+
+    {ccp/cc9019.i50} /* include tratamento atributo livre */
+
+    def var h-bocx225 as handle no-undo.
+    run cxbo/bocx225.p persistent set h-bocx225.
+
+    find first ordem-compra no-lock 
+         where rowid(ordem-compra) = v-rowid no-error.
+    if avail ordem-compra then
+    do:
+        for each RowObject:
+            delete RowObject.
+        end.
+
+        find first pedido-compr no-lock 
+             where pedido-compr.num-pedido  = ordem-compra.num-pedido
+             no-error.
+        if avail pedido-compr 
+        then do:
+            for each  cotacao-item fields(cotacao-item.cot-aprovada cotacao-item.char-1)
+                where cotacao-item.numero-ordem = ordem-compra.numero-ordem
+                and   cotacao-item.cod-emitente = pedido-compr.cod-emitente
+                no-lock:
+                &If defined(bf-mat-comex) &then
+                    assign c-cod-incoterm-i50  = substring(cotacao-item.char-1,8,3).
+                &else
+                    {cdp/cd4300.i4 "yes" cotacao-item.char-1}
+                    {ccp/cc9019.i51 "yes"}
+                &endif    
+            end.    
+            find processo-imp no-lock 
+                where processo-imp.num-pedido  = pedido-compr.num-pedido no-error.        
+            if avail processo-imp then
+            do:     
+                find first embarque-imp no-lock
+                     where embarque-imp.cod-estabel  = processo-imp.cod-estabel
+                     and   embarque-imp.embarque     = p-new-embarque no-error.
+                if not avail embarque-imp then do:    
+                    create RowObject.
+                    assign RowObject.cod-estabel         = processo-imp.cod-estabel
+                           RowObject.embarque            = p-new-embarque
+                           RowObject.cod-despachante     = processo-imp.cod-despachante 
+                           RowObject.cod-transportador   = processo-imp.cod-transportador 
+                           RowObject.cod-via-transp      = processo-imp.via-transp
+                           RowObject.licenca-import      = processo-imp.licenca-import
+                           RowObject.declaracao-import   = processo-imp.declaracao-import 
+                           RowObject.nr-rof              = processo-imp.nr-rof 
+                           RowObject.cod-banco           = processo-imp.cod-banco 
+                           RowObject.carta-credito       = processo-imp.carta-credito 
+                           RowObject.narrativa           = processo-imp.narrativa
+                           RowObject.situacao            = 1
+                           RowObject.contabilizado       = NO
+                           RowObject.cod-incoterm        = string(c-cod-incoterm-i50,"x(03)").
+
+                    run validateCreate(input  table RowObject,
+                                       output table tt-bo-erro,
+                                       output r-chave).
+                end.
+                else assign r-chave = rowid(embarque-imp).                                       
+                assign r-rowid = r-chave.                   
+            end.
+        end.    
+    end.
+    if valid-handle(h-bocx225) then do:
+        delete procedure h-bocx225.
+        assign h-bocx225 = ?.
+    end.
+end.
+
+procedure rowidembarque:
+    DEFINE INPUT  PARAMETER p-cod-estab like embarque-imp.cod-estabel.
+    DEFINE INPUT  PARAMETER p-embarque  like embarque-imp.embarque.
+    DEFINE OUTPUT PARAMETER p-rowid     as rowid.     
+
+    FIND FIRST embarque-imp no-lock
+         WHERE embarque-imp.cod-estabel = p-cod-estab
+         AND   embarque-imp.embarque    = p-embarque  NO-ERROR.
+    if avail   embarque-imp then 
+        assign p-rowid = rowid(embarque-imp).
+    else return "NOK".
+end.
+
+procedure trazembarque:
+    DEFINE INPUT  PARAMETER p-rowid     as rowid.
+    DEFINE OUTPUT PARAMETER p-cod-estab like embarque-imp.cod-estabel.
+    DEFINE OUTPUT PARAMETER p-embarque  like embarque-imp.embarque.
+    find first embarque-imp no-lock 
+         where rowid(embarque-imp) = p-rowid no-error.
+    if avail embarque-imp then
+    do:
+        assign p-cod-estab = embarque-imp.cod-estabel
+               p-embarque  = embarque-imp.embarque. 
+    end.
+end.
+procedure findPk_codigo_byDi:
+    /*
+    **  Procura pelo indice, e verifica se esta vinculado a uma DI
+    **  caso nao ache,
+    **  retorna mensagem de erro padrao do EMS.
+    */
+    def input  parameter c-cod-estabel like estabelec.cod-estabel no-undo.
+    def input  parameter c-embarque    like embarque-imp.embarque no-undo.
+    def output parameter c-return      as   char                  no-undo.
+
+    run startMethod("find":U).
+
+    find embarque-imp 
+        where embarque-imp.cod-estabel = c-cod-estabel 
+          and embarque-imp.embarque    = c-embarque no-lock no-error.
+    if not avail embarque-imp then do:
+        {utp/ut-table.i mgcex embarque-imp 1}
+        run utp/ut-msgs.p (input "msg":U,
+                           input 2,
+                           input return-value).
+        assign c-return = return-value.
+    end.
+    else do:    
+        find decla-import-embarq
+             where decla-import-embarq.cod-estab  = embarque-imp.cod-estabel
+             and   decla-import-embarq.cod-embarq = embarque-imp.embarque no-lock no-error.
+            if not avail embarque-imp then do:
+                /* Inicio -- Projeto Internacional */
+                {utp/ut-liter.i "Embarque_Declaraá∆o_Importaá∆o" *}
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 2,
+                                   input RETURN-VALUE).
+                assign c-return = return-value.
+            end.
+    end.
+
+    run endMethod("find":U).
+end procedure.
+
+procedure busca-dados-im0100:
+    def input  param p-embarque     like embarque-imp.embarque          no-undo.
+    def input  param p-cod-estabel  like estabelec.cod-estabel          no-undo.
+    def output param i-cod-emitente like processo-imp.cod-exportador    no-undo.
+    def output param c-estab-fisc   like processo-imp.estab-fisc        no-undo.
+    def output param c-ct-transit   like param-imp.ct-transit-import    no-undo. 
+    def output param c-sc-transit   like param-imp.sc-transit-import    no-undo. 
+    def output param c-decla-import like embarque-imp.declaracao-import no-undo. 
+    def output param d-dat-di       like embarque-imp.data-di           no-undo. 
+    
+    
+    /* buscar as informaá‰es com base no embarque e no estabelecimento informados */
+    /* carrega temptable espec°fica para zoom z04cx220 */
+    /* Somente embarques nao encerrados */
+    FOR EACH embarque-imp NO-LOCK USE-INDEX codigo
+        WHERE embarque-imp.embarque    = p-embarque
+        AND   embarque-imp.cod-estabel = p-cod-estabel:
+        
+        IF embarque-imp.situacao = 2 THEN NEXT. 
+    
+        FOR FIRST param-imp FIELDS(ct-transit-import sc-transit-import)
+            WHERE param-imp.cod-estabel = embarque-imp.cod-estabel NO-LOCK:
+        END.
+    
+        IF NOT AVAIL param-imp THEN NEXT.
+        
+        FIND FIRST historico-embarque WHERE
+                   historico-embarque.cod-estabel = embarque-imp.cod-estabel AND
+                   historico-embarque.embarque    = embarque-imp.embarque
+                   NO-LOCK NO-ERROR.
+    
+        IF NOT AVAIL historico-embarque THEN NEXT.
+        FIND itinerario WHERE
+             itinerario.cod-itiner = historico-embarque.cod-itiner
+             NO-LOCK NO-ERROR.
+    
+        IF NOT AVAIL itinerario THEN NEXT.
+        
+        RELEASE historico-embarque.
+        
+        FIND historico-embarque WHERE
+             historico-embarque.cod-estabel   = embarque-imp.cod-estabel AND
+             historico-embarque.embarque      = embarque-imp.embarque    AND
+             historico-embarque.cod-itiner    = itinerario.cod-itiner    AND
+             historico-embarque.cod-pto-contr = embarque-imp.cdn-pto-desembar
+             USE-INDEX pto-contr NO-LOCK NO-ERROR.
+        
+        IF NOT AVAIL historico-embarque THEN NEXT.
+        FIND FIRST ordens-embarque WHERE
+                   ordens-embarque.cod-estabel = embarque-imp.cod-estabel AND
+                   ordens-embarque.embarque    = embarque-imp.embarque    NO-LOCK NO-ERROR.
+             
+        IF  AVAIL ordens-embarque THEN DO:
+            FIND processo-imp WHERE
+                 processo-imp.cod-estabel = ordens-embarque.cod-estabel AND
+                 processo-imp.nr-proc-imp = ordens-embarque.nr-proc-imp 
+                 NO-LOCK NO-ERROR.
+            IF  AVAIL processo-imp THEN DO:
+                ASSIGN c-estab-fisc   = processo-imp.estab-fisc.
+                
+                FIND FIRST emitente WHERE
+                           emitente.cod-emitente = processo-imp.cod-exportador NO-LOCK NO-ERROR.
+                IF  AVAIL emitente THEN
+                    ASSIGN i-cod-emitente = processo-imp.cod-exportador.
+            END.
+        END.
+
+        assign c-ct-transit    = param-imp.ct-transit-import
+               c-sc-transit    = param-imp.sc-transit-import
+               c-decla-import  = embarque-imp.declaracao-import
+               d-dat-di        = embarque-imp.data-di.
+    end.
+    
+    return "OK":U.
+end procedure.
+
+procedure pi-retorna-embarque-relec:
+    DEFINE INPUT PARAMETER pcod-estabel LIKE embarque-imp.cod-estabel NO-UNDO.
+    DEFINE INPUT PARAMETER pembarque    LIKE embarque-imp.embarque    NO-UNDO.
+    DEFINE OUTPUT PARAMETER TABLE FOR tt-embarque-rel.
+    
+    DEFINE VARIABLE  c-embarque-pai        AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE  c-estabelecimento-pai AS CHARACTER   NO-UNDO.
+
+    FOR FIRST embarque-imp NO-LOCK
+        WHERE embarque-imp.cod-estabel = pcod-estabel
+          AND embarque-imp.embarque = pembarque:
+        
+        IF TRIM(substring(embarque-imp.char-1,21,20)) <> "":U THEN DO: /* Embarque Filho */
+            ASSIGN c-embarque-pai = TRIM(substring(embarque-imp.char-1,21,20)).
+        END.
+        ELSE DO: /* Embarque Pai */
+            ASSIGN c-embarque-pai = embarque-imp.embarque.
+        END.
+        ASSIGN c-estabelecimento-pai = embarque-imp.cod-estabel.
+        
+        CREATE tt-embarque-rel.
+        ASSIGN tt-embarque-rel.embarque = c-embarque-pai
+               tt-embarque-rel.cod-estabel = c-estabelecimento-pai.
+        
+       /* cria registro para filhos*/
+       FOR EACH b-embarque-imp FIELDS(char-1 cod-estabel embarque)
+          WHERE TRIM(substring(b-embarque-imp.char-1,21,20)) = c-embarque-pai
+            AND b-embarque-imp.cod-estabel = c-estabelecimento-pai:
+           IF NOT CAN-FIND(FIRST tt-embarque-rel
+                           WHERE tt-embarque-rel.embarque = b-embarque-imp.embarque
+                             AND tt-embarque-rel.cod-estabel = b-embarque-imp.cod-estabel) THEN DO:
+               CREATE tt-embarque-rel.
+               ASSIGN tt-embarque-rel.embarque      = b-embarque-imp.embarque
+                      tt-embarque-rel.cod-estabel   = b-embarque-imp.cod-estabel
+                      tt-embarque-rel.embarque-orig = c-embarque-pai.
+          END.
+       END.
+    END.
+    
+    return "OK":U.
+end procedure.
+
+procedure pi-busca-embarque-origem:
+    define input parameter pcod-estabel    as char no-undo.
+    define input parameter pembarque       as char no-undo.
+    define output parameter pembarque-orig as char no-undo.
+   
+    FOR FIRST embarque-imp NO-LOCK
+        WHERE embarque-imp.cod-estabel = pcod-estabel
+          AND embarque-imp.embarque = pembarque:
+        
+        IF TRIM(substring(embarque-imp.char-1,21,20)) <> "":U THEN DO: /* Embarque Filho */
+            ASSIGN pembarque-orig = TRIM(substring(embarque-imp.char-1,21,20)).
+        END.
+        ELSE DO: /* Embarque Pai */
+            ASSIGN pembarque-orig = "":U.
+        END.
+    END.
+    
+    return "OK":U.
+end procedure.
+
+procedure piValidaDespachanteIFRIC:
+/*------------------------------------------------------------------------------
+  Purpose:     Valida despachante n∆o informado, pois ser† utilizado 
+               na vinculaá∆o das antecipaá‰es.
+  Parameters:  pcod-estabel     - C¢digo do estabelecimento (input)(character)
+               pc-embarque      - C¢digo do embarque (input)(character)
+               pcod-despachante - C¢digo do despachante (input)(integer)
+               RowErrors - Temp-table de erros (output)(temp-table)
+  Notes:       
+------------------------------------------------------------------------------*/
+    define input param pcod-estabel     like embarque-imp.cod-estabel     no-undo.
+    define input param pc-embarque      like embarque-imp.embarque        no-undo.
+    define input param pcod-despachante like embarque-imp.cod-despachante no-undo.
+    define output param table for RowErrors.
+    
+    define variable i-seq-row-error  as integer   no-undo.
+    define variable h-bocx00451      as handle    no-undo.
+    define variable l-possui-antecip as logical   no-undo.
+    DEFINE VARIABLE c-lb-despachante AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE c-lb-alt-despach AS CHARACTER NO-UNDO.
+                
+    empty temp-table RowErrors.
+    
+    /*Caso o despachante n∆o tenha sido informado 
+    avisa o usu†rio que a informaá∆o ser† utilizada na vinculaá∆o das antecipaá‰es*/
+    if pcod-despachante = 0 and 
+       can-find(first ordens-embarque
+                where ordens-embarque.cod-estabel = pcod-estabel
+                  and ordens-embarque.embarque    = pc-embarque) then do:
+        
+        assign i-seq-row-error = i-seq-row-error + 1.
+        create RowErrors.
+        
+        run utp/ut-msgs.p (input "msg":U,
+                           input 55822,
+                           input "":U).
+                   
+        assign RowErrors.ErrorSequence = i-seq-row-error
+               RowErrors.ErrorNumber   = 55822
+               RowErrors.ErrorSubType = "WARNING":U
+               RowErrors.ErrorDescription  = return-value.
+               
+         run utp/ut-msgs.p (input "help":U,
+                           input 55822,
+                           input "":U).
+         assign RowErrors.ErrorHelp  = return-value.
+         
+    end.
+    /*Se funá∆o IFRIC estiver ativa e despachante for alterado
+      verifica se h† antecipaá∆o para o despachante. Se existir n∆o permite alteraá∆o*/
+    for first bf-embarque-imp fields(cod-despachante)
+        where bf-embarque-imp.cod-estabel = pcod-estabel 
+          and bf-embarque-imp.embarque    = pc-embarque no-lock:
+        
+        if bf-embarque-imp.cod-despachante <> pcod-despachante then do:
+            run cxbo/bocx00451.p persistent set h-bocx00451.
+            run piVerificaAntecipFornec in h-bocx00451 (input rowObject.cod-estabel,
+                                                        input rowObject.embarque,
+                                                        input bf-embarque-imp.cod-despachante,
+                                                        output l-possui-antecip).
+            delete procedure h-bocx00451.
+            assign h-bocx00451 = ?.
+            
+            if l-possui-antecip then do:
+                assign i-seq-row-error = i-seq-row-error + 1.
+                
+                {utp/ut-liter.i "despachante"}
+                ASSIGN c-lb-despachante = TRIM(RETURN-VALUE).
+                
+                {utp/ut-liter.i "alterar_o_despachante"}
+                ASSIGN c-lb-alt-despach = TRIM(RETURN-VALUE).
+                 
+                run utp/ut-msgs.p (input "msg":U,
+                                   input 55823,
+                                   input c-lb-despachante + "~~":U + c-lb-alt-despach).
+                                   
+                create RowErrors.
+                assign RowErrors.ErrorSequence = i-seq-row-error
+                       RowErrors.ErrorNumber   = 55823
+                       RowErrors.ErrorSubType = "ERROR":U
+                       RowErrors.ErrorDescription  = trim(return-value).
+                 
+                 run utp/ut-msgs.p (input "help":U,
+                                   input 55823,
+                                   input c-lb-despachante + "~~":U + c-lb-alt-despach).
+                 assign RowErrors.ErrorHelp  = trim(return-value).
+            end.
+        end.
+    end.
+        
+    return "OK":U.
+
+end procedure.
+
+procedure piValidaDespachanteSalvoIFRIC:
+/*------------------------------------------------------------------------------
+  Purpose:     Valida despachante j† salvo no registro do embarque 
+               na vinculaá∆o das antecipaá‰es.
+  Parameters:  pcod-estabel     - C¢digo do estabelecimento (input)(character)
+               pc-embarque      - C¢digo do embarque (input)(character)
+               RowErrors - Temp-table de erros (output)(temp-table)
+  Notes:       
+------------------------------------------------------------------------------*/
+   define input param pcod-estabel     like embarque-imp.cod-estabel     no-undo.
+   define input param pc-embarque      like embarque-imp.embarque        no-undo.
+   define output param table for RowErrors.
+    
+   for first bf-embarque-imp fields(cod-despachante)
+        where bf-embarque-imp.cod-estabel = pcod-estabel 
+          and bf-embarque-imp.embarque    = pc-embarque no-lock:
+        run piValidaDespachanteIFRIC (input pcod-estabel,
+                                      input pc-embarque,
+                                      input bf-embarque-imp.cod-despachante,
+                                      output table RowErrors).
+   end.
+   
+
+return "OK":U.
+
+end procedure.

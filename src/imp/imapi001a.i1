@@ -1,0 +1,189 @@
+/*****************************************************************************
+**
+**  IMAPI001A.i1 - API do m¢dulo de Importacao
+**
+**  Objetivo: Criacao automatica das despesas para a cotacao do item das
+**            despesas com tipo 8 - Formula 
+** 
+******************************************************************************/
+{cdp/cdcfgmat.i} /* Pr‚-processador de importa‡Æo */
+
+{imp/imapi001.i}  /** Definicoes das temp-tables **/
+{imp/imapi001a.i} /** Definicoes das temp-tables **/
+&if '{&bf_mat_versao_ems}' >= '2.062' &then
+    {cdp/cdapi020.i}
+    {imp/imapi006.i}  /** defini‡äes de temp-tables  **/
+&endif
+
+def input parameter table for tt-parametros-im001.
+def input-output parameter table for tt-despesas-im001.
+def input parameter table for tt-cotacao-im001.
+def input parameter table for tt-emitente-im001.
+&if '{&bf_mat_versao_ems}' >= '2.062' &then
+    def input parameter table for tt-desp-vinc.
+&endif
+def output parameter table for tt-erro-im001.
+
+def var i-seq      as integer        no-undo.
+def var i-seq-erro as integer init 0 no-undo.
+def var i          as integer        no-undo.
+
+&if '{&bf_mat_versao_ems}' >= '2.062' &then
+    def var c-fornec-desp      like desp-itiner.cod-emitente no-undo.
+    def var c-nr-tab           like desp-tb-pr-cex.nr-tab    no-undo.
+    def var l-desp-infl-outras as logical                    no-undo.
+&endif
+
+find last tt-despesas-im001 no-error.
+if avail tt-despesas-im001 then 
+    assign i-seq = tt-despesas-im001.seq.
+    
+find first tt-cotacao-im001    no-error.    
+find first tt-emitente-im001   no-error.
+find last tt-parametros-im001 no-error.
+
+if tt-parametros-im001.cod-versao-integracao <> 2 then do:
+    assign i-seq-erro = i-seq-erro + 1.
+    run utp/ut-msgs.p (input "msg",
+                       input 3941,
+                       input "").
+    create tt-erro-im001.
+    assign tt-erro-im001.i-sequen = i-seq-erro
+           tt-erro-im001.cd-erro  = 3941
+           tt-erro-im001.mensagem = return-value.
+    return.
+end.
+if avail tt-parametros-im001 and tt-parametros-im001.primeira-vez then do:
+    for each tt-pendentes-001:
+        delete tt-pendentes-001. 
+    end.
+end.
+
+&if '{&bf_mat_versao_ems}' >= '2.062' &then
+    /* Verifica as Despesas influenciadoras criadas pela include imapi001.i3 */
+    for each tt-desp-vinc where
+        tt-desp-vinc.cod-desp = tt-parametros-im001.cod-desp:
+&else    
+    /* Verifica as Despesas influenciadoras */
+    for each form-desp-imp no-lock
+       where form-desp-imp.cod-desp = tt-parametros-im001.cod-desp
+         and not can-find(first tt-erro-im001):
+&endif
+
+    assign i = 1.
+    
+    &if '{&bf_mat_versao_ems}' < '2.062' &then
+    do while i <= 5 /*and not can-find(first tt-erro-im001)*/:
+    &endif        
+    
+        /* Verifica a desp-imp conforme a despesa influenciadora */
+        &if '{&bf_mat_versao_ems}' >= '2.062' &then
+            find first desp-imp where desp-imp.cod-desp = tt-desp-vinc.cod-desp-form no-lock no-error.
+        &else
+            find desp-imp where desp-imp.cod-desp = form-desp-imp.cod-desp-form[i] no-lock no-error.
+        &endif
+            
+        if  avail desp-imp then do:
+            find first tt-despesas-im001 where tt-despesas-im001.cod-desp = desp-imp.cod-desp no-error.
+            
+            &if '{&bf_mat_versao_ems}' >= '2.062' &then
+                run getFornecTabela (input  desp-imp.cod-desp,
+                                     input  tt-cotacao-im001.cod-itiner,
+                                     input  tt-cotacao-im001.cod-incoterm,
+                                     output c-fornec-desp,
+                                     output c-nr-tab,
+                                     output l-desp-infl-outras,
+                                     output table tt-desp-vinc).
+            &endif
+            
+            &if '{&bf_mat_versao_ems}' >= '2.062' &then
+              /* Vari vel setada na include imapi001.i4 */
+              if  l-desp-infl-outras = yes then do:
+            &else
+              if  desp-imp.tipo = 8 then do:
+            &endif
+            
+                if can-find(first tt-pendentes-001 where tt-pendentes-001.cod-desp = desp-imp.cod-desp) then do:
+                    assign i-seq-erro = i-seq-erro + 1.
+                    create tt-erro-im001.
+                    assign tt-erro-im001.parametros = string(desp-imp.cod-desp).
+                    run utp/ut-msgs.p (input "msg",
+                                       input 17110,
+                                       input string(desp-imp.cod-desp)).
+                    assign tt-erro-im001.i-sequen     = i-seq-erro
+                           tt-erro-im001.cd-erro      = 17110
+                           tt-erro-im001.mensagem     = return-value.               
+                end.                              
+                else 
+                    if not avail tt-despesas-im001 then do:
+                    
+                        create tt-pendentes-001.
+                        assign tt-pendentes-001.cod-desp = desp-imp.cod-desp
+                               tt-pendentes-001.cod-orig = tt-parametros-im001.cod-desp.
+
+                        find last tt-parametros-im001  no-error.
+                        if available tt-parametros-im001 then
+                            assign tt-parametros-im001.primeira-vez = no
+                                   tt-parametros-im001.cod-desp     = desp-imp.cod-desp.
+                        run imp/imapi001a.p(input table tt-parametros-im001,
+                                            input-output table tt-despesas-im001,
+                                            input table tt-cotacao-im001,
+                                            input table tt-emitente-im001,
+                                            &if '{&bf_mat_versao_ems}' >= '2.062' &then
+                                                input table tt-desp-vinc, 
+                                            &endif    
+                                            output table tt-erro-im001).
+                        find tt-pendentes-001 where tt-pendentes-001.cod-desp = desp-imp.cod-desp.                        
+                        assign tt-parametros-im001.cod-desp = tt-pendentes-001.cod-orig.
+                        delete tt-pendentes-001.
+                        find last tt-despesas-im001 no-error.
+                        if avail tt-despesas-im001 then 
+                            assign i-seq = tt-despesas-im001.seq.                        
+                    end.
+            end.
+            else do:
+                if not avail tt-despesas-im001 then do:
+                    run createDespesa (input desp-imp.cod-desp,
+                                       input tt-parametros-im001.cod-pto-contr,
+                                       &if '{&bf_mat_versao_ems}' >= '2.062' &then
+                                          input tt-cotacao-im001.cod-itiner,     /* Itiner rio */
+                                          input tt-cotacao-im001.cod-incoterm,   /* Incoterm   */
+                                       &endif
+                                       input yes).
+                end.                 
+            end.
+        end.  
+        assign i = i + 1.    
+    &if '{&bf_mat_versao_ems}' < '2.062' &then
+    end.   
+    &endif    
+end.
+
+if not can-find(first tt-despesas-im001 where tt-despesas-im001.cod-desp = tt-parametros-im001.cod-desp) then do:
+
+    find last tt-despesas-im001 no-error.
+    if available tt-despesas-im001 then
+       assign i-seq = i-seq + 1.
+       
+    &if '{&bf_mat_versao_ems}' >= '2.062' &then
+        run getFornecTabela (input  tt-parametros-im001.cod-desp,
+                             input  tt-cotacao-im001.cod-itiner,
+                             input  tt-cotacao-im001.cod-incoterm,
+                             output c-fornec-desp,
+                             output c-nr-tab,
+                             output l-desp-infl-outras,
+                             output table tt-desp-vinc).
+    &endif
+    
+    create tt-despesas-im001.
+    assign tt-despesas-im001.seq           = i-seq
+           tt-despesas-im001.cod-desp      = tt-parametros-im001.cod-desp
+           &if '{&bf_mat_versao_ems}' >= '2.062' &then
+               tt-despesas-im001.cod-emitente  = c-fornec-desp
+               tt-despesas-im001.nr-tab        = c-nr-tab
+           &endif
+           tt-despesas-im001.cod-pto-contr = tt-parametros-im001.cod-pto-contr.
+end.
+
+{imp/imapi001.i2} /* Procedure Filtra Criacao Despesas - createDespesa */
+

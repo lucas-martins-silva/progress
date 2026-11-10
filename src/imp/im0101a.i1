@@ -1,0 +1,63 @@
+/*
+** IM0101A.I1 - Include respons vel pela busca do documento de entrada (im0100)
+** 
+*/
+
+    FIND FIRST natur-oper
+        WHERE natur-oper.nat-operacao = docum-est.nat-operacao NO-LOCK NO-ERROR.
+    IF NOT AVAIL natur-oper
+    OR ( AVAIL natur-oper AND natur-oper.nota-rateio) THEN NEXT.
+
+    /* Desconsidera notas fiscais que nao tenham embarque */
+    if  trim(substring(docum-est.char-1,1,20)) = "":U then next.
+    
+    /* Desconsidera notas fiscais de simples remessa mae */
+    IF docum-est.idi-nf-simples-remes = 1 AND (substring(docum-est.char-1,209,1) = "N" OR substring(docum-est.char-1,209,1) = "") THEN NEXT. 
+    
+    {cdp/cd4300.i4 "yes" docum-est.char-1}
+    {rep/re1001a.i51 "yes"}
+
+    if  c-embarque = embarque-imp.embarque then do:
+        assign l-docum = yes.
+        if  docum-est.ce-atual then do: 
+            assign l-docum-atual = yes.
+            /***********************************************************************/
+            FOR EACH  tt-epc WHERE tt-epc.cod-event = "Valida-docum-est":U:
+                DELETE tt-epc.
+            END.            
+                       
+             /* Criacao temp-table tt-epc */
+             create tt-epc.
+             assign tt-epc.cod-event     = "Valida-docum-est":U
+                    tt-epc.cod-parameter = "r-docum-est":U
+                    tt-epc.val-parameter = STRING(ROWID(docum-est)).
+                    
+             /* Chamada EPC */
+               {include/i-epc201.i "Valida-docum-est"}
+                 
+
+             find FIRST tt-epc WHERE 
+                        tt-epc.cod-event     = "Valida-docum-est"
+                    AND tt-epc.cod-parameter = "retorno-Valida-docum-est" no-error.
+                    
+                               
+             if avail tt-epc then next.
+
+            
+             for each tt-epc WHERE tt-epc.cod-event     = "Valida-docum-est":
+                  delete tt-epc.
+             end.     
+             /***********************************************************************/
+            create tt-docum-est-orig.
+            buffer-copy docum-est to tt-docum-est-orig.
+            assign tt-docum-est-orig.r-rowid = rowid(docum-est).
+        end.
+    end.
+
+    CREATE tt-docum-est-2.
+    ASSIGN tt-docum-est-2.serie-docto  = docum-est.serie-docto  
+           tt-docum-est-2.nro-docto    = docum-est.nro-docto    
+           tt-docum-est-2.cod-emitente = docum-est.cod-emitente 
+           tt-docum-est-2.nat-operacao = docum-est.nat-operacao 
+           tt-docum-est-2.embarque     = c-embarque.
+

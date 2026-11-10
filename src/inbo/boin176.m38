@@ -1,0 +1,159 @@
+
+PROCEDURE validateCreateRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes: Valida¯Êo somente para a cria¯Êo do item.      
+------------------------------------------------------------------------------*/
+
+    {method/svc/custom/custom.i &Event = "gravaContaContabil"}
+
+    /* Seta os defaults do item da nota */
+    run setDefaultsFields.
+
+    if  item.tipo-con-est = 4  /* Contr. Referencia */ 
+    and RowObject.cod-refer = "" then do:                     
+        {method/svc/errors/inserr.i                    
+                            &ErrorNumber="1399"        
+                            &ErrorType="EMS"           
+                            &ErrorSubType="ERROR"      
+                            &ErrorParameters=" "}      
+    end.                                               
+
+    /* Verifica exist¬ncia da sequ¬ncia */
+    find bf{&TableName}
+        where bf{&TableName}.serie-docto  = RowObject.serie-docto
+          and bf{&TableName}.nro-docto    = RowObject.nro-docto
+          and bf{&TableName}.cod-emitente = RowObject.cod-emitente
+          and bf{&TableName}.nat-operacao = RowObject.nat-operacao 
+          and bf{&TableName}.sequencia    = RowObject.sequencia
+        no-lock no-error.
+        
+
+    if  avail bf{&TableName} then do:        
+        /* Inicio -- Projeto Internacional */
+        DEFINE VARIABLE c-lbl-liter-sequencia-do-documento AS CHARACTER NO-UNDO.
+        {utp/ut-liter.i "Sequencia_do_Documento" *}
+        ASSIGN c-lbl-liter-sequencia-do-documento = TRIM(RETURN-VALUE).
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="1"
+                            &ErrorType="EMS"
+                            &ErrorSubType="ERROR"
+                            &ErrorParameters="c-lbl-liter-sequencia-do-documento" }
+    end.       
+
+    /* Valida Item */
+    
+    /* A leitura da tabela item-uni-estab esta na procedure setDefaultsEstoque */
+    if  avail item-uni-estab 
+    and item-uni-estab.cod-obsoleto = 4 then do:
+        {method/svc/errors/inserr.i
+                        &ErrorNumber="25983" /*Item esta obsoleto no estabelecimento */
+                        &ErrorType="EMS"
+                        &ErrorSubType="ERROR"
+                        &ErrorParameters="rowObject.it-codigo + '~~~~' + docum-est.cod-estabel"}
+    end.
+    
+    if  l-retorno then do:
+        
+
+        for first saldo-terc 
+            fields ( cod-emitente nro-docto serie-docto nat-operacao
+                     it-codigo    cod-refer sequencia )
+
+            where saldo-terc.cod-emitente = RowObject.cod-emitente  
+              and saldo-terc.nro-docto    = RowObject.nro-comp       
+              and saldo-terc.serie-docto  = RowObject.serie-comp  
+              and saldo-terc.nat-operacao = RowObject.nat-comp    
+              and saldo-terc.it-codigo    = RowObject.it-codigo   
+              and saldo-terc.cod-refer    = RowObject.cod-refer   
+              and saldo-terc.sequencia    = RowObject.seq-comp   
+              no-lock: end.
+    
+
+        if  not avail saldo-terc then do:
+            /* Inicio -- Projeto Internacional */
+            {utp/ut-table.i movind saldo-terc 1} /* Busca o label da tabela */
+            {method/svc/errors/inserr.i
+                                &ErrorNumber="2"
+                                &ErrorType="EMS"
+                                &ErrorSubType="ERROR" 
+                                &ErrorParameters=TRIM(RETURN-VALUE)}
+        end.
+    end.
+
+    if  can-find (first docum-est
+                  where docum-est.cod-emitente   = RowObject.cod-emitente
+                  and   docum-est.serie-docto    = RowObject.serie-docto
+                  and   docum-est.nro-docto      = RowObject.nro-docto
+                  and   docum-est.nat-operacao   = RowObject.nat-operacao
+                  and   docum-est.origem         <> "FT":U /* nÆo efetua valida‡Æo para notas do faturamento */
+                  and   docum-est.log-1 /*NF atualizada no Faturamento*/) then do:
+        {method/svc/errors/inserr.i
+                            &ErrorNumber="15950"
+                            &ErrorType="EMS":U
+                            &ErrorSubType="ERROR":U}
+    end.
+    
+    /* Valida se o dep¢sito for CQ e o item nÆo CQ, nÆo deixa prosseguir  */
+    FOR FIRST docum-est NO-LOCK
+        WHERE docum-est.cod-emitente   = RowObject.cod-emitente AND
+              docum-est.serie-docto    = RowObject.serie-docto  AND
+              docum-est.nro-docto      = RowObject.nro-docto    AND
+              docum-est.nat-operacao   = RowObject.nat-operacao: 
+        IF  CAN-FIND(FIRST item-uni-estab NO-LOCK
+                     WHERE item-uni-estab.it-codigo      = RowObject.it-codigo   AND
+                           item-uni-estab.cod-estabel    = docum-est.cod-estabel AND
+                           item-uni-estab.contr-qualid   = NO) AND
+            CAN-FIND(FIRST deposito NO-LOCK
+                     WHERE deposito.cod-depos = RowObject.cod-depos AND
+                           deposito.ind-dep-cq) THEN DO:
+                    {method/svc/errors/inserr.i
+                                        &ErrorNumber="57097"
+                                        &ErrorType="EMS"
+                                        &ErrorSubType="ERROR"}
+        END.
+    END.
+    
+    IF CAN-FIND(first item
+            WHERE item.it-codigo = RowObject.it-codigo 
+            AND item.tipo-con-est = 4) THEN DO: /* Controle de estoque ‚ por referencia */
+        IF NOT CAN-FIND(FIRST ref-item 
+                        WHERE ref-item.it-codigo = RowObject.it-codigo AND
+                              ref-item.cod-refer = RowObject.cod-refer) THEN DO: /* Referencia valida para o item */
+            {method/svc/errors/inserr.i
+                        &ErrorNumber="33928"
+                        &ErrorType="EMS":U
+                        &ErrorSubType="ERROR":U
+                        &ErrorParameters="RowObject.cod-refer + '~~~~' + RowObject.it-codigo"}
+
+        END.
+    END.
+    
+    /*Valida se fabricante foi informado quando HIS ativo e existirem fabricantes ativos para o item*/
+    if can-find(first funcao 
+                where funcao.cd-funcao = "spp-integra-ems-his":U
+                  and funcao.ativo) and
+    &IF "{&bf_mat_versao_ems}" >= "2.09" &THEN
+        RowObject.cdn-fabrican = 0 AND
+    &ELSE
+        (substring(RowObject.char-2,600,9) = "" or substring(RowObject.char-2,600,9) = "0") AND
+    &ENDIF
+    can-find (first fab-medic-item 
+              where fab-medic-item.cod-item = RowObject.it-codigo
+                and fab-medic-item.log-ativo)
+    AND NOT l-transf
+    AND (RowObject.numero-ordem > 0 OR
+         CAN-FIND(FIRST rat-ordem OF RowObject))
+    THEN DO:
+        {utp/ut-liter.i Fabricante *}
+        {method/svc/errors/inserr.i
+                        &ErrorNumber="3553"
+                        &ErrorType="EMS":U
+                        &ErrorSubType="ERROR":U
+                        &ErrorParameters="RETURN-VALUE"}
+    END.
+    
+    return "OK":U.
+
+END PROCEDURE.
