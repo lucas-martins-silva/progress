@@ -1,0 +1,513 @@
+
+<po-page-list
+	#poPageList
+	[p-title]="literals?.processQuotes"
+  [p-filter]="!hiddenList && filterSettings"
+  [p-disclaimer-group]="disclaimerGroup"
+  [p-actions]="actions">
+
+    <po-container
+      [p-no-border]="true"
+      [p-no-padding]="true"
+      style="position: relative;">
+
+      <po-table
+        name="quotation-table"
+        [p-columns]="tableQuotationsColumns"
+        [p-actions]="tableActions"
+        p-actions-right="true"
+        [p-items]="quotations"
+        p-container="border"
+        p-striped="true"
+        p-spacing="large"
+        p-selectable="true"
+        p-single-select="true"
+        p-hide-batch-actions="true"
+        [p-height]="poPageListHeight(50)"
+        (p-selected)="rowSelected($event)"
+      >
+      
+      <ng-template p-table-cell-template let-column="column" let-row="row" >
+      
+        <po-lookup
+          *ngIf="column.property === 'unitOfMeasure' && (row.status === 1 || row.status === 5) && checkRow(row)"
+          [(ngModel)]="row.unitOfMeasure"
+          p-field-label="unitOfMeasureDescription"
+          p-field-value="unitOfMeasure"
+          [p-columns]="columnsUnZoom"
+          [p-filter-service]="UNZoomService"
+          [p-filter-params]="{'itemCode': row.item, 'vendorCode': vendorId}"
+          [p-field-format]="fieldUnFormat"
+          p-hide-columns-manager="true"
+          p-auto-height="true">
+        </po-lookup>
+      
+        <p *ngIf="column.property === 'unitOfMeasure' && (checkRow(row, true) || (row.status !== 1 && row.status !== 5))">
+          {{row.unitOfMeasure}}
+        </p>
+        <po-decimal
+          *ngIf="column.property === 'vendorPrice' && (row.status === 1 || row.status === 5) && checkRow(row)"
+          [(ngModel)]="row.vendorPrice"
+          (p-blur)="calculeteVendorUnitPrice(column.property, row)"
+          p-mask-format-mode="true"
+          [p-mask]="'9.999.999,99'"
+          p-decimals-length="5">
+        </po-decimal>
+        <p *ngIf="column.property === 'vendorPrice'&& (checkRow(row, true) || (row.status !== 1 && row.status !== 5))">
+          {{row.vendorPrice | currency : ' ':'symbol':'1.5':'pt-BR' }}
+        </p>
+        <po-decimal
+          *ngIf="column.property === 'ipiPercent' && (row.status === 1 || row.status === 5) && checkRow(row)"
+          [(ngModel)]="row.ipiPercent"
+          (p-blur)="calculeteVendorUnitPrice(column.property, row)"
+          p-mask-format-mode="true"
+          p-mask="999,99"
+          p-thousand-maxlength="3">
+        </po-decimal>
+        <p *ngIf="column.property === 'ipiPercent' && (checkRow(row, true) || (row.status !== 1 && row.status !== 5))">
+          {{row.ipiPercent | currency : ' ':'symbol':'1.2':'pt-BR'}}
+        </p>
+        <po-decimal
+          *ngIf="column.property === 'icmsPercent' && (row.status === 1 || row.status === 5) && checkRow(row)"
+          [(ngModel)]="row.icmsPercent"
+          (p-blur)="calculeteVendorUnitPrice(column.property, row)"
+          p-mask-format-mode="true"
+          p-mask="9.999.999,99"
+          p-thousand-maxlength="3">
+        </po-decimal>
+        <p *ngIf="column.property === 'icmsPercent' && (checkRow(row, true) || (row.status !== 1 && row.status !== 5))">
+          {{row.icmsPercent | currency : ' ':'symbol':'1.2':'pt-BR'}}
+        </p>
+        <po-decimal
+          *ngIf="column.property === 'discountPerc' && (row.status === 1 || row.status === 5) && checkRow(row)"
+          [(ngModel)]="row.discountPerc"
+          (p-blur)="calculeteVendorUnitPrice(column.property, row)"
+          p-mask-format-mode="true"
+          p-mask="9.999.999,99"
+          p-thousand-maxlength="3">
+        </po-decimal>
+        <p *ngIf="column.property === 'discountPerc' && (checkRow(row, true) || (row.status !== 1 && row.status !== 5))">
+          {{row.discountPerc | currency : ' ':'symbol':'1.2':'pt-BR'}}
+        </p>
+        <po-decimal
+          *ngIf="column.property === 'finTaxValue' && (row.status === 1 || row.status === 5) && checkRow(row)"
+          [(ngModel)]="row.finTaxValue"
+          (p-blur)="calculeteVendorUnitPrice(column.property, row)"
+          p-mask-format-mode="true"
+          p-mask="9.999.999,99"
+          p-thousand-maxlength="3">
+        </po-decimal>
+        <p *ngIf="column.property === 'finTaxValue' && (checkRow(row, true) || (row.status !== 1 && row.status !== 5))">
+          {{row.finTaxValue | currency : ' ':'symbol':'1.2':'pt-BR'}}
+        </p>
+        <po-lookup
+          *ngIf="column.property === 'manufacturer' && (row.status === 1 || row.status === 5) && checkRow(row)"
+          [(ngModel)]="row.manufacturer"
+          p-field-label="manufacturerDescription"
+          p-field-value="manufacturerCode"
+          [p-columns]="columnsItemManufacturers"
+          [p-filter-service]="itemManufacturesZoomService"
+          [p-filter-params]="{'itemCode': row.item}"
+          p-hide-columns-manager="true"
+          p-auto-height="true">
+        </po-lookup>
+        <p *ngIf="column.property === 'manufacturer' && (checkRow(row, true) || (row.status !== 1 && row.status !== 5))">
+          {{row.manufacturer}}
+        </p>
+      </ng-template>
+      </po-table>
+
+      <po-loading-overlay
+        [hidden]="!quotationsIsLoading"
+        [p-screen-lock]="false">
+      </po-loading-overlay>
+    </po-container>
+    
+    <po-container
+      style="
+        position: absolute;
+        transform: translate(-50%,-100%);
+        width: calc(100% - 32px);
+        top: calc(100% - 18px);
+        left: 50%;"
+     [p-height]="poPageListHeight(40)" 
+     >
+      <po-tabs>
+        <po-tab
+          [p-label]="literals?.additionalInformation"
+          [p-active]="true">
+          
+          <po-container *ngIf="(quoteCodeForTheSelectedRow === '' && this.lastPurchase.vendor.length === 0)"
+            p-height="75"
+            style="--background: var(--color-primary-light-95); position: relative; bottom: -45px;">  
+              <h1 class="po-font-text-large notice" style="color: var(--color-brand-01-base);">
+                {{literals?.nothingSelected}}
+              </h1>
+          </po-container>
+
+          <po-dynamic-view
+            *ngIf="quoteCodeForTheSelectedRow !== '' && quotationsIsLoading === false"
+            [p-fields]="adictionalsValuesViewFild"
+            [p-value]="adictionalsValues">
+          </po-dynamic-view>
+
+        </po-tab>
+
+        <po-tab 
+          [p-label]="literals?.lastPurchaseVendor">
+          <po-container *ngIf="(quoteCodeForTheSelectedRow === '' && this.lastPurchase.vendor.length === 0) && lastPurchaseIsLoading === false"
+            p-height="75"
+            style="--background: var(--color-primary-light-95); position: relative; bottom: -45px;">  
+              <h1 class="po-font-text-large notice" style="color: var(--color-brand-01-base);">
+                {{literals?.nothingSelected}}
+              </h1>
+          </po-container>
+
+          <po-container *ngIf="(quoteCodeForTheSelectedRow !== '' && this.lastPurchase.vendor.length === 0) && lastPurchaseIsLoading === false"
+            p-height="75"
+            style="--background: var(--color-primary-light-95); position: relative; bottom: -45px;">  
+            <h1 class="po-font-text-large notice" style="color: var(--color-brand-01-base);">
+              {{literals?.noLastPurchases}}
+            </h1>
+          </po-container>
+
+          <po-table *ngIf="(this.lastPurchase.item.length !== 0) || lastPurchaseIsLoading === true"
+            name= "last-purchase-vendor"
+            p-spacing="Small"
+            [p-loading]="lastPurchaseIsLoading"
+            [p-columns]="tableLastPurchasesColumns"
+            [p-items]="lastPurchase.vendor"
+            [p-hide-columns-manager]="true">
+          </po-table>
+        </po-tab> 
+
+
+
+        <po-tab [p-label]="literals?.lastPurchaseItem"
+          [p-active]="false">
+          <po-container *ngIf="(quoteCodeForTheSelectedRow === '' && this.lastPurchase.item.length === 0)"
+            p-height="75"
+            style="--background: var(--color-primary-light-95); position: relative; bottom: -45px;">  
+              <h1 class="po-font-text-large notice" style="color: var(--color-brand-01-base);">
+                {{literals?.nothingSelected}}
+              </h1>
+          </po-container>
+
+          <po-container *ngIf="(quoteCodeForTheSelectedRow !== '' && this.lastPurchase.item.length === 0) && lastPurchaseIsLoading === false"
+            p-height="75"
+            style="--background: var(--color-primary-light-95); position: relative; bottom: -45px;">  
+            <h1 class="po-font-text-large notice" style="color: var(--color-brand-01-base);">
+              {{literals?.noLastPurchases}}
+            </h1>
+          </po-container>
+
+          <po-table *ngIf="(this.lastPurchase.item.length !== 0) || lastPurchaseIsLoading === true"
+            name= "last-purchase-item"
+            p-spacing="Small"
+            [p-loading]="lastPurchaseIsLoading"
+            [p-columns]="tableLastPurchasesColumns"
+            [p-items]="lastPurchase.item"
+            [p-hide-columns-manager]="true">
+          </po-table>
+        </po-tab>
+        
+        <po-tab *ngIf="lRTC" [p-label]="literals?.rtcTaxes">
+
+          <div class="po-row">
+            <div class="po-md-4">
+              <po-lookup
+                [p-label]="literals?.operationNature"
+                p-field-label="description"
+                p-field-value="code"
+                [p-columns]="columnsOperationNature"
+                [p-filter-service]="operationNatureZoomService"
+                p-hide-columns-manager="true"
+                p-auto-height="true">
+              </po-lookup>
+            </div>
+
+            <div class="po-md-8 po-text-right po-mt-3">
+              <po-button
+                [p-label]="literals?.calculateTaxes"
+                p-kind="primary"
+                (p-click)="calculateTaxes()">
+              </po-button>
+            </div>
+          </div>
+
+          <po-accordion>
+
+            <!-- CBS -->
+            <po-accordion-item p-label="CBS">
+              <div class="po-row">
+                <div class="po-md-2">
+                  <po-input
+                    p-label="Tributação"
+                    [(ngModel)]="rtcTaxes.cbs.tributacao"
+                    p-disabled="true">
+                  </po-input>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Base de Cálculo"
+                    [(ngModel)]="rtcTaxes.cbs.baseCalculo"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Alíquota"
+                    [(ngModel)]="rtcTaxes.cbs.aliquota">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="% Redução Alíquota"
+                    [(ngModel)]="rtcTaxes.cbs.reducaoAliquota">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Alíquota Efetiva"
+                    [(ngModel)]="rtcTaxes.cbs.aliquotaEfetiva">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Valor"
+                    [(ngModel)]="rtcTaxes.cbs.valor"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+              </div>
+            </po-accordion-item>
+
+            <!-- IBS UF -->
+            <po-accordion-item p-label="IBS UF">
+              <div class="po-row">
+                <div class="po-md-2">
+                  <po-input
+                    p-label="Tributação"
+                    [(ngModel)]="rtcTaxes.ibsUf.tributacao"
+                    p-disabled="true">
+                  </po-input>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Base de Cálculo"
+                    [(ngModel)]="rtcTaxes.ibsUf.baseCalculo"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Alíquota"
+                    [(ngModel)]="rtcTaxes.ibsUf.aliquota">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="% Redução Alíquota"
+                    [(ngModel)]="rtcTaxes.ibsUf.reducaoAliquota">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Alíquota Efetiva"
+                    [(ngModel)]="rtcTaxes.ibsUf.aliquotaEfetiva">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Valor"
+                    [(ngModel)]="rtcTaxes.ibsUf.valor"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+              </div>
+            </po-accordion-item>
+
+            <!-- IBS Mun -->
+            <po-accordion-item p-label="IBS Mun">
+              <div class="po-row">
+                <div class="po-md-2">
+                  <po-input
+                    p-label="Tributação"
+                    [(ngModel)]="rtcTaxes.ibsMun.tributacao"
+                    p-disabled="true">
+                  </po-input>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Base de Cálculo"
+                    [(ngModel)]="rtcTaxes.ibsMun.baseCalculo"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Alíquota"
+                    [(ngModel)]="rtcTaxes.ibsMun.aliquota">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="% Redução Alíquota"
+                    [(ngModel)]="rtcTaxes.ibsMun.reducaoAliquota">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Alíquota Efetiva"
+                    [(ngModel)]="rtcTaxes.ibsMun.aliquotaEfetiva">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Valor"
+                    [(ngModel)]="rtcTaxes.ibsMun.valor"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+              </div>
+            </po-accordion-item>
+
+            <!-- IS -->
+            <po-accordion-item p-label="IS">
+              <div class="po-row">
+                <div class="po-md-2">
+                  <po-input
+                    p-label="Tributação"
+                    [(ngModel)]="rtcTaxes.is.tributacao"
+                    p-disabled="true">
+                  </po-input>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Alíquota"
+                    [(ngModel)]="rtcTaxes.is.aliquota">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Aliq Espec Un"
+                    [(ngModel)]="rtcTaxes.is.aliqEspecUn">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Qtde Tributável"
+                    [(ngModel)]="rtcTaxes.is.qtdeTributavel">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-input
+                    p-label="Un Tributável"
+                    [(ngModel)]="rtcTaxes.is.unTributavel"
+                    p-disabled="true">
+                  </po-input>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Base de Cálculo"
+                    [(ngModel)]="rtcTaxes.is.baseCalculo"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+
+                <div class="po-md-2">
+                  <po-decimal
+                    p-label="Valor"
+                    [(ngModel)]="rtcTaxes.is.valor"
+                    p-disabled="true">
+                  </po-decimal>
+                </div>
+              </div>
+            </po-accordion-item>
+
+          </po-accordion>
+
+        </po-tab>
+
+      </po-tabs>
+    </po-container>
+
+</po-page-list>
+
+<app-quote-complement-modal 
+  #modalQuoteComplement 
+  [quotations]="quotationsToSave"
+  [vendor]="{vendorId: vendorId, vendorDescription: vendorLabel}"
+  (afterSave)="searchQuotation()">
+</app-quote-complement-modal>
+
+<po-modal 
+  #advancedFilterModal
+  p-click-out="false"
+  [p-title]="literals?.advancedSearch"
+  >
+
+  <form [formGroup]="advancedFilterForm">
+
+    <po-lookup
+      [p-label]="literals?.quotationProcess"
+      formControlName="quotationProcessId"
+      p-field-label="description"
+      p-field-value="quotationProcessNumber"
+      [p-columns]="columnsQuotationProcess"
+      [p-filter-service]="quotationProcessZoomService"      
+      p-hide-columns-manager="true"
+      p-auto-height="true"
+      [p-field-format]="fieldQuotationProcessIdFormat"
+      (p-change)="changeQuotationProcessIdZoom()"
+      (p-selected)="changeLabelParams($event, 'quotationProcessId')">
+    </po-lookup>
+
+    <po-lookup
+      [p-label]="literals?.supplier"
+      formControlName="vendorId"
+      p-field-label="name"
+      p-field-value="vendorId"
+      [p-columns]="columnsVendor"
+      [p-filter-service]="vendorZoomService"      
+      p-hide-columns-manager="true"
+      p-auto-height="true"
+      [p-filter-params]="{'processId': advancedFilterForm.controls['quotationProcessId'].value > 0 ? advancedFilterForm.controls['quotationProcessId'].value : quotationProcessId }"
+      [p-field-format]="fieldVendorIdFormat"
+      (p-selected)="changeLabelParams($event, 'vendorId')">
+    </po-lookup>
+
+    <po-switch 
+      [p-label]="literals?.onlyWithoutQuotation"
+      [p-label-off]="literals?.false"
+      [p-label-on]="literals?.true"
+      formControlName="onlyWithoutQuotation"      
+      > 
+    </po-switch>
+  </form>
+
+  <po-modal-footer [p-disabled-align]="false">
+    <po-button [p-label]="literals?.cancel" (click)="advancedFilterModal.close()" > </po-button>    
+    <po-button [p-label]="literals?.applyFilter" p-kind="primary" (click)="applyAdvancedFilter()"> </po-button>
+  </po-modal-footer>
+</po-modal>

@@ -1,0 +1,281 @@
+<po-loading-overlay *ngIf="isLoading" p-screen-lock="true"></po-loading-overlay>
+
+<po-modal #mainModal p-size="lg" [p-title]="literals?.quoteComplement">
+
+    <po-info
+        [p-label]="literals?.supplier"
+        [p-value]="vendor.vendorId + ' - ' + vendor.vendorDescription" >
+    </po-info>
+
+    <po-divider [p-label]="literals?.quotation"></po-divider>
+
+    <form [formGroup]="quotationForm">
+        <div class="po-row">
+            <po-decimal
+                class="po-md-6"
+                formControlName="validityDays"
+                [p-label]="literals?.validityDays"
+                p-mask-format-mode="true"
+                p-decimals-length="0"
+                p-thousand-maxlength="3"
+                >
+            </po-decimal>
+
+            <po-datepicker
+                class="po-md-6"
+                formControlName="quotationDate"
+                [p-label]="literals?.quotationDate"
+                (p-change)="changeCurrency('quotationDate')"
+            >
+            </po-datepicker>
+        </div>
+
+        <div class="po-row">
+            <po-lookup
+                class="po-md-6"
+                formControlName="currency"
+                [p-label]="literals?.currency"
+                p-field-label="descicao"
+                p-field-value="moCodigo"
+                [p-columns]="currencyZoomColumns"
+                [p-filter-service]="genericsZoomService"
+                [p-filter-params]="currencyFilter"
+                [p-field-format]="fieldCurrencyFormat"
+                p-hide-columns-manager="true"
+                p-auto-height="true"
+                (p-change)="changeCurrency('currency')">
+            </po-lookup>
+
+            <po-decimal
+                class="po-md-6"
+                formControlName="currencyQuotation"
+                [p-label]="literals?.currencyQuotation"
+                p-mask-format-mode="true"
+                p-decimals-length="2"
+                p-readonly="true"                
+                >
+            </po-decimal>
+
+        </div>
+
+        <div class="po-row">
+            <po-lookup  
+                class="po-md-8"
+                formControlName="vendorContact"
+                [p-label]="literals?.vendorContact"
+                p-field-label="sequencia"
+                p-field-value="nome"
+                [p-columns]="vendorContactZoomColumns"
+                [p-filter-service]="genericsZoomService"
+                [p-filter-params]="vendorContactFilter"
+                [p-field-format]="fieldVendorContactFormat"
+                p-hide-columns-manager="true"
+                p-auto-height="true">
+            </po-lookup>
+        </div>
+
+        <po-divider [p-label]="literals?.freight"></po-divider>
+
+        <div class="po-row">
+            <po-lookup  
+                class="po-md-8"
+                formControlName="carrier"
+                [p-label]="literals?.carrier"
+                p-field-label="nome"
+                p-field-value="codTransp"
+                [p-columns]="carrierZoomColumns"
+                [p-filter-service]="genericsZoomService"
+                [p-filter-params]="carrierFilter"
+                [p-field-format]="fieldCarrierFormat"
+                p-hide-columns-manager="true"
+                p-auto-height="true">
+            </po-lookup>
+
+            <po-decimal
+                class="po-md-4"
+                formControlName="deliveryTime"
+                [p-label]="literals?.deliveryTime"                
+                p-mask-format-mode="true"
+                p-decimals-length="0"
+                p-thousand-maxlength="3"
+                >
+            </po-decimal>
+        </div>
+
+        <div class="po-row">
+            <po-decimal
+                class="po-md-4"
+                formControlName="freightValue"
+                [p-label]="literals?.freightValue"
+                p-mask-format-mode="true"
+                [p-mask]="'9.999.999,99'"
+                p-decimals-length="5"
+                >
+            </po-decimal>
+
+            <po-switch
+                formControlName="freightIncluded"
+                [p-label]="literals?.freightIncluded"
+                [p-label-off]="literals?.false"
+                [p-label-on]="literals?.true"
+                > 
+            </po-switch>
+        </div>
+
+        <po-divider [p-label]="literals?.financialTax"></po-divider>
+
+        <div class="po-row">
+            <po-lookup  
+                class="po-md-8"
+                formControlName="paymentTerms"
+                [p-label]="literals?.paymentTerms"
+                p-field-label="descricao"
+                p-field-value="codCondPag"
+                [p-columns]="paymentTermsZoomColumns"
+                [p-filter-service]="genericsZoomService"
+                [p-filter-params]="paymentTermsFilter"
+                [p-field-format]="paymentTermsFormat"
+                p-hide-columns-manager="true"
+                p-auto-height="true"
+                [p-disabled]="isSpecificCond">
+            </po-lookup>
+
+            <po-switch
+                class="po-md-4"
+                formControlName="specificPaymentTerms"
+                (p-change)="specificPaymentTerms($event)"
+                [p-label]="literals?.specificPaymentTerms"
+                [p-label-on]="literals?.true"
+                [p-label-off]="literals?.false">
+            </po-switch>
+        </div>
+
+        <div class="po-row">
+            
+            <po-switch
+                class="po-md-4"
+                formControlName="financialRate"
+                [p-label]="literals?.financialRate"
+                [p-label-off]="literals?.false"
+                [p-label-on]="literals?.true"
+                [p-disabled]="!purchaseParameters?.utilizaTaxa"
+                > 
+            </po-switch>
+
+            <po-decimal
+                class="po-md-4"
+                formControlName="finTaxValue"
+                [p-label]="literals?.finTaxValue"
+                p-mask-format-mode="true"
+                [p-mask]="'9.999.999,99'"
+                p-decimals-length="2"
+                p-thousand-maxlength="6"
+                [p-disabled]="!quotationForm.controls['financialRate'].value"
+                >
+            </po-decimal>
+
+            <po-decimal
+                class="po-md-4"
+                formControlName="financialRateDays"
+                [p-label]="literals?.financialRateDays"
+                p-mask-format-mode="true"
+                p-decimals-length="0"
+                p-thousand-maxlength="3"
+                [p-disabled]="!quotationForm.controls['financialRate'].value"
+                >
+            </po-decimal>
+        </div>
+
+        <div class="po-row">
+            <po-switch
+                class="po-md-4"
+                formControlName="ipiIncluded"
+                [p-label]="literals?.ipiIncluded"
+                [p-label-off]="literals?.false"
+                [p-label-on]="literals?.true"
+                > 
+            </po-switch>
+
+            <po-radio-group
+                class="po-md-8"
+                formControlName="icmsType"
+                [p-label]="literals?.icmsType"
+                [p-options]="icmsOptions"
+                [p-disabled]="!purchaseParameters?.utilizaIcm"
+            >
+            </po-radio-group>
+        </div>
+
+        <po-divider [p-label]="literals?.quoteReadjustment"></po-divider>
+
+        <div class="po-row">
+            <po-switch
+                class="po-md-4"
+                formControlName="readjustQuotation"
+                [p-label]="literals?.readjustQuotation"
+                [p-label-off]="literals?.false"
+                [p-label-on]="literals?.true"
+                > 
+            </po-switch>
+
+            <po-datepicker
+                *ngIf="quotationForm.controls['readjustQuotation'].value"
+                class="po-md-6"
+                formControlName="priceBaseDate"
+                [p-label]="literals?.priceBaseDate"                
+            >
+            </po-datepicker>
+        </div>
+    </form>
+
+    <div class="po-row" *ngIf="quotationForm.controls['readjustQuotation'].value">
+        <po-button [p-label]="literals?.add" (p-click)="add()" p-kind="primary"> </po-button>
+    </div>
+
+    <div class="po-row" style="padding-top: 10px;" *ngIf="quotationForm.controls['readjustQuotation'].value">
+        <po-table
+            [p-columns]="tableColumns"
+            [p-items]="quotationReajustment"            
+            p-container="border"
+            p-striped="true"
+            p-spacing="large"
+            p-hide-columns-manager="true"
+            p-hide-batch-actions="true"
+            >
+            <ng-template p-table-cell-template let-column="column" let-row="row" >
+                <po-lookup
+                    *ngIf="column.property === 'currency'"
+                    [(ngModel)]="row.currency"
+                    p-field-label="currencyDescription"
+                    p-field-value="currencyCode"
+                    [p-columns]="currencyZoomColumnsReadjust"
+                    [p-filter-service]="currencyZoomService"
+                    [p-field-format]="fieldCurrencyFormatReadjust"
+                    p-hide-columns-manager="true"
+                    p-auto-height="true">
+                </po-lookup>
+
+                <po-datepicker
+                    *ngIf="column.property === 'indexDate'"
+                    [(ngModel)]="row.indexDate"
+                >
+                </po-datepicker>
+
+                <po-decimal
+                    *ngIf="column.property === 'percReadjustment'"
+                    [(ngModel)]="row.percReadjustment"
+                    p-mask-format-mode="true"
+                    p-decimals-length="0"
+                    p-thousand-maxlength="3"
+                    >
+                </po-decimal>
+
+            </ng-template>
+        </po-table>
+    </div>
+
+    <po-modal-footer [p-disabled-align]="false">
+        <po-button [p-label]="literals?.cancel" (p-click)="closeModal()"> </po-button>
+        <po-button p-kind="primary" [p-label]="literals?.save" (p-click)="save()" [p-disabled]="disableSave"> </po-button>
+    </po-modal-footer>
+</po-modal>

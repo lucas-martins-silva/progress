@@ -1,0 +1,40 @@
+* {
+    --color-white: #FFF;
+    --color-blue: #0c9abe;
+    --color-blue-hover: #2c85c8;
+    --color-red: #c64840;
+    --color-border-gray: #eceeee;
+    --color-gray-text: #4a5c60;
+    --color-gray-dark: #1D2426;
+    --color-background-gray: #fbfbfb;
+    --color-box-shadow: #eceeee;
+    --color-blue-transparency-30: #2daece4d;
+}
+
+.align-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.h-full-screen {
+	height: 100vh;
+}
+
+.link-container {
+	color: var(--color-blue);
+	font-weight: bold;
+}
+
+.link-container:hover {
+	color: var(--color-blue-hover);
+}
+
+.link-progress {
+	padding-left: .5%;
+}
+
+a {
+	cursor: pointer;
+}
