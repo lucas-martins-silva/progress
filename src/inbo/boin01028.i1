@@ -1,3 +1,0 @@
-DEFINE TEMP-TABLE {1} NO-UNDO LIKE solicit-cotac
-    FIELD situacao      AS INTEGER
-    FIELD des-situacao AS CHARACTER.

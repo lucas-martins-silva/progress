@@ -1,6 +1,0 @@
-
-    /**  Defini‡Æo da temp-table tt-mla-chave
-    **/
-    
-    def temp-table tt-mla-chave no-undo
-        field valor as char format "x(20)" extent 10.

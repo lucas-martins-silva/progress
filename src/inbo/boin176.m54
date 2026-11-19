@@ -1,6 +1,0 @@
-    DEFINE variable c-formato as char format "x(16)" no-undo. 
-    &if '{&bf_libera_15_posicoes}' = 'yes' &then             
-        assign c-formato = ">>>>>>>>9999999".                  
-    &else                                                    
-        assign c-formato = ">>>9999999".                     
-    &endif  

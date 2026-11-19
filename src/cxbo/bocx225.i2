@@ -1,8 +1,0 @@
-/*Parcela fixada (parcela nao sera re-planejada)*/
-if avail prazo-compra then
-find bfprazo-compra225 where
-    rowid(bfprazo-compra225) = rowid(prazo-compra)
-    exclusive-lock no-error.
-if avail bfprazo-compra225 then
-    assign bfprazo-compra225.int-2 = 2.
-release bfprazo-compra225.

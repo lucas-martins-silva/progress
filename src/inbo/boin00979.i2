@@ -1,9 +1,0 @@
-/* ***************************  Definitions  **************************** */
-
-DEFINE TEMP-TABLE tt-campo-layout 
-    FIELD cdn-campo-layout AS INTEGER   
-    FIELD descricao        AS CHARACTER  
-    FIELD tipo             AS INTEGER 
-    FIELD campo-descricao  AS CHARACTER
-    FIELD ordem            AS INTEGER  /*ordem para exibir as colunas no wizard*/
-    FIELD mostra           AS LOGICAL.

@@ -1,6 +1,0 @@
-DEFINE TEMP-TABLE ttSendedQuotationProcess NO-UNDO LIKE envio-solicit-cotac.
-
-DEFINE TEMP-TABLE ttItemSendedQuotationProcess NO-UNDO LIKE item-envio-solicit-cotac
-    FIELD nome-abrev    LIKE emitente.nome-abrev
-    FIELD nome-emit     LIKE emitente.nome-emit
-    FIELD cgc           LIKE emitente.cgc.

@@ -1,6 +1,0 @@
-{utp/ut-field.i mgind {&TABELA} {&CAMPO} 1}
-{method/svc/errors/inserr.i 
-                &ErrorNumber     = 31768 /*{&CAMPO} n∆o cadastrado */
-                &ErrorType       = "EMS"
-                &ErrorSubType    = "ERROR"
-                &ErrorParameters = return-value}

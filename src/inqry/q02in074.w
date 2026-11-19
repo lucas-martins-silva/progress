@@ -1,1 +1,0 @@
-/** Programa descontinuado nessa release **/

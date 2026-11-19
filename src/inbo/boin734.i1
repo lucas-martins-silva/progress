@@ -1,8 +1,0 @@
-if can-find(first {1} where {1}.cc-codigo    = rowObject.cc-codigo
-                        and {1}.cod-estabel  = rowObject.cod-estabel) then do:
-    {utp/ut-table.i {2} {1} 1}
-    {method/svc/errors/inserr.i &ErrorNumber="8699"
-                                &ErrorType="EMS"
-                                &ErrorSubType="ERROR"
-                                &ErrorParameters="c-ccusto + chr(32) + rowObject.cc-codigo + '~~~~' + return-value"}
-end.
